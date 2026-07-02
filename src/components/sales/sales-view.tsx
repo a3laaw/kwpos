@@ -59,7 +59,7 @@ export function SalesView() {
   const [categoryId, setCategoryId] = React.useState("")
   const [cart, setCart] = React.useState<CartItem[]>([])
   const [discount, setDiscount] = React.useState("0")
-  const [taxRate, setTaxRate] = React.useState("15")
+  const [taxRate, setTaxRate] = React.useState("0")
   const [paymentMethod, setPaymentMethod] = React.useState<"CASH" | "CARD" | "TRANSFER">("CASH")
   const [customerName, setCustomerName] = React.useState("")
   const [lastSale, setLastSale] = React.useState<Sale | null>(null)

@@ -6,6 +6,7 @@ import {
   Truck,
   Calculator,
   ReceiptText,
+  Plug,
 } from "lucide-react"
 
 export interface NavItem {
@@ -51,5 +52,11 @@ export const NAV_ITEMS: NavItem[] = [
     label: "الموردين",
     icon: Truck,
     description: "بيانات الموردين",
+  },
+  {
+    view: "integrations",
+    label: "التكاملات",
+    icon: Plug,
+    description: "ربط مع شوبيفاي وغيره",
   },
 ]

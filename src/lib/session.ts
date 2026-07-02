@@ -26,7 +26,7 @@ export const ROLE_PERMISSIONS: Record<Role, {
 }> = {
   ADMIN: {
     label: "مدير النظام",
-    views: ["dashboard", "inventory", "purchases", "suppliers", "sales", "invoices"],
+    views: ["dashboard", "inventory", "purchases", "suppliers", "sales", "invoices", "integrations"],
   },
   SALES: {
     label: "موظف مبيعات",

@@ -12,6 +12,7 @@ import { PurchasesView } from "@/components/purchases/purchases-view"
 import { SuppliersView } from "@/components/purchases/suppliers-view"
 import { SalesView } from "@/components/sales/sales-view"
 import { InvoicesView } from "@/components/sales/invoices-view"
+import { IntegrationsView } from "@/components/integrations/integrations-view"
 
 export interface SessionUser {
   id: string
@@ -56,6 +57,7 @@ export function AppShell({ user }: { user: SessionUser }) {
           {view === "suppliers" && <SuppliersView />}
           {view === "sales" && <SalesView />}
           {view === "invoices" && <InvoicesView />}
+          {view === "integrations" && <IntegrationsView />}
         </main>
         <footer className="mt-auto border-t border-border/70 bg-muted/30">
           <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">

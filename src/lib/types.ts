@@ -104,3 +104,4 @@ export type AppView =
   | "suppliers"
   | "sales"
   | "invoices"
+  | "integrations"
