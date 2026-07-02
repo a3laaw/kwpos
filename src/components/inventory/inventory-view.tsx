@@ -43,13 +43,13 @@ import {
   Filter,
   AlertTriangle,
 } from "lucide-react"
-import { useAppStore } from "@/lib/store"
+import { useUser } from "@/components/user-context"
 import { useProducts, useCategories, useDeleteProduct } from "@/hooks/use-api"
 import { formatCurrency, formatNumber } from "@/lib/format"
 import type { Product } from "@/lib/types"
 
 export function InventoryView() {
-  const user = useAppStore((s) => s.user)
+  const user = useUser()
   const [q, setQ] = React.useState("")
   const [categoryId, setCategoryId] = React.useState<string>("")
   const [lowStockOnly, setLowStockOnly] = React.useState(false)
@@ -66,7 +66,7 @@ export function InventoryView() {
   const { data: cats } = useCategories()
   const deleteMut = useDeleteProduct()
 
-  const canManage = user?.role === "ADMIN" || user?.role === "WAREHOUSE"
+  const canManage = user.role === "ADMIN" || user.role === "WAREHOUSE"
 
   const products = data?.items ?? []
 

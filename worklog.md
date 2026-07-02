@@ -97,3 +97,44 @@ Stage Summary:
 - DB stays as SQLite file at /home/z/my-project/db/custom.db (file-based, runs instantly). For multi-user production, switch DATABASE_URL to PostgreSQL/MySQL.
 - Kuwait fully applied (KWD/ar-KW, no VAT, Kuwaiti seed data).
 - Shopify integration ready — activates the moment the user adds their store domain + access token to .env and restarts.
+
+---
+Task ID: HYDRATION-FIX
+Agent: main
+Task: Fix Radix useId hydration mismatch on reload
+
+Root cause:
+- Zustand `persist` middleware hydrated the saved `view` (e.g. "inventory") from
+  localStorage SYNCHRONOUSLY during store creation on the client.
+- Server render used the default `view` ("dashboard") since localStorage is
+  unavailable server-side.
+- => client first render rendered a different component tree than the server
+  HTML, which shifted every subsequent Radix `useId` identifier
+  (radix-_R_27atplb_ vs radix-_R_8uatplb_) → React hydration mismatch error
+  on the Topbar DropdownMenu trigger.
+
+Fix:
+1. `src/lib/store.ts`: added `skipHydration: true` to the persist config so the
+   store starts with the default `view` on both server and client (matching
+   first render). Removed `user`/`setUser` from the store entirely.
+2. `src/components/app-shell.tsx`: call `useAppStore.persist.rehydrate()` inside
+   a `useEffect` so the persisted `view` is applied AFTER hydration completes
+   (safe post-hydration update, no mismatch).
+3. `src/components/user-context.tsx` (new): `UserProvider` + `useUser()` React
+   context populated from the server-rendered `user` prop. This gives views
+   synchronous access to the authenticated user (no `useEffect`/flash) and
+   removes the need to mirror the user in Zustand.
+4. Updated `inventory-view`, `purchases-view`, `suppliers-view` to use
+   `useUser()` instead of `useAppStore((s) => s.user)`; `user.role` is now
+   always defined (no more `?.`).
+
+Verification (Agent Browser):
+- Logged in, navigated to Inventory (persists view), reloaded → no hydration
+  error, page rendered correctly, persisted view re-applied after mount.
+- Same for POS and Dashboard.
+- `agent-browser errors` and `console` clean (no hydration/mismatch warnings).
+- ESLint clean.
+
+Stage Summary:
+- Hydration mismatch fully resolved. Persisted last-view navigation still works
+  (applied safely post-hydration). User role available synchronously in views.
