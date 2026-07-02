@@ -138,3 +138,50 @@ Verification (Agent Browser):
 Stage Summary:
 - Hydration mismatch fully resolved. Persisted last-view navigation still works
   (applied safely post-hydration). User role available synchronously in views.
+
+---
+Task ID: ACCOUNTING+CRM+ANALYTICS
+Agent: main
+Task: Build Module 1 (Accounting) + Module 2 (CRM & Analytics) with Shopify revenue ingestion
+
+DB schema additions (prisma/schema.prisma):
+- Account: code (unique), name, type (ASSET|LIABILITY|EQUITY|REVENUE|EXPENSE), parentId (self-ref "AccountTree"), balance, isSystem
+- ExpenseTransaction: type (SALARY|ADMIN), employeeName/payDate (salary), title/category/date (admin), amount, accountId (expense), paymentAccountId (asset credited), note
+- Customer: name, phone, address, timestamps
+
+Seed additions (POST /api/seed reset=true):
+- 6 simulated Shopify orders (tagged SHP-1001..1006, with Kuwaiti customer names) — feed P&L revenue + analytics.
+- Chart of Accounts hierarchy: 5 root types + 12 child accounts (Cash 1850, Bank 4200, Accounts Payable 320, Capital 5000, Sales Revenue, Shopify Revenue, Salaries/Rent/Utilities/Subscriptions/Marketing/Other Expense).
+- 8 expense transactions (3 salaries: 450+320+280; 5 admin: rent 250, utilities 65, shopify sub 18, marketing 40, office 12) — each transactionally updates account balances.
+- 8 CRM customers (Kuwaiti names + +965 phones + addresses).
+- Final counts: 20 sales, 17 accounts, 8 expenses, 8 customers.
+
+API routes (all new):
+- GET/POST /api/accounts (tree builder w/ recursive subtree totals; create with parent-type inheritance)
+- PUT/DELETE /api/accounts/[id] (system accounts + accounts w/ children/transactions protected)
+- GET/POST /api/expenses (POST runs in a transaction: create entry + debit expense account + credit payment asset)
+- DELETE /api/expenses/[id] (transactional reversal of balances)
+- GET/POST /api/customers (CRUD), PUT/DELETE /api/customers/[id]
+- GET /api/financial-reports (P&L: revenue from all sales incl SHP-, COGS from saleItems×costPrice, salaries+admin expenses, gross/net profit; date-range filter)
+- GET /api/analytics (5 widgets: top-selling by qty+volume, stagnant by turnover ratio, most-expensive/cheapest by cost, highest-margin by abs(sale-cost); date range for sales-based)
+
+Frontend views:
+- AccountingView (3 tabs): Chart of Accounts (collapsible tree w/ live balances, add root/child accounts), Expenses (Salary/Admin tabs form w/ OPTIMISTIC updates via qc.setQueryData + transactional list), P&L (headline net profit + full breakdown + expense-by-category bars).
+- CustomersView: search + CRUD table + modal forms.
+- AnalyticsView: date-range filter + 5 cards (top selling, stagnant, most/least expensive, highest margin) w/ progress bars & badges.
+- New nav items (العملاء، تحليلات المبيعات، المحاسبة) + role permissions (accounting admin-only; customers+analytics for admin+sales).
+
+Verification (Agent Browser):
+- Accounting → Chart of Accounts: 17 accounts render as tree with live balances (Assets 4615 KWD = Cash 1243 + Bank 3372 after expense deductions). ✓
+- Expenses: recorded a new salary "محمد التجريبي 200 KWD" — list updated INSTANTLY (optimistic) + toast success + no errors. ✓
+- P&L: Revenue 395.750 (incl Shopify), COGS 247.870, Gross 147.880, Salaries 1250 (incl new), Net -1487.120 — math correct. ✓
+- Customers: 8 seeded customers w/ names/phones/addresses render in table. ✓
+- Analytics: all 5 widgets render (top-selling: دفتر A4, أرز بسمتي; most expensive: مكنسة, طقم أواني). ✓
+- Mobile (iPhone 14): accounting tabs collapse to compact labels, layout responsive. ✓
+- Reload: NO hydration errors, sticky footer pushed below content (top 1753 > vh 577). ✓
+- ESLint clean, dev log clean.
+
+Stage Summary:
+- Both new modules fully functional and verified end-to-end.
+- Shopify revenue ingestion via simulated SHP- tagged sales (real Shopify sync already exists in /api/shopify/import-orders which creates SHP-<id> sales — same mechanism).
+- P&L pulls revenue from all sales (POS + Shopify), subtracts COGS + salaries + admin expenses → true net profit.

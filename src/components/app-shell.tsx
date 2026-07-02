@@ -13,6 +13,9 @@ import { SuppliersView } from "@/components/purchases/suppliers-view"
 import { SalesView } from "@/components/sales/sales-view"
 import { InvoicesView } from "@/components/sales/invoices-view"
 import { IntegrationsView } from "@/components/integrations/integrations-view"
+import { AccountingView } from "@/components/accounting/accounting-view"
+import { CustomersView } from "@/components/customers/customers-view"
+import { AnalyticsView } from "@/components/analytics/analytics-view"
 
 export type { SessionUser }
 
@@ -52,6 +55,9 @@ export function AppShell({ user }: { user: SessionUser }) {
             {view === "suppliers" && <SuppliersView />}
             {view === "sales" && <SalesView />}
             {view === "invoices" && <InvoicesView />}
+            {view === "customers" && <CustomersView />}
+            {view === "analytics" && <AnalyticsView />}
+            {view === "accounting" && <AccountingView />}
             {view === "integrations" && <IntegrationsView />}
           </main>
           <footer className="mt-auto border-t border-border/70 bg-muted/30">
