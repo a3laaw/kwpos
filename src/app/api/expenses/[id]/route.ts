@@ -16,16 +16,26 @@ export async function DELETE(
   const exp = await db.expenseTransaction.findUnique({ where: { id } })
   if (!exp) return NextResponse.json({ error: "not-found" }, { status: 404 })
 
-  // Reverse the balance effect then delete (transactional)
+  // Reverse the related journal entry (if any) + delete the expense.
+  // We delete the journal entry; its lines cascade, and we reverse the
+  // balance effect by posting a mirror entry... but simplest: delete the
+  // expense and its journal entry, then recompute affected account balances.
   await db.$transaction(async (tx) => {
-    await tx.account.update({
-      where: { id: exp.accountId },
-      data: { balance: { decrement: exp.amount } },
+    // Find the journal entry tied to this expense
+    const je = await tx.journalEntry.findFirst({
+      where: { sourceType: "EXPENSE", sourceId: id },
+      include: { lines: true },
     })
-    await tx.account.update({
-      where: { id: exp.paymentAccountId },
-      data: { balance: { increment: exp.amount } },
-    })
+    if (je) {
+      // Reverse balances: for each line, apply opposite sign
+      for (const line of je.lines) {
+        await tx.account.update({
+          where: { id: line.accountId },
+          data: { balance: { decrement: line.debit - line.credit } },
+        })
+      }
+      await tx.journalEntry.delete({ where: { id: je.id } })
+    }
     await tx.expenseTransaction.delete({ where: { id } })
   })
 

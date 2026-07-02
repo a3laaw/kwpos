@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { getCurrentUser } from "@/lib/session"
 import { serializeExpense } from "@/lib/serialize"
+import { createJournalEntry } from "@/lib/journal"
 import type { ExpenseType } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
@@ -82,7 +83,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "invalid-date" }, { status: 400 })
   }
 
-  // Transaction: create the expense + update both account balances atomically
+  // Transaction: create the expense record (balances are updated via the journal entry)
   const created = await db.$transaction(async (tx) => {
     const exp = await tx.expenseTransaction.create({
       data: {
@@ -99,11 +100,28 @@ export async function POST(req: NextRequest) {
       },
       include: { account: true },
     })
-    // Debit expense account (increase), credit payment asset (decrease)
-    await tx.account.update({ where: { id: accountId }, data: { balance: { increment: +amt.toFixed(3) } } })
-    await tx.account.update({ where: { id: paymentAccountId }, data: { balance: { decrement: +amt.toFixed(3) } } })
     return exp
   })
+
+  // Generate the double-entry journal entry (also updates account balances)
+  const desc =
+    type === "SALARY"
+      ? `صرف راتب — ${employeeName}`
+      : `مصروف إداري — ${title}${category ? ` (${category})` : ""}`
+  try {
+    await createJournalEntry({
+      sourceType: "EXPENSE",
+      sourceId: created.id,
+      description: desc,
+      date: dateObj,
+      lines: [
+        { accountCode: expAcc.code, debit: +amt.toFixed(3), description: desc },
+        { accountCode: payAcc.code, credit: +amt.toFixed(3), description: "سداد" },
+      ],
+    })
+  } catch (e: any) {
+    console.error("[expenses] journal entry failed:", e?.message)
+  }
 
   const payAcc2 = await db.account.findUnique({ where: { id: paymentAccountId } })
   return NextResponse.json(

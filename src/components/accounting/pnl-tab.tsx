@@ -18,10 +18,11 @@ import {
   Percent,
 } from "lucide-react"
 import { usePnLReport } from "@/hooks/use-api"
-import { formatCurrency } from "@/lib/format"
+import { useFmt } from "@/components/currency-context"
 import { cn } from "@/lib/utils"
 
 export function PnLTab() {
+  const fmt = useFmt()
   const [from, setFrom] = React.useState("")
   const [to, setTo] = React.useState("")
   const [appliedFrom, setAppliedFrom] = React.useState<string | undefined>(undefined)
@@ -90,7 +91,7 @@ export function PnLTab() {
                       "text-3xl font-bold tabular-nums",
                       data.netProfit >= 0 ? "text-emerald-600" : "text-rose-600"
                     )}>
-                      {formatCurrency(data.netProfit)}
+                      {fmt.currency(data.netProfit)}
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {appliedFrom || appliedTo
@@ -122,6 +123,7 @@ export function PnLTab() {
                 label="إجمالي الإيرادات (مبيعات + شوبيفاي)"
                 value={data.revenue}
                 tone="positive"
+                fmt={fmt}
               />
               <PnLRow
                 icon={<Coins className="h-4 w-4" />}
@@ -129,6 +131,7 @@ export function PnLTab() {
                 value={-data.cogs}
                 tone="negative"
                 indent
+                fmt={fmt}
               />
               <Separator className="my-2" />
               <PnLRow
@@ -136,6 +139,7 @@ export function PnLTab() {
                 value={data.grossProfit}
                 tone="positive"
                 bold
+                fmt={fmt}
               />
               <Separator className="my-2" />
               <PnLRow
@@ -144,6 +148,7 @@ export function PnLTab() {
                 value={-data.salaries}
                 tone="negative"
                 indent
+                fmt={fmt}
               />
               <PnLRow
                 icon={<TrendingDown className="h-4 w-4" />}
@@ -151,6 +156,7 @@ export function PnLTab() {
                 value={-data.adminExpenses}
                 tone="negative"
                 indent
+                fmt={fmt}
               />
               <Separator className="my-2" />
               <PnLRow
@@ -158,6 +164,7 @@ export function PnLTab() {
                 value={-data.totalOperatingExpenses}
                 tone="negative"
                 bold
+                fmt={fmt}
               />
               <Separator className="my-2" />
               <PnLRow
@@ -166,6 +173,7 @@ export function PnLTab() {
                 tone={data.netProfit >= 0 ? "positive" : "negative"}
                 bold
                 large
+                fmt={fmt}
               />
             </CardContent>
           </Card>
@@ -190,7 +198,7 @@ export function PnLTab() {
                             {b.category}
                           </span>
                           <span className="flex items-center gap-2">
-                            <span className="font-semibold tabular-nums">{formatCurrency(b.amount)}</span>
+                            <span className="font-semibold tabular-nums">{fmt.currency(b.amount)}</span>
                             <Badge variant="outline" className="tabular-nums text-[10px]">{pct}%</Badge>
                           </span>
                         </div>
@@ -225,6 +233,7 @@ function PnLRow({
   indent = false,
   bold = false,
   large = false,
+  fmt,
 }: {
   icon?: React.ReactNode
   label: string
@@ -233,6 +242,7 @@ function PnLRow({
   indent?: boolean
   bold?: boolean
   large?: boolean
+  fmt: ReturnType<typeof useFmt>
 }) {
   const toneClass =
     tone === "positive"
@@ -255,7 +265,7 @@ function PnLRow({
         )}
         dir="ltr"
       >
-        {formatCurrency(Math.abs(value))}
+        {fmt.currency(Math.abs(value))}
       </span>
     </div>
   )

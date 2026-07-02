@@ -94,6 +94,8 @@ export function serializeSale(s: AnyRow): Sale {
     id: String(s.id),
     invoiceNo: String(s.invoiceNo),
     customerName: (s.customerName as string | null) ?? null,
+    customerPhone: (s.customerPhone as string | null) ?? null,
+    customerId: (s.customerId as string | null) ?? null,
     subtotal: Number(s.subtotal ?? 0),
     taxRate: Number(s.taxRate ?? 0),
     taxAmount: Number(s.taxAmount ?? 0),

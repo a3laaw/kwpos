@@ -18,7 +18,10 @@ import type {
   Customer,
   PnLReport,
   AnalyticsReport,
+  JournalEntry,
+  TrialBalance,
 } from "@/lib/types"
+import type { CountryConfig } from "@/lib/countries"
 
 async function jget<T>(url: string): Promise<T> {
   const res = await fetch(url, { headers: { Accept: "application/json" } })
@@ -200,6 +203,7 @@ export function useCreateSale() {
   return useMutation({
     mutationFn: (body: {
       customerName?: string
+      customerPhone?: string
       items: { productId: string; quantity: number; unitPrice: number }[]
       taxRate: number
       discount: number
@@ -342,5 +346,39 @@ export function useAnalytics(from?: string, to?: string) {
   return useQuery<AnalyticsReport>({
     queryKey: ["analytics", from ?? "", to ?? ""],
     queryFn: () => jget(`/api/analytics${s ? `?${s}` : ""}`),
+  })
+}
+
+/* ----------------------------- Journal Entries --------------------- */
+export function useJournalEntries(sourceType?: string) {
+  const qs = sourceType ? `?sourceType=${sourceType}` : ""
+  return useQuery<{ items: JournalEntry[] }>({
+    queryKey: ["journal-entries", sourceType ?? "all"],
+    queryFn: () => jget(`/api/journal-entries${qs}`),
+  })
+}
+
+/* ----------------------------- Trial Balance ------------------------ */
+export function useTrialBalance() {
+  return useQuery<TrialBalance>({
+    queryKey: ["trial-balance"],
+    queryFn: () => jget("/api/trial-balance"),
+  })
+}
+
+/* ----------------------------- Settings (country) ------------------ */
+export function useSettings() {
+  return useQuery<CountryConfig>({
+    queryKey: ["settings"],
+    queryFn: () => jget("/api/settings"),
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
+export function useUpdateSettings() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { code: string }) => jsend<CountryConfig>("/api/settings", "PUT", body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["settings"] }),
   })
 }

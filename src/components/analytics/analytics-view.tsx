@@ -25,7 +25,7 @@ import {
   Crown,
 } from "lucide-react"
 import { useAnalytics } from "@/hooks/use-api"
-import { formatCurrency, formatNumber } from "@/lib/format"
+import { useFmt } from "@/components/currency-context"
 import type { ProductAnalytics } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
@@ -38,6 +38,7 @@ function defaultTo(): string {
 }
 
 export function AnalyticsView() {
+  const fmt = useFmt()
   const [from, setFrom] = React.useState(defaultFrom())
   const [to, setTo] = React.useState(defaultTo())
   const [appliedFrom, setAppliedFrom] = React.useState(from)
@@ -109,9 +110,9 @@ export function AnalyticsView() {
           >
             <RankList
               items={data.topSelling}
-              primary={(r) => formatNumber(r.quantitySold)}
+              primary={(r) => fmt.number(r.quantitySold)}
               primaryLabel="قطعة"
-              secondary={(r) => formatCurrency(r.grossVolume)}
+              secondary={(r) => fmt.currency(r.grossVolume)}
             />
           </AnalyticsCard>
 
@@ -124,7 +125,7 @@ export function AnalyticsView() {
             empty={data.stagnant.length === 0}
             emptyText="لا توجد أصناف راكدة"
           >
-            <StagnantList items={data.stagnant} />
+            <StagnantList items={data.stagnant} fmt={fmt} />
           </AnalyticsCard>
 
           {/* Most expensive */}
@@ -136,7 +137,7 @@ export function AnalyticsView() {
             empty={data.mostExpensive.length === 0}
             emptyText="لا توجد بيانات"
           >
-            <CostList items={data.mostExpensive} />
+            <CostList items={data.mostExpensive} fmt={fmt} />
           </AnalyticsCard>
 
           {/* Cheapest */}
@@ -148,7 +149,7 @@ export function AnalyticsView() {
             empty={data.cheapest.length === 0}
             emptyText="لا توجد بيانات"
           >
-            <CostList items={data.cheapest} />
+            <CostList items={data.cheapest} fmt={fmt} />
           </AnalyticsCard>
 
           {/* Highest margin */}
@@ -162,9 +163,9 @@ export function AnalyticsView() {
           >
             <RankList
               items={data.highestMargin}
-              primary={(r) => formatCurrency(r.margin)}
+              primary={(r) => fmt.currency(r.margin)}
               primaryLabel="ربح/وحدة"
-              secondary={(r) => `${formatNumber(r.marginPct)}%`}
+              secondary={(r) => `${fmt.number(r.marginPct)}%`}
             />
           </AnalyticsCard>
         </div>
@@ -279,7 +280,7 @@ function RankList({
   )
 }
 
-function StagnantList({ items }: { items: ProductAnalytics[] }) {
+function StagnantList({ items, fmt }: { items: ProductAnalytics[]; fmt: ReturnType<typeof useFmt> }) {
   return (
     <ScrollArea className="max-h-80 pr-1 scrollbar-thin">
       <div className="space-y-2">
@@ -296,14 +297,14 @@ function StagnantList({ items }: { items: ProductAnalytics[] }) {
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium">{r.name}</p>
                 <p className="text-xs text-muted-foreground flex items-center gap-2">
-                  <span>المخزون: {formatNumber(r.currentStock)}</span>
+                  <span>المخزون: {fmt.number(r.currentStock)}</span>
                   <span>•</span>
-                  <span>المبيع: {formatNumber(r.quantitySold)}</span>
+                  <span>المبيع: {fmt.number(r.quantitySold)}</span>
                 </p>
               </div>
               <div className="text-left shrink-0">
                 <Badge variant={critical ? "destructive" : ratio < 20 ? "secondary" : "outline"} className="tabular-nums">
-                  {critical ? "لم يُبع" : `${formatNumber(ratio)}% دوران`}
+                  {critical ? "لم يُبع" : `${fmt.number(ratio)}% دوران`}
                 </Badge>
                 {r.lastSoldAt ? (
                   <p className="text-[10px] text-muted-foreground mt-1">آخر بيع: {new Date(r.lastSoldAt).toLocaleDateString("ar-KW")}</p>
@@ -319,7 +320,7 @@ function StagnantList({ items }: { items: ProductAnalytics[] }) {
   )
 }
 
-function CostList({ items }: { items: ProductAnalytics[] }) {
+function CostList({ items, fmt }: { items: ProductAnalytics[]; fmt: ReturnType<typeof useFmt> }) {
   return (
     <ScrollArea className="max-h-80 pr-1 scrollbar-thin">
       <div className="space-y-2">
@@ -334,12 +335,12 @@ function CostList({ items }: { items: ProductAnalytics[] }) {
                 {r.categoryName ? <Badge variant="outline" className="text-[10px]">{r.categoryName}</Badge> : null}
                 <span className="flex items-center gap-1">
                   <Coins className="h-3 w-3" />
-                  تكلفة: {formatCurrency(r.costPrice)}
+                  تكلفة: {fmt.currency(r.costPrice)}
                 </span>
               </p>
             </div>
             <div className="text-left shrink-0">
-              <p className="font-semibold tabular-nums">{formatCurrency(r.salePrice)}</p>
+              <p className="font-semibold tabular-nums">{fmt.currency(r.salePrice)}</p>
               <p className="text-[10px] text-muted-foreground">سعر البيع</p>
             </div>
           </div>

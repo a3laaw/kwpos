@@ -34,7 +34,7 @@ import {
   useDeleteExpense,
   useAccounts,
 } from "@/hooks/use-api"
-import { formatCurrency, formatDate } from "@/lib/format"
+import { useFmt } from "@/components/currency-context"
 import type { ExpenseTransaction } from "@/lib/types"
 
 const CATEGORIES = ["إيجار", "مرافق", "اشتراكات", "تسويق", "أخرى"] as const
@@ -53,6 +53,7 @@ export function ExpensesTab() {
 }
 
 function ExpenseForm() {
+  const fmt = useFmt()
   const { data: accountsData } = useAccounts()
   const createMut = useCreateExpense()
   const qc = useQueryClient()
@@ -281,7 +282,7 @@ function ExpenseForm() {
 
             <div className="flex items-center justify-between rounded-lg bg-primary/5 px-3 py-2">
               <span className="text-xs text-muted-foreground">المبلغ الإجمالي</span>
-              <span className="font-bold tabular-nums text-primary">{formatCurrency(amt)}</span>
+              <span className="font-bold tabular-nums text-primary">{fmt.currency(amt)}</span>
             </div>
 
             <Button type="submit" className="w-full" disabled={loading}>
@@ -296,6 +297,7 @@ function ExpenseForm() {
 }
 
 function ExpensesList() {
+  const fmt = useFmt()
   const { data, isLoading } = useExpenses()
   const deleteMut = useDeleteExpense()
   const qc = useQueryClient()
@@ -371,10 +373,10 @@ function ExpensesList() {
                         </Badge>
                         {e.accountName ? <span>• {e.accountName}</span> : null}
                         {e.paymentAccountName ? <span>• دفع: {e.paymentAccountName}</span> : null}
-                        <span>• {formatDate(e.type === "SALARY" ? e.payDate! : e.date!)}</span>
+                        <span>• {fmt.date(e.type === "SALARY" ? e.payDate! : e.date!)}</span>
                       </p>
                     </div>
-                    <span className="font-semibold tabular-nums shrink-0">{formatCurrency(e.amount)}</span>
+                    <span className="font-semibold tabular-nums shrink-0">{fmt.currency(e.amount)}</span>
                     <Button
                       variant="ghost"
                       size="icon"

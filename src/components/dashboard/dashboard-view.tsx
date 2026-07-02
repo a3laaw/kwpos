@@ -22,7 +22,7 @@ import { Progress } from "@/components/ui/progress"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useAppStore } from "@/lib/store"
 import { useDashboard } from "@/hooks/use-api"
-import { formatCurrency, formatDateTime, formatNumber } from "@/lib/format"
+import { useFmt } from "@/components/currency-context"
 import { StatCard } from "@/components/shared/stat-card"
 import { LoadingState } from "@/components/shared/loading-state"
 import { EmptyState } from "@/components/shared/empty-state"
@@ -50,6 +50,7 @@ const PIE_COLORS = [
 ]
 
 export function DashboardView() {
+  const fmt = useFmt()
   const { data, isLoading, isError, refetch } = useDashboard()
   const setView = useAppStore((s) => s.setView)
 
@@ -76,29 +77,29 @@ export function DashboardView() {
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="إجمالي المبيعات"
-          value={formatCurrency(data.totalSales)}
-          hint={`${formatNumber(data.salesCount)} فاتورة`}
+          value={fmt.currency(data.totalSales)}
+          hint={`${fmt.number(data.salesCount)} فاتورة`}
           icon={<DollarSign className="h-5 w-5" />}
           tone="success"
         />
         <StatCard
           title="مبيعات اليوم"
-          value={formatCurrency(data.todaySales)}
+          value={fmt.currency(data.todaySales)}
           hint="منذ بداية اليوم"
           icon={<TrendingUp className="h-5 w-5" />}
           tone="info"
         />
         <StatCard
           title="عدد المنتجات"
-          value={formatNumber(data.productsCount)}
-          hint={`قيمة المخزون: ${formatCurrency(data.inventoryValue)}`}
+          value={fmt.number(data.productsCount)}
+          hint={`قيمة المخزون: ${fmt.currency(data.inventoryValue)}`}
           icon={<Package className="h-5 w-5" />}
           tone="default"
         />
         <StatCard
           title="منتجات قريبة من النفاذ"
-          value={formatNumber(data.lowStockCount)}
-          hint={`${formatNumber(data.pendingPurchases)} أمر شراء معلّق`}
+          value={fmt.number(data.lowStockCount)}
+          hint={`${fmt.number(data.pendingPurchases)} أمر شراء معلّق`}
           icon={<AlertTriangle className="h-5 w-5" />}
           tone={data.lowStockCount > 0 ? "danger" : "success"}
         />
@@ -113,7 +114,7 @@ export function DashboardView() {
               <TrendingUp className="h-4 w-4 text-primary" />
               مبيعات آخر ٧ أيام
             </CardTitle>
-            <CardDescription>إجمالي المبيعات اليومية (دينار كويتي)</CardDescription>
+            <CardDescription>إجمالي المبيعات اليومية ({fmt.symbol})</CardDescription>
           </CardHeader>
           <CardContent>
             {trend.length === 0 ? (
@@ -148,7 +149,7 @@ export function DashboardView() {
                       color: "hsl(var(--popover-foreground))",
                       fontSize: 13,
                     }}
-                    formatter={(v: number) => [formatCurrency(v), "المبيعات"]}
+                    formatter={(v: number) => [fmt.currency(v), "المبيعات"]}
                     labelStyle={{ color: "hsl(var(--muted-foreground))" }}
                   />
                   <Area
@@ -201,7 +202,7 @@ export function DashboardView() {
                       color: "hsl(var(--popover-foreground))",
                       fontSize: 13,
                     }}
-                    formatter={(v: number) => formatCurrency(v)}
+                    formatter={(v: number) => fmt.currency(v)}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -249,7 +250,7 @@ export function DashboardView() {
                           <span className="truncate">{p.productName}</span>
                         </span>
                         <span className="font-semibold tabular-nums">
-                          {formatCurrency(p.total)}
+                          {fmt.currency(p.total)}
                         </span>
                       </div>
                       <Progress value={pct} className="h-1.5" />
@@ -301,14 +302,14 @@ export function DashboardView() {
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium">{p.name}</p>
                           <p className="text-xs text-muted-foreground">
-                            الحد: {formatNumber(p.reorderLevel)} {p.unit}
+                            الحد: {fmt.number(p.reorderLevel)} {p.unit}
                           </p>
                         </div>
                         <Badge
                           variant={critical ? "destructive" : "secondary"}
                           className="tabular-nums"
                         >
-                          {formatNumber(p.quantity)}
+                          {fmt.number(p.quantity)}
                         </Badge>
                       </div>
                     )
@@ -355,11 +356,11 @@ export function DashboardView() {
                           {s.invoiceNo}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {s.customerName || "عميل نقدي"} • {formatDateTime(s.createdAt)}
+                          {s.customerName || "عميل نقدي"} • {fmt.dateTime(s.createdAt)}
                         </p>
                       </div>
                       <span className="font-semibold tabular-nums text-primary">
-                        {formatCurrency(s.total)}
+                        {fmt.currency(s.total)}
                       </span>
                     </div>
                   ))}
@@ -380,7 +381,7 @@ export function DashboardView() {
               </span>
               <div>
                 <p className="font-medium text-sm">
-                  لديك {formatNumber(data.pendingPurchases)} أمر شراء معلّق
+                  لديك {fmt.number(data.pendingPurchases)} أمر شراء معلّق
                 </p>
                 <p className="text-xs text-muted-foreground">
                   أكّد الاستلام لتحديث كميات المخزون تلقائياً

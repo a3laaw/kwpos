@@ -45,10 +45,11 @@ import {
 } from "lucide-react"
 import { useUser } from "@/components/user-context"
 import { useProducts, useCategories, useDeleteProduct } from "@/hooks/use-api"
-import { formatCurrency, formatNumber } from "@/lib/format"
+import { useFmt } from "@/components/currency-context"
 import type { Product } from "@/lib/types"
 
 export function InventoryView() {
+  const fmt = useFmt()
   const user = useUser()
   const [q, setQ] = React.useState("")
   const [categoryId, setCategoryId] = React.useState<string>("")
@@ -218,17 +219,17 @@ export function InventoryView() {
                           variant={critical ? "destructive" : low ? "secondary" : "outline"}
                           className="tabular-nums"
                         >
-                          {formatNumber(p.quantity)} {p.unit}
+                          {fmt.number(p.quantity)} {p.unit}
                         </Badge>
                       </TableCell>
                       <TableCell className="hidden lg:table-cell text-center tabular-nums text-muted-foreground">
-                        {formatNumber(p.reorderLevel)}
+                        {fmt.number(p.reorderLevel)}
                       </TableCell>
                       <TableCell className="hidden sm:table-cell text-center tabular-nums text-muted-foreground">
-                        {formatCurrency(p.costPrice)}
+                        {fmt.currency(p.costPrice)}
                       </TableCell>
                       <TableCell className="text-center tabular-nums font-semibold">
-                        {formatCurrency(p.salePrice)}
+                        {fmt.currency(p.salePrice)}
                       </TableCell>
                       {canManage ? (
                         <TableCell className="text-center">
@@ -264,7 +265,7 @@ export function InventoryView() {
       </Card>
 
       <p className="text-xs text-muted-foreground text-center">
-        إجمالي {formatNumber(products.length)} منتج
+        إجمالي {fmt.number(products.length)} منتج
       </p>
 
       <ProductFormDialog open={dialogOpen} onOpenChange={setDialogOpen} product={editing} />

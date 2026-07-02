@@ -192,9 +192,11 @@ export function MobileSidebar({ user }: SidebarProps) {
 export function Topbar({
   user,
   title,
+  country,
 }: {
   user: SidebarProps["user"]
   title: string
+  country?: { code: string; name: string; flag: string; currencySymbol: string }
 }) {
   const setSidebarOpen = useAppStore((s) => s.setSidebarOpen)
   return (
@@ -210,6 +212,12 @@ export function Topbar({
       <div className="flex-1 min-w-0">
         <h2 className="truncate text-base sm:text-lg font-semibold">{title}</h2>
       </div>
+      {country ? (
+        <div className="hidden sm:flex items-center gap-1.5 rounded-lg bg-muted/60 px-2.5 py-1 text-xs" title={country.name}>
+          <span className="text-base leading-none">{country.flag}</span>
+          <span className="font-medium">{country.currencySymbol}</span>
+        </div>
+      ) : null}
       <ThemeToggle />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
