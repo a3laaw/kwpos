@@ -113,7 +113,7 @@ export function DashboardView() {
               <TrendingUp className="h-4 w-4 text-primary" />
               مبيعات آخر ٧ أيام
             </CardTitle>
-            <CardDescription>إجمالي المبيعات اليومية (ريال سعودي)</CardDescription>
+            <CardDescription>إجمالي المبيعات اليومية (دينار كويتي)</CardDescription>
           </CardHeader>
           <CardContent>
             {trend.length === 0 ? (

@@ -64,3 +64,36 @@ End-to-end verification (Agent Browser):
 Stage Summary:
 - App fully functional and verified end-to-end. All requirements met.
 - Demo credentials: admin@demo.com/admin123, sales@demo.com/sales123, warehouse@demo.com/warehouse123.
+
+---
+Task ID: KUWAIT+SHOPIFY
+Agent: main
+Task: Adapt app to Kuwait + build Shopify integration module
+
+Work Log:
+Kuwait adaptation:
+- `src/lib/format.ts`: switched currency to KWD (3 decimals — fils), locale to ar-KW for currency/number/date. Added `DEFAULT_TAX_RATE = 0`.
+- `src/app/api/seed/route.ts`: rewrote suppliers (4 Kuwaiti: شركة المركز للأغذية/حولي، مؤسسة الإمداد/الشويخ الصناعية، شركة التقنية الحديثة/الفروانية، بيت القرطاسية/السالمية) with +965 phones and .kw emails; repriced all 22 products in KWD (3-decimal); PO unit costs in KWD; sales tax = 0% (Kuwait has no VAT); discounts scaled to KWD.
+- `src/components/sales/sales-view.tsx`: default tax rate 0 (was 15).
+- `src/components/dashboard/dashboard-view.tsx`: chart subtitle → "دينار كويتي".
+- Re-seeded (reset=true): 3 users, 22 products, 14 sales, total 306.955 KWD.
+- Verified via browser: KWD formatting (٣٫١٠٠د.ك), tax=0 in POS, Kuwaiti suppliers render.
+
+Shopify integration (optional, admin-only):
+- `src/lib/shopify.ts`: Shopify Admin REST helper (config check, fetch products, fetch orders). Reads SHOPIFY_STORE_DOMAIN + SHOPIFY_ACCESS_TOKEN from env.
+- `.env`: added SHOPIFY_STORE_DOMAIN / SHOPIFY_ACCESS_TOKEN placeholders (empty by default).
+- API routes (all admin-only):
+  - `GET /api/shopify/status` — configured? + domain.
+  - `POST /api/shopify/sync-products` — pulls Shopify products, upserts local inventory by barcode/SKU or name, auto-creates "Shopify" category.
+  - `POST /api/shopify/import-orders` — pulls last 50 Shopify orders, creates local sales (invoiceNo = SHP-<id>, idempotent), matches line items to local products.
+- New `AppView "integrations"` added to types + ADMIN permissions + nav item "التكاملات" (Plug icon).
+- `src/components/integrations/integrations-view.tsx`: status badge, sync/import buttons with result summaries + error lists, and a 4-step setup guide (with link to Shopify dev apps) shown when not configured.
+- AppShell routes `integrations` view.
+
+Verification:
+- ESLint clean. Dev log clean (no errors). Browser: Integrations page renders "غير مُعد" + setup guide; dashboard shows KWD; POS tax=0; suppliers show +965 Kuwait phones.
+
+Stage Summary:
+- DB stays as SQLite file at /home/z/my-project/db/custom.db (file-based, runs instantly). For multi-user production, switch DATABASE_URL to PostgreSQL/MySQL.
+- Kuwait fully applied (KWD/ar-KW, no VAT, Kuwaiti seed data).
+- Shopify integration ready — activates the moment the user adds their store domain + access token to .env and restarts.
