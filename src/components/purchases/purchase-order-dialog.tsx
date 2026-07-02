@@ -23,7 +23,7 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { Plus, Trash2, Loader2, ShoppingCart } from "lucide-react"
 import { useSuppliers, useProducts, useCreatePurchaseOrder } from "@/hooks/use-api"
-import { formatCurrency } from "@/lib/format"
+import { useFmt } from "@/components/currency-context"
 
 interface LineItem {
   key: string
@@ -42,6 +42,7 @@ export function PurchaseOrderDialog({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
+  const fmt = useFmt()
   const { data: sups } = useSuppliers()
   const { data: prods } = useProducts()
   const createMut = useCreatePurchaseOrder()
@@ -215,7 +216,7 @@ export function PurchaseOrderDialog({
                     <div className="col-span-2 sm:col-span-1 text-center">
                       <p className="text-xs text-muted-foreground mb-1.5">الإجمالي</p>
                       <p className="text-xs font-semibold tabular-nums">
-                        {formatCurrency(subtotal)}
+                        {fmt.currency(subtotal)}
                       </p>
                     </div>
                     <div className="col-span-1 flex justify-center">
@@ -239,7 +240,7 @@ export function PurchaseOrderDialog({
           <div className="flex items-center justify-between rounded-lg bg-primary/5 px-4 py-3">
             <span className="text-sm font-medium">إجمالي أمر الشراء</span>
             <span className="text-lg font-bold tabular-nums text-primary">
-              {formatCurrency(total)}
+              {fmt.currency(total)}
             </span>
           </div>
 

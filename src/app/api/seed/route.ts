@@ -12,6 +12,8 @@ export async function POST(req: Request) {
 
     if (reset) {
       // Clean all tables (ordered to respect FK constraints)
+      await db.journalLine.deleteMany()
+      await db.journalEntry.deleteMany()
       await db.expenseTransaction.deleteMany()
       await db.account.deleteMany()
       await db.customer.deleteMany()
@@ -23,6 +25,7 @@ export async function POST(req: Request) {
       await db.supplier.deleteMany()
       await db.category.deleteMany()
       await db.user.deleteMany()
+      await db.setting.deleteMany()
     }
 
     const existingUsers = await db.user.count()
@@ -305,14 +308,17 @@ export async function POST(req: Request) {
     }> = [
       // Assets (1000s)
       { code: "1000", name: "الأصول", type: "ASSET", balance: 0 },
-      { code: "1010", name: "النقدية", type: "ASSET", parentIdCode: "1000", balance: 1850 },
-      { code: "1020", name: "البنك", type: "ASSET", parentIdCode: "1000", balance: 4200 },
-      // Liabilities (2000s)
+      { code: "1010", name: "النقدية", type: "ASSET", parentIdCode: "1000", balance: 1243 },
+      { code: "1020", name: "البنك", type: "ASSET", parentIdCode: "1000", balance: 3372 },
+      // Liabilities (2000s) — credit-normal → negative balance (debit-positive convention)
       { code: "2000", name: "الخصوم", type: "LIABILITY", balance: 0 },
-      { code: "2010", name: "ذمم دائنة", type: "LIABILITY", parentIdCode: "2000", balance: 320 },
-      // Equity (3000s)
+      { code: "2010", name: "ذمم دائنة", type: "LIABILITY", parentIdCode: "2000", balance: -320 },
+      // Equity (3000s) — credit-normal → negative balance
+      // Capital is set so the opening balance sheet balances with the
+      // post-expense asset position (Cash 1243 + Bank 3372 = 4615;
+      // Liabilities 320 + Capital 4295 = 4615).
       { code: "3000", name: "حقوق الملكية", type: "EQUITY", balance: 0 },
-      { code: "3010", name: "رأس المال", type: "EQUITY", parentIdCode: "3000", balance: 5000 },
+      { code: "3010", name: "رأس المال", type: "EQUITY", parentIdCode: "3000", balance: -4295 },
       // Revenues (4000s)
       { code: "4000", name: "الإيرادات", type: "REVENUE", balance: 0 },
       { code: "4010", name: "إيرادات المبيعات", type: "REVENUE", parentIdCode: "4000", balance: 0 },

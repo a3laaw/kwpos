@@ -90,6 +90,8 @@ model Sale {
   id           String     @id @default(cuid())
   invoiceNo    String     @unique
   customerName String?
+  customerPhone String?
+  customerId   String?
   subtotal     Float      @default(0)
   taxRate      Float      @default(15)
   taxAmount    Float      @default(0)
@@ -101,6 +103,7 @@ model Sale {
   createdAt    DateTime   @default(now())
 
   user         User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  customer     Customer?  @relation(fields: [customerId], references: [id], onDelete: SetNull)
   items        SaleItem[]
 }
 
@@ -131,6 +134,7 @@ model Account {
   parent    Account?  @relation("AccountTree", fields: [parentId], references: [id], onDelete: SetNull)
   children  Account[] @relation("AccountTree")
   expenses  ExpenseTransaction[]
+  journalLines JournalLine[]
 }
 
 // Salaries & Administrative expenses ledger entries
@@ -162,4 +166,40 @@ model Customer {
   address   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  sales     Sale[]
+}
+
+// ─── Settings (key-value) — active country, currency, tax ───────────
+model Setting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+// ─── Double-entry Journal (القيد المحاسبي) ─────────────────────────
+model JournalEntry {
+  id          String         @id @default(cuid())
+  entryNo     String         @unique // e.g. JE-00001
+  date        DateTime       @default(now())
+  sourceType  String         // SALE | EXPENSE | PURCHASE | MANUAL
+  sourceId    String?
+  description String
+  totalDebit  Float          @default(0)
+  totalCredit Float          @default(0)
+  createdAt   DateTime       @default(now())
+
+  lines       JournalLine[]
+}
+
+model JournalLine {
+  id             String       @id @default(cuid())
+  journalEntryId String
+  accountId      String
+  debit          Float        @default(0)
+  credit         Float        @default(0)
+  description    String?
+
+  journalEntry   JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+  account        Account      @relation(fields: [accountId], references: [id])
 }

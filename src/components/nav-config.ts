@@ -10,6 +10,7 @@ import {
   BookOpen,
   Users,
   BarChart3,
+  Settings as SettingsIcon,
 } from "lucide-react"
 
 export interface NavItem {
@@ -72,12 +73,18 @@ export const NAV_ITEMS: NavItem[] = [
     view: "accounting",
     label: "المحاسبة",
     icon: BookOpen,
-    description: "شجرة الحسابات والمصروفات",
+    description: "شجرة الحسابات والقيود",
   },
   {
     view: "integrations",
     label: "التكاملات",
     icon: Plug,
     description: "ربط مع شوبيفاي وغيره",
+  },
+  {
+    view: "settings",
+    label: "الإعدادات",
+    icon: SettingsIcon,
+    description: "الدولة والعملة والضريبة",
   },
 ]

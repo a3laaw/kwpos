@@ -55,7 +55,7 @@ import {
   useCancelPurchaseOrder,
   useDeletePurchaseOrder,
 } from "@/hooks/use-api"
-import { formatCurrency, formatDateTime } from "@/lib/format"
+import { useFmt } from "@/components/currency-context"
 import type { PurchaseOrder } from "@/lib/types"
 
 const statusMeta: Record<
@@ -68,6 +68,7 @@ const statusMeta: Record<
 }
 
 export function PurchasesView() {
+  const fmt = useFmt()
   const user = useUser()
   const [statusFilter, setStatusFilter] = React.useState<string>("all")
   const [createOpen, setCreateOpen] = React.useState(false)
@@ -193,17 +194,17 @@ export function PurchasesView() {
                       <TableCell>
                         <div className="font-medium">{po.supplierName}</div>
                         <div className="text-xs text-muted-foreground sm:hidden">
-                          {formatDateTime(po.createdAt)}
+                          {fmt.dateTime(po.createdAt)}
                         </div>
                       </TableCell>
                       <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
-                        {formatDateTime(po.createdAt)}
+                        {fmt.dateTime(po.createdAt)}
                       </TableCell>
                       <TableCell className="text-center tabular-nums">
                         {po.items.length}
                       </TableCell>
                       <TableCell className="text-center font-semibold tabular-nums">
-                        {formatCurrency(po.total)}
+                        {fmt.currency(po.total)}
                       </TableCell>
                       <TableCell className="text-center">
                         <Badge variant={meta.variant} className={`gap-1 ${meta.className}`}>
@@ -279,7 +280,7 @@ export function PurchasesView() {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">التاريخ</p>
-                  <p className="font-medium">{formatDateTime(detail.createdAt)}</p>
+                  <p className="font-medium">{fmt.dateTime(detail.createdAt)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">الحالة</p>
@@ -289,7 +290,7 @@ export function PurchasesView() {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">الإجمالي</p>
-                  <p className="font-semibold text-primary">{formatCurrency(detail.total)}</p>
+                  <p className="font-semibold text-primary">{fmt.currency(detail.total)}</p>
                 </div>
               </div>
               {detail.note ? (
@@ -313,8 +314,8 @@ export function PurchasesView() {
                       <TableRow key={it.id}>
                         <TableCell className="font-medium">{it.productName}</TableCell>
                         <TableCell className="text-center tabular-nums">{it.quantity}</TableCell>
-                        <TableCell className="text-center tabular-nums">{formatCurrency(it.unitCost)}</TableCell>
-                        <TableCell className="text-center font-semibold tabular-nums">{formatCurrency(it.subtotal)}</TableCell>
+                        <TableCell className="text-center tabular-nums">{fmt.currency(it.unitCost)}</TableCell>
+                        <TableCell className="text-center font-semibold tabular-nums">{fmt.currency(it.subtotal)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

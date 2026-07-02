@@ -44,7 +44,7 @@ const demoAccounts = [
   },
 ]
 
-export function LoginScreen() {
+export function LoginScreen({ country }: { country?: { flag: string; name: string; currencySymbol: string } }) {
   const router = useRouter()
   const [email, setEmail] = React.useState("admin@demo.com")
   const [password, setPassword] = React.useState("admin123")
@@ -94,7 +94,12 @@ export function LoginScreen() {
             <Boxes className="h-7 w-7" />
           </div>
           <div>
-            <p className="text-xl font-bold">نظام المتجر</p>
+            <p className="text-xl font-bold flex items-center gap-2">
+              نظام المتجر
+              {country ? (
+                <span className="text-base leading-none" title={country.name}>{country.flag}</span>
+              ) : null}
+            </p>
             <p className="text-sm text-sidebar-foreground/70">
               إدارة المبيعات والمخازن والمشتريات
             </p>

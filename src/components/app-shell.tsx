@@ -5,6 +5,8 @@ import { AppSidebar, MobileSidebar, Topbar } from "@/components/app-sidebar"
 import { useAppStore } from "@/lib/store"
 import { NAV_ITEMS } from "@/components/nav-config"
 import { UserProvider, type SessionUser } from "@/components/user-context"
+import { CurrencyProvider } from "@/components/currency-context"
+import type { CountryConfig } from "@/lib/countries"
 import { Boxes, Heart } from "lucide-react"
 import { DashboardView } from "@/components/dashboard/dashboard-view"
 import { InventoryView } from "@/components/inventory/inventory-view"
@@ -16,10 +18,17 @@ import { IntegrationsView } from "@/components/integrations/integrations-view"
 import { AccountingView } from "@/components/accounting/accounting-view"
 import { CustomersView } from "@/components/customers/customers-view"
 import { AnalyticsView } from "@/components/analytics/analytics-view"
+import { SettingsView } from "@/components/settings/settings-view"
 
 export type { SessionUser }
 
-export function AppShell({ user }: { user: SessionUser }) {
+export function AppShell({
+  user,
+  country,
+}: {
+  user: SessionUser
+  country: CountryConfig
+}) {
   const view = useAppStore((s) => s.view)
   const setView = useAppStore((s) => s.setView)
 
@@ -42,41 +51,45 @@ export function AppShell({ user }: { user: SessionUser }) {
   const title = current?.label ?? "لوحة التحكم"
 
   return (
-    <UserProvider user={user}>
-      <div className="min-h-screen flex bg-background">
-        <AppSidebar user={user} />
-        <MobileSidebar user={user} />
-        <div className="flex-1 flex flex-col min-w-0">
-          <Topbar user={user} title={title} />
-          <main className="flex-1 px-4 sm:px-6 py-6 w-full max-w-[1400px] mx-auto">
-            {view === "dashboard" && <DashboardView />}
-            {view === "inventory" && <InventoryView />}
-            {view === "purchases" && <PurchasesView />}
-            {view === "suppliers" && <SuppliersView />}
-            {view === "sales" && <SalesView />}
-            {view === "invoices" && <InvoicesView />}
-            {view === "customers" && <CustomersView />}
-            {view === "analytics" && <AnalyticsView />}
-            {view === "accounting" && <AccountingView />}
-            {view === "integrations" && <IntegrationsView />}
-          </main>
-          <footer className="mt-auto border-t border-border/70 bg-muted/30">
-            <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <span className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-primary">
-                  <Boxes className="h-3.5 w-3.5" />
-                </span>
-                <span>نظام المتجر — إدارة المبيعات والمخازن والمشتريات</span>
+    <CurrencyProvider country={country}>
+      <UserProvider user={user}>
+        <div className="min-h-screen flex bg-background">
+          <AppSidebar user={user} />
+          <MobileSidebar user={user} />
+          <div className="flex-1 flex flex-col min-w-0">
+            <Topbar user={user} title={title} country={country} />
+            <main className="flex-1 px-4 sm:px-6 py-6 w-full max-w-[1400px] mx-auto">
+              {view === "dashboard" && <DashboardView />}
+              {view === "inventory" && <InventoryView />}
+              {view === "purchases" && <PurchasesView />}
+              {view === "suppliers" && <SuppliersView />}
+              {view === "sales" && <SalesView />}
+              {view === "invoices" && <InvoicesView />}
+              {view === "customers" && <CustomersView />}
+              {view === "analytics" && <AnalyticsView />}
+              {view === "accounting" && <AccountingView />}
+              {view === "integrations" && <IntegrationsView />}
+              {view === "settings" && <SettingsView />}
+            </main>
+            <footer className="mt-auto border-t border-border/70 bg-muted/30">
+              <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-primary">
+                    <Boxes className="h-3.5 w-3.5" />
+                  </span>
+                  <span>نظام المتجر — إدارة المبيعات والمخازن والمشتريات</span>
+                  <span className="text-base leading-none">{country.flag}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span>صُنع بـ</span>
+                  <Heart className="h-3 w-3 fill-rose-500 text-rose-500" />
+                  <span>للمشاريع الصغيرة</span>
+                </div>
               </div>
-              <div className="flex items-center gap-1">
-                <span>صُنع بـ</span>
-                <Heart className="h-3 w-3 fill-rose-500 text-rose-500" />
-                <span>للمشاريع الصغيرة</span>
-              </div>
-            </div>
-          </footer>
+            </footer>
+          </div>
         </div>
-      </div>
-    </UserProvider>
+      </UserProvider>
+    </CurrencyProvider>
   )
 }

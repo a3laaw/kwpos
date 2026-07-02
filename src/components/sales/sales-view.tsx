@@ -39,7 +39,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { useProducts, useCreateSale } from "@/hooks/use-api"
-import { formatCurrency, formatNumber, formatDateTime } from "@/lib/format"
+import { useFmt } from "@/components/currency-context"
 import type { Product, Sale } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
@@ -55,13 +55,15 @@ const PAYMENT_LABELS: Record<string, string> = {
 }
 
 export function SalesView() {
+  const fmt = useFmt()
   const [q, setQ] = React.useState("")
   const [categoryId, setCategoryId] = React.useState("")
   const [cart, setCart] = React.useState<CartItem[]>([])
   const [discount, setDiscount] = React.useState("0")
-  const [taxRate, setTaxRate] = React.useState("0")
+  const [taxRate, setTaxRate] = React.useState(String(fmt.taxRate))
   const [paymentMethod, setPaymentMethod] = React.useState<"CASH" | "CARD" | "TRANSFER">("CASH")
   const [customerName, setCustomerName] = React.useState("")
+  const [customerPhone, setCustomerPhone] = React.useState("")
   const [lastSale, setLastSale] = React.useState<Sale | null>(null)
 
   const debouncedQ = React.useDeferredValue(q)
@@ -81,7 +83,7 @@ export function SalesView() {
     const inCartQty = inCart.get(p.id) || 0
     if (inCartQty >= p.quantity) {
       toast.error("الكمية غير متوفرة", {
-        description: `المتاح من ${p.name}: ${formatNumber(p.quantity)} ${p.unit}`,
+        description: `المتاح من ${p.name}: ${fmt.number(p.quantity)} ${p.unit}`,
       })
       return
     }
@@ -134,6 +136,7 @@ export function SalesView() {
     setCart([])
     setDiscount("0")
     setCustomerName("")
+    setCustomerPhone("")
   }
 
   const subtotal = cart.reduce((acc, it) => acc + it.product.salePrice * it.quantity, 0)
@@ -151,6 +154,7 @@ export function SalesView() {
     try {
       const sale = await createMut.mutateAsync({
         customerName: customerName.trim() || undefined,
+        customerPhone: customerPhone.trim() || undefined,
         items: cart.map((it) => ({
           productId: it.product.id,
           quantity: it.quantity,
@@ -237,13 +241,13 @@ export function SalesView() {
                     </div>
                     <div className="mt-2 flex items-center justify-between">
                       <span className="font-bold text-primary tabular-nums">
-                        {formatCurrency(p.salePrice)}
+                        {fmt.currency(p.salePrice)}
                       </span>
                       <Badge
                         variant={out ? "destructive" : available <= p.reorderLevel ? "secondary" : "outline"}
                         className="tabular-nums text-[10px]"
                       >
-                        {out ? "نفد" : `${formatNumber(available)}`}
+                        {out ? "نفد" : `${fmt.number(available)}`}
                       </Badge>
                     </div>
                     {used > 0 ? (
@@ -296,7 +300,7 @@ export function SalesView() {
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium truncate">{it.product.name}</p>
                           <p className="text-xs text-muted-foreground tabular-nums">
-                            {formatCurrency(it.product.salePrice)} × {it.quantity}
+                            {fmt.currency(it.product.salePrice)} × {it.quantity}
                           </p>
                         </div>
                         <div className="flex items-center gap-1">
@@ -368,8 +372,22 @@ export function SalesView() {
                         </SelectContent>
                       </Select>
                     </div>
+                    <div className="space-y-1 col-span-2">
+                      <Label htmlFor="cphone" className="text-xs">هاتف العميل (تسجيل تلقائي)</Label>
+                      <Input
+                        id="cphone"
+                        dir="ltr"
+                        className="h-8 text-sm text-left"
+                        value={customerPhone}
+                        onChange={(e) => setCustomerPhone(e.target.value)}
+                        placeholder="+965 5xxx xxxx"
+                      />
+                      <p className="text-[10px] text-muted-foreground">
+                        يُسجّل العميل تلقائياً في قاعدة العملاء برقم الهاتف
+                      </p>
+                    </div>
                     <div className="space-y-1">
-                      <Label htmlFor="disc" className="text-xs">الخصم (ر.س)</Label>
+                      <Label htmlFor="disc" className="text-xs">الخصم ({fmt.symbol})</Label>
                       <Input
                         id="disc"
                         type="number"
@@ -397,22 +415,22 @@ export function SalesView() {
                   <div className="space-y-1.5 text-sm">
                     <div className="flex justify-between text-muted-foreground">
                       <span>المجموع الفرعي</span>
-                      <span className="tabular-nums">{formatCurrency(subtotal)}</span>
+                      <span className="tabular-nums">{fmt.currency(subtotal)}</span>
                     </div>
                     {discountVal > 0 ? (
                       <div className="flex justify-between text-rose-600">
                         <span>الخصم</span>
-                        <span className="tabular-nums">- {formatCurrency(discountVal)}</span>
+                        <span className="tabular-nums">- {fmt.currency(discountVal)}</span>
                       </div>
                     ) : null}
                     <div className="flex justify-between text-muted-foreground">
                       <span>الضريبة ({taxRate}%)</span>
-                      <span className="tabular-nums">{formatCurrency(taxVal)}</span>
+                      <span className="tabular-nums">{fmt.currency(taxVal)}</span>
                     </div>
                     <div className="flex justify-between items-center pt-1.5 border-t border-border/60">
                       <span className="font-semibold">الإجمالي</span>
                       <span className="text-xl font-bold tabular-nums text-primary">
-                        {formatCurrency(total)}
+                        {fmt.currency(total)}
                       </span>
                     </div>
                   </div>
@@ -427,7 +445,7 @@ export function SalesView() {
                     ) : (
                       <CheckCircle2 className="h-5 w-5" />
                     )}
-                    إتمام البيع — {formatCurrency(total)}
+                    إتمام البيع — {fmt.currency(total)}
                   </Button>
                 </div>
               ) : null}
@@ -455,7 +473,12 @@ export function SalesView() {
                   <Receipt className="h-8 w-8" />
                 </div>
                 <p className="mt-3 font-mono font-bold text-lg" dir="ltr">{lastSale.invoiceNo}</p>
-                <p className="text-xs text-muted-foreground">{formatDateTime(lastSale.createdAt)}</p>
+                <p className="text-xs text-muted-foreground">{fmt.dateTime(lastSale.createdAt)}</p>
+                {lastSale.customerPhone ? (
+                  <p className="text-xs text-muted-foreground mt-1" dir="ltr">
+                    هاتف العميل: {lastSale.customerPhone}
+                  </p>
+                ) : null}
               </div>
 
               <div className="rounded-lg border border-border/60 overflow-hidden">
@@ -472,7 +495,7 @@ export function SalesView() {
                       <tr key={it.id} className="border-t border-border/40">
                         <td className="p-2">{it.productName}</td>
                         <td className="p-2 text-center tabular-nums">{it.quantity}</td>
-                        <td className="p-2 text-center tabular-nums">{formatCurrency(it.subtotal)}</td>
+                        <td className="p-2 text-center tabular-nums">{fmt.currency(it.subtotal)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -482,23 +505,23 @@ export function SalesView() {
               <div className="space-y-1.5 text-sm">
                 <div className="flex justify-between text-muted-foreground">
                   <span>المجموع الفرعي</span>
-                  <span className="tabular-nums">{formatCurrency(lastSale.subtotal)}</span>
+                  <span className="tabular-nums">{fmt.currency(lastSale.subtotal)}</span>
                 </div>
                 {lastSale.discount > 0 ? (
                   <div className="flex justify-between text-rose-600">
                     <span>الخصم</span>
-                    <span className="tabular-nums">- {formatCurrency(lastSale.discount)}</span>
+                    <span className="tabular-nums">- {fmt.currency(lastSale.discount)}</span>
                   </div>
                 ) : null}
                 <div className="flex justify-between text-muted-foreground">
                   <span>الضريبة ({lastSale.taxRate}%)</span>
-                  <span className="tabular-nums">{formatCurrency(lastSale.taxAmount)}</span>
+                  <span className="tabular-nums">{fmt.currency(lastSale.taxAmount)}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between items-center pt-1">
                   <span className="font-semibold">الإجمالي المدفوع</span>
                   <span className="text-xl font-bold tabular-nums text-primary">
-                    {formatCurrency(lastSale.total)}
+                    {fmt.currency(lastSale.total)}
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground text-center pt-1">

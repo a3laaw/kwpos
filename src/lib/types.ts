@@ -69,6 +69,8 @@ export interface Sale {
   id: string
   invoiceNo: string
   customerName?: string | null
+  customerPhone?: string | null
+  customerId?: string | null
   subtotal: number
   taxRate: number
   taxAmount: number
@@ -108,6 +110,7 @@ export type AppView =
   | "accounting"
   | "customers"
   | "analytics"
+  | "settings"
 
 // ─── Accounting types ───────────────────────────────────────────────
 export type AccountType = "ASSET" | "LIABILITY" | "EQUITY" | "REVENUE" | "EXPENSE"
@@ -166,6 +169,46 @@ export interface Customer {
   address: string
   createdAt: string
   updatedAt: string
+}
+
+// ─── Journal (double-entry) types ───────────────────────────────────
+export interface JournalLine {
+  id: string
+  accountId: string
+  accountCode: string
+  accountName: string
+  accountType: AccountType
+  debit: number
+  credit: number
+  description?: string | null
+}
+
+export interface JournalEntry {
+  id: string
+  entryNo: string
+  date: string
+  sourceType: "SALE" | "EXPENSE" | "PURCHASE" | "MANUAL"
+  sourceId?: string | null
+  description: string
+  totalDebit: number
+  totalCredit: number
+  lines: JournalLine[]
+  createdAt: string
+}
+
+export interface TrialBalanceRow {
+  accountId: string
+  code: string
+  name: string
+  type: AccountType
+  debit: number
+  credit: number
+}
+
+export interface TrialBalance {
+  rows: TrialBalanceRow[]
+  totalDebit: number
+  totalCredit: number
 }
 
 export interface ProductAnalytics {

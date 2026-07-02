@@ -37,10 +37,11 @@ import {
   UserPlus,
 } from "lucide-react"
 import { useCustomers, useDeleteCustomer } from "@/hooks/use-api"
-import { formatDate } from "@/lib/format"
+import { useFmt } from "@/components/currency-context"
 import type { Customer } from "@/lib/types"
 
 export function CustomersView() {
+  const fmt = useFmt()
   const [q, setQ] = React.useState("")
   const [dialogOpen, setDialogOpen] = React.useState(false)
   const [editing, setEditing] = React.useState<Customer | null>(null)
@@ -157,7 +158,7 @@ export function CustomersView() {
                       </span>
                     </TableCell>
                     <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
-                      {formatDate(c.createdAt)}
+                      {fmt.date(c.createdAt)}
                     </TableCell>
                     <TableCell className="text-center">
                       <DropdownMenu>

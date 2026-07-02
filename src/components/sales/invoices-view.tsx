@@ -34,7 +34,7 @@ import {
 } from "lucide-react"
 import { useSales } from "@/hooks/use-api"
 import { useAppStore } from "@/lib/store"
-import { formatCurrency, formatDateTime, formatNumber } from "@/lib/format"
+import { useFmt } from "@/components/currency-context"
 import type { Sale } from "@/lib/types"
 import { Separator } from "@/components/ui/separator"
 
@@ -45,6 +45,7 @@ const PAYMENT_META: Record<Sale["paymentMethod"], { label: string; icon: any; cl
 }
 
 export function InvoicesView() {
+  const fmt = useFmt()
   const [q, setQ] = React.useState("")
   const [detail, setDetail] = React.useState<Sale | null>(null)
   const setView = useAppStore((s) => s.setView)
@@ -124,10 +125,10 @@ export function InvoicesView() {
                         {s.customerName || <span className="text-muted-foreground">عميل نقدي</span>}
                       </TableCell>
                       <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
-                        {formatDateTime(s.createdAt)}
+                        {fmt.dateTime(s.createdAt)}
                       </TableCell>
                       <TableCell className="text-center tabular-nums">
-                        {formatNumber(s.items.length)}
+                        {fmt.number(s.items.length)}
                       </TableCell>
                       <TableCell className="text-center">
                         <Badge variant="outline" className={`gap-1 ${pm.className}`}>
@@ -136,7 +137,7 @@ export function InvoicesView() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-center font-semibold tabular-nums text-primary">
-                        {formatCurrency(s.total)}
+                        {fmt.currency(s.total)}
                       </TableCell>
                       <TableCell className="text-center">
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); setDetail(s) }}>
@@ -168,7 +169,7 @@ export function InvoicesView() {
             <div className="space-y-4">
               <div className="text-center">
                 <p className="font-mono font-bold text-lg" dir="ltr">{detail.invoiceNo}</p>
-                <p className="text-xs text-muted-foreground">{formatDateTime(detail.createdAt)}</p>
+                <p className="text-xs text-muted-foreground">{fmt.dateTime(detail.createdAt)}</p>
               </div>
 
               <div className="grid grid-cols-2 gap-3 text-sm">
@@ -180,6 +181,12 @@ export function InvoicesView() {
                   <p className="text-xs text-muted-foreground">طريقة الدفع</p>
                   <p className="font-medium">{PAYMENT_META[detail.paymentMethod].label}</p>
                 </div>
+                {detail.customerPhone ? (
+                  <div className="rounded-lg bg-muted/40 p-2.5 col-span-2">
+                    <p className="text-xs text-muted-foreground">هاتف العميل</p>
+                    <p className="font-medium font-mono" dir="ltr">{detail.customerPhone}</p>
+                  </div>
+                ) : null}
                 {detail.userName ? (
                   <div className="rounded-lg bg-muted/40 p-2.5 col-span-2">
                     <p className="text-xs text-muted-foreground">البائع</p>
@@ -203,8 +210,8 @@ export function InvoicesView() {
                       <tr key={it.id} className="border-t border-border/40">
                         <td className="p-2">{it.productName}</td>
                         <td className="p-2 text-center tabular-nums">{it.quantity}</td>
-                        <td className="p-2 text-center tabular-nums">{formatCurrency(it.unitPrice)}</td>
-                        <td className="p-2 text-center font-medium tabular-nums">{formatCurrency(it.subtotal)}</td>
+                        <td className="p-2 text-center tabular-nums">{fmt.currency(it.unitPrice)}</td>
+                        <td className="p-2 text-center font-medium tabular-nums">{fmt.currency(it.subtotal)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -214,23 +221,23 @@ export function InvoicesView() {
               <div className="space-y-1.5 text-sm">
                 <div className="flex justify-between text-muted-foreground">
                   <span>المجموع الفرعي</span>
-                  <span className="tabular-nums">{formatCurrency(detail.subtotal)}</span>
+                  <span className="tabular-nums">{fmt.currency(detail.subtotal)}</span>
                 </div>
                 {detail.discount > 0 ? (
                   <div className="flex justify-between text-rose-600">
                     <span>الخصم</span>
-                    <span className="tabular-nums">- {formatCurrency(detail.discount)}</span>
+                    <span className="tabular-nums">- {fmt.currency(detail.discount)}</span>
                   </div>
                 ) : null}
                 <div className="flex justify-between text-muted-foreground">
                   <span>الضريبة ({detail.taxRate}%)</span>
-                  <span className="tabular-nums">{formatCurrency(detail.taxAmount)}</span>
+                  <span className="tabular-nums">{fmt.currency(detail.taxAmount)}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between items-center pt-1">
                   <span className="font-semibold">الإجمالي</span>
                   <span className="text-xl font-bold tabular-nums text-primary">
-                    {formatCurrency(detail.total)}
+                    {fmt.currency(detail.total)}
                   </span>
                 </div>
               </div>

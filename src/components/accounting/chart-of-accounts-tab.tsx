@@ -36,7 +36,7 @@ import {
   CreditCard,
 } from "lucide-react"
 import { useAccounts, useCreateAccount, useDeleteAccount } from "@/hooks/use-api"
-import { formatCurrency } from "@/lib/format"
+import { useFmt } from "@/components/currency-context"
 import type { Account, AccountType } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
@@ -104,6 +104,7 @@ function AccountNode({
   depth: number
   onAddChild: (a: Account) => void
 }) {
+  const fmt = useFmt()
   const [expanded, setExpanded] = React.useState(true)
   const hasChildren = (account.children?.length ?? 0) > 0
   const meta = TYPE_META[account.type]
@@ -133,7 +134,7 @@ function AccountNode({
         <span className="font-medium text-sm flex-1 truncate">{account.name}</span>
         <Badge variant="outline" className="text-[10px] hidden sm:inline-flex">{meta.label}</Badge>
         <span className="font-semibold tabular-nums text-sm w-28 text-left" dir="ltr">
-          {formatCurrency(account.balance)}
+          {fmt.currency(account.balance)}
         </span>
         <Button
           variant="ghost"

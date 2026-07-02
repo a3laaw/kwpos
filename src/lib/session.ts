@@ -28,7 +28,7 @@ export const ROLE_PERMISSIONS: Record<Role, {
     label: "مدير النظام",
     views: [
       "dashboard", "sales", "invoices", "inventory", "purchases", "suppliers",
-      "customers", "analytics", "accounting", "integrations",
+      "customers", "analytics", "accounting", "integrations", "settings",
     ],
   },
   SALES: {
