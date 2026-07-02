@@ -7,6 +7,9 @@ import {
   Calculator,
   ReceiptText,
   Plug,
+  BookOpen,
+  Users,
+  BarChart3,
 } from "lucide-react"
 
 export interface NavItem {
@@ -52,6 +55,24 @@ export const NAV_ITEMS: NavItem[] = [
     label: "الموردين",
     icon: Truck,
     description: "بيانات الموردين",
+  },
+  {
+    view: "customers",
+    label: "العملاء",
+    icon: Users,
+    description: "دليل العملاء (CRM)",
+  },
+  {
+    view: "analytics",
+    label: "تحليلات المبيعات",
+    icon: BarChart3,
+    description: "أكثر مبيعاً وراكد وربحية",
+  },
+  {
+    view: "accounting",
+    label: "المحاسبة",
+    icon: BookOpen,
+    description: "شجرة الحسابات والمصروفات",
   },
   {
     view: "integrations",

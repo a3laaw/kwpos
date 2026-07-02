@@ -12,6 +12,9 @@ export async function POST(req: Request) {
 
     if (reset) {
       // Clean all tables (ordered to respect FK constraints)
+      await db.expenseTransaction.deleteMany()
+      await db.account.deleteMany()
+      await db.customer.deleteMany()
       await db.saleItem.deleteMany()
       await db.sale.deleteMany()
       await db.purchaseOrderItem.deleteMany()
@@ -251,6 +254,172 @@ export async function POST(req: Request) {
       })
     }
 
+    // ─── Simulated Shopify sales (tagged SHP-) ───────────────────────
+    // These represent orders synced from a Shopify store — they feed the
+    // P&L revenue figure and the sales analytics widgets.
+    const shopifySales: Array<{
+      customer: string
+      items: Array<{ pi: number; qty: number }>
+      daysAgo: number
+    }> = [
+      { customer: "Noor Al-Sabah", items: [{ pi: 11, qty: 1 }, { pi: 12, qty: 2 }], daysAgo: 0 },
+      { customer: "Khaled Al-Anezi", items: [{ pi: 0, qty: 3 }], daysAgo: 1 },
+      { customer: "Mariam Al-Otaibi", items: [{ pi: 18, qty: 1 }, { pi: 21, qty: 1 }], daysAgo: 2 },
+      { customer: "Ahmed Al-Shammari", items: [{ pi: 15, qty: 5 }, { pi: 16, qty: 3 }], daysAgo: 3 },
+      { customer: "Fatima Al-Qahtani", items: [{ pi: 4, qty: 6 }, { pi: 6, qty: 2 }], daysAgo: 4 },
+      { customer: "Abdullah Al-Mutairi", items: [{ pi: 13, qty: 2 }, { pi: 14, qty: 1 }], daysAgo: 5 },
+    ]
+    let shpSeq = 1
+    for (const s of shopifySales) {
+      const itemsData = s.items.map((it) => {
+        const p = products[it.pi]
+        return { productId: p.id, quantity: it.qty, unitPrice: p.salePrice, subtotal: p.salePrice * it.qty }
+      })
+      const subtotal = itemsData.reduce((a, b) => a + b.subtotal, 0)
+      const createdAt = new Date(Date.now() - s.daysAgo * 24 * 60 * 60 * 1000)
+      await db.sale.create({
+        data: {
+          invoiceNo: `SHP-${String(1000 + shpSeq++).padStart(4, "0")}`,
+          customerName: s.customer,
+          subtotal,
+          taxRate: 0,
+          taxAmount: 0,
+          discount: 0,
+          total: subtotal,
+          paid: subtotal,
+          paymentMethod: "CARD",
+          userId: users[0].id,
+          createdAt,
+          items: { create: itemsData },
+        },
+      })
+    }
+
+    // ─── Chart of Accounts (system hierarchy) ────────────────────────
+    const accountDefs: Array<{
+      code: string
+      name: string
+      type: string
+      parentIdCode?: string
+      balance?: number
+    }> = [
+      // Assets (1000s)
+      { code: "1000", name: "الأصول", type: "ASSET", balance: 0 },
+      { code: "1010", name: "النقدية", type: "ASSET", parentIdCode: "1000", balance: 1850 },
+      { code: "1020", name: "البنك", type: "ASSET", parentIdCode: "1000", balance: 4200 },
+      // Liabilities (2000s)
+      { code: "2000", name: "الخصوم", type: "LIABILITY", balance: 0 },
+      { code: "2010", name: "ذمم دائنة", type: "LIABILITY", parentIdCode: "2000", balance: 320 },
+      // Equity (3000s)
+      { code: "3000", name: "حقوق الملكية", type: "EQUITY", balance: 0 },
+      { code: "3010", name: "رأس المال", type: "EQUITY", parentIdCode: "3000", balance: 5000 },
+      // Revenues (4000s)
+      { code: "4000", name: "الإيرادات", type: "REVENUE", balance: 0 },
+      { code: "4010", name: "إيرادات المبيعات", type: "REVENUE", parentIdCode: "4000", balance: 0 },
+      { code: "4020", name: "إيرادات شوبيفاي", type: "REVENUE", parentIdCode: "4000", balance: 0 },
+      // Expenses (5000s)
+      { code: "5000", name: "المصروفات", type: "EXPENSE", balance: 0 },
+      { code: "5010", name: "الرواتب", type: "EXPENSE", parentIdCode: "5000", balance: 0 },
+      { code: "5020", name: "الإيجار", type: "EXPENSE", parentIdCode: "5000", balance: 0 },
+      { code: "5030", name: "المرافق", type: "EXPENSE", parentIdCode: "5000", balance: 0 },
+      { code: "5040", name: "الاشتراكات", type: "EXPENSE", parentIdCode: "5000", balance: 0 },
+      { code: "5050", name: "التسويق", type: "EXPENSE", parentIdCode: "5000", balance: 0 },
+      { code: "5090", name: "مصروفات إدارية أخرى", type: "EXPENSE", parentIdCode: "5000", balance: 0 },
+    ]
+
+    const codeToId = new Map<string, string>()
+    // Insert root accounts first, then children
+    const roots = accountDefs.filter((a) => !a.parentIdCode)
+    const children = accountDefs.filter((a) => a.parentIdCode)
+    for (const a of roots) {
+      const created = await db.account.create({
+        data: { code: a.code, name: a.name, type: a.type, balance: a.balance ?? 0, isSystem: true },
+      })
+      codeToId.set(a.code, created.id)
+    }
+    for (const a of children) {
+      const created = await db.account.create({
+        data: {
+          code: a.code,
+          name: a.name,
+          type: a.type,
+          parentId: codeToId.get(a.parentIdCode!)!,
+          balance: a.balance ?? 0,
+          isSystem: true,
+        },
+      })
+      codeToId.set(a.code, created.id)
+    }
+
+    const cashId = codeToId.get("1010")!
+    const bankId = codeToId.get("1020")!
+    const salariesAccId = codeToId.get("5010")!
+    const rentAccId = codeToId.get("5020")!
+    const utilitiesAccId = codeToId.get("5030")!
+    const subscriptionsAccId = codeToId.get("5040")!
+    const marketingAccId = codeToId.get("5050")!
+    const otherAccId = codeToId.get("5090")!
+
+    // ─── Expense transactions (salaries + admin) ─────────────────────
+    const expenseDefs: Array<{
+      type: "SALARY" | "ADMIN"
+      amount: number
+      daysAgo: number
+      employeeName?: string
+      title?: string
+      category?: string
+      accountId: string
+      paymentAccountId: string
+      note?: string
+    }> = [
+      // Salaries
+      { type: "SALARY", amount: 450, daysAgo: 2, employeeName: "أحمد المدير", accountId: salariesAccId, paymentAccountId: bankId, note: "راتب شهري" },
+      { type: "SALARY", amount: 320, daysAgo: 2, employeeName: "سارة الموظفة", accountId: salariesAccId, paymentAccountId: bankId, note: "راتب شهري" },
+      { type: "SALARY", amount: 280, daysAgo: 2, employeeName: "خالد أمين المخزن", accountId: salariesAccId, paymentAccountId: cashId, note: "راتب شهري" },
+      // Admin expenses
+      { type: "ADMIN", amount: 250, daysAgo: 5, title: "إيجار المحل", category: "إيجار", accountId: rentAccId, paymentAccountId: cashId },
+      { type: "ADMIN", amount: 65, daysAgo: 4, title: "فاتورة الكهرباء", category: "مرافق", accountId: utilitiesAccId, paymentAccountId: cashId },
+      { type: "ADMIN", amount: 18, daysAgo: 6, title: "اشتراك شوبيفاي", category: "اشتراكات", accountId: subscriptionsAccId, paymentAccountId: bankId },
+      { type: "ADMIN", amount: 40, daysAgo: 3, title: "إعلان إنستغرام", category: "تسويق", accountId: marketingAccId, paymentAccountId: bankId },
+      { type: "ADMIN", amount: 12, daysAgo: 1, title: "أدوات مكتبية", category: "أخرى", accountId: otherAccId, paymentAccountId: cashId },
+    ]
+
+    for (const e of expenseDefs) {
+      const date = new Date(Date.now() - e.daysAgo * 24 * 60 * 60 * 1000)
+      await db.expenseTransaction.create({
+        data: {
+          type: e.type,
+          employeeName: e.employeeName ?? null,
+          payDate: e.type === "SALARY" ? date : null,
+          title: e.title ?? null,
+          category: e.category ?? null,
+          date: e.type === "ADMIN" ? date : null,
+          amount: e.amount,
+          accountId: e.accountId,
+          paymentAccountId: e.paymentAccountId,
+          note: e.note ?? null,
+        },
+      })
+      // Update account balances (debit expense, credit payment asset)
+      await db.account.update({ where: { id: e.accountId }, data: { balance: { increment: e.amount } } })
+      await db.account.update({ where: { id: e.paymentAccountId }, data: { balance: { decrement: e.amount } } })
+    }
+
+    // ─── Customers (CRM directory) ──────────────────────────────────
+    const customerDefs = [
+      { name: "نور الصباح", phone: "+965 5511 2233", address: "السالمية - شارع البحر" },
+      { name: "خالد العنزي", phone: "+965 5544 7788", address: "حولي - ابن خلدون" },
+      { name: "مريم العتيبي", phone: "+965 9900 1122", address: "الفروانية - المنطقة السكنية" },
+      { name: "أحمد الشمري", phone: "+965 6633 4455", address: "الجهراء - الصناعية" },
+      { name: "فاطمة القحطاني", phone: "+965 5577 9900", address: "مبارك الكبير - قرية جابر" },
+      { name: "عبدالله المطيري", phone: "+965 9988 5566", address: "أبرق خيطان - 12" },
+      { name: "هند الدوسري", phone: "+965 6611 3344", address: "بيان - blok 4" },
+      { name: "يوسف الحربي", phone: "+965 5522 6677", address: "السالمية - عمارة 22" },
+    ]
+    await db.$transaction(
+      customerDefs.map((c) => db.customer.create({ data: c }))
+    )
+
     return NextResponse.json({
       ok: true,
       message: "seeded",
@@ -261,6 +430,9 @@ export async function POST(req: Request) {
         products: await db.product.count(),
         purchaseOrders: await db.purchaseOrder.count(),
         sales: await db.sale.count(),
+        accounts: await db.account.count(),
+        expenses: await db.expenseTransaction.count(),
+        customers: await db.customer.count(),
       },
     })
   } catch (e: any) {
@@ -279,6 +451,9 @@ export async function GET() {
       products: await db.product.count(),
       purchaseOrders: await db.purchaseOrder.count(),
       sales: await db.sale.count(),
+      accounts: await db.account.count(),
+      expenses: await db.expenseTransaction.count(),
+      customers: await db.customer.count(),
     },
   })
 }

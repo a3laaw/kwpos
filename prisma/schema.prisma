@@ -115,3 +115,51 @@ model SaleItem {
   sale      Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
   product   Product  @relation(fields: [productId], references: [id])
 }
+
+// ─── MODULE 1: Accounting ───────────────────────────────────────────
+// Chart of Accounts: hierarchical tree (Assets, Liabilities, Equity, Revenues, Expenses)
+model Account {
+  id        String    @id @default(cuid())
+  code      String    @unique // e.g. "1000", "1001"
+  name      String
+  type      String    // ASSET | LIABILITY | EQUITY | REVENUE | EXPENSE
+  parentId  String?
+  balance   Float     @default(0) // signed balance in KWD
+  isSystem  Boolean   @default(false) // system accounts cannot be deleted
+  createdAt DateTime  @default(now())
+
+  parent    Account?  @relation("AccountTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children  Account[] @relation("AccountTree")
+  expenses  ExpenseTransaction[]
+}
+
+// Salaries & Administrative expenses ledger entries
+model ExpenseTransaction {
+  id               String   @id @default(cuid())
+  type             String   // SALARY | ADMIN
+  // SALARY fields
+  employeeName     String?
+  payDate          DateTime?
+  // ADMIN fields
+  title            String?
+  category         String?  // Rent | Utilities | Subscriptions | Marketing | Other
+  date             DateTime?
+  // shared
+  amount           Float
+  accountId        String   // the expense account this posts to
+  paymentAccountId String   // the asset account (Cash/Bank) credited
+  note             String?
+  createdAt        DateTime @default(now())
+
+  account          Account  @relation(fields: [accountId], references: [id])
+}
+
+// ─── MODULE 2: Minimal Customer CRM ─────────────────────────────────
+model Customer {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String
+  address   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

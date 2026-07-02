@@ -105,3 +105,88 @@ export type AppView =
   | "sales"
   | "invoices"
   | "integrations"
+  | "accounting"
+  | "customers"
+  | "analytics"
+
+// ─── Accounting types ───────────────────────────────────────────────
+export type AccountType = "ASSET" | "LIABILITY" | "EQUITY" | "REVENUE" | "EXPENSE"
+
+export interface Account {
+  id: string
+  code: string
+  name: string
+  type: AccountType
+  parentId: string | null
+  parentName?: string | null
+  balance: number
+  isSystem: boolean
+  children?: Account[]
+  createdAt: string
+}
+
+export type ExpenseType = "SALARY" | "ADMIN"
+export type ExpenseCategory = "إيجار" | "مرافق" | "اشتراكات" | "تسويق" | "أخرى"
+
+export interface ExpenseTransaction {
+  id: string
+  type: ExpenseType
+  employeeName?: string | null
+  payDate?: string | null
+  title?: string | null
+  category?: string | null
+  date?: string | null
+  amount: number
+  accountId: string
+  accountName?: string | null
+  paymentAccountId: string
+  paymentAccountName?: string | null
+  note?: string | null
+  createdAt: string
+}
+
+export interface PnLReport {
+  revenue: number
+  revenueCount: number
+  cogs: number
+  grossProfit: number
+  salaries: number
+  adminExpenses: number
+  totalOperatingExpenses: number
+  netProfit: number
+  period: { from: string | null; to: string | null }
+  expenseBreakdown: { category: string; amount: number }[]
+}
+
+// ─── CRM & Analytics types ──────────────────────────────────────────
+export interface Customer {
+  id: string
+  name: string
+  phone: string
+  address: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ProductAnalytics {
+  id: string
+  name: string
+  categoryName?: string | null
+  costPrice: number
+  salePrice: number
+  margin: number
+  marginPct: number
+  quantitySold: number
+  grossVolume: number
+  currentStock: number
+  lastSoldAt?: string | null
+}
+
+export interface AnalyticsReport {
+  topSelling: ProductAnalytics[]
+  stagnant: ProductAnalytics[]
+  mostExpensive: ProductAnalytics[]
+  cheapest: ProductAnalytics[]
+  highestMargin: ProductAnalytics[]
+  dateRange: { from: string | null; to: string | null }
+}

@@ -1,0 +1,52 @@
+import { NextRequest, NextResponse } from "next/server"
+import { db } from "@/lib/db"
+import { getCurrentUser } from "@/lib/session"
+import { serializeCustomer } from "@/lib/serialize"
+
+export const dynamic = "force-dynamic"
+
+export async function GET(req: NextRequest) {
+  const user = await getCurrentUser()
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+
+  const { searchParams } = new URL(req.url)
+  const q = searchParams.get("q")?.trim() || ""
+
+  const where = q
+    ? {
+        OR: [
+          { name: { contains: q } },
+          { phone: { contains: q } },
+          { address: { contains: q } },
+        ],
+      }
+    : undefined
+
+  const rows = await db.customer.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+  })
+
+  return NextResponse.json({ items: rows.map(serializeCustomer) })
+}
+
+export async function POST(req: NextRequest) {
+  const user = await getCurrentUser()
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+
+  const body = await req.json()
+  const { name, phone, address } = body || {}
+  if (!name?.trim()) {
+    return NextResponse.json({ error: "name-required" }, { status: 400 })
+  }
+
+  const created = await db.customer.create({
+    data: {
+      name: String(name).trim(),
+      phone: String(phone || "").trim(),
+      address: String(address || "").trim(),
+    },
+  })
+
+  return NextResponse.json(serializeCustomer(created as any), { status: 201 })
+}

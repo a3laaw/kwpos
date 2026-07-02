@@ -13,6 +13,11 @@ import type {
   PurchaseOrder,
   Sale,
   DashboardStats,
+  Account,
+  ExpenseTransaction,
+  Customer,
+  PnLReport,
+  AnalyticsReport,
 } from "@/lib/types"
 
 async function jget<T>(url: string): Promise<T> {
@@ -213,5 +218,129 @@ export function useDashboard() {
   return useQuery<DashboardStats>({
     queryKey: ["dashboard"],
     queryFn: () => jget("/api/dashboard"),
+  })
+}
+
+/* ----------------------------- Accounts (Chart of Accounts) -------- */
+export function useAccounts() {
+  return useQuery<{ items: Account[]; flat: Account[] }>({
+    queryKey: ["accounts"],
+    queryFn: () => jget("/api/accounts"),
+  })
+}
+
+export function useCreateAccount() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { code: string; name: string; type: Account["type"]; parentId?: string }) =>
+      jsend<Account>("/api/accounts", "POST", body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["accounts"] }),
+  })
+}
+
+export function useUpdateAccount(id: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: Partial<Account>) => jsend<Account>(`/api/accounts/${id}`, "PUT", body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["accounts"] }),
+  })
+}
+
+export function useDeleteAccount() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => jsend(`/api/accounts/${id}`, "DELETE"),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["accounts"] }),
+  })
+}
+
+/* ----------------------------- Expenses ---------------------------- */
+export function useExpenses(type?: "SALARY" | "ADMIN") {
+  const qs = type ? `?type=${type}` : ""
+  return useQuery<{ items: ExpenseTransaction[] }>({
+    queryKey: ["expenses", type ?? "all"],
+    queryFn: () => jget(`/api/expenses${qs}`),
+  })
+}
+
+export function useCreateExpense() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: any) => jsend<ExpenseTransaction>("/api/expenses", "POST", body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["expenses"] })
+      qc.invalidateQueries({ queryKey: ["accounts"] })
+      qc.invalidateQueries({ queryKey: ["pnl"] })
+    },
+  })
+}
+
+export function useDeleteExpense() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => jsend(`/api/expenses/${id}`, "DELETE"),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["expenses"] })
+      qc.invalidateQueries({ queryKey: ["accounts"] })
+      qc.invalidateQueries({ queryKey: ["pnl"] })
+    },
+  })
+}
+
+/* ----------------------------- Customers --------------------------- */
+export function useCustomers(q?: string) {
+  const qs = q ? `?q=${encodeURIComponent(q)}` : ""
+  return useQuery<{ items: Customer[] }>({
+    queryKey: ["customers", q ?? "all"],
+    queryFn: () => jget(`/api/customers${qs}`),
+  })
+}
+
+export function useCreateCustomer() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { name: string; phone?: string; address?: string }) =>
+      jsend<Customer>("/api/customers", "POST", body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["customers"] }),
+  })
+}
+
+export function useUpdateCustomer(id: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: Partial<Customer>) => jsend<Customer>(`/api/customers/${id}`, "PUT", body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["customers"] }),
+  })
+}
+
+export function useDeleteCustomer() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => jsend(`/api/customers/${id}`, "DELETE"),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["customers"] }),
+  })
+}
+
+/* ----------------------------- Financial Reports (P&L) ------------- */
+export function usePnLReport(from?: string, to?: string) {
+  const qs = new URLSearchParams()
+  if (from) qs.set("from", from)
+  if (to) qs.set("to", to)
+  const s = qs.toString()
+  return useQuery<PnLReport>({
+    queryKey: ["pnl", from ?? "", to ?? ""],
+    queryFn: () => jget(`/api/financial-reports${s ? `?${s}` : ""}`),
+  })
+}
+
+/* ----------------------------- Analytics --------------------------- */
+export function useAnalytics(from?: string, to?: string) {
+  const qs = new URLSearchParams()
+  if (from) qs.set("from", from)
+  if (to) qs.set("to", to)
+  const s = qs.toString()
+  return useQuery<AnalyticsReport>({
+    queryKey: ["analytics", from ?? "", to ?? ""],
+    queryFn: () => jget(`/api/analytics${s ? `?${s}` : ""}`),
   })
 }
