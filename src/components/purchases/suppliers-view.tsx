@@ -28,12 +28,12 @@ import {
   Package,
   ShoppingCart,
 } from "lucide-react"
-import { useAppStore } from "@/lib/store"
+import { useUser } from "@/components/user-context"
 import { useSuppliers, useDeleteSupplier } from "@/hooks/use-api"
 import type { Supplier } from "@/lib/types"
 
 export function SuppliersView() {
-  const user = useAppStore((s) => s.user)
+  const user = useUser()
   const [dialogOpen, setDialogOpen] = React.useState(false)
   const [editing, setEditing] = React.useState<Supplier | null>(null)
   const [deleteTarget, setDeleteTarget] = React.useState<Supplier | null>(null)
@@ -41,7 +41,7 @@ export function SuppliersView() {
   const { data, isLoading, isError, refetch } = useSuppliers()
   const deleteMut = useDeleteSupplier()
 
-  const canManage = user?.role === "ADMIN" || user?.role === "WAREHOUSE"
+  const canManage = user.role === "ADMIN" || user.role === "WAREHOUSE"
 
   function openAdd() {
     setEditing(null)

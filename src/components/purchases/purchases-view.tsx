@@ -48,7 +48,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { useAppStore } from "@/lib/store"
+import { useUser } from "@/components/user-context"
 import {
   usePurchaseOrders,
   useReceivePurchaseOrder,
@@ -68,7 +68,7 @@ const statusMeta: Record<
 }
 
 export function PurchasesView() {
-  const user = useAppStore((s) => s.user)
+  const user = useUser()
   const [statusFilter, setStatusFilter] = React.useState<string>("all")
   const [createOpen, setCreateOpen] = React.useState(false)
   const [detail, setDetail] = React.useState<PurchaseOrder | null>(null)
@@ -82,7 +82,7 @@ export function PurchasesView() {
   const cancelMut = useCancelPurchaseOrder()
   const deleteMut = useDeletePurchaseOrder()
 
-  const canManage = user?.role === "ADMIN" || user?.role === "WAREHOUSE"
+  const canManage = user.role === "ADMIN" || user.role === "WAREHOUSE"
   const orders = data?.items ?? []
 
   async function handleReceive() {
