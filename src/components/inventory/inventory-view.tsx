@@ -1,0 +1,288 @@
+"use client"
+
+import * as React from "react"
+import { toast } from "sonner"
+import { PageHeader } from "@/components/shared/page-header"
+import { EmptyState } from "@/components/shared/empty-state"
+import { TableSkeleton } from "@/components/shared/loading-state"
+import { ConfirmDialog } from "@/components/shared/confirm-dialog"
+import { ProductFormDialog } from "@/components/inventory/product-form-dialog"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { Card } from "@/components/ui/card"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  Boxes,
+  Plus,
+  Search,
+  MoreVertical,
+  Pencil,
+  Trash2,
+  PackageX,
+  Filter,
+  AlertTriangle,
+} from "lucide-react"
+import { useAppStore } from "@/lib/store"
+import { useProducts, useCategories, useDeleteProduct } from "@/hooks/use-api"
+import { formatCurrency, formatNumber } from "@/lib/format"
+import type { Product } from "@/lib/types"
+
+export function InventoryView() {
+  const user = useAppStore((s) => s.user)
+  const [q, setQ] = React.useState("")
+  const [categoryId, setCategoryId] = React.useState<string>("")
+  const [lowStockOnly, setLowStockOnly] = React.useState(false)
+  const [dialogOpen, setDialogOpen] = React.useState(false)
+  const [editing, setEditing] = React.useState<Product | null>(null)
+  const [deleteTarget, setDeleteTarget] = React.useState<Product | null>(null)
+
+  const debouncedQ = React.useDeferredValue(q)
+  const { data, isLoading, isError, refetch } = useProducts({
+    q: debouncedQ || undefined,
+    categoryId: categoryId || undefined,
+    lowStock: lowStockOnly || undefined,
+  })
+  const { data: cats } = useCategories()
+  const deleteMut = useDeleteProduct()
+
+  const canManage = user?.role === "ADMIN" || user?.role === "WAREHOUSE"
+
+  const products = data?.items ?? []
+
+  function openAdd() {
+    setEditing(null)
+    setDialogOpen(true)
+  }
+  function openEdit(p: Product) {
+    setEditing(p)
+    setDialogOpen(true)
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return
+    try {
+      await deleteMut.mutateAsync(deleteTarget.id)
+      toast.success("تم حذف المنتج")
+      setDeleteTarget(null)
+    } catch (err: any) {
+      toast.error("فشل الحذف", { description: err?.message })
+    }
+  }
+
+  return (
+    <div className="space-y-5">
+      <PageHeader
+        title="إدارة المخازن"
+        description="عرض المنتجات وإدارتها، البحث والفلترة، ومتابعة كميات المخزون."
+        icon={<Boxes className="h-5 w-5" />}
+        actions={
+          canManage ? (
+            <Button onClick={openAdd} className="gap-2">
+              <Plus className="h-4 w-4" />
+              إضافة منتج
+            </Button>
+          ) : null
+        }
+      />
+
+      {/* Filters */}
+      <Card className="p-3 sm:p-4">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="ابحث بالاسم أو الباركود..."
+              className="pr-9"
+            />
+          </div>
+          <Select value={categoryId} onValueChange={(v) => setCategoryId(v === "all" ? "" : v)}>
+            <SelectTrigger className="sm:w-48">
+              <Filter className="h-4 w-4 ml-1 text-muted-foreground" />
+              <SelectValue placeholder="كل الفئات" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">كل الفئات</SelectItem>
+              {(cats?.items ?? []).map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            variant={lowStockOnly ? "default" : "outline"}
+            onClick={() => setLowStockOnly((v) => !v)}
+            className="gap-2 sm:w-auto"
+          >
+            <AlertTriangle className="h-4 w-4" />
+            قريبة من النفاذ
+          </Button>
+        </div>
+      </Card>
+
+      {/* Table */}
+      <Card className="overflow-hidden">
+        {isLoading ? (
+          <div className="p-4">
+            <TableSkeleton rows={7} />
+          </div>
+        ) : isError ? (
+          <div className="p-4">
+            <EmptyState
+              title="تعذّر تحميل المنتجات"
+              action={<Button onClick={() => refetch()}>إعادة المحاولة</Button>}
+            />
+          </div>
+        ) : products.length === 0 ? (
+          <div className="p-4">
+            <EmptyState
+              icon={<PackageX className="h-7 w-7" />}
+              title={lowStockOnly ? "لا توجد منتجات قريبة من النفاذ" : "لا توجد منتجات"}
+              description={
+                lowStockOnly
+                  ? "جميع المنتجات ضمن الحدود الآمنة."
+                  : "ابدأ بإضافة منتجك الأول إلى المخزون."
+              }
+              action={
+                canManage ? (
+                  <Button onClick={openAdd} className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    إضافة منتج
+                  </Button>
+                ) : null
+              }
+            />
+          </div>
+        ) : (
+          <div className="overflow-x-auto scrollbar-thin">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/40 hover:bg-muted/40">
+                  <TableHead className="min-w-[180px]">المنتج</TableHead>
+                  <TableHead className="hidden md:table-cell">الباركود</TableHead>
+                  <TableHead className="hidden sm:table-cell">الفئة</TableHead>
+                  <TableHead className="text-center">الكمية</TableHead>
+                  <TableHead className="hidden lg:table-cell text-center">حد الطلب</TableHead>
+                  <TableHead className="text-center hidden sm:table-cell">سعر التكلفة</TableHead>
+                  <TableHead className="text-center">سعر البيع</TableHead>
+                  {canManage ? <TableHead className="w-12 text-center"></TableHead> : null}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {products.map((p) => {
+                  const low = p.quantity <= p.reorderLevel
+                  const critical = p.quantity <= Math.ceil(p.reorderLevel / 2)
+                  return (
+                    <TableRow key={p.id} className="hover:bg-muted/30">
+                      <TableCell>
+                        <div className="font-medium">{p.name}</div>
+                        <div className="text-xs text-muted-foreground sm:hidden">
+                          {p.categoryName || "—"}
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell font-mono text-xs" dir="ltr">
+                        {p.barcode || "—"}
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell">
+                        {p.categoryName ? (
+                          <Badge variant="outline">{p.categoryName}</Badge>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge
+                          variant={critical ? "destructive" : low ? "secondary" : "outline"}
+                          className="tabular-nums"
+                        >
+                          {formatNumber(p.quantity)} {p.unit}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell text-center tabular-nums text-muted-foreground">
+                        {formatNumber(p.reorderLevel)}
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell text-center tabular-nums text-muted-foreground">
+                        {formatCurrency(p.costPrice)}
+                      </TableCell>
+                      <TableCell className="text-center tabular-nums font-semibold">
+                        {formatCurrency(p.salePrice)}
+                      </TableCell>
+                      {canManage ? (
+                        <TableCell className="text-center">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => openEdit(p)} className="gap-2">
+                                <Pencil className="h-4 w-4" />
+                                تعديل
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => setDeleteTarget(p)}
+                                className="gap-2 text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                حذف
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      ) : null}
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </Card>
+
+      <p className="text-xs text-muted-foreground text-center">
+        إجمالي {formatNumber(products.length)} منتج
+      </p>
+
+      <ProductFormDialog open={dialogOpen} onOpenChange={setDialogOpen} product={editing} />
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(o) => !o && setDeleteTarget(null)}
+        title="حذف المنتج"
+        description={
+          <>
+            سيتم حذف المنتج{" "}
+            <span className="font-semibold">“{deleteTarget?.name}”</span> نهائياً. لا يمكن
+            التراجع عن هذه العملية.
+          </>
+        }
+        confirmText="حذف"
+        loading={deleteMut.isPending}
+        onConfirm={handleDelete}
+      />
+    </div>
+  )
+}

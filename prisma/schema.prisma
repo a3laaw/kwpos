@@ -1,0 +1,117 @@
+// Prisma schema for the Small Business ERP
+// (Sales, Inventory, Purchasing)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         String   @default("SALES") // ADMIN | SALES | WAREHOUSE
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sales Sale[]
+}
+
+model Category {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  createdAt DateTime  @default(now())
+  products  Product[]
+}
+
+model Supplier {
+  id        String           @id @default(cuid())
+  name      String
+  contact   String?
+  phone     String?
+  email     String?
+  address   String?
+  createdAt DateTime         @default(now())
+  products  Product[]
+  orders    PurchaseOrder[]
+}
+
+model Product {
+  id           String           @id @default(cuid())
+  name         String
+  barcode      String?
+  categoryId   String?
+  quantity     Int              @default(0)
+  reorderLevel Int              @default(5)
+  costPrice    Float            @default(0)
+  salePrice    Float            @default(0)
+  unit         String           @default("قطعة")
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  category     Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  supplier     Supplier?        @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  supplierId   String?
+  saleItems    SaleItem[]
+  poItems      PurchaseOrderItem[]
+}
+
+model PurchaseOrder {
+  id         String               @id @default(cuid())
+  supplierId String
+  status     String               @default("PENDING") // PENDING | RECEIVED | CANCELLED
+  total      Float                @default(0)
+  note       String?
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
+
+  supplier   Supplier             @relation(fields: [supplierId], references: [id])
+  items      PurchaseOrderItem[]
+}
+
+model PurchaseOrderItem {
+  id              String        @id @default(cuid())
+  purchaseOrderId String
+  productId       String
+  quantity        Int
+  unitCost        Float
+  subtotal        Float
+
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  product         Product       @relation(fields: [productId], references: [id])
+}
+
+model Sale {
+  id           String     @id @default(cuid())
+  invoiceNo    String     @unique
+  customerName String?
+  subtotal     Float      @default(0)
+  taxRate      Float      @default(15)
+  taxAmount    Float      @default(0)
+  discount     Float      @default(0)
+  total        Float      @default(0)
+  paid         Float      @default(0)
+  paymentMethod String    @default("CASH") // CASH | CARD | TRANSFER
+  userId       String?
+  createdAt    DateTime   @default(now())
+
+  user         User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  items        SaleItem[]
+}
+
+model SaleItem {
+  id        String @id @default(cuid())
+  saleId    String
+  productId String
+  quantity  Int
+  unitPrice Float
+  subtotal  Float
+
+  sale      Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id])
+}
