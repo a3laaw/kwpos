@@ -618,7 +618,7 @@ export function SalesView() {
 
       {/* Receipt dialog */}
       <Dialog open={!!lastSale} onOpenChange={(o) => !o && setLastSale(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 justify-center">
               <CheckCircle2 className="h-6 w-6 text-emerald-500" />
