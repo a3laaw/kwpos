@@ -798,3 +798,40 @@ Stage Summary:
 - Products & categories now support images (upload via form).
 - POS redesigned to match modern reference design (image cards).
 - Image storage is local (/public/uploads); for production, switch to S3/Cloudinary.
+
+---
+Task ID: POS-CATEGORY-CARDS+CUSTOMER-AUTOLOOKUP
+Agent: main
+Task: POS category filter cards + customer phone auto-lookup (user's 2 proposals)
+
+Proposal 1 — Customer phone auto-lookup:
+- When the cashier types a phone number (debounced), the POS searches
+  /api/customers?q=phone. If an exact phone match is found:
+  - Auto-fills the customer name (prevents duplicates).
+  - Shows "عميل موجود: {name} — {address}" in green with UserCheck icon.
+  - Phone field gets green border.
+- If no match (≥4 digits typed):
+  - Shows "عميل جديد — سيُسجّل تلقائياً..." in amber with UserPlus icon.
+  - Phone field gets amber border.
+- On checkout, the backend already upserts by phone (existing → link, new →
+  create customer in CRM). No duplicates possible.
+
+Proposal 2 — Category filter cards above products:
+- Horizontal scrollable row of category buttons between search bar and product
+  grid. Each button shows a category-appropriate icon + name.
+- "الكل" button (LayoutGrid icon) shows all products.
+- Clicking a category filters the product grid instantly.
+- Active category gets primary background + shadow.
+- Icons mapped: مواد غذائية→Apple, مشروبات→Coffee, منظفات→Sparkles,
+  إلكترونيات→Smartphone, قرطاسية→Tag, أدوات منزلية→Home.
+- If category has imageUrl, shows the image instead of the icon.
+
+Verification (Agent Browser + VLM):
+- Category cards: 7 buttons render (الكل + 6 categories). ✓
+- Filtering: clicked "مواد غذائية" → only food products shown (أرز، زيت،
+  سكر، معكرونة). ✓
+- Existing customer: typed "+965 5511 2233" → name auto-filled "نور الصباح"
+  + green "عميل موجود" message. ✓
+- New customer: typed "+965 9999 8888" → amber "عميل جديد" message. ✓
+- VLM: "الواجهة تحتوي على كروت فئات فوق شبكة المنتجات، تصميم احترافي". ✓
+- No errors, no hydration mismatch, ESLint clean. ✓
