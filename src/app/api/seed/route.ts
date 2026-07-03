@@ -24,6 +24,7 @@ export async function POST(req: Request) {
       await db.product.deleteMany()
       await db.supplier.deleteMany()
       await db.category.deleteMany()
+      await db.unit.deleteMany()
       await db.user.deleteMany()
       await db.setting.deleteMany()
     }
@@ -426,6 +427,14 @@ export async function POST(req: Request) {
       customerDefs.map((c) => db.customer.create({ data: c }))
     )
 
+    // ─── Units of measure ──────────────────────────────────────────
+    const unitDefs = ["قطعة", "كيلو", "جرام", "علبة", "كيس", "زجاجة", "كرتون", "رزمة", "طقم", "لتر", "متر"]
+    if (reset || (await db.unit.count()) === 0) {
+      await db.$transaction(
+        unitDefs.map((u) => db.unit.create({ data: { name: u } }))
+      )
+    }
+
     return NextResponse.json({
       ok: true,
       message: "seeded",
@@ -439,6 +448,7 @@ export async function POST(req: Request) {
         accounts: await db.account.count(),
         expenses: await db.expenseTransaction.count(),
         customers: await db.customer.count(),
+        units: await db.unit.count(),
       },
     })
   } catch (e: any) {

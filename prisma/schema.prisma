@@ -29,6 +29,13 @@ model Category {
   products  Product[]
 }
 
+// Unit of measure (kilo, gram, piece, box...)
+model Unit {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  createdAt DateTime  @default(now())
+}
+
 model Supplier {
   id        String           @id @default(cuid())
   name      String

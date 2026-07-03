@@ -75,7 +75,6 @@ export async function POST(req: NextRequest) {
   const paymentAccCode = paymentMethod === "CASH" ? "1010" : "1020"
 
   // Validate product availability atomically & decrement stock
-  console.log("[sales] checkout:", { userId: user.id, customerId, phone, itemCount: items.length })
   const result = await db.$transaction(async (tx) => {
     // Determine the next invoice sequence
     const count = await tx.sale.count()
@@ -142,8 +141,7 @@ export async function POST(req: NextRequest) {
 
     return { sale, total, afterDiscount, taxAmount }
   }).catch((e: any) => {
-    console.error("[sales] transaction error:", JSON.stringify({ msg: e?.message, code: e?.code, meta: e?.meta, name: e?.name }))
-    return { __error: e?.message || e?.code || "sale-failed" }
+    return { __error: e?.message || "sale-failed" }
   })
 
   if (result && (result as any).__error) {

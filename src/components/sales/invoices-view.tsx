@@ -35,6 +35,7 @@ import {
 import { useSales } from "@/hooks/use-api"
 import { useAppStore } from "@/lib/store"
 import { useFmt } from "@/components/currency-context"
+import { printA4Invoice } from "@/lib/print"
 import type { Sale } from "@/lib/types"
 import { Separator } from "@/components/ui/separator"
 
@@ -242,9 +243,9 @@ export function InvoicesView() {
                 </div>
               </div>
 
-              <Button variant="outline" className="w-full gap-2" onClick={() => window.print()}>
+              <Button variant="outline" className="w-full gap-2" onClick={() => printA4Invoice(detail)}>
                 <Printer className="h-4 w-4" />
-                طباعة الفاتورة
+                طباعة الفاتورة (A4)
               </Button>
             </div>
           ) : null}
