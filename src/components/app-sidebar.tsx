@@ -32,11 +32,13 @@ import {
   Moon,
   User as UserIcon,
   ChevronsLeft,
+  Languages,
 } from "lucide-react"
 import { useAppStore } from "@/lib/store"
 import { NAV_ITEMS } from "@/components/nav-config"
 import { ROLE_PERMISSIONS } from "@/lib/session"
 import type { Role } from "@/lib/types"
+import { useT, useI18n } from "@/components/i18n-context"
 import { cn } from "@/lib/utils"
 
 interface SidebarProps {
@@ -60,6 +62,7 @@ function NavLinks({
 }) {
   const view = useAppStore((s) => s.view)
   const setView = useAppStore((s) => s.setView)
+  const t = useT()
   const allowed = ROLE_PERMISSIONS[user.role].views
 
   return (
@@ -87,9 +90,9 @@ function NavLinks({
                 active ? "text-sidebar-primary" : "text-sidebar-foreground/60 group-hover:text-sidebar-foreground"
               )}
             />
-            <span className="flex-1 text-right">{item.label}</span>
+            <span className="flex-1 text-start">{t[item.labelKey]}</span>
             {active ? (
-              <ChevronsLeft className="h-4 w-4 text-sidebar-primary" />
+              <ChevronsLeft className="h-4 w-4 text-sidebar-primary rtl:rotate-0 ltr:rotate-180" />
             ) : null}
           </button>
         )
@@ -99,20 +102,23 @@ function NavLinks({
 }
 
 function Brand() {
+  const t = useT()
   return (
     <Link href="/" className="flex items-center gap-3 px-5 py-5">
       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground">
         <Boxes className="h-5 w-5" />
       </div>
       <div className="leading-tight">
-        <p className="font-bold text-sidebar-foreground">نظام المتجر</p>
-        <p className="text-xs text-sidebar-foreground/60">إدارة المبيعات والمخازن</p>
+        <p className="font-bold text-sidebar-foreground">{t.appName}</p>
+        <p className="text-xs text-sidebar-foreground/60">{t.appTagline}</p>
       </div>
     </Link>
   )
 }
 
 function UserCard({ user }: { user: SidebarProps["user"] }) {
+  const t = useT()
+  const roleLabel = user.role === "ADMIN" ? t.roleAdmin : user.role === "SALES" ? t.roleSales : t.roleWarehouse
   return (
     <div className="mx-3 mb-3 flex items-center gap-3 rounded-xl bg-sidebar-accent/50 p-3">
       <Avatar className="h-10 w-10 border-2 border-sidebar-primary/40">
@@ -129,7 +135,7 @@ function UserCard({ user }: { user: SidebarProps["user"] }) {
         </p>
       </div>
       <Badge className="bg-sidebar-primary/20 text-sidebar-primary border-sidebar-primary/30 hover:bg-sidebar-primary/30">
-        {ROLE_PERMISSIONS[user.role].label}
+        {roleLabel}
       </Badge>
     </div>
   )
@@ -137,6 +143,7 @@ function UserCard({ user }: { user: SidebarProps["user"] }) {
 
 function ThemeToggle() {
   const { theme, setTheme } = useTheme()
+  const t = useT()
   const [mounted, setMounted] = React.useState(false)
   React.useEffect(() => setMounted(true), [])
   if (!mounted) return <div className="h-9 w-9" />
@@ -146,7 +153,7 @@ function ThemeToggle() {
       variant="ghost"
       size="icon"
       onClick={() => setTheme(isDark ? "light" : "dark")}
-      title={isDark ? "الوضع النهاري" : "الوضع الليلي"}
+      title={isDark ? t.lightMode : t.darkMode}
       className="h-9 w-9"
     >
       {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -154,9 +161,24 @@ function ThemeToggle() {
   )
 }
 
+function LangToggle() {
+  const { toggle, dict } = useI18n()
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={toggle}
+      title={dict.switchLang}
+      className="h-9 w-9"
+    >
+      <Languages className="h-4 w-4" />
+    </Button>
+  )
+}
+
 export function AppSidebar({ user }: SidebarProps) {
   return (
-    <aside className="hidden lg:flex w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground border-l border-sidebar-border h-screen sticky top-0">
+    <aside className="hidden lg:flex w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground border-s border-sidebar-border h-screen sticky top-0">
       <Brand />
       <ScrollArea className="flex-1">
         <NavLinks user={user} />
@@ -199,6 +221,8 @@ export function Topbar({
   country?: { code: string; name: string; flag: string; currencySymbol: string }
 }) {
   const setSidebarOpen = useAppStore((s) => s.setSidebarOpen)
+  const t = useT()
+  const roleLabel = user.role === "ADMIN" ? t.roleAdmin : user.role === "SALES" ? t.roleSales : t.roleWarehouse
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border/70 bg-background/80 backdrop-blur px-4 sm:px-6">
       <Button
@@ -218,6 +242,7 @@ export function Topbar({
           <span className="font-medium">{country.currencySymbol}</span>
         </div>
       ) : null}
+      <LangToggle />
       <ThemeToggle />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -242,19 +267,19 @@ export function Topbar({
           <DropdownMenuSeparator />
           <DropdownMenuItem className="gap-2" disabled>
             <UserIcon className="h-4 w-4" />
-            {ROLE_PERMISSIONS[user.role].label}
+            {roleLabel}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             className="gap-2 text-destructive focus:text-destructive"
             onClick={async () => {
               await signOut({ redirect: false })
-              toast.success("تم تسجيل الخروج")
+              toast.success(t.logout)
               window.location.reload()
             }}
           >
             <LogOut className="h-4 w-4" />
-            تسجيل الخروج
+            {t.logout}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

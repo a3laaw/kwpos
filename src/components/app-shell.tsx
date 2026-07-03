@@ -3,7 +3,8 @@
 import * as React from "react"
 import { AppSidebar, MobileSidebar, Topbar } from "@/components/app-sidebar"
 import { useAppStore } from "@/lib/store"
-import { NAV_ITEMS } from "@/components/nav-config"
+import { NAV_ITEMS, VIEW_META } from "@/components/nav-config"
+import { useT } from "@/components/i18n-context"
 import { UserProvider, type SessionUser } from "@/components/user-context"
 import { CurrencyProvider } from "@/components/currency-context"
 import type { CountryConfig } from "@/lib/countries"
@@ -48,8 +49,9 @@ export function AppShell({
     if (!allowed.includes(view)) setView("dashboard")
   }, [view, setView])
 
-  const current = NAV_ITEMS.find((n) => n.view === view)
-  const title = current?.label ?? "لوحة التحكم"
+  const t = useT()
+  const meta = VIEW_META[view]
+  const title = meta ? t[meta.titleKey] : t.dashboardTitle
 
   return (
     <CurrencyProvider country={country}>

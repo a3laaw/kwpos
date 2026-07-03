@@ -613,3 +613,52 @@ Stage Summary:
 - All accounting flows now generate journals (sale + expense + purchase receive + manual).
 - Full Excel support: export (sales/products/journal/customers/suppliers) + import (products/customers) + template download.
 - Manual journal entry form for ad-hoc adjustments.
+
+---
+Task ID: I18N+ACCOUNTING-CARDS
+Agent: main
+Task: Bilingual AR/EN with RTL/LTR switch + accounting card selector (same style as analytics)
+
+i18n system (new):
+- `src/lib/i18n.ts` — Dict interface + full AR/EN dictionaries (nav labels,
+  page titles, roles, common actions, login screen, theme/lang toggles).
+- `src/components/i18n-context.tsx` — I18nProvider (locale persisted in
+  localStorage "erp-locale"), `useI18n()` + `useT()` hooks, keeps
+  `<html dir/lang>` in sync with active locale. Starts with AR (matches
+  server-rendered dir/lang) to avoid hydration mismatch.
+- `Providers` wraps app in I18nProvider.
+
+Language toggle + RTL/LTR:
+- New `LangToggle` button (Languages icon) in Topbar — toggles AR↔EN.
+- Button label shows the TARGET language ("English" when in AR, "العربية"
+  when in EN).
+- `document.documentElement.dir` switches rtl↔ltr; `lang` switches ar↔en.
+- Sidebar border switched from `border-l` to `border-s` (logical property,
+  auto-flips with dir).
+- Nav active chevron uses `rtl:rotate-0 ltr:rotate-180` to point correctly
+  in both directions.
+- Nav text alignment uses `text-start` (logical) instead of `text-right`.
+
+nav-config refactor:
+- Replaced `label: string` with `labelKey: keyof Dict`.
+- Added `VIEW_META` map (view → titleKey/descKey) for Topbar title.
+- NavLinks, Brand, UserCard, Topbar, user menu now use `useT()` for all
+  labels (nav items, app name/tagline, role labels, logout).
+
+Accounting card selector (same style as analytics):
+- `AccountingView` rewritten: replaced horizontal TabsList with 5 clickable
+  colored cards (شجرة الحسابات/المصروفات/القيود/الأرباح/الميزان) — each with
+  icon badge, KPI/hint, active ring. "شجرة الحسابات" shows "17 حساب" as KPI.
+- Same visual language as the Analytics card selector.
+
+Verification (Agent Browser):
+- Lang toggle: clicked "English" → dir=ltr, lang=en, nav=Dashboard/Inventory/
+  Customers/Settings, title="Dashboard". ✓
+- Clicked "العربية" → dir=rtl, lang=ar restored. ✓
+- Accounting: 5 clickable cards (شجرة الحسابات 17 حساب، المصروفات، القيود،
+  الأرباح والخسائر، ميزان المراجعة). ✓
+- No errors, no hydration mismatch, ESLint clean. ✓
+
+Stage Summary:
+- Full bilingual AR/EN with instant RTL/LTR layout switching.
+- Accounting now uses the same modern card-selector style as Analytics.

@@ -13,85 +13,42 @@ import {
   Settings as SettingsIcon,
   FileBarChart,
 } from "lucide-react"
+import type { Dict } from "@/lib/i18n"
 
 export interface NavItem {
   view: AppView
-  label: string
+  /** key into the i18n Dict for the localized label */
+  labelKey: keyof Dict
   icon: typeof LayoutDashboard
-  description: string
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  {
-    view: "dashboard",
-    label: "لوحة التحكم",
-    icon: LayoutDashboard,
-    description: "نظرة عامة على الأداء",
-  },
-  {
-    view: "sales",
-    label: "نقاط البيع",
-    icon: Calculator,
-    description: "إنشاء فاتورة جديدة",
-  },
-  {
-    view: "invoices",
-    label: "الفواتير",
-    icon: ReceiptText,
-    description: "سجل المبيعات",
-  },
-  {
-    view: "reports",
-    label: "التقارير",
-    icon: FileBarChart,
-    description: "تقارير مبيعات مرنة بفلاتر",
-  },
-  {
-    view: "inventory",
-    label: "المخازن",
-    icon: Boxes,
-    description: "إدارة المنتجات",
-  },
-  {
-    view: "purchases",
-    label: "المشتريات",
-    icon: ShoppingCart,
-    description: "أوامر الشراء",
-  },
-  {
-    view: "suppliers",
-    label: "الموردين",
-    icon: Truck,
-    description: "بيانات الموردين",
-  },
-  {
-    view: "customers",
-    label: "العملاء",
-    icon: Users,
-    description: "دليل العملاء (CRM)",
-  },
-  {
-    view: "analytics",
-    label: "تحليلات المبيعات",
-    icon: BarChart3,
-    description: "أكثر مبيعاً وراكد وربحية",
-  },
-  {
-    view: "accounting",
-    label: "المحاسبة",
-    icon: BookOpen,
-    description: "شجرة الحسابات والقيود",
-  },
-  {
-    view: "integrations",
-    label: "التكاملات",
-    icon: Plug,
-    description: "ربط مع شوبيفاي وغيره",
-  },
-  {
-    view: "settings",
-    label: "الإعدادات",
-    icon: SettingsIcon,
-    description: "الدولة والعملة والضريبة",
-  },
+  { view: "dashboard", labelKey: "navDashboard", icon: LayoutDashboard },
+  { view: "sales", labelKey: "navSales", icon: Calculator },
+  { view: "invoices", labelKey: "navInvoices", icon: ReceiptText },
+  { view: "reports", labelKey: "navReports", icon: FileBarChart },
+  { view: "inventory", labelKey: "navInventory", icon: Boxes },
+  { view: "purchases", labelKey: "navPurchases", icon: ShoppingCart },
+  { view: "suppliers", labelKey: "navSuppliers", icon: Truck },
+  { view: "customers", labelKey: "navCustomers", icon: Users },
+  { view: "analytics", labelKey: "navAnalytics", icon: BarChart3 },
+  { view: "accounting", labelKey: "navAccounting", icon: BookOpen },
+  { view: "integrations", labelKey: "navIntegrations", icon: Plug },
+  { view: "settings", labelKey: "navSettings", icon: SettingsIcon },
 ]
+
+/** Map a view to its page-title dict key + description dict key. */
+export const VIEW_META: Record<AppView, { titleKey: keyof Dict; descKey: keyof Dict }> = {
+  dashboard: { titleKey: "dashboardTitle", descKey: "dashboardDesc" },
+  sales: { titleKey: "salesTitle", descKey: "salesDesc" },
+  invoices: { titleKey: "invoicesTitle", descKey: "invoicesDesc" },
+  reports: { titleKey: "reportsTitle", descKey: "reportsDesc" },
+  inventory: { titleKey: "inventoryTitle", descKey: "inventoryDesc" },
+  purchases: { titleKey: "purchasesTitle", descKey: "purchasesDesc" },
+  suppliers: { titleKey: "suppliersTitle", descKey: "suppliersDesc" },
+  customers: { titleKey: "customersTitle", descKey: "customersDesc" },
+  analytics: { titleKey: "analyticsTitle", descKey: "analyticsDesc" },
+  accounting: { titleKey: "accountingTitle", descKey: "accountingDesc" },
+  integrations: { titleKey: "integrationsTitle", descKey: "integrationsDesc" },
+  settings: { titleKey: "settingsTitle", descKey: "settingsDesc" },
+}
