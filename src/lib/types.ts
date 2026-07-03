@@ -110,6 +110,7 @@ export type AppView =
   | "accounting"
   | "customers"
   | "analytics"
+  | "reports"
   | "settings"
 
 // ─── Accounting types ───────────────────────────────────────────────

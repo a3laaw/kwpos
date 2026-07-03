@@ -18,6 +18,7 @@ import { IntegrationsView } from "@/components/integrations/integrations-view"
 import { AccountingView } from "@/components/accounting/accounting-view"
 import { CustomersView } from "@/components/customers/customers-view"
 import { AnalyticsView } from "@/components/analytics/analytics-view"
+import { ReportsView } from "@/components/reports/reports-view"
 import { SettingsView } from "@/components/settings/settings-view"
 
 export type { SessionUser }
@@ -67,6 +68,7 @@ export function AppShell({
               {view === "invoices" && <InvoicesView />}
               {view === "customers" && <CustomersView />}
               {view === "analytics" && <AnalyticsView />}
+              {view === "reports" && <ReportsView />}
               {view === "accounting" && <AccountingView />}
               {view === "integrations" && <IntegrationsView />}
               {view === "settings" && <SettingsView />}

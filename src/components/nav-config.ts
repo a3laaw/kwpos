@@ -11,6 +11,7 @@ import {
   Users,
   BarChart3,
   Settings as SettingsIcon,
+  FileBarChart,
 } from "lucide-react"
 
 export interface NavItem {
@@ -38,6 +39,12 @@ export const NAV_ITEMS: NavItem[] = [
     label: "الفواتير",
     icon: ReceiptText,
     description: "سجل المبيعات",
+  },
+  {
+    view: "reports",
+    label: "التقارير",
+    icon: FileBarChart,
+    description: "تقارير مبيعات مرنة بفلاتر",
   },
   {
     view: "inventory",
