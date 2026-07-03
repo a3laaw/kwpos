@@ -43,13 +43,13 @@ import {
 } from "lucide-react"
 
 const PIE_COLORS = [
-  "#10b981",
+  "#055BE5", // blue primary
+  "#5CDE9D", // aqua green accent
+  "#185B6B", // dark teal
   "#f59e0b",
-  "#0ea5e9",
   "#8b5cf6",
   "#ec4899",
-  "#14b8a6",
-  "#f43f5e",
+  "#0ea5e9",
 ]
 
 export function DashboardView() {
@@ -190,8 +190,8 @@ export function DashboardView() {
                 <AreaChart data={trend} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                      <stop offset="5%" stopColor="#055BE5" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="#055BE5" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
@@ -221,7 +221,7 @@ export function DashboardView() {
                   <Area
                     type="monotone"
                     dataKey="total"
-                    stroke="#10b981"
+                    stroke="#055BE5"
                     strokeWidth={2.5}
                     fill="url(#salesGrad)"
                   />
