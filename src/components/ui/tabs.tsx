@@ -9,9 +9,26 @@ function Tabs({
   className,
   ...props
 }: React.ComponentProps<typeof TabsPrimitive.Root>) {
+  // Radix Tabs defaults to dir="ltr" which breaks table column order in
+  // Arabic. Read the active locale from our i18n context so the Tabs
+  // direction stays in sync when the user toggles language (reactive).
+  // We import lazily to avoid a circular dependency at module load.
+  const [dir, setDir] = React.useState<"rtl" | "ltr">("rtl")
+  React.useEffect(() => {
+    const update = () => {
+      const d = document.documentElement.dir
+      setDir(d === "ltr" ? "ltr" : "rtl")
+    }
+    update()
+    // Observe dir changes on <html> (the I18nProvider updates it).
+    const observer = new MutationObserver(update)
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["dir"] })
+    return () => observer.disconnect()
+  }, [])
   return (
     <TabsPrimitive.Root
       data-slot="tabs"
+      dir={dir}
       className={cn("flex flex-col gap-2", className)}
       {...props}
     />
