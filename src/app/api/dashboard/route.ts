@@ -1,11 +1,33 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { serializeProduct, serializeSale } from "@/lib/serialize"
 import type { DashboardStats } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url)
+  const from = searchParams.get("from")
+  const to = searchParams.get("to")
+  const range = searchParams.get("range") || "30" // days; used when no explicit from/to
+
+  // Build the date filter for "period" stats (total sales, count, trend, top).
+  const dateFilter: any = {}
+  let fromDate: Date | null = null
+  let toDate: Date | null = null
+  if (from) {
+    fromDate = new Date(from)
+    dateFilter.gte = fromDate
+  } else {
+    fromDate = new Date(Date.now() - Number(range) * 24 * 60 * 60 * 1000)
+    dateFilter.gte = fromDate
+  }
+  if (to) {
+    toDate = new Date(to)
+    toDate.setHours(23, 59, 59, 999)
+    dateFilter.lte = toDate
+  }
+
   const [
     totalSalesAgg,
     salesCount,
@@ -15,12 +37,12 @@ export async function GET() {
     pendingPurchases,
     inventoryAgg,
     recentSales,
-    last7Sales,
+    periodSales,
     topProductsRows,
     allProducts,
   ] = await Promise.all([
-    db.sale.aggregate({ _sum: { total: true } }),
-    db.sale.count(),
+    db.sale.aggregate({ _sum: { total: true }, where: { createdAt: dateFilter } }),
+    db.sale.count({ where: { createdAt: dateFilter } }),
     db.sale.aggregate({
       where: {
         createdAt: {
@@ -42,15 +64,12 @@ export async function GET() {
       take: 5,
     }),
     db.sale.findMany({
-      where: {
-        createdAt: {
-          gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-        },
-      },
+      where: { createdAt: dateFilter },
       select: { total: true, createdAt: true },
       orderBy: { createdAt: "asc" },
     }),
     db.saleItem.findMany({
+      where: { sale: { createdAt: dateFilter } },
       select: { quantity: true, subtotal: true, product: { select: { name: true } } },
     }),
     db.product.findMany({ include: { category: true } }),
@@ -63,26 +82,42 @@ export async function GET() {
     0
   )
 
-  // Sales trend (last 7 days grouped)
+  // Sales trend — group by day within the selected period.
+  // If the period is <= 14 days, show daily; otherwise group weekly for readability.
+  const periodDays =
+    fromDate && toDate
+      ? Math.max(1, Math.ceil((toDate.getTime() - fromDate.getTime()) / (24 * 60 * 60 * 1000)))
+      : Number(range)
   const dayMap = new Map<string, number>()
   const labels = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"]
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000)
-    const key = d.toISOString().slice(0, 10)
-    dayMap.set(key, 0)
-  }
-  for (const s of last7Sales) {
-    const key = new Date(s.createdAt).toISOString().slice(0, 10)
-    if (dayMap.has(key)) {
-      dayMap.set(key, (dayMap.get(key) || 0) + Number(s.total))
-    }
-  }
-  const salesTrend = Array.from(dayMap.entries()).map(([date, total]) => {
-    const d = new Date(date)
-    return { date, total: +total.toFixed(2), label: labels[d.getDay()] }
-  })
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const startDay = fromDate ? new Date(fromDate) : new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000)
+  startDay.setHours(0, 0, 0, 0)
+  const endDay = toDate ? new Date(toDate) : new Date()
+  endDay.setHours(23, 59, 59, 999)
 
-  // Top products by revenue
+  for (const s of periodSales) {
+    const d = new Date(s.createdAt)
+    if (d < startDay || d > endDay) continue
+    const key = d.toISOString().slice(0, 10)
+    dayMap.set(key, (dayMap.get(key) || 0) + Number(s.total))
+  }
+  // Fill missing days with 0 for a continuous trend
+  const cursor = new Date(startDay)
+  while (cursor <= endDay) {
+    const key = cursor.toISOString().slice(0, 10)
+    if (!dayMap.has(key)) dayMap.set(key, 0)
+    cursor.setDate(cursor.getDate() + 1)
+  }
+  const salesTrend = Array.from(dayMap.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, total]) => {
+      const d = new Date(date)
+      return { date, total: +total.toFixed(2), label: labels[d.getDay()] }
+    })
+
+  // Top products by revenue (within period)
   const topMap = new Map<string, { qty: number; total: number }>()
   for (const it of topProductsRows) {
     const name = (it as any).product?.name || "—"
