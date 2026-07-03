@@ -866,3 +866,36 @@ Verification (Agent Browser):
 - Invoice detail: "حراري 80mm" + "A4" + "مرتجع الفاتورة" buttons present. ✓
 - Refund: clicked → AlertDialog "مرتجع الفاتورة" with warning + "تأكيد المرتجع". ✓
 - Server responds 200, ESLint clean. ✓
+
+---
+Task ID: INVOICES-MASTER-DETAIL+PAGINATION
+Agent: main
+Task: Redesign invoices as master-detail layout + pagination (per user request)
+
+Changes:
+1. **API pagination** (`GET /api/sales`): accepts `?page=&pageSize=` (default
+   10 per page). Returns `{ items, pagination: { page, pageSize, total, totalPages } }`.
+
+2. **useSales hook**: now accepts `(q, page, pageSize)`.
+
+3. **InvoicesView rewritten** — master-detail layout:
+   - **Left panel (5/12 cols)**: scrollable list of invoice cards. Each card
+     shows invoice number, customer name + phone, date, total, payment badge.
+     Active invoice highlighted with primary ring. Refunded invoices show
+     "مرتجع" badge + strikethrough total.
+   - **Right panel (7/12 cols)**: InvoiceDetail component — larger format with
+     header (invoice no + date + refunded badge), customer/payment info cards,
+     items table (bigger), totals (الإجمالي in text-2xl bold), action buttons
+     (thermal 80mm + A4 + refund). Sticky positioning.
+   - Empty state: "اختر فاتورة من القائمة لعرض تفاصيلها".
+
+4. **Pagination controls**: "السابق" / "التالي" buttons + "صفحة X من Y
+   (Z فاتورة)" label. Auto-resets to page 1 on search. Auto-goes back if
+   current page becomes empty.
+
+Verification (Agent Browser + VLM):
+- Master-detail layout: invoice list on one side, detail panel on other. ✓
+- Pagination: clicked "التالي" → page 2 loaded with different invoices. ✓
+- Detail panel: shows items table, totals (text-2xl), print + refund buttons. ✓
+- VLM: "الصفحة مقسمة إلى قسمين: تفاصيل على جانب وقائمة على الجانب الآخر". ✓
+- No errors, ESLint clean. ✓

@@ -1,48 +1,40 @@
 "use client"
 
 import * as React from "react"
+import { toast } from "sonner"
 import { PageHeader } from "@/components/shared/page-header"
-import { ExcelExportButton } from "@/components/shared/excel-buttons"
 import { EmptyState } from "@/components/shared/empty-state"
 import { TableSkeleton } from "@/components/shared/loading-state"
+import { ConfirmDialog } from "@/components/shared/confirm-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+import { Separator } from "@/components/ui/separator"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   ReceiptText,
   Search,
   Eye,
   Printer,
-  CreditCard,
   Banknote,
+  CreditCard,
   ArrowLeftRight,
+  ChevronRight,
+  ChevronLeft,
+  RotateCcw,
+  Flame,
+  User,
+  Phone,
+  Calendar,
 } from "lucide-react"
-import { useSales } from "@/hooks/use-api"
+import { useSales, useRefundSale } from "@/hooks/use-api"
 import { useAppStore } from "@/lib/store"
 import { useFmt } from "@/components/currency-context"
 import { printA4Invoice, printThermalReceipt } from "@/lib/print"
 import { useUser } from "@/components/user-context"
-import { useRefundSale } from "@/hooks/use-api"
-import { ConfirmDialog } from "@/components/shared/confirm-dialog"
 import type { Sale } from "@/lib/types"
-import { Separator } from "@/components/ui/separator"
-import { RotateCcw, Flame } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 const PAYMENT_META: Record<Sale["paymentMethod"], { label: string; icon: any; className: string }> = {
   CASH: { label: "نقدي", icon: Banknote, className: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30" },
@@ -53,26 +45,35 @@ const PAYMENT_META: Record<Sale["paymentMethod"], { label: string; icon: any; cl
 export function InvoicesView() {
   const fmt = useFmt()
   const user = useUser()
-  const [q, setQ] = React.useState("")
-  const [detail, setDetail] = React.useState<Sale | null>(null)
-  const [refundTarget, setRefundTarget] = React.useState<Sale | null>(null)
   const setView = useAppStore((s) => s.setView)
-  const debouncedQ = React.useDeferredValue(q)
-  const { data, isLoading, isError, refetch } = useSales(debouncedQ || undefined)
-  const refundMut = useRefundSale()
+  const [q, setQ] = React.useState("")
+  const [page, setPage] = React.useState(1)
+  const [pageSize] = React.useState(10)
+  const [selected, setSelected] = React.useState<Sale | null>(null)
+  const [refundTarget, setRefundTarget] = React.useState<Sale | null>(null)
   const isAdmin = user.role === "ADMIN"
+  const debouncedQ = React.useDeferredValue(q)
+  const { data, isLoading, isError, refetch } = useSales(debouncedQ || undefined, page, pageSize)
+  const refundMut = useRefundSale()
 
   const sales = data?.items ?? []
+  const pagination = data?.pagination
+  const isRefunded = (s: Sale) => s.paid === 0 && s.total > 0
+
+  // Auto-advance pages — if current page is empty but not first page, go back
+  React.useEffect(() => {
+    if (!isLoading && sales.length === 0 && page > 1) {
+      setPage(1)
+    }
+  }, [isLoading, sales.length, page])
 
   async function handleRefund() {
     if (!refundTarget) return
     try {
       await refundMut.mutateAsync({ id: refundTarget.id, reason: "مرتجع من المدير" })
-      toast.success("تم مرتجع الفاتورة", {
-        description: `${refundTarget.invoiceNo} — تم إرجاع الكميات للمخزون`,
-      })
+      toast.success("تم مرتجع الفاتورة", { description: `${refundTarget.invoiceNo} — تم إرجاع الكميات للمخزون` })
       setRefundTarget(null)
-      setDetail(null)
+      setSelected(null)
     } catch (err: any) {
       toast.error("فشل المرتجع", { description: err?.message })
     }
@@ -82,229 +83,143 @@ export function InvoicesView() {
     <div className="space-y-5">
       <PageHeader
         title="الفواتير"
-        description="سجل جميع فواتير المبيعات. ابحث وافتح أي فاتورة لعرض تفاصيلها."
+        description="سجل فواتير المبيعات — تصفّح، اطبع، وأدِر المرتجعات."
         icon={<ReceiptText className="h-5 w-5" />}
         actions={
-          <div className="flex items-center gap-2 flex-wrap">
-            <ExcelExportButton type="sales" />
-            <Button variant="outline" onClick={() => setView("sales")} className="gap-2">
-              فاتورة جديدة
-            </Button>
-          </div>
+          <Button variant="outline" onClick={() => setView("sales")} className="gap-2">
+            فاتورة جديدة
+          </Button>
         }
       />
 
-      <Card className="p-3 sm:p-4">
+      {/* Search */}
+      <Card className="p-3">
         <div className="relative">
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             value={q}
-            onChange={(e) => setQ(e.target.value)}
+            onChange={(e) => { setQ(e.target.value); setPage(1) }}
             placeholder="ابحث برقم الفاتورة أو اسم العميل..."
             className="pr-9"
           />
         </div>
       </Card>
 
-      <Card className="overflow-hidden">
-        {isLoading ? (
-          <div className="p-4"><TableSkeleton rows={6} /></div>
-        ) : isError ? (
-          <div className="p-4">
+      {/* Master-detail layout */}
+      <div className="grid lg:grid-cols-12 gap-4">
+        {/* List (master) */}
+        <div className="lg:col-span-5 space-y-2">
+          {isLoading ? (
+            <TableSkeleton rows={6} />
+          ) : isError ? (
             <EmptyState title="تعذّر تحميل الفواتير" action={<Button onClick={() => refetch()}>إعادة المحاولة</Button>} />
-          </div>
-        ) : sales.length === 0 ? (
-          <div className="p-4">
-            <EmptyState
-              icon={<ReceiptText className="h-7 w-7" />}
-              title="لا توجد فواتير"
-              description="لم يتم إنشاء أي فاتورة مبيعات بعد."
-              action={<Button onClick={() => setView("sales")} className="gap-2">إنشاء فاتورة</Button>}
-            />
-          </div>
-        ) : (
-          <div className="overflow-x-auto scrollbar-thin">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/40 hover:bg-muted/40">
-                  <TableHead>رقم الفاتورة</TableHead>
-                  <TableHead className="hidden sm:table-cell">العميل</TableHead>
-                  <TableHead className="hidden md:table-cell">التاريخ</TableHead>
-                  <TableHead className="text-center">الأصناف</TableHead>
-                  <TableHead className="text-center">الدفع</TableHead>
-                  <TableHead className="text-center">الإجمالي</TableHead>
-                  <TableHead className="w-12 text-center"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sales.map((s) => {
-                  const pm = PAYMENT_META[s.paymentMethod]
-                  const Icon = pm.icon
-                  return (
-                    <TableRow key={s.id} className="hover:bg-muted/30 cursor-pointer" onClick={() => setDetail(s)}>
-                      <TableCell>
-                        <span className="font-mono font-medium" dir="ltr">{s.invoiceNo}</span>
-                        <div className="text-xs text-muted-foreground sm:hidden">
-                          {s.customerName || "عميل نقدي"}
+          ) : sales.length === 0 ? (
+            <EmptyState icon={<ReceiptText className="h-7 w-7" />} title="لا توجد فواتير" />
+          ) : (
+            <>
+              <ScrollArea className="max-h-[calc(100vh-16rem)] scrollbar-thin pr-1">
+                <div className="space-y-1.5">
+                  {sales.map((s) => {
+                    const pm = PAYMENT_META[s.paymentMethod]
+                    const refunded = isRefunded(s)
+                    const active = selected?.id === s.id
+                    return (
+                      <button
+                        key={s.id}
+                        onClick={() => setSelected(s)}
+                        className={cn(
+                          "w-full text-right rounded-lg border p-3 transition-all",
+                          active
+                            ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                            : "border-border/60 hover:border-primary/40 hover:bg-muted/30"
+                        )}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono font-semibold text-sm" dir="ltr">{s.invoiceNo}</span>
+                              {refunded ? (
+                                <Badge variant="destructive" className="text-[10px]">مرتجع</Badge>
+                              ) : null}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                              {s.customerName || "عميل نقدي"}
+                              {s.customerPhone ? ` • ${s.customerPhone}` : ""}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">{fmt.dateTime(s.createdAt)}</p>
+                          </div>
+                          <div className="text-left shrink-0">
+                            <p className={cn("font-bold tabular-nums text-sm", refunded && "line-through text-muted-foreground")}>
+                              {fmt.currency(s.total)}
+                            </p>
+                            <Badge variant="outline" className={cn("text-[10px] gap-1", pm.className)}>
+                              <pm.icon className="h-2.5 w-2.5" />
+                              {pm.label}
+                            </Badge>
+                          </div>
                         </div>
-                      </TableCell>
-                      <TableCell className="hidden sm:table-cell">
-                        {s.customerName || <span className="text-muted-foreground">عميل نقدي</span>}
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
-                        {fmt.dateTime(s.createdAt)}
-                      </TableCell>
-                      <TableCell className="text-center tabular-nums">
-                        {fmt.number(s.items.length)}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge variant="outline" className={`gap-1 ${pm.className}`}>
-                          <Icon className="h-3 w-3" />
-                          {pm.label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-center font-semibold tabular-nums text-primary">
-                        {fmt.currency(s.total)}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); setDetail(s) }}>
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </Card>
-
-      {/* Invoice detail dialog */}
-      <Dialog open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ReceiptText className="h-5 w-5 text-primary" />
-              تفاصيل الفاتورة
-            </DialogTitle>
-            <DialogDescription className="sr-only">
-              عرض تفاصيل عناصر الفاتورة والإجماليات.
-            </DialogDescription>
-          </DialogHeader>
-          {detail ? (
-            <div className="space-y-4">
-              <div className="text-center">
-                <p className="font-mono font-bold text-lg" dir="ltr">{detail.invoiceNo}</p>
-                <p className="text-xs text-muted-foreground">{fmt.dateTime(detail.createdAt)}</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="rounded-lg bg-muted/40 p-2.5">
-                  <p className="text-xs text-muted-foreground">العميل</p>
-                  <p className="font-medium">{detail.customerName || "عميل نقدي"}</p>
+                      </button>
+                    )
+                  })}
                 </div>
-                <div className="rounded-lg bg-muted/40 p-2.5">
-                  <p className="text-xs text-muted-foreground">طريقة الدفع</p>
-                  <p className="font-medium">{PAYMENT_META[detail.paymentMethod].label}</p>
-                </div>
-                {detail.customerPhone ? (
-                  <div className="rounded-lg bg-muted/40 p-2.5 col-span-2">
-                    <p className="text-xs text-muted-foreground">هاتف العميل</p>
-                    <p className="font-medium font-mono" dir="ltr">{detail.customerPhone}</p>
-                  </div>
-                ) : null}
-                {detail.userName ? (
-                  <div className="rounded-lg bg-muted/40 p-2.5 col-span-2">
-                    <p className="text-xs text-muted-foreground">البائع</p>
-                    <p className="font-medium">{detail.userName}</p>
-                  </div>
-                ) : null}
-              </div>
+              </ScrollArea>
 
-              <div className="rounded-lg border border-border/60 overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted/40">
-                    <tr>
-                      <th className="text-right p-2 font-medium">الصنف</th>
-                      <th className="text-center p-2 font-medium">كمية</th>
-                      <th className="text-center p-2 font-medium">سعر</th>
-                      <th className="text-center p-2 font-medium">إجمالي</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {detail.items.map((it) => (
-                      <tr key={it.id} className="border-t border-border/40">
-                        <td className="p-2">{it.productName}</td>
-                        <td className="p-2 text-center tabular-nums">{it.quantity}</td>
-                        <td className="p-2 text-center tabular-nums">{fmt.currency(it.unitPrice)}</td>
-                        <td className="p-2 text-center font-medium tabular-nums">{fmt.currency(it.subtotal)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="space-y-1.5 text-sm">
-                <div className="flex justify-between text-muted-foreground">
-                  <span>المجموع الفرعي</span>
-                  <span className="tabular-nums">{fmt.currency(detail.subtotal)}</span>
-                </div>
-                {detail.discount > 0 ? (
-                  <div className="flex justify-between text-rose-600">
-                    <span>الخصم</span>
-                    <span className="tabular-nums">- {fmt.currency(detail.discount)}</span>
-                  </div>
-                ) : null}
-                <div className="flex justify-between text-muted-foreground">
-                  <span>الضريبة ({detail.taxRate}%)</span>
-                  <span className="tabular-nums">{fmt.currency(detail.taxAmount)}</span>
-                </div>
-                <Separator />
-                <div className="flex justify-between items-center pt-1">
-                  <span className="font-semibold">الإجمالي</span>
-                  <span className="text-xl font-bold tabular-nums text-primary">
-                    {fmt.currency(detail.total)}
+              {/* Pagination */}
+              {pagination && pagination.totalPages > 1 ? (
+                <div className="flex items-center justify-between gap-2 pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page <= 1}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    className="gap-1"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                    السابق
+                  </Button>
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    صفحة {fmt.number(page)} من {fmt.number(pagination.totalPages)} ({fmt.number(pagination.total)} فاتورة)
                   </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page >= pagination.totalPages}
+                    onClick={() => setPage((p) => p + 1)}
+                    className="gap-1"
+                  >
+                    التالي
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
                 </div>
-              </div>
+              ) : pagination ? (
+                <p className="text-xs text-muted-foreground text-center pt-1">
+                  {fmt.number(pagination.total)} فاتورة
+                </p>
+              ) : null}
+            </>
+          )}
+        </div>
 
-              {/* Print + refund buttons */}
-              <div className="space-y-2">
-                <div className="grid grid-cols-2 gap-2">
-                  <Button variant="outline" className="gap-2" onClick={() => printThermalReceipt(detail)}>
-                    <Flame className="h-4 w-4" />
-                    حراري 80mm
-                  </Button>
-                  <Button variant="outline" className="gap-2" onClick={() => printA4Invoice(detail)}>
-                    <Printer className="h-4 w-4" />
-                    A4
-                  </Button>
-                </div>
-                {isAdmin ? (
-                  <>
-                    <Separator />
-                    <Button
-                      variant="outline"
-                      className="w-full gap-2 text-destructive hover:text-destructive border-destructive/30 hover:border-destructive/50"
-                      onClick={() => setRefundTarget(detail)}
-                      disabled={detail.paid === 0 && detail.total > 0}
-                    >
-                      <RotateCcw className="h-4 w-4" />
-                      {detail.paid === 0 && detail.total > 0 ? "تم مرتجعها" : "مرتجع الفاتورة"}
-                    </Button>
-                    {detail.paid === 0 && detail.total > 0 ? (
-                      <p className="text-[10px] text-muted-foreground text-center">
-                        هذه الفاتورة تم مرتجعها — الكميات أُرجعت للمخزون
-                      </p>
-                    ) : null}
-                  </>
-                ) : null}
+        {/* Detail (detail panel) */}
+        <div className="lg:col-span-7">
+          {selected ? (
+            <InvoiceDetail
+              sale={selected}
+              fmt={fmt}
+              isAdmin={isAdmin}
+              isRefunded={isRefunded(selected)}
+              onRefund={() => setRefundTarget(selected)}
+            />
+          ) : (
+            <Card className="flex items-center justify-center h-[400px] border-dashed">
+              <div className="text-center text-muted-foreground">
+                <Eye className="h-10 w-10 mx-auto opacity-40 mb-2" />
+                <p className="text-sm">اختر فاتورة من القائمة لعرض تفاصيلها</p>
               </div>
-            </div>
-          ) : null}
-        </DialogContent>
-      </Dialog>
+            </Card>
+          )}
+        </div>
+      </div>
 
       {/* Refund confirmation */}
       <ConfirmDialog
@@ -324,5 +239,152 @@ export function InvoicesView() {
         onConfirm={handleRefund}
       />
     </div>
+  )
+}
+
+/* ───────────────────────── Invoice Detail Panel ───────────────────────── */
+function InvoiceDetail({
+  sale,
+  fmt,
+  isAdmin,
+  isRefunded,
+  onRefund,
+}: {
+  sale: Sale
+  fmt: ReturnType<typeof useFmt>
+  isAdmin: boolean
+  isRefunded: boolean
+  onRefund: () => void
+}) {
+  const pm = PAYMENT_META[sale.paymentMethod]
+  return (
+    <Card className="sticky top-20 overflow-hidden">
+      {/* Header */}
+      <div className="bg-primary/5 border-b border-border/60 p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-bold flex items-center gap-2">
+              <ReceiptText className="h-5 w-5 text-primary" />
+              فاتورة مبيعات
+            </h3>
+            <p className="font-mono text-sm text-primary mt-1" dir="ltr">{sale.invoiceNo}</p>
+            {isRefunded ? (
+              <Badge variant="destructive" className="mt-1">مرتجعة</Badge>
+            ) : null}
+          </div>
+          <div className="text-left">
+            <p className="text-xs text-muted-foreground">{fmt.dateTime(sale.createdAt)}</p>
+          </div>
+        </div>
+      </div>
+
+      <ScrollArea className="max-h-[calc(100vh-18rem)] scrollbar-thin">
+        <div className="p-5 space-y-4">
+          {/* Customer + payment info */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-lg bg-muted/40 p-3">
+              <p className="text-xs text-muted-foreground flex items-center gap-1"><User className="h-3 w-3" /> العميل</p>
+              <p className="font-medium text-sm mt-1">{sale.customerName || "عميل نقدي"}</p>
+              {sale.customerPhone ? (
+                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5"><Phone className="h-3 w-3" /> <span dir="ltr">{sale.customerPhone}</span></p>
+              ) : null}
+            </div>
+            <div className="rounded-lg bg-muted/40 p-3">
+              <p className="text-xs text-muted-foreground flex items-center gap-1"><Calendar className="h-3 w-3" /> الدفع</p>
+              <p className="font-medium text-sm mt-1">
+                <Badge variant="outline" className={cn("gap-1", pm.className)}>
+                  <pm.icon className="h-3 w-3" /> {pm.label}
+                </Badge>
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">{sale.userName || "—"}</p>
+            </div>
+          </div>
+
+          {/* Items table — larger now */}
+          <div className="rounded-lg border border-border/60 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40">
+                <tr>
+                  <th className="text-right p-2.5 font-medium">الصنف</th>
+                  <th className="text-center p-2.5 font-medium w-16">كمية</th>
+                  <th className="text-center p-2.5 font-medium w-24">سعر</th>
+                  <th className="text-center p-2.5 font-medium w-28">إجمالي</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sale.items.map((it) => (
+                  <tr key={it.id} className="border-t border-border/40">
+                    <td className="p-2.5 font-medium">{it.productName}</td>
+                    <td className="p-2.5 text-center tabular-nums">{fmt.number(it.quantity)}</td>
+                    <td className="p-2.5 text-center tabular-nums">{fmt.currency(it.unitPrice)}</td>
+                    <td className="p-2.5 text-center font-semibold tabular-nums">{fmt.currency(it.subtotal)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Totals */}
+          <div className="space-y-1.5 text-sm">
+            <div className="flex justify-between text-muted-foreground">
+              <span>المجموع الفرعي</span>
+              <span className="tabular-nums" dir="ltr">{fmt.currency(sale.subtotal)}</span>
+            </div>
+            {sale.discount > 0 ? (
+              <div className="flex justify-between text-rose-600">
+                <span>الخصم</span>
+                <span className="tabular-nums" dir="ltr">- {fmt.currency(sale.discount)}</span>
+              </div>
+            ) : null}
+            {sale.taxAmount > 0 ? (
+              <div className="flex justify-between text-muted-foreground">
+                <span>الضريبة ({fmt.number(sale.taxRate)}%)</span>
+                <span className="tabular-nums" dir="ltr">{fmt.currency(sale.taxAmount)}</span>
+              </div>
+            ) : null}
+            <Separator />
+            <div className="flex justify-between items-center pt-1">
+              <span className="font-semibold text-base">الإجمالي</span>
+              <span className={cn("text-2xl font-bold tabular-nums text-primary", isRefunded && "line-through")}>
+                {fmt.currency(sale.total)}
+              </span>
+            </div>
+          </div>
+
+          {/* Action buttons */}
+          <div className="space-y-2 pt-2">
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="outline" className="gap-2" onClick={() => printThermalReceipt(sale)}>
+                <Flame className="h-4 w-4" />
+                طباعة حرارية 80mm
+              </Button>
+              <Button variant="outline" className="gap-2" onClick={() => printA4Invoice(sale)}>
+                <Printer className="h-4 w-4" />
+                طباعة A4
+              </Button>
+            </div>
+            {isAdmin ? (
+              <>
+                <Separator />
+                <Button
+                  variant="outline"
+                  className="w-full gap-2 text-destructive hover:text-destructive border-destructive/30 hover:border-destructive/50"
+                  onClick={onRefund}
+                  disabled={isRefunded}
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  {isRefunded ? "تم مرتجعها" : "مرتجع الفاتورة"}
+                </Button>
+                {isRefunded ? (
+                  <p className="text-[10px] text-muted-foreground text-center">
+                    هذه الفاتورة تم مرتجعها — الكميات أُرجعت للمخزون
+                  </p>
+                ) : null}
+              </>
+            ) : null}
+          </div>
+        </div>
+      </ScrollArea>
+    </Card>
   )
 }

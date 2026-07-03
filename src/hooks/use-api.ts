@@ -191,11 +191,15 @@ export function useDeletePurchaseOrder() {
 }
 
 /* ----------------------------- Sales ----------------------------- */
-export function useSales(q?: string) {
-  const qs = q ? `?q=${encodeURIComponent(q)}` : ""
-  return useQuery<{ items: Sale[] }>({
-    queryKey: ["sales", q ?? "all"],
-    queryFn: () => jget(`/api/sales${qs}`),
+export function useSales(q?: string, page?: number, pageSize?: number) {
+  const qs = new URLSearchParams()
+  if (q) qs.set("q", q)
+  if (page) qs.set("page", String(page))
+  if (pageSize) qs.set("pageSize", String(pageSize))
+  const s = qs.toString()
+  return useQuery<{ items: Sale[]; pagination?: { page: number; pageSize: number; total: number; totalPages: number } }>({
+    queryKey: ["sales", q ?? "all", page ?? 1, pageSize ?? 10],
+    queryFn: () => jget(`/api/sales${s ? `?${s}` : ""}`),
   })
 }
 
