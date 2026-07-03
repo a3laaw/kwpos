@@ -899,3 +899,45 @@ Verification (Agent Browser + VLM):
 - Detail panel: shows items table, totals (text-2xl), print + refund buttons. ✓
 - VLM: "الصفحة مقسمة إلى قسمين: تفاصيل على جانب وقائمة على الجانب الآخر". ✓
 - No errors, ESLint clean. ✓
+
+---
+Task ID: POS-CART-PAGINATION+CUSTOMER-ON-TOP
+Agent: main
+Task: POS cart redesign — customer info at top + paginated cart items + auto-advance
+
+Changes (src/components/sales/sales-view.tsx):
+1. **Customer info moved to TOP of cart** — name, payment method, and phone
+   (with auto-lookup) are now in a compact section at the top of the cart card,
+   above the items list. Previously they were at the bottom mixed with totals.
+
+2. **Cart pagination** (5 items per page):
+   - `ITEMS_PER_CART_PAGE = 5` — only 5 cart items shown per page.
+   - `cartPageItems = cart.slice(page*5, (page+1)*5)` — paginated slice.
+   - **Auto-advance**: when a NEW item is added (not existing qty increase),
+     `cartPage` jumps to the page the new item will appear on. The cashier
+     sees the newly added item immediately without scrolling.
+   - **Manual navigation**: "السابق" (previous) and "التالي" (next) buttons
+     below the items list. "صفحة X / Y — Z صنف" indicator.
+   - **Clamp**: if cart shrinks (remove/clear), cartPage auto-clamps to
+     the last valid page.
+
+3. **Cart layout restructured**:
+   - Header (title + clear) → shrink-0
+   - Customer info → shrink-0, top
+   - Paginated items → flex-1, scrollable if needed
+   - Pagination controls → shrink-0 (only when >1 page)
+   - Summary (discount, tax, totals) → shrink-0
+   - Checkout button → shrink-0, bottom
+   All sections use `shrink-0` except items which is `flex-1 min-h-0` —
+   cart never exceeds viewport, all controls always visible.
+
+4. Removed `ScrollArea` component (no longer needed — pagination handles
+   overflow). Items area uses `overflow-y-auto scrollbar-thin`.
+
+Verification (Agent Browser + VLM):
+- Added 7 unique products → cart showed 5 on page 1, 2 on page 2. ✓
+- Pagination controls: "السابق" (disabled on page 1) + "التالي" + indicator. ✓
+- Customer info (name, phone) at TOP of cart. ✓
+- Total + checkout button always visible at BOTTOM. ✓
+- VLM: "بيانات العميل في أعلى السلة، الإجمالي وزر البيع في الأسفل". ✓
+- No errors, ESLint clean. ✓
