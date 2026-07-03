@@ -60,7 +60,7 @@ function openPrintWindow(html: string, title: string) {
 export function printThermalReceipt(sale: Sale) {
   const store = getStore()
   // Format date in Arabic explicitly (avoid locale-dependent garbled output).
-  const dateStr = new Intl.DateTimeFormat("ar-EG", {
+  const dateStr = new Intl.DateTimeFormat("ar-KW-u-nu-latn", {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -159,8 +159,8 @@ export function printThermalReceipt(sale: Sale) {
 
 export function printA4Invoice(sale: Sale) {
   const store = getStore()
-  const dateStr = new Intl.DateTimeFormat("ar-EG", { year: "numeric", month: "long", day: "numeric" }).format(new Date(sale.createdAt))
-  const timeStr = new Intl.DateTimeFormat("ar-EG", { hour: "2-digit", minute: "2-digit" }).format(new Date(sale.createdAt))
+  const dateStr = new Intl.DateTimeFormat("ar-KW-u-nu-latn", { year: "numeric", month: "long", day: "numeric" }).format(new Date(sale.createdAt))
+  const timeStr = new Intl.DateTimeFormat("ar-KW-u-nu-latn", { hour: "2-digit", minute: "2-digit" }).format(new Date(sale.createdAt))
   const itemsRows = sale.items
     .map(
       (it, i) => `
@@ -330,7 +330,7 @@ function escapeHtml(s: string): string {
 }
 
 function fmtNum(v: number): string {
-  return new Intl.NumberFormat("ar", { maximumFractionDigits: 3 }).format(v || 0)
+  return new Intl.NumberFormat("ar-KW-u-nu-latn", { maximumFractionDigits: 3 }).format(v || 0)
 }
 
 function paymentLabel(m: string): string {

@@ -43,9 +43,9 @@ export function useFmt() {
     const fmt = toFormatLocale(country)
     return {
       currency: (v: number) => formatCurrency(v, fmt),
-      number: (v: number) => formatNumber(v, country.locale),
-      date: (v: string | Date) => formatDate(v, country.locale),
-      dateTime: (v: string | Date) => formatDateTime(v, country.locale),
+      number: (v: number) => formatNumber(v, fmt.locale),
+      date: (v: string | Date) => formatDate(v, fmt.locale),
+      dateTime: (v: string | Date) => formatDateTime(v, fmt.locale),
       symbol: country.currencySymbol,
       taxRate: country.taxRate,
       taxLabel: country.taxLabel,

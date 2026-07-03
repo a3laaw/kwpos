@@ -307,7 +307,7 @@ function StagnantList({ items, fmt }: { items: ProductAnalytics[]; fmt: ReturnTy
                   {critical ? "لم يُبع" : `${fmt.number(ratio)}% دوران`}
                 </Badge>
                 {r.lastSoldAt ? (
-                  <p className="text-[10px] text-muted-foreground mt-1">آخر بيع: {new Date(r.lastSoldAt).toLocaleDateString("ar-KW")}</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">آخر بيع: {new Date(r.lastSoldAt).toLocaleDateString("ar-KW-u-nu-latn")}</p>
                 ) : (
                   <p className="text-[10px] text-muted-foreground mt-1">لا يوجد بيع</p>
                 )}

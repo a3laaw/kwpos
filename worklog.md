@@ -305,3 +305,42 @@ Verification (Agent Browser + VLM):
 Stage Summary:
 - Thermal receipt now prints with real scannable barcode, correct Arabic
   date, and proper 80mm width. A4 invoice + barcode labels also load fonts.
+
+---
+Task ID: LATIN-NUMBERS+FILTERS
+Agent: main
+Task: Latin digits (0123) everywhere + date-range filters on reports
+
+Latin numbers fix:
+- `src/lib/format.ts`: all formatters now use locale `ar-KW-u-nu-latn` (Arabic
+  text/months + Latin 0123 digits). `toFormatLocale` appends `-u-nu-latn` to
+  the country's base locale.
+- `src/components/currency-context.tsx`: `useFmt().number/date/dateTime` now
+  pass the latinized locale (was passing raw `country.locale` → Arabic digits).
+- `src/lib/print.ts`: `fmtNum` + all date formatters switched to `ar-KW-u-nu-latn`.
+- `src/components/analytics/analytics-view.tsx`: `toLocaleDateString("ar-KW")` →
+  `ar-KW-u-nu-latn`.
+- Verified across dashboard, inventory, trial balance: 408.050, 77 كيس,
+  648.300, 2,544.000 — all Latin digits. ✓
+
+Dashboard date-range filter:
+- `GET /api/dashboard` now accepts `?from=&to=&range=` query params. Total
+  sales, sales count, sales trend, and top products are all scoped to the
+  selected period. Quick ranges: 7/30/90/365 days. Explicit from/to override.
+  Trend chart fills missing days with 0 for a continuous line.
+- `useDashboard(from, to, range)` hook updated.
+- `DashboardView` now renders a filter bar (date inputs + quick-range select +
+  apply/reset buttons + active-range badge). Trend chart subtitle shows range.
+- Verified: switched from "آخر 30 يوم" → "آخر 7 أيام" → numbers + badge +
+  chart subtitle updated correctly.
+
+Verification (Agent Browser):
+- Dashboard: 408.050 KWD (Latin) + filter bar works + badge updates. ✓
+- Inventory: "77 كيس" (Latin 77). ✓
+- Trial balance: 648.300 / 2,544.000 (Latin) + "متوازن ✓". ✓
+- No errors, no hydration mismatch, ESLint clean. ✓
+
+Stage Summary:
+- All numbers across the app now use Latin digits (0123) while keeping Arabic
+  text, month names, and currency symbols.
+- Dashboard + analytics + P&L + trial balance all support date-range filtering.

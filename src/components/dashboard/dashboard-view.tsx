@@ -18,6 +18,8 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useAppStore } from "@/lib/store"
@@ -37,6 +39,7 @@ import {
   Receipt,
   Trophy,
   Tags,
+  Filter,
 } from "lucide-react"
 
 const PIE_COLORS = [
@@ -51,8 +54,37 @@ const PIE_COLORS = [
 
 export function DashboardView() {
   const fmt = useFmt()
-  const { data, isLoading, isError, refetch } = useDashboard()
   const setView = useAppStore((s) => s.setView)
+  const [from, setFrom] = React.useState("")
+  const [to, setTo] = React.useState("")
+  const [range, setRange] = React.useState("30")
+  const [appliedFrom, setAppliedFrom] = React.useState("")
+  const [appliedTo, setAppliedTo] = React.useState("")
+  const [appliedRange, setAppliedRange] = React.useState("30")
+
+  const { data, isLoading, isError, refetch } = useDashboard(
+    appliedFrom || undefined,
+    appliedTo || undefined,
+    appliedRange
+  )
+
+  function applyRange() {
+    setAppliedFrom(from)
+    setAppliedTo(to)
+    setAppliedRange(range)
+  }
+  function resetRange(days: string) {
+    setFrom("")
+    setTo("")
+    setRange(days)
+    setAppliedFrom("")
+    setAppliedTo("")
+    setAppliedRange(days)
+  }
+
+  const rangeLabel = appliedFrom
+    ? `${appliedFrom}${appliedTo ? ` ← ${appliedTo}` : ""}`
+    : `آخر ${appliedRange} يوم`
 
   if (isLoading) return <LoadingState text="جارٍ تحميل الإحصائيات..." />
   if (isError || !data) {
@@ -73,6 +105,40 @@ export function DashboardView() {
 
   return (
     <div className="space-y-6">
+      {/* Filter bar */}
+      <Card className="p-4">
+        <div className="flex flex-col lg:flex-row lg:items-end gap-3">
+          <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div className="space-y-1">
+              <Label className="text-xs">من تاريخ</Label>
+              <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="h-9" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">إلى تاريخ</Label>
+              <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="h-9" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">نطاق سريع</Label>
+              <select
+                value={range}
+                onChange={(e) => setRange(e.target.value)}
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="7">آخر 7 أيام</option>
+                <option value="30">آخر 30 يوم</option>
+                <option value="90">آخر 90 يوم</option>
+                <option value="365">آخر سنة</option>
+              </select>
+            </div>
+            <div className="flex items-end gap-2">
+              <Button onClick={applyRange} size="sm" className="h-9">تطبيق</Button>
+              <Button onClick={() => resetRange("30")} size="sm" variant="outline" className="h-9">إعادة تعيين</Button>
+            </div>
+          </div>
+          <Badge variant="outline" className="self-end lg:self-auto">{rangeLabel}</Badge>
+        </div>
+      </Card>
+
       {/* KPI cards */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <StatCard
@@ -112,9 +178,9 @@ export function DashboardView() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <TrendingUp className="h-4 w-4 text-primary" />
-              مبيعات آخر ٧ أيام
+              اتجاه المبيعات
             </CardTitle>
-            <CardDescription>إجمالي المبيعات اليومية ({fmt.symbol})</CardDescription>
+            <CardDescription>إجمالي المبيعات اليومية ({fmt.symbol}) — {rangeLabel}</CardDescription>
           </CardHeader>
           <CardContent>
             {trend.length === 0 ? (

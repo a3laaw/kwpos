@@ -218,10 +218,15 @@ export function useCreateSale() {
 }
 
 /* ----------------------------- Dashboard ----------------------------- */
-export function useDashboard() {
+export function useDashboard(from?: string, to?: string, range?: string) {
+  const qs = new URLSearchParams()
+  if (from) qs.set("from", from)
+  if (to) qs.set("to", to)
+  if (range && !from) qs.set("range", range)
+  const s = qs.toString()
   return useQuery<DashboardStats>({
-    queryKey: ["dashboard"],
-    queryFn: () => jget("/api/dashboard"),
+    queryKey: ["dashboard", from ?? "", to ?? "", range ?? ""],
+    queryFn: () => jget(`/api/dashboard${s ? `?${s}` : ""}`),
   })
 }
 
