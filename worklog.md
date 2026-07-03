@@ -268,3 +268,40 @@ Verification (Agent Browser):
 Stage Summary:
 - The FK error is permanently resolved. Re-seeding no longer breaks the POS.
 - Two safety nets: stable IDs (primary) + defensive check + auto-logout (fallback).
+
+---
+Task ID: PRINT-FIX-THERMAL
+Agent: main
+Task: Fix thermal receipt printing (barcode not rendering + garbled date + width)
+
+Root cause (from user-uploaded screenshot of actual print):
+1. Barcode showed as plain text "*INV-00023*" instead of vertical lines — the
+   "Libre Barcode 39" font was referenced in CSS but never LOADED (no <link>
+   to Google Fonts in the print window), so it fell back to monospace text.
+2. Date was garbled ("2026/7/3" / "10/42:43") — used `toLocaleString("ar")`
+   which is locale-dependent and produces inconsistent output across browsers.
+3. Receipt was slightly too wide and had a duplicated/empty "العميل" field.
+
+Fix (src/lib/print.ts):
+1. **Font loading**: added <link> tags for Google Fonts (Libre Barcode 39 +
+   Tajawal) in ALL three print templates (thermal, A4, barcode labels).
+2. **Font-ready printing**: `openPrintWindow` now waits for `document.fonts.ready`
+   before triggering `window.print()` — guarantees the barcode font is loaded
+   so it renders as actual vertical bars, not text.
+3. **Date formatting**: replaced `toLocaleString("ar")` with explicit
+   `Intl.DateTimeFormat("ar-EG", {...})` producing "٣ يوليو ٢٠٢٦ في ٠٧:٤٨ ص".
+4. **Width**: set `html, body { width: 80mm; max-width: 80mm; }` + tighter
+   padding (3mm 2mm) + smaller font sizes for a true 80mm thermal fit.
+5. **Layout**: fixed duplicated field, cleaner info section, added barcode
+   code text under the bars.
+
+Verification (Agent Browser + VLM):
+- Printed thermal receipt INV-00024 → screenshot analyzed by vision model:
+  "الباركود يظهر كخطوط عمودية حقيقية (قابل للمسح)" ✓
+  "العرض مناسب لطابعة حرارية 80mm (ضيق)" ✓
+- DOM snapshot confirms date = "٣ يوليو ٢٠٢٦ في ٠٧:٤٨ ص" (no longer garbled) ✓
+- ESLint clean.
+
+Stage Summary:
+- Thermal receipt now prints with real scannable barcode, correct Arabic
+  date, and proper 80mm width. A4 invoice + barcode labels also load fonts.
