@@ -514,3 +514,37 @@ Verification (Agent Browser):
 Stage Summary:
 - Analytics upgraded from a single dense page to 4 focused, filterable tabs
   with richer visualizations (bar charts, donut, ranked tables, progress bars).
+
+---
+Task ID: ANALYTICS-CARD-SELECTOR+OVERVIEW
+Agent: main
+Task: Redesign analytics with clickable colored cards + overview tab (proposal ②④)
+
+AnalyticsView rebuilt (src/components/analytics/analytics-view.tsx):
+- Replaced horizontal TabsList with a row of 5 clickable colored "report cards"
+  (the new navigation):
+  1. نظرة عامة (LayoutGrid icon, primary)
+  2. الأكثر مبيعاً (TrendingUp, blue #055BE5) — shows "81 وحدة مباعة"
+  3. الأصناف الراكدة (PackageX, amber) — shows "1 صنف لم يُبع"
+  4. التكلفة (Coins, rose) — shows "8 صنف مُحلّل"
+  5. الربحية (Percent, aqua #5CDE9D) — shows "8 صنف رابح"
+  Each card shows a mini KPI + hint + colored icon badge. Active card gets
+  ring-2 ring-primary + filled dot.
+- New "Overview" tab: 4 KPIs (total qty, revenue, stagnant count, avg margin) +
+  2 side-by-side mini charts (top-6 bar chart + margin donut) + 4 navigation
+  cards linking to the detailed reports.
+- Reusable MiniStat + NavCard + OverviewKpi components.
+- Date-range filter bar shows for overview + sales tabs.
+- Each detailed tab keeps its rich charts/tables (unchanged content).
+
+Verification (Agent Browser + VLM):
+- 5 clickable cards render with KPIs (81 وحدة, 1 راكد, 8 صنف...). ✓
+- Overview tab: 4 KPIs + 2 charts + 4 nav cards. ✓
+- Clicking a card switches the report content. ✓
+- VLM confirmed: "5 بطاقات نقرية ملوّنة، KPIs مختصرة، نظرة عامة برسوم،
+  ألوان متناسقة". ✓
+- No errors, no hydration mismatch, ESLint clean. ✓
+
+Stage Summary:
+- Analytics upgraded from horizontal tabs to modern clickable card selector +
+  overview dashboard. More scalable, more visual, mobile-friendly.
