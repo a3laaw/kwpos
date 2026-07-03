@@ -185,3 +185,50 @@ Stage Summary:
 - Both new modules fully functional and verified end-to-end.
 - Shopify revenue ingestion via simulated SHP- tagged sales (real Shopify sync already exists in /api/shopify/import-orders which creates SHP-<id> sales — same mechanism).
 - P&L pulls revenue from all sales (POS + Shopify), subtracts COGS + salaries + admin expenses → true net profit.
+
+---
+Task ID: PRINT+UNITS+CATEGORIES
+Agent: main
+Task: Print system (thermal/A4/barcode) + Units & Categories settings + fix stale-session POS
+
+Fixes:
+- Removed debug console.log from sales route.
+- Fixed POS 500 error (was caused by stale session after re-seed; logout+login resolves).
+- Verified fresh session: sale INV-00021 → POST 201 + journal entry JE-00002 auto-created. Trial balance stays balanced.
+
+Print system (src/lib/print.ts):
+- `printThermalReceipt(sale)` — 80mm thermal receipt (store header, invoice #, items table, totals, barcode of invoice #, footer). @page size: 80mm auto.
+- `printA4Invoice(sale)` — full A4 invoice (branded header with store info + VAT#, customer/seller parties block, items table with #/name/qty/price/total, totals box with grand total, footer). Professional emerald design.
+- `printBarcodeLabels(products, copies)` — A4 sheet of 3-column barcode labels (Code 39 font) with store name, product name, price, and scannable barcode.
+- All three open a dedicated print window with proper @page CSS and auto-trigger window.print().
+- Store info (name/address/phone/vat#) stored in localStorage key "erp-store-info" (configurable later).
+
+Print buttons wired:
+- POS receipt dialog → "طباعة حرارية" (thermal 80mm).
+- Invoices detail dialog → "طباعة الفاتورة (A4)".
+- Inventory header → "طباعة باركود" (prints barcode labels for all visible products).
+
+Units of measure (DB + API + UI):
+- New `Unit` model (id, name unique, createdAt). db:push'd.
+- API: GET/POST /api/units (admin-only POST), DELETE /api/units/[id] (admin-only).
+- Seed: 11 default units (قطعة، كيلو، جرام، علبة، كيس، زجاجة، كرتون، رزمة، طقم، لتر، متر).
+- Hooks: useUnits, useCreateUnit, useDeleteUnit.
+- Product form: unit field changed from free-text Input to a Select dropdown populated from units (with fallback warning if the product's existing unit isn't in the list).
+- Settings page: "وحدات القياس" card with add (pill input) + delete (X on each pill) — verified adding "صندوق" works.
+
+Categories management:
+- Settings page: "التصنيفات" card showing all categories as pills + add form. Uses existing useCategories/useCreateCategory hooks.
+
+Verification (Agent Browser):
+- Settings: 11 units render as pills + 6 categories render. Added "صندوق" unit successfully (toast + appeared). ✓
+- Product form: unit field is now a dropdown showing "قطعة" by default. ✓
+- Inventory: "طباعة باركود" button opens print window titled "ملصقات باركود" with all product names. ✓
+- POS: checkout → receipt dialog → "طباعة حرارية" opens window titled "إيصال INV-00021" with store/items/barcode. ✓
+- Invoices: detail → "طباعة الفاتورة (A4)" opens window titled "فاتورة INV-00021" with full A4 layout. ✓
+- No errors, no hydration mismatch, ESLint clean. ✓
+
+Stage Summary:
+- 3 print formats working (thermal 80mm, A4 invoice, barcode labels A4).
+- Units & categories fully manageable from Settings (admin-only mutations).
+- POS customer auto-registration by phone confirmed working (INV-00021).
+- Journal entries auto-generated on every sale (double-entry balanced).

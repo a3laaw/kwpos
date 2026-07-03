@@ -300,6 +300,30 @@ export function useCustomers(q?: string) {
   })
 }
 
+/* ----------------------------- Units ------------------------------- */
+export function useUnits() {
+  return useQuery<{ items: { id: string; name: string }[] }>({
+    queryKey: ["units"],
+    queryFn: () => jget("/api/units"),
+  })
+}
+
+export function useCreateUnit() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { name: string }) => jsend("/api/units", "POST", body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["units"] }),
+  })
+}
+
+export function useDeleteUnit() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => jsend(`/api/units/${id}`, "DELETE"),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["units"] }),
+  })
+}
+
 export function useCreateCustomer() {
   const qc = useQueryClient()
   return useMutation({

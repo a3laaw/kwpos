@@ -42,8 +42,10 @@ import {
   PackageX,
   Filter,
   AlertTriangle,
+  Barcode,
 } from "lucide-react"
 import { useUser } from "@/components/user-context"
+import { printBarcodeLabels } from "@/lib/print"
 import { useProducts, useCategories, useDeleteProduct } from "@/hooks/use-api"
 import { useFmt } from "@/components/currency-context"
 import type { Product } from "@/lib/types"
@@ -91,6 +93,18 @@ export function InventoryView() {
     }
   }
 
+  function handlePrintBarcodes() {
+    if (products.length === 0) {
+      toast.error("لا توجد منتجات للطباعة")
+      return
+    }
+    printBarcodeLabels(
+      products.map((p) => ({ name: p.name, barcode: p.barcode, salePrice: p.salePrice })),
+      1
+    )
+    toast.success("جارٍ فتح نافذة الطباعة", { description: `${products.length} ملصق باركود` })
+  }
+
   return (
     <div className="space-y-5">
       <PageHeader
@@ -98,12 +112,20 @@ export function InventoryView() {
         description="عرض المنتجات وإدارتها، البحث والفلترة، ومتابعة كميات المخزون."
         icon={<Boxes className="h-5 w-5" />}
         actions={
-          canManage ? (
-            <Button onClick={openAdd} className="gap-2">
-              <Plus className="h-4 w-4" />
-              إضافة منتج
-            </Button>
-          ) : null
+          <div className="flex items-center gap-2">
+            {products.length > 0 ? (
+              <Button variant="outline" onClick={handlePrintBarcodes} className="gap-2">
+                <Barcode className="h-4 w-4" />
+                <span className="hidden sm:inline">طباعة باركود</span>
+              </Button>
+            ) : null}
+            {canManage ? (
+              <Button onClick={openAdd} className="gap-2">
+                <Plus className="h-4 w-4" />
+                إضافة منتج
+              </Button>
+            ) : null}
+          </div>
         }
       />
 

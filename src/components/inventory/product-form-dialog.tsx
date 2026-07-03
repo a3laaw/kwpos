@@ -26,6 +26,7 @@ import {
   useCreateProduct,
   useSuppliers,
   useUpdateProduct,
+  useUnits,
 } from "@/hooks/use-api"
 import type { Product } from "@/lib/types"
 
@@ -64,6 +65,7 @@ export function ProductFormDialog({ open, onOpenChange, product }: ProductFormDi
   const [form, setForm] = React.useState<FormState>(empty)
   const { data: cats } = useCategories()
   const { data: sups } = useSuppliers()
+  const { data: units } = useUnits()
   const createMut = useCreateProduct()
   const updateMut = useUpdateProduct(product?.id ?? "")
 
@@ -161,13 +163,20 @@ export function ProductFormDialog({ open, onOpenChange, product }: ProductFormDi
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="p-unit">الوحدة</Label>
-              <Input
-                id="p-unit"
-                value={form.unit}
-                onChange={(e) => set("unit", e.target.value)}
-                placeholder="قطعة / كيس / علبة"
-              />
+              <Label>الوحدة</Label>
+              <Select value={form.unit} onValueChange={(v) => set("unit", v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="اختر الوحدة" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(units?.items ?? []).map((u) => (
+                    <SelectItem key={u.id} value={u.name}>{u.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {form.unit && !(units?.items ?? []).some((u) => u.name === form.unit) ? (
+                <p className="text-xs text-amber-600">«{form.unit}» غير موجودة في قائمة الوحدات — أضفها من الإعدادات</p>
+              ) : null}
             </div>
 
             <div className="space-y-2">

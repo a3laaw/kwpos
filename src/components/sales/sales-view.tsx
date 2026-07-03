@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/dialog"
 import { useProducts, useCreateSale } from "@/hooks/use-api"
 import { useFmt } from "@/components/currency-context"
+import { printThermalReceipt } from "@/lib/print"
 import type { Product, Sale } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
@@ -530,9 +531,9 @@ export function SalesView() {
               </div>
 
               <div className="flex gap-2">
-                <Button variant="outline" className="flex-1 gap-2" onClick={() => window.print()}>
+                <Button variant="outline" className="flex-1 gap-2" onClick={() => printThermalReceipt(lastSale)}>
                   <Printer className="h-4 w-4" />
-                  طباعة
+                  طباعة حرارية
                 </Button>
                 <Button className="flex-1" onClick={() => setLastSale(null)}>
                   بيع جديد
