@@ -76,6 +76,7 @@ export interface SaleItem {
   productId: string
   productName: string
   quantity: number
+  returnedQty: number
   unitPrice: number
   subtotal: number
 }
@@ -92,6 +93,8 @@ export interface Sale {
   discount: number
   total: number
   paid: number
+  refundTotal: number
+  refundStatus: "NONE" | "PARTIAL" | "FULL"
   paymentMethod: "CASH" | "CARD" | "TRANSFER"
   userId?: string | null
   userName?: string | null

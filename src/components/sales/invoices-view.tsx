@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/shared/page-header"
 import { EmptyState } from "@/components/shared/empty-state"
 import { TableSkeleton } from "@/components/shared/loading-state"
 import { ConfirmDialog } from "@/components/shared/confirm-dialog"
+import { RefundDialog } from "@/components/sales/refund-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
@@ -58,7 +59,8 @@ export function InvoicesView() {
 
   const sales = data?.items ?? []
   const pagination = data?.pagination
-  const isRefunded = (s: Sale) => s.paid === 0 && s.total > 0
+  const isRefunded = (s: Sale) => s.refundStatus === "FULL"
+  const isPartialRefund = (s: Sale) => s.refundStatus === "PARTIAL"
 
   // Auto-advance pages — if current page is empty but not first page, go back
   React.useEffect(() => {
@@ -67,17 +69,7 @@ export function InvoicesView() {
     }
   }, [isLoading, sales.length, page])
 
-  async function handleRefund() {
-    if (!refundTarget) return
-    try {
-      await refundMut.mutateAsync({ id: refundTarget.id, reason: "مرتجع من المدير" })
-      toast.success("تم مرتجع الفاتورة", { description: `${refundTarget.invoiceNo} — تم إرجاع الكميات للمخزون` })
-      setRefundTarget(null)
-      setSelected(null)
-    } catch (err: any) {
-      toast.error("فشل المرتجع", { description: err?.message })
-    }
-  }
+  // Refund handled by RefundDialog now
 
   return (
     <div className="space-y-5">
@@ -122,6 +114,7 @@ export function InvoicesView() {
                   {sales.map((s) => {
                     const pm = PAYMENT_META[s.paymentMethod]
                     const refunded = isRefunded(s)
+                    const partial = isPartialRefund(s)
                     const active = selected?.id === s.id
                     return (
                       <button
@@ -139,7 +132,9 @@ export function InvoicesView() {
                             <div className="flex items-center gap-2">
                               <span className="font-mono font-semibold text-sm" dir="ltr">{s.invoiceNo}</span>
                               {refunded ? (
-                                <Badge variant="destructive" className="text-[10px]">مرتجع</Badge>
+                                <Badge variant="destructive" className="text-[10px]">مرتجع كامل</Badge>
+                              ) : partial ? (
+                                <Badge variant="secondary" className="text-[10px] bg-amber-500/15 text-amber-700">مرتجع جزئي</Badge>
                               ) : null}
                             </div>
                             <p className="text-xs text-muted-foreground mt-0.5 truncate">
@@ -221,22 +216,16 @@ export function InvoicesView() {
         </div>
       </div>
 
-      {/* Refund confirmation */}
-      <ConfirmDialog
+      {/* Refund dialog (partial returns) */}
+      <RefundDialog
         open={!!refundTarget}
-        onOpenChange={(o) => !o && setRefundTarget(null)}
-        title="مرتجع الفاتورة"
-        description={
-          <>
-            سيتم إرجاع كميات جميع الأصناف إلى المخزون وعكس القيد المحاسبي للفاتورة{" "}
-            <span className="font-semibold" dir="ltr">{refundTarget?.invoiceNo}</span>.
-            لا يمكن التراجع عن هذه العملية.
-          </>
-        }
-        confirmText="تأكيد المرتجع"
-        destructive
-        loading={refundMut.isPending}
-        onConfirm={handleRefund}
+        onOpenChange={(o) => {
+          if (!o) {
+            setRefundTarget(null)
+            setSelected(null)
+          }
+        }}
+        sale={refundTarget}
       />
     </div>
   )
@@ -269,7 +258,9 @@ function InvoiceDetail({
             </h3>
             <p className="font-mono text-sm text-primary mt-1" dir="ltr">{sale.invoiceNo}</p>
             {isRefunded ? (
-              <Badge variant="destructive" className="mt-1">مرتجعة</Badge>
+              <Badge variant="destructive" className="mt-1">مرتجعة كاملة</Badge>
+            ) : sale.refundStatus === "PARTIAL" ? (
+              <Badge variant="secondary" className="mt-1 bg-amber-500/15 text-amber-700">مرتجع جزئي — {fmt.currency(sale.refundTotal)}</Badge>
             ) : null}
           </div>
           <div className="text-left">
@@ -373,11 +364,15 @@ function InvoiceDetail({
               disabled={isRefunded}
             >
               <RotateCcw className="h-4 w-4" />
-              {isRefunded ? "تم مرتجعها" : "مرتجع الفاتورة"}
+              {isRefunded ? "مرتجعة بالكامل" : sale.refundStatus === "PARTIAL" ? "مرتجع إضافي" : "مرتجع الفاتورة"}
             </Button>
             {isRefunded ? (
               <p className="text-[10px] text-muted-foreground text-center">
-                هذه الفاتورة تم مرتجعها — الكميات أُرجعت للمخزون
+                مرتجعة بالكامل — إجمالي المرتجع {fmt.currency(sale.refundTotal)}
+              </p>
+            ) : sale.refundStatus === "PARTIAL" ? (
+              <p className="text-[10px] text-amber-600 text-center">
+                مرتجع جزئي سابق: {fmt.currency(sale.refundTotal)} — يمكن إرجاع المتبقي
               </p>
             ) : null}
           </>

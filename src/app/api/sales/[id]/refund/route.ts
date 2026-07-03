@@ -6,12 +6,30 @@ import { createJournalEntry } from "@/lib/journal"
 
 export const dynamic = "force-dynamic"
 
+const MAX_REFUND_DAYS = 14
+
+/** Ensure a system account exists, create it if missing. */
+async function ensureAccount(code: string, name: string, type: string) {
+  let acc = await db.account.findUnique({ where: { code } })
+  if (!acc) {
+    acc = await db.account.create({ data: { code, name, type, isSystem: true } })
+  }
+  return acc
+}
+
 /**
- * Refund (reverse) a sale — admin only.
- * - Restores inventory (increments product quantities back).
- * - Creates a reversing journal entry.
- * - Marks the sale as refunded (sets paid = 0, adds note).
- * Does NOT delete the sale — keeps it for audit trail.
+ * Partial refund (return) — admin only.
+ *
+ * Body: { items: [{ saleItemId, returnedQty }], override14Days?: boolean }
+ *
+ * Workflow:
+ *  1. Validate 14-day rule (unless admin override).
+ *  2. Validate returnedQty per line (≤ original − already returned).
+ *  3. Restore inventory (returnedQty per product).
+ *  4. Update SaleItem.returnedQty + Sale.refundTotal + Sale.refundStatus.
+ *  5. Create journal entries:
+ *     - Financial: Debit Sales Returns (4030) + Debit VAT (2010) → Credit payment account.
+ *     - Inventory: Debit Inventory (1010) → Credit COGS (5060).
  */
 export async function POST(
   req: NextRequest,
@@ -25,55 +43,149 @@ export async function POST(
 
   const { id } = await params
   const body = await req.json().catch(() => ({}))
-  const reason = String(body?.reason || "").trim()
+  const returnItems: Array<{ saleItemId: string; returnedQty: number }> = body.items || []
+  const override14Days = body.override14Days === true
 
+  if (!Array.isArray(returnItems) || returnItems.length === 0) {
+    return NextResponse.json({ error: "no-items" }, { status: 400 })
+  }
+
+  // Load the sale with items + products
   const sale = await db.sale.findUnique({
     where: { id },
     include: { items: { include: { product: true } }, user: true },
   })
   if (!sale) return NextResponse.json({ error: "not-found" }, { status: 404 })
 
-  // Already refunded?
-  if (sale.paid === 0 && sale.total > 0) {
-    return NextResponse.json({ error: "already-refunded" }, { status: 409 })
+  // ── 14-day rule ──
+  const daysSinceSale = Math.floor((Date.now() - new Date(sale.createdAt).getTime()) / (1000 * 60 * 60 * 24))
+  if (daysSinceSale > MAX_REFUND_DAYS && !override14Days) {
+    return NextResponse.json(
+      { error: "past-14-days", daysSinceSale },
+      { status: 403 }
+    )
   }
 
-  // Transaction: restore inventory + mark sale as refunded
+  // ── Validate + compute refund amounts ──
+  let refundSubtotal = 0
+  let refundTax = 0
+  let refundTotal = 0
+  const updates: Array<{ saleItemId: string; newReturnedQty: number; productId: string; qtyToReturn: number; unitCost: number }> = []
+
+  for (const ri of returnItems) {
+    const si = sale.items.find((s) => s.id === ri.saleItemId)
+    if (!si) return NextResponse.json({ error: `item-not-found:${ri.saleItemId}` }, { status: 400 })
+
+    const alreadyReturned = si.returnedQty || 0
+    const returnable = si.quantity - alreadyReturned
+    const qtyToReturn = Number(ri.returnedQty) || 0
+
+    if (qtyToReturn <= 0) continue
+    if (qtyToReturn > returnable) {
+      return NextResponse.json(
+        { error: `exceeds-returnable:${si.product?.name || ""}:${returnable}` },
+        { status: 400 }
+      )
+    }
+
+    const lineRefund = qtyToReturn * si.unitPrice
+    refundSubtotal += lineRefund
+    updates.push({
+      saleItemId: si.id,
+      newReturnedQty: alreadyReturned + qtyToReturn,
+      productId: si.productId,
+      qtyToReturn,
+      unitCost: Number(si.product?.costPrice ?? 0),
+    })
+  }
+
+  if (updates.length === 0) {
+    return NextResponse.json({ error: "no-valid-returns" }, { status: 400 })
+  }
+
+  // Proportional tax
+  refundTax = sale.taxRate > 0 ? +(refundSubtotal * (sale.taxRate / 100)).toFixed(3) : 0
+  refundTotal = +(refundSubtotal + refundTax).toFixed(3)
+  const refundCost = updates.reduce((s, u) => s + u.qtyToReturn * u.unitCost, 0)
+
+  // ── Transaction: update inventory + sale items + sale ──
+  const paymentAccCode = sale.paymentMethod === "CASH" ? "1010" : "1020"
   const updated = await db.$transaction(async (tx) => {
     // Restore inventory
-    for (const it of sale.items) {
+    for (const u of updates) {
       await tx.product.update({
-        where: { id: it.productId },
-        data: { quantity: { increment: it.quantity } },
+        where: { id: u.productId },
+        data: { quantity: { increment: u.qtyToReturn } },
+      })
+      await tx.saleItem.update({
+        where: { id: u.saleItemId },
+        data: { returnedQty: u.newReturnedQty },
       })
     }
-    // Mark as refunded
+
+    // Determine refund status
+    const allReturned = sale.items.every((si) => (si.returnedQty || 0) + (updates.find(u => u.saleItemId === si.id)?.qtyToReturn || 0) >= si.quantity)
+    const newRefundTotal = Number(sale.refundTotal || 0) + refundTotal
+    const newRefundStatus = allReturned ? "FULL" : "PARTIAL"
+
     return tx.sale.update({
       where: { id },
       data: {
-        paid: 0,
-        note: `مرتجع — ${reason || "بطلب المدير"}`,
+        refundTotal: newRefundTotal,
+        refundStatus: newRefundStatus,
       },
       include: { user: true, items: { include: { product: true } } },
     })
   })
 
-  // Reversing journal entry (debit Revenue back, credit Cash/Bank back)
+  // ── Journal entries (outside tx — non-blocking) ──
   try {
-    const paymentAccCode = sale.paymentMethod === "CASH" ? "1010" : "1020"
+    // Ensure accounts exist
+    await ensureAccount("4030", "مردودات المبيعات", "REVENUE")
+    await ensureAccount("5060", "تكلفة البضاعة المباعة", "EXPENSE")
+
+    // 1. Financial entry: Debit Sales Returns + Debit VAT → Credit payment
+    const finLines: any[] = [
+      { accountCode: "4030", debit: +refundSubtotal.toFixed(3), description: `مردودات مبيعات — ${sale.invoiceNo}` },
+    ]
+    if (refundTax > 0) {
+      finLines.push({ accountCode: "2010", debit: refundTax, description: "ضريبة مستحقة (مرتجع)" })
+    }
+    finLines.push({ accountCode: paymentAccCode, credit: +refundTotal.toFixed(3), description: `رد لطريقة السداد — ${sale.invoiceNo}` })
+
     await createJournalEntry({
       sourceType: "MANUAL",
       sourceId: sale.id,
-      description: `قيد مرتجع فاتورة ${sale.invoiceNo}${reason ? ` — ${reason}` : ""}`,
+      description: `قيد مرتجع مبيعات ${sale.invoiceNo} (مالي)`,
       date: new Date(),
-      lines: [
-        { accountCode: "4010", debit: +sale.total.toFixed(3), description: "عكس إيراد مبيعات (مرتجع)" },
-        { accountCode: paymentAccCode, credit: +sale.total.toFixed(3), description: "رد المبلغ للعميل" },
-      ],
+      lines: finLines,
     })
+
+    // 2. Inventory entry: Debit Inventory (cost) → Credit COGS
+    if (refundCost > 0) {
+      await createJournalEntry({
+        sourceType: "MANUAL",
+        sourceId: sale.id,
+        description: `قيد مرتجع مخزون ${sale.invoiceNo} (مخزني)`,
+        date: new Date(),
+        lines: [
+          { accountCode: "1010", debit: +refundCost.toFixed(3), description: "إعادة مخزون مرتجع" },
+          { accountCode: "5060", credit: +refundCost.toFixed(3), description: "عكس تكلفة البضاعة المباعة" },
+        ],
+      })
+    }
   } catch (e: any) {
-    console.error("[refund] journal reversal failed:", e?.message)
+    console.error("[refund] journal failed:", e?.message)
   }
 
-  return NextResponse.json(serializeSale(updated as any))
+  return NextResponse.json({
+    ...serializeSale(updated as any),
+    refundSummary: {
+      refundSubtotal: +refundSubtotal.toFixed(3),
+      refundTax,
+      refundTotal,
+      refundCost: +refundCost.toFixed(3),
+      creditNoteNo: `CN-${sale.invoiceNo}`,
+    },
+  })
 }
