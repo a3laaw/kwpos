@@ -381,3 +381,47 @@ Verification (Agent Browser + VLM):
 
 Stage Summary:
 - Full brand color migration from emerald to the user's blue/aqua/teal palette.
+
+---
+Task ID: REPORTS-REDESIGN+SETTINGS-MODERN
+Agent: main
+Task: Redesigned reports page with modern filters + modernized settings (units/categories)
+
+New Reports module:
+- `GET /api/reports` — unified filterable report endpoint. Accepts: from, to,
+  productId, categoryId, paymentMethod, source (POS|SHOPIFY). Returns summary
+  KPIs (revenue, cost, gross profit, margin, discount, tax, count, items, avg)
+  + breakdowns by day, by product, by category, by payment method + catalog
+  (products/categories) for filter dropdowns.
+- `useReport(filters)` hook.
+- `ReportsView` (`src/components/reports/reports-view.tsx`) — modern dashboard:
+  - Filter bar (card with border-primary/20): date from/to, quick-range buttons
+    (7/30/90 days), category select, product select, payment-method select,
+    source select (POS/Shopify), apply + reset buttons, active-filter count badge.
+  - 4 summary KPI StatCards (revenue, cost, profit, avg sale).
+  - Revenue trend area chart (blue gradient) + payment-method pie chart with legend.
+  - Category breakdown bar chart (revenue + profit bars).
+  - Product breakdown table (name, category, qty, revenue, cost, profit).
+  - Print/export button.
+- Added "reports" to AppView, nav-config (FileBarChart icon), role permissions
+  (admin + sales), AppShell routing.
+
+Settings redesign (`src/components/settings/settings-view.tsx`):
+- Units manager: modern grid layout (3-4 cols) with icon chips, delete-on-hover
+  (X button appears top-left on hover), search when > 4 units, add form.
+- Categories manager: pill badges with primary border, search when > 4, add form.
+- Current-config card: gradient background (from-primary/5), 4 config cells.
+
+Verification (Agent Browser):
+- Reports: filter bar with 6 filters + quick ranges; applied "نقدي" payment
+  filter → revenue dropped 408.050 → 47.250 KWD (9 cash invoices), "1 مفعّل"
+  badge appeared. ✓
+- KPIs: 408.050 revenue, 256.270 cost, 151.780 profit — math correct. ✓
+- Settings: units grid (قطعة، كيلو، جرام...) + categories pills + search. ✓
+- No errors, no hydration mismatch, ESLint clean. ✓
+
+Stage Summary:
+- New modern Reports page with 6 filter dimensions + 4 KPIs + 3 charts + table.
+- Settings redesigned (units grid + categories pills + search).
+- Note: existing modules (inventory, purchases, suppliers, accounting) remain
+  intact. Awaiting user clarification on "لا أريد إدخال الأصناف في المخازن".

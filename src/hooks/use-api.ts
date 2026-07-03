@@ -378,6 +378,31 @@ export function useAnalytics(from?: string, to?: string) {
   })
 }
 
+/* ----------------------------- Unified Reports --------------------- */
+export interface ReportFilters {
+  from?: string
+  to?: string
+  productId?: string
+  categoryId?: string
+  paymentMethod?: string
+  source?: string
+}
+
+export function useReport(filters: ReportFilters) {
+  const qs = new URLSearchParams()
+  if (filters.from) qs.set("from", filters.from)
+  if (filters.to) qs.set("to", filters.to)
+  if (filters.productId) qs.set("productId", filters.productId)
+  if (filters.categoryId) qs.set("categoryId", filters.categoryId)
+  if (filters.paymentMethod) qs.set("paymentMethod", filters.paymentMethod)
+  if (filters.source) qs.set("source", filters.source)
+  const s = qs.toString()
+  return useQuery<any>({
+    queryKey: ["report", s],
+    queryFn: () => jget(`/api/reports${s ? `?${s}` : ""}`),
+  })
+}
+
 /* ----------------------------- Journal Entries --------------------- */
 export function useJournalEntries(sourceType?: string) {
   const qs = sourceType ? `?sourceType=${sourceType}` : ""

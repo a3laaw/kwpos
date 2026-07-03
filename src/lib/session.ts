@@ -27,13 +27,13 @@ export const ROLE_PERMISSIONS: Record<Role, {
   ADMIN: {
     label: "مدير النظام",
     views: [
-      "dashboard", "sales", "invoices", "inventory", "purchases", "suppliers",
+      "dashboard", "sales", "invoices", "reports", "inventory", "purchases", "suppliers",
       "customers", "analytics", "accounting", "integrations", "settings",
     ],
   },
   SALES: {
     label: "موظف مبيعات",
-    views: ["dashboard", "sales", "invoices", "inventory", "customers", "analytics"],
+    views: ["dashboard", "sales", "invoices", "reports", "inventory", "customers", "analytics"],
   },
   WAREHOUSE: {
     label: "أمين مخزن",

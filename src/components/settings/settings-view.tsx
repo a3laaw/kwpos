@@ -20,6 +20,9 @@ import {
   Ruler,
   Tags,
   X,
+  Pencil,
+  Save,
+  Search,
 } from "lucide-react"
 import { COUNTRIES } from "@/lib/countries"
 import { useCountry, useFmt } from "@/components/currency-context"
@@ -46,9 +49,7 @@ export function SettingsView() {
     }
     try {
       await updateMut.mutateAsync({ code: selected })
-      toast.success("تم تحديث الدولة", {
-        description: "أعد تحميل الصفحة لتحديث كل التنسيقات.",
-      })
+      toast.success("تم تحديث الدولة", { description: "أعد تحميل الصفحة لتحديث كل التنسيقات." })
       setTimeout(() => window.location.reload(), 1200)
     } catch (e: any) {
       toast.error("فشل التحديث", { description: e?.message })
@@ -64,12 +65,12 @@ export function SettingsView() {
       />
 
       {/* Current config */}
-      <Card className="border-primary/30 bg-primary/5">
+      <Card className="border-primary/30 bg-gradient-to-l from-primary/5 to-transparent">
         <CardContent className="p-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
           <ConfigCell icon={<Globe className="h-4 w-4" />} label="الدولة الحالية" value={`${active.flag} ${active.name}`} />
           <ConfigCell icon={<Coins className="h-4 w-4" />} label="العملة" value={`${active.currencySymbol} (${active.currency})`} />
           <ConfigCell icon={<Percent className="h-4 w-4" />} label="نسبة الضريبة" value={`${fmt.taxRate}%`} />
-          <ConfigCell icon={<Globe className="h-4 w-4" />} label="المنطقة الزمنية" value={active.locale} />
+          <ConfigCell icon={<Globe className="h-4 w-4" />} label="رمز اللغة" value={active.locale} />
         </CardContent>
       </Card>
 
@@ -138,13 +139,15 @@ function ConfigCell({ icon, label, value }: { icon: React.ReactNode; label: stri
   )
 }
 
-/* ───────────────────────── Units Manager ───────────────────────── */
+/* ───────────────────────── Units Manager (modern grid) ───────────────────────── */
 function UnitsManager() {
   const { data, isLoading } = useUnits()
   const createMut = useCreateUnit()
   const deleteMut = useDeleteUnit()
   const [name, setName] = React.useState("")
+  const [search, setSearch] = React.useState("")
   const units = data?.items ?? []
+  const filtered = units.filter((u) => u.name.includes(search.trim()))
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
@@ -176,7 +179,7 @@ function UnitsManager() {
           وحدات القياس
           <Badge variant="secondary" className="tabular-nums">{units.length}</Badge>
         </CardTitle>
-        <CardDescription>وحدات القياس المتاحة عند إضافة المنتجات (كيلو، جرام، حبة...)</CardDescription>
+        <CardDescription>وحدات القياس المتاحة عند إضافة المنتجات</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         <form onSubmit={handleAdd} className="flex gap-2">
@@ -190,30 +193,34 @@ function UnitsManager() {
             {createMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
           </Button>
         </form>
-        {isLoading ? (
-          <div className="flex flex-wrap gap-2">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-8 w-16 rounded-full bg-muted/50 animate-pulse" />
-            ))}
+
+        {units.length > 4 ? (
+          <div className="relative">
+            <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="بحث..." className="h-8 pr-8 text-sm" />
           </div>
-        ) : units.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">لا توجد وحدات بعد</p>
+        ) : null}
+
+        {isLoading ? (
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+            {Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-10 rounded-lg bg-muted/50 animate-pulse" />)}
+          </div>
+        ) : filtered.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-4">{search ? "لا توجد نتائج" : "لا توجد وحدات بعد"}</p>
         ) : (
-          <div className="flex flex-wrap gap-2 max-h-[200px] overflow-y-auto scrollbar-thin">
-            {units.map((u) => (
-              <span
-                key={u.id}
-                className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-muted/40 px-3 py-1 text-sm"
-              >
-                {u.name}
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-[220px] overflow-y-auto scrollbar-thin pr-1">
+            {filtered.map((u) => (
+              <div key={u.id} className="group relative flex items-center justify-center gap-1.5 rounded-lg border border-border/70 bg-muted/30 px-2 py-2.5 text-sm hover:border-primary/40 transition-colors">
+                <Ruler className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <span className="truncate">{u.name}</span>
                 <button
                   onClick={() => handleDelete(u.id, u.name)}
-                  className="text-muted-foreground hover:text-destructive transition-colors"
+                  className="absolute -top-1.5 -left-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-white opacity-0 group-hover:opacity-100 transition-opacity shadow"
                   title="حذف"
                 >
                   <X className="h-3 w-3" />
                 </button>
-              </span>
+              </div>
             ))}
           </div>
         )}
@@ -222,12 +229,14 @@ function UnitsManager() {
   )
 }
 
-/* ───────────────────────── Categories Manager ───────────────────────── */
+/* ───────────────────────── Categories Manager (modern) ───────────────────────── */
 function CategoriesManager() {
   const { data, isLoading } = useCategories()
   const createMut = useCreateCategory()
   const [name, setName] = React.useState("")
+  const [search, setSearch] = React.useState("")
   const categories = data?.items ?? []
+  const filtered = categories.filter((c) => c.name.includes(search.trim()))
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
@@ -264,22 +273,28 @@ function CategoriesManager() {
             {createMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
           </Button>
         </form>
+
+        {categories.length > 4 ? (
+          <div className="relative max-w-md">
+            <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="بحث في التصنيفات..." className="h-8 pr-8 text-sm" />
+          </div>
+        ) : null}
+
         {isLoading ? (
           <div className="flex flex-wrap gap-2">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-8 w-24 rounded-full bg-muted/50 animate-pulse" />
-            ))}
+            {Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-9 w-28 rounded-full bg-muted/50 animate-pulse" />)}
           </div>
-        ) : categories.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">لا توجد تصنيفات بعد</p>
+        ) : filtered.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-4">{search ? "لا توجد نتائج" : "لا توجد تصنيفات بعد"}</p>
         ) : (
           <div className="flex flex-wrap gap-2">
-            {categories.map((c) => (
+            {filtered.map((c) => (
               <span
                 key={c.id}
-                className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 py-1 text-sm"
+                className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3.5 py-1.5 text-sm font-medium"
               >
-                <Tags className="h-3 w-3 text-primary" />
+                <Tags className="h-3.5 w-3.5 text-primary" />
                 {c.name}
               </span>
             ))}
