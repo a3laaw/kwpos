@@ -31,8 +31,9 @@ function getStore(): PrintStore {
   }
 }
 
-function openPrintWindow(html: string, title: string) {
-  const w = window.open("", "_blank", "width=900,height=700")
+function openPrintWindow(html: string, title: string, width = 900, height = 700) {
+  const features = `width=${width},height=${height},menubar=no,toolbar=no,location=no,status=no,scrollbars=yes`
+  const w = window.open("", "_blank", features)
   if (!w) {
     alert("يرجى السماح بالنوافذ المنبثقة للطباعة")
     return
@@ -152,7 +153,7 @@ export function printThermalReceipt(sale: Sale) {
   <div class="barcode-code">${sale.invoiceNo}</div>
 </body>
 </html>`
-  openPrintWindow(html, `إيصال ${sale.invoiceNo}`)
+  openPrintWindow(html, `إيصال ${sale.invoiceNo}`, 360, 640)
 }
 
 /* ───────────────────────── 2. A4 Invoice ───────────────────────── */

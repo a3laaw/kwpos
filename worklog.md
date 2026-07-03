@@ -662,3 +662,33 @@ Verification (Agent Browser):
 Stage Summary:
 - Full bilingual AR/EN with instant RTL/LTR layout switching.
 - Accounting now uses the same modern card-selector style as Analytics.
+
+---
+Task ID: RTL-FIX+THERMAL-WINDOW-SIZE
+Agent: main
+Task: Fix Arabic direction (sidebar on right) + thermal print window size
+
+Direction fixes (src/components/app-sidebar.tsx):
+- Audited: in Arabic (dir=rtl), sidebar is on the RIGHT (left=1024, right=1280
+  on a 1280px viewport) — confirmed correct via getBoundingClientRect + VLM.
+- In English (dir=ltr), sidebar is on the LEFT — confirmed correct.
+- Fixed `SheetHeader className="text-right"` → `text-start` (logical).
+- Mobile sidebar `side="right"` was hardcoded → now dynamic: `side = locale
+  === "ar" ? "right" : "left"` so it slides from the correct edge in both
+  languages.
+- Sidebar border already uses `border-s` (logical, auto-flips).
+
+Thermal print window size (src/lib/print.ts):
+- `openPrintWindow` now accepts width/height params (default 900×700).
+- Thermal receipt window opens at 360×640 (narrow, fits 80mm receipt) instead
+  of the full 900×700.
+- A4 invoice + barcode labels keep the default 900×700.
+- Verified: receipt content is ~300-350px wide (correct 80mm), window no
+  longer fills the whole screen. (Browser may enforce a min window width,
+  but the receipt content itself is properly narrow.)
+
+Verification (Agent Browser + VLM):
+- Arabic: dir=rtl, lang=ar, sidebar on RIGHT, menu in Arabic. ✓
+- English: dir=ltr, lang=en, sidebar on LEFT, menu in English. ✓
+- Thermal print: window opened, content narrow (80mm), not full-screen. ✓
+- No errors, no hydration mismatch, ESLint clean. ✓
