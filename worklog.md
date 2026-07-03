@@ -835,3 +835,34 @@ Verification (Agent Browser + VLM):
 - New customer: typed "+965 9999 8888" → amber "عميل جديد" message. ✓
 - VLM: "الواجهة تحتوي على كروت فئات فوق شبكة المنتجات، تصميم احترافي". ✓
 - No errors, no hydration mismatch, ESLint clean. ✓
+
+---
+Task ID: CART-SCROLL+SALE-REFUND+THERMAL-REPRINT
+Agent: main
+Task: Fix cart overflow + sale refund (admin) + thermal reprint from invoices
+
+1. Cart scroll fix (src/components/sales/sales-view.tsx):
+- ScrollArea max-h changed from `lg:max-h-none` (infinite growth) to
+  `lg:max-h-[calc(100vh-22rem)]` — cart items scroll internally, cart card
+  never exceeds viewport. Mobile keeps `max-h-[40vh]`.
+- Verified: 8 items in cart → card bottom=577px = viewport height (no overflow).
+
+2. Sale refund API (POST /api/sales/[id]/refund):
+- Admin-only. Reverses a sale: restores inventory quantities, marks sale as
+  refunded (paid=0 + note "مرتجع"), creates a reversing journal entry
+  (debit Revenue 4010, credit Cash/Bank). Sale is NOT deleted (audit trail).
+- Guards: 403 for non-admin, 409 if already refunded.
+- `useRefundSale()` hook added.
+
+3. Invoice detail — refund + thermal reprint (invoices-view.tsx):
+- Print buttons: now 2 buttons side-by-side — "حراري 80mm" (thermal) + "A4".
+- Refund button (admin only): "مرتجع الفاتورة" with RotateCcw icon, destructive
+  styling. Shows "تم مرتجعها" (disabled) if already refunded. ConfirmDialog
+  with warning about irreversibility.
+- Fixed duplicate `Printer` import (was causing Ecmascript parse error).
+
+Verification (Agent Browser):
+- Cart: 8 items, card bottom=577=viewport height (no overflow). ✓
+- Invoice detail: "حراري 80mm" + "A4" + "مرتجع الفاتورة" buttons present. ✓
+- Refund: clicked → AlertDialog "مرتجع الفاتورة" with warning + "تأكيد المرتجع". ✓
+- Server responds 200, ESLint clean. ✓

@@ -404,7 +404,7 @@ export function SalesView() {
                   <p className="text-xs">اضغط على منتج لإضافته</p>
                 </div>
               ) : (
-                <ScrollArea className="flex-1 max-h-[35vh] lg:max-h-none px-4 scrollbar-thin">
+                <ScrollArea className="flex-1 max-h-[40vh] lg:max-h-[calc(100vh-22rem)] px-4 scrollbar-thin">
                   <div className="space-y-2 pb-2">
                     {cart.map((it) => (
                       <div
