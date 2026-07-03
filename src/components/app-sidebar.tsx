@@ -190,14 +190,18 @@ export function AppSidebar({ user }: SidebarProps) {
 
 export function MobileSidebar({ user }: SidebarProps) {
   const open = useAppStore((s) => s.sidebarOpen)
+  const { locale } = useI18n()
+  // In RTL (Arabic) the sidebar lives on the right → slide from right.
+  // In LTR (English) the sidebar lives on the left → slide from left.
+  const side = locale === "ar" ? "right" : "left"
   const setOpen = useAppStore((s) => s.setSidebarOpen)
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetContent
-        side="right"
+        side={side}
         className="w-72 bg-sidebar text-sidebar-foreground border-sidebar-border p-0"
       >
-        <SheetHeader className="text-right">
+        <SheetHeader className="text-start">
           <SheetTitle className="text-sidebar-foreground">
             <Brand />
           </SheetTitle>
