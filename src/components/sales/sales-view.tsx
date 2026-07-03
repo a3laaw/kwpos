@@ -32,6 +32,16 @@ import {
   PackageX,
   Package,
   Receipt,
+  LayoutGrid,
+  Tag,
+  UserCheck,
+  UserPlus,
+  Coffee,
+  Apple,
+  Smartphone,
+  Sparkles,
+  Home,
+  Phone,
 } from "lucide-react"
 import {
   Dialog,
@@ -40,7 +50,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { useProducts, useCreateSale } from "@/hooks/use-api"
+import { useProducts, useCreateSale, useCategories } from "@/hooks/use-api"
 import { useFmt } from "@/components/currency-context"
 import { printThermalReceipt } from "@/lib/print"
 import type { Product, Sale } from "@/lib/types"
@@ -57,6 +67,16 @@ const PAYMENT_LABELS: Record<string, string> = {
   TRANSFER: "تحويل",
 }
 
+/** Icon mapping for known category names (falls back to Tag). */
+const CATEGORY_ICONS: Record<string, any> = {
+  "مواد غذائية": Apple,
+  "مشروبات": Coffee,
+  "منظفات": Sparkles,
+  "إلكترونيات": Smartphone,
+  "قرطاسية": Tag,
+  "أدوات منزلية": Home,
+}
+
 export function SalesView() {
   const fmt = useFmt()
   const [q, setQ] = React.useState("")
@@ -67,13 +87,43 @@ export function SalesView() {
   const [paymentMethod, setPaymentMethod] = React.useState<"CASH" | "CARD" | "TRANSFER">("CASH")
   const [customerName, setCustomerName] = React.useState("")
   const [customerPhone, setCustomerPhone] = React.useState("")
+  const [customerFound, setCustomerFound] = React.useState<{ name: string; address: string } | null>(null)
   const [lastSale, setLastSale] = React.useState<Sale | null>(null)
 
   const debouncedQ = React.useDeferredValue(q)
   const { data, isLoading } = useProducts({ q: debouncedQ || undefined, categoryId: categoryId || undefined })
+  const { data: categoriesData } = useCategories()
   const createMut = useCreateSale()
 
   const products = data?.items ?? []
+  const categories = categoriesData?.items ?? []
+
+  // ── Auto-lookup customer by phone (debounced) ──
+  // When the cashier types a phone number, search the CRM. If found, auto-fill
+  // the name to prevent duplicates. If not found, mark as "new customer".
+  const debouncedPhone = React.useDeferredValue(customerPhone)
+  React.useEffect(() => {
+    const phone = debouncedPhone.trim()
+    if (!phone || phone.length < 4) {
+      setCustomerFound(null)
+      return
+    }
+    let cancelled = false
+    fetch(`/api/customers?q=${encodeURIComponent(phone)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled) return
+        const match = (data.items as any[])?.find((c) => c.phone === phone)
+        if (match) {
+          setCustomerFound({ name: match.name, address: match.address })
+          setCustomerName(match.name)
+        } else {
+          setCustomerFound(null) // new customer — will be auto-registered on checkout
+        }
+      })
+      .catch(() => setCustomerFound(null))
+    return () => { cancelled = true }
+  }, [debouncedPhone])
 
   // Quantity already in cart per product (for optimistic availability)
   const inCart = React.useMemo(() => {
@@ -217,6 +267,47 @@ export function SalesView() {
               autoFocus
             />
           </div>
+
+          {/* Category filter cards */}
+          {categories.length > 0 ? (
+            <div className="flex gap-2 overflow-x-auto scrollbar-thin pb-1">
+              <button
+                onClick={() => setCategoryId("")}
+                className={cn(
+                  "shrink-0 flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-all border",
+                  !categoryId
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                    : "bg-card border-border/70 hover:border-primary/40 text-foreground"
+                )}
+              >
+                <LayoutGrid className="h-4 w-4" />
+                الكل
+              </button>
+              {categories.map((c) => {
+                const active = categoryId === c.id
+                const Icon = CATEGORY_ICONS[c.name] || Tag
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => setCategoryId(active ? "" : c.id)}
+                    className={cn(
+                      "shrink-0 flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-all border",
+                      active
+                        ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                        : "bg-card border-border/70 hover:border-primary/40 text-foreground"
+                    )}
+                  >
+                    {c.imageUrl ? (
+                      <img src={c.imageUrl} alt="" className="h-4 w-4 rounded object-cover" />
+                    ) : (
+                      <Icon className="h-4 w-4" />
+                    )}
+                    {c.name}
+                  </button>
+                )
+              })}
+            </div>
+          ) : null}
 
           {isLoading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -396,18 +487,38 @@ export function SalesView() {
                       </Select>
                     </div>
                     <div className="space-y-1 col-span-2">
-                      <Label htmlFor="cphone" className="text-xs">هاتف العميل (تسجيل تلقائي)</Label>
+                      <Label htmlFor="cphone" className="text-xs flex items-center gap-1">
+                        <Phone className="h-3 w-3" />
+                        هاتف العميل (بحث تلقائي)
+                      </Label>
                       <Input
                         id="cphone"
                         dir="ltr"
-                        className="h-8 text-sm text-left"
+                        className={cn(
+                          "h-8 text-sm text-left",
+                          customerFound && "border-[#5CDE9D] bg-[#5CDE9D]/5",
+                          customerPhone.trim().length >= 4 && !customerFound && "border-amber-500"
+                        )}
                         value={customerPhone}
                         onChange={(e) => setCustomerPhone(e.target.value)}
                         placeholder="+965 5xxx xxxx"
                       />
-                      <p className="text-[10px] text-muted-foreground">
-                        يُسجّل العميل تلقائياً في قاعدة العملاء برقم الهاتف
-                      </p>
+                      {customerFound ? (
+                        <p className="text-[10px] text-[#5CDE9D] flex items-center gap-1">
+                          <UserCheck className="h-3 w-3" />
+                          عميل موجود: {customerFound.name}
+                          {customerFound.address ? ` — ${customerFound.address}` : ""}
+                        </p>
+                      ) : customerPhone.trim().length >= 4 ? (
+                        <p className="text-[10px] text-amber-600 flex items-center gap-1">
+                          <UserPlus className="h-3 w-3" />
+                          عميل جديد — سيُسجّل تلقائياً في قاعدة العملاء عند البيع
+                        </p>
+                      ) : (
+                        <p className="text-[10px] text-muted-foreground">
+                          أدخل رقم الهاتف للبحث عن العميل أو تسجيله تلقائياً
+                        </p>
+                      )}
                     </div>
                     <div className="space-y-1">
                       <Label htmlFor="disc" className="text-xs">الخصم ({fmt.symbol})</Label>
