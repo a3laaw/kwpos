@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { toast } from "sonner"
+import { signOut } from "next-auth/react"
 import { PageHeader } from "@/components/shared/page-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -171,6 +172,16 @@ export function SalesView() {
       setLastSale(sale)
       clearCart()
     } catch (err: any) {
+      // Stale session (e.g. after re-seed) — auto-logout so user can re-login.
+      if (err?.message === "session-expired") {
+        toast.error("انتهت الجلسة", {
+          description: "يرجى تسجيل الدخول مرة أخرى.",
+        })
+        setTimeout(() => {
+          signOut({ redirect: false }).then(() => window.location.reload())
+        }, 1500)
+        return
+      }
       // Handle stock-insufficient errors specifically
       if (err?.message?.startsWith("stock-insufficient")) {
         const parts = err.message.split(":")
