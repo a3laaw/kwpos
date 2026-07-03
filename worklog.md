@@ -478,3 +478,39 @@ Stage Summary:
 - Inventory upgraded to multi-warehouse with per-warehouse stock distribution.
 - Enhanced product entry panel with warehouse allocation.
 - Shopify sync can optionally push to a specific warehouse (future enhancement).
+
+---
+Task ID: ANALYTICS-TABS-REDESIGN
+Agent: main
+Task: Redesign analytics into separate tabs with richer charts
+
+AnalyticsView rewritten (src/components/analytics/analytics-view.tsx):
+- 4 separate tabs (was one page with 5 cards):
+  1. **الأكثر مبيعاً** — 3 KPIs (total qty sold, total revenue, top product) +
+     horizontal bar chart (ranked by quantity) + ranked product table with
+     progress bars.
+  2. **الأصناف الراكدة** — 3 KPIs (never-sold count, slow-turnover count,
+     stuck stock value) + table with turnover-ratio bars + status badges
+     (لم يُبع / بطيء) + stuck-value column.
+  3. **التكلفة** — 3 KPIs (highest, lowest, average cost) + 2 side-by-side
+     horizontal bar charts (most expensive rose / cheapest aqua).
+  4. **الربحية** — 3 KPIs (highest margin, avg margin %, profitable count) +
+     donut pie chart of margin distribution with legend + ranked table with
+     margin-% badges (green ≥50%).
+- Shared date-range filter bar appears only for sales-based tabs (top +
+  stagnant) with quick-range buttons (7/30/90 days) + apply/reset.
+- Reusable `ProductRankTable` component (rank badges, metric column, optional
+  extra column, progress bars).
+- All charts use the brand palette (#055BE5 blue, #5CDE9D aqua, #185B6B teal).
+
+Verification (Agent Browser):
+- 4 tabs render: الأكثر مبيعاً / الأصناف الراكدة / التكلفة / الربحية. ✓
+- Top-selling: KPIs + bar chart + table (دفتر A4, أرز بسمتي). ✓
+- Stagnant: KPIs + table with "لم يُبع"/"بطيء" badges + turnover bars. ✓
+- Cost: KPIs + 2 charts (most/least expensive). ✓
+- Margin: KPIs + pie chart + table with margin-% badges. ✓
+- No errors, no hydration mismatch, ESLint clean. ✓
+
+Stage Summary:
+- Analytics upgraded from a single dense page to 4 focused, filterable tabs
+  with richer visualizations (bar charts, donut, ranked tables, progress bars).
