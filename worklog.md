@@ -548,3 +548,68 @@ Verification (Agent Browser + VLM):
 Stage Summary:
 - Analytics upgraded from horizontal tabs to modern clickable card selector +
   overview dashboard. More scalable, more visual, mobile-friendly.
+
+---
+Task ID: ACCOUNTING+EXCEL+MANUAL-JE+PURCHASE-JE
+Agent: main
+Task: Comprehensive accounting + Excel import/export + manual journals + purchase-receive journal
+
+Audit findings (honest assessment):
+- ✅ Sale journal: created automatically on POS checkout (debit Cash/Bank, credit Revenue + Tax).
+- ✅ Expense journal: created on salary/admin expense entry (debit Expense, credit Cash/Bank).
+- ✅ Financial reports: P&L, Trial Balance, Journal entries — all present.
+- ✅ Manual journal: label existed in UI but NO creation form — GAP (now fixed).
+- ❌ Purchase receive: only bumped inventory, NO journal entry — GAP (now fixed).
+- ❌ Excel export/import: not present — GAP (now added).
+
+Fixes implemented:
+
+1. **Purchase-receive journal** (`src/app/api/purchase-orders/[id]/receive/route.ts`):
+   On receiving a PO, now generates a double-entry journal:
+   - Debit Inventory (1010) for the PO total
+   - Credit Accounts Payable (2010) for the PO total
+   So stock receipts now hit the books automatically.
+
+2. **Manual journal entry** (new):
+   - `POST /api/journal-entries/manual` — admin-only, validates balanced lines.
+   - `ManualJournalDialog` component — multi-line entry with account dropdown,
+     debit/credit inputs, live running totals, balance check (green/red),
+     date + description. Added "قيد يدوي" button to the journal tab.
+
+3. **Excel export** (new, server-side with `xlsx`):
+   - `GET /api/excel/export?type=sales|products|journal|customers|suppliers`
+     with optional `from`/`to` date filter for sales/journal.
+   - Generates proper .xlsx with Arabic headers, downloads as attachment.
+   - `ExcelExportButton` component — added to invoices (sales), inventory
+     (products), customers, and journal tab.
+
+4. **Excel import** (new):
+   - `POST /api/excel/import-products` — parses .xlsx, matches by barcode
+     then name (existing → update, new → create), category matched by name.
+   - `POST /api/excel/import-customers` — matches by phone then name.
+   - `ExcelImportButton` component — dropdown with "رفع ملف Excel" + "تنزيل
+     قالب فارغ" (downloads a template with the right column headers).
+     Added to inventory (products) and customers.
+
+5. **`src/lib/excel.ts`** helper: `exportToExcel`, `parseExcelFile`,
+   `downloadTemplate` utilities.
+
+Product entry clarification: new products can be added via (a) the product
+form (with warehouse stock distribution), (b) Excel import, or (c) a purchase
+order (existing products only — a PO line references an existing productId).
+For truly new products, the merchant adds them once via the form or import,
+then reorders them via POs.
+
+Verification (Agent Browser):
+- Accounting → القيود tab: "قيد يدوي" button + "Excel" export button visible. ✓
+- Manual journal dialog opens with multi-line entry + balance check. ✓
+- Inventory: "استيراد" (dropdown: رفع ملف/تنزيل قالب) + "تصدير" buttons. ✓
+- Invoices: "تصدير" Excel button. ✓
+- Customers: "استيراد" + "تصدير" buttons. ✓
+- Existing journal entries render (JE-00001 sale). ✓
+- No errors, no hydration mismatch, ESLint clean. ✓
+
+Stage Summary:
+- All accounting flows now generate journals (sale + expense + purchase receive + manual).
+- Full Excel support: export (sales/products/journal/customers/suppliers) + import (products/customers) + template download.
+- Manual journal entry form for ad-hoc adjustments.
