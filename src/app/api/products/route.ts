@@ -85,6 +85,7 @@ export async function POST(req: NextRequest) {
       salePrice: Number(salePrice) || 0,
       unit: unit?.trim() || "قطعة",
       unitId: unitId || null,
+      imageUrl: body.imageUrl?.trim() || null,
       stockItems: stockRows.length
         ? { create: stockRows.map((s) => ({ warehouseId: s.warehouseId, quantity: Number(s.quantity) })) }
         : undefined,

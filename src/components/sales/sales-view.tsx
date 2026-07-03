@@ -30,6 +30,7 @@ import {
   Printer,
   Loader2,
   PackageX,
+  Package,
   Receipt,
 } from "lucide-react"
 import {
@@ -241,26 +242,36 @@ export function SalesView() {
                     onClick={() => addToCart(p)}
                     disabled={out}
                     className={cn(
-                      "group relative text-right rounded-xl border border-border/70 bg-card p-3 transition-all hover:border-primary/50 hover:shadow-sm",
+                      "group relative flex flex-col overflow-hidden rounded-xl border border-border/70 bg-card transition-all hover:border-primary/50 hover:shadow-md",
                       out && "opacity-50 cursor-not-allowed hover:border-border"
                     )}
                   >
-                    <div className="flex items-start justify-between gap-1">
-                      <div className="min-w-0">
-                        <p className="font-medium text-sm leading-snug line-clamp-2">{p.name}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{p.categoryName}</p>
-                      </div>
+                    {/* Product image */}
+                    <div className="relative h-24 w-full bg-muted/40 overflow-hidden">
+                      {p.imageUrl ? (
+                        <img src={p.imageUrl} alt={p.name} className="h-full w-full object-cover group-hover:scale-105 transition-transform" />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center">
+                          <Package className="h-8 w-8 text-muted-foreground/40" />
+                        </div>
+                      )}
+                      {out ? (
+                        <span className="absolute inset-0 flex items-center justify-center bg-background/70 text-xs font-bold text-destructive">نفد</span>
+                      ) : null}
                     </div>
-                    <div className="mt-2 flex items-center justify-between">
-                      <span className="font-bold text-primary tabular-nums">
-                        {fmt.currency(p.salePrice)}
-                      </span>
-                      <Badge
-                        variant={out ? "destructive" : available <= p.reorderLevel ? "secondary" : "outline"}
-                        className="tabular-nums text-[10px]"
-                      >
-                        {out ? "نفد" : `${fmt.number(available)}`}
-                      </Badge>
+                    {/* Info */}
+                    <div className="p-2.5 text-right flex-1 flex flex-col gap-1">
+                      <p className="font-medium text-sm leading-snug line-clamp-2">{p.name}</p>
+                      <div className="flex items-center justify-between gap-1 mt-auto">
+                        <span className="font-bold text-primary tabular-nums text-sm">
+                          {fmt.currency(p.salePrice)}
+                        </span>
+                        {!out ? (
+                          <Badge variant={available <= p.reorderLevel ? "secondary" : "outline"} className="tabular-nums text-[10px]">
+                            {fmt.number(available)}
+                          </Badge>
+                        ) : null}
+                      </div>
                     </div>
                     {used > 0 ? (
                       <span className="absolute -top-2 -left-2 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold shadow">
