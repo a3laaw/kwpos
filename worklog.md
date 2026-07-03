@@ -725,3 +725,30 @@ Verification (Agent Browser + VLM):
 - EN (localStorage=en, reload): dir=ltr/en, aside_left=0
   → sidebar on LEFT. VLM: "الشريط الجانبي على اليسار". ✓
 - No errors, no hydration mismatch, ESLint clean. ✓
+
+---
+Task ID: INVENTORY-TABLE-RTL-FIX
+Agent: main
+Task: Fix inventory table columns direction in Arabic (was LTR inside RTL page)
+
+Root cause:
+- Radix UI's Tabs component defaults to dir="ltr" on its TabsPrimitive.Root,
+  which overrides the document's rtl direction. This made the inventory table
+  (rendered inside a TabsContent) display columns left-to-right even when the
+  app was in Arabic — the "Product" column appeared on the LEFT instead of the
+  right.
+
+Fix (src/components/ui/tabs.tsx):
+- The Tabs component now tracks document.documentElement.dir reactively using
+  a MutationObserver (watches the `dir` attribute on <html>). When the
+  I18nProvider updates dir (on language toggle), the Tabs re-renders with the
+  correct dir. Initial state is "rtl" (matches SSR).
+- This fixes ALL tables rendered inside Tabs (inventory products, journal
+  entries, trial balance, etc.) — they now follow the document direction.
+
+Verification (Agent Browser):
+- Arabic (rtl): tabsDir=rtl, first th "المنتج" right=999 (on RIGHT),
+  last th (actions) left=25 (on LEFT). ✓
+- English (ltr): tabsDir=ltr, first th left=281 (on LEFT),
+  last th right=1255 (on RIGHT). ✓
+- No errors, no hydration mismatch, ESLint clean. ✓

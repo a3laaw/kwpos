@@ -130,6 +130,18 @@
   html[dir="rtl"] {
     direction: rtl;
   }
+  /* Tables must follow the document direction (Tailwind's overflow-x-auto
+     container can reset direction to ltr; force inherit so columns order
+     correctly in RTL Arabic). */
+  [data-slot="table-container"],
+  [data-slot="table"],
+  [data-slot="table"] thead,
+  [data-slot="table"] tbody,
+  [data-slot="table"] tr,
+  [data-slot="table"] th,
+  [data-slot="table"] td {
+    direction: inherit;
+  }
 }
 
 /* Custom scrollbar */
