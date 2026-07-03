@@ -36,9 +36,13 @@ import {
 import { useSales } from "@/hooks/use-api"
 import { useAppStore } from "@/lib/store"
 import { useFmt } from "@/components/currency-context"
-import { printA4Invoice } from "@/lib/print"
+import { printA4Invoice, printThermalReceipt } from "@/lib/print"
+import { useUser } from "@/components/user-context"
+import { useRefundSale } from "@/hooks/use-api"
+import { ConfirmDialog } from "@/components/shared/confirm-dialog"
 import type { Sale } from "@/lib/types"
 import { Separator } from "@/components/ui/separator"
+import { RotateCcw, Flame } from "lucide-react"
 
 const PAYMENT_META: Record<Sale["paymentMethod"], { label: string; icon: any; className: string }> = {
   CASH: { label: "نقدي", icon: Banknote, className: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30" },
@@ -48,13 +52,31 @@ const PAYMENT_META: Record<Sale["paymentMethod"], { label: string; icon: any; cl
 
 export function InvoicesView() {
   const fmt = useFmt()
+  const user = useUser()
   const [q, setQ] = React.useState("")
   const [detail, setDetail] = React.useState<Sale | null>(null)
+  const [refundTarget, setRefundTarget] = React.useState<Sale | null>(null)
   const setView = useAppStore((s) => s.setView)
   const debouncedQ = React.useDeferredValue(q)
   const { data, isLoading, isError, refetch } = useSales(debouncedQ || undefined)
+  const refundMut = useRefundSale()
+  const isAdmin = user.role === "ADMIN"
 
   const sales = data?.items ?? []
+
+  async function handleRefund() {
+    if (!refundTarget) return
+    try {
+      await refundMut.mutateAsync({ id: refundTarget.id, reason: "مرتجع من المدير" })
+      toast.success("تم مرتجع الفاتورة", {
+        description: `${refundTarget.invoiceNo} — تم إرجاع الكميات للمخزون`,
+      })
+      setRefundTarget(null)
+      setDetail(null)
+    } catch (err: any) {
+      toast.error("فشل المرتجع", { description: err?.message })
+    }
+  }
 
   return (
     <div className="space-y-5">
@@ -247,14 +269,60 @@ export function InvoicesView() {
                 </div>
               </div>
 
-              <Button variant="outline" className="w-full gap-2" onClick={() => printA4Invoice(detail)}>
-                <Printer className="h-4 w-4" />
-                طباعة الفاتورة (A4)
-              </Button>
+              {/* Print + refund buttons */}
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <Button variant="outline" className="gap-2" onClick={() => printThermalReceipt(detail)}>
+                    <Flame className="h-4 w-4" />
+                    حراري 80mm
+                  </Button>
+                  <Button variant="outline" className="gap-2" onClick={() => printA4Invoice(detail)}>
+                    <Printer className="h-4 w-4" />
+                    A4
+                  </Button>
+                </div>
+                {isAdmin ? (
+                  <>
+                    <Separator />
+                    <Button
+                      variant="outline"
+                      className="w-full gap-2 text-destructive hover:text-destructive border-destructive/30 hover:border-destructive/50"
+                      onClick={() => setRefundTarget(detail)}
+                      disabled={detail.paid === 0 && detail.total > 0}
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                      {detail.paid === 0 && detail.total > 0 ? "تم مرتجعها" : "مرتجع الفاتورة"}
+                    </Button>
+                    {detail.paid === 0 && detail.total > 0 ? (
+                      <p className="text-[10px] text-muted-foreground text-center">
+                        هذه الفاتورة تم مرتجعها — الكميات أُرجعت للمخزون
+                      </p>
+                    ) : null}
+                  </>
+                ) : null}
+              </div>
             </div>
           ) : null}
         </DialogContent>
       </Dialog>
+
+      {/* Refund confirmation */}
+      <ConfirmDialog
+        open={!!refundTarget}
+        onOpenChange={(o) => !o && setRefundTarget(null)}
+        title="مرتجع الفاتورة"
+        description={
+          <>
+            سيتم إرجاع كميات جميع الأصناف إلى المخزون وعكس القيد المحاسبي للفاتورة{" "}
+            <span className="font-semibold" dir="ltr">{refundTarget?.invoiceNo}</span>.
+            لا يمكن التراجع عن هذه العملية.
+          </>
+        }
+        confirmText="تأكيد المرتجع"
+        destructive
+        loading={refundMut.isPending}
+        onConfirm={handleRefund}
+      />
     </div>
   )
 }

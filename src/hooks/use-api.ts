@@ -218,6 +218,19 @@ export function useCreateSale() {
   })
 }
 
+export function useRefundSale() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
+      jsend<Sale>(`/api/sales/${id}/refund`, "POST", { reason }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["sales"] })
+      qc.invalidateQueries({ queryKey: ["products"] })
+      qc.invalidateQueries({ queryKey: ["dashboard"] })
+    },
+  })
+}
+
 /* ----------------------------- Dashboard ----------------------------- */
 export function useDashboard(from?: string, to?: string, range?: string) {
   const qs = new URLSearchParams()
