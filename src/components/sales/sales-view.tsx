@@ -42,6 +42,8 @@ import {
   Sparkles,
   Home,
   Phone,
+  ChevronRight,
+  ChevronLeft,
 } from "lucide-react"
 import {
   Dialog,
@@ -89,6 +91,24 @@ export function SalesView() {
   const [customerPhone, setCustomerPhone] = React.useState("")
   const [customerFound, setCustomerFound] = React.useState<{ name: string; address: string } | null>(null)
   const [lastSale, setLastSale] = React.useState<Sale | null>(null)
+
+  // ── Cart pagination ──
+  // Show a fixed number of items per "page" in the cart. Auto-advance to the
+  // next page when a new item is added beyond the current page's capacity.
+  // Manual "previous" button lets the cashier review earlier items.
+  const ITEMS_PER_CART_PAGE = 5
+  const [cartPage, setCartPage] = React.useState(0)
+  const cartTotalPages = Math.max(1, Math.ceil(cart.length / ITEMS_PER_CART_PAGE))
+
+  // Clamp cartPage when cart shrinks (e.g. after remove/clear)
+  React.useEffect(() => {
+    if (cartPage >= cartTotalPages) setCartPage(Math.max(0, cartTotalPages - 1))
+  }, [cartTotalPages, cartPage])
+
+  const cartPageItems = cart.slice(
+    cartPage * ITEMS_PER_CART_PAGE,
+    (cartPage + 1) * ITEMS_PER_CART_PAGE
+  )
 
   const debouncedQ = React.useDeferredValue(q)
   const { data, isLoading } = useProducts({ q: debouncedQ || undefined, categoryId: categoryId || undefined })
@@ -140,9 +160,16 @@ export function SalesView() {
       })
       return
     }
+    const existing = cart.find((it) => it.product.id === p.id)
+    if (!existing) {
+      // New item — auto-advance to the page it will appear on
+      const newIndex = cart.length // index of the new item
+      const newPage = Math.floor(newIndex / ITEMS_PER_CART_PAGE)
+      setCartPage(newPage)
+    }
     setCart((c) => {
-      const existing = c.find((it) => it.product.id === p.id)
-      if (existing) {
+      const ex = c.find((it) => it.product.id === p.id)
+      if (ex) {
         return c.map((it) =>
           it.product.id === p.id ? { ...it, quantity: it.quantity + 1 } : it
         )
@@ -379,7 +406,8 @@ export function SalesView() {
         {/* Cart */}
         <div className="lg:col-span-2">
           <Card className="lg:sticky lg:top-20 flex flex-col max-h-[calc(100vh-7rem)]">
-            <CardHeader className="pb-3">
+            {/* Header: title + clear */}
+            <CardHeader className="pb-2 shrink-0">
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <ShoppingCart className="h-4 w-4 text-primary" />
@@ -389,113 +417,58 @@ export function SalesView() {
                   ) : null}
                 </CardTitle>
                 {cart.length > 0 ? (
-                  <Button variant="ghost" size="sm" onClick={clearCart} className="gap-1 text-muted-foreground h-7">
+                  <Button variant="ghost" size="sm" onClick={() => { clearCart(); setCartPage(0) }} className="gap-1 text-muted-foreground h-7">
                     <X className="h-3.5 w-3.5" />
                     تفريغ
                   </Button>
                 ) : null}
               </div>
             </CardHeader>
+
             <CardContent className="flex-1 flex flex-col min-h-0 p-0">
               {cart.length === 0 ? (
+                /* Empty cart */
                 <div className="flex-1 flex flex-col items-center justify-center gap-2 px-6 py-10 text-center text-muted-foreground">
                   <ShoppingCart className="h-10 w-10 opacity-40" />
                   <p className="text-sm">السلة فارغة</p>
                   <p className="text-xs">اضغط على منتج لإضافته</p>
                 </div>
               ) : (
-                <ScrollArea className="flex-1 max-h-[40vh] lg:max-h-[calc(100vh-22rem)] px-4 scrollbar-thin">
-                  <div className="space-y-2 pb-2">
-                    {cart.map((it) => (
-                      <div
-                        key={it.product.id}
-                        className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/20 p-2"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium truncate">{it.product.name}</p>
-                          <p className="text-xs text-muted-foreground tabular-nums">
-                            {fmt.currency(it.product.salePrice)} × {it.quantity}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => changeQty(it.product.id, -1)}
-                          >
-                            <Minus className="h-3 w-3" />
-                          </Button>
-                          <Input
-                            dir="ltr"
-                            className="h-7 w-10 text-center px-0 tabular-nums"
-                            value={it.quantity}
-                            onChange={(e) => {
-                              const v = parseInt(e.target.value, 10)
-                              if (!isNaN(v)) setQty(it.product.id, v)
-                            }}
-                          />
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => changeQty(it.product.id, 1)}
-                            disabled={it.quantity >= it.product.quantity}
-                          >
-                            <Plus className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-destructive hover:text-destructive"
-                            onClick={() => removeItem(it.product.id)}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
+                <div className="flex-1 flex flex-col min-h-0">
+                  {/* ── Customer info at the TOP ── */}
+                  <div className="px-3 py-2 border-b border-border/60 bg-muted/20 space-y-2 shrink-0">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label htmlFor="cust" className="text-[10px] text-muted-foreground">العميل</Label>
+                        <Input
+                          id="cust"
+                          className="h-7 text-xs"
+                          value={customerName}
+                          onChange={(e) => setCustomerName(e.target.value)}
+                          placeholder="عميل نقدي"
+                        />
                       </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              )}
-
-              {/* Summary + checkout */}
-              {cart.length > 0 ? (
-                <div className="border-t border-border/60 p-4 space-y-3">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <Label htmlFor="cust" className="text-xs">اسم العميل</Label>
-                      <Input
-                        id="cust"
-                        className="h-8 text-sm"
-                        value={customerName}
-                        onChange={(e) => setCustomerName(e.target.value)}
-                        placeholder="عميل نقدي"
-                      />
+                      <div>
+                        <Label className="text-[10px] text-muted-foreground">الدفع</Label>
+                        <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as any)}>
+                          <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="CASH">نقدي</SelectItem>
+                            <SelectItem value="CARD">بطاقة</SelectItem>
+                            <SelectItem value="TRANSFER">تحويل</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">طريقة الدفع</Label>
-                      <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as any)}>
-                        <SelectTrigger className="h-8 text-sm">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="CASH">نقدي</SelectItem>
-                          <SelectItem value="CARD">بطاقة</SelectItem>
-                          <SelectItem value="TRANSFER">تحويل</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1 col-span-2">
-                      <Label htmlFor="cphone" className="text-xs flex items-center gap-1">
-                        <Phone className="h-3 w-3" />
-                        هاتف العميل (بحث تلقائي)
+                    <div>
+                      <Label htmlFor="cphone" className="text-[10px] text-muted-foreground flex items-center gap-1">
+                        <Phone className="h-2.5 w-2.5" /> هاتف (بحث تلقائي)
                       </Label>
                       <Input
                         id="cphone"
                         dir="ltr"
                         className={cn(
-                          "h-8 text-sm text-left",
+                          "h-7 text-xs text-left",
                           customerFound && "border-[#5CDE9D] bg-[#5CDE9D]/5",
                           customerPhone.trim().length >= 4 && !customerFound && "border-amber-500"
                         )}
@@ -504,85 +477,140 @@ export function SalesView() {
                         placeholder="+965 5xxx xxxx"
                       />
                       {customerFound ? (
-                        <p className="text-[10px] text-[#5CDE9D] flex items-center gap-1">
-                          <UserCheck className="h-3 w-3" />
+                        <p className="text-[9px] text-[#5CDE9D] flex items-center gap-0.5 mt-0.5">
+                          <UserCheck className="h-2.5 w-2.5" />
                           عميل موجود: {customerFound.name}
-                          {customerFound.address ? ` — ${customerFound.address}` : ""}
                         </p>
                       ) : customerPhone.trim().length >= 4 ? (
-                        <p className="text-[10px] text-amber-600 flex items-center gap-1">
-                          <UserPlus className="h-3 w-3" />
-                          عميل جديد — سيُسجّل تلقائياً في قاعدة العملاء عند البيع
+                        <p className="text-[9px] text-amber-600 flex items-center gap-0.5 mt-0.5">
+                          <UserPlus className="h-2.5 w-2.5" />
+                          عميل جديد — يُسجّل تلقائياً
                         </p>
-                      ) : (
-                        <p className="text-[10px] text-muted-foreground">
-                          أدخل رقم الهاتف للبحث عن العميل أو تسجيله تلقائياً
-                        </p>
-                      )}
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor="disc" className="text-xs">الخصم ({fmt.symbol})</Label>
-                      <Input
-                        id="disc"
-                        type="number"
-                        min={0}
-                        className="h-8 text-sm tabular-nums"
-                        value={discount}
-                        onChange={(e) => setDiscount(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor="tax" className="text-xs">نسبة الضريبة %</Label>
-                      <Input
-                        id="tax"
-                        type="number"
-                        min={0}
-                        className="h-8 text-sm tabular-nums"
-                        value={taxRate}
-                        onChange={(e) => setTaxRate(e.target.value)}
-                      />
+                      ) : null}
                     </div>
                   </div>
 
-                  <Separator />
+                  {/* ── Paginated cart items ── */}
+                  <div className="flex-1 overflow-y-auto scrollbar-thin px-3 py-2 min-h-0">
+                    <div className="space-y-1.5">
+                      {cartPageItems.map((it) => (
+                        <div
+                          key={it.product.id}
+                          className="flex items-center gap-2 rounded-lg border border-border/60 bg-card p-2"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium truncate">{it.product.name}</p>
+                            <p className="text-xs text-muted-foreground tabular-nums">
+                              {fmt.currency(it.product.salePrice)} × {it.quantity}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => changeQty(it.product.id, -1)}>
+                              <Minus className="h-3 w-3" />
+                            </Button>
+                            <Input
+                              dir="ltr"
+                              className="h-7 w-10 text-center px-0 tabular-nums"
+                              value={it.quantity}
+                              onChange={(e) => {
+                                const v = parseInt(e.target.value, 10)
+                                if (!isNaN(v)) setQty(it.product.id, v)
+                              }}
+                            />
+                            <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => changeQty(it.product.id, 1)} disabled={it.quantity >= it.product.quantity}>
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => removeItem(it.product.id)}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
 
-                  <div className="space-y-1.5 text-sm">
-                    <div className="flex justify-between text-muted-foreground">
-                      <span>المجموع الفرعي</span>
-                      <span className="tabular-nums">{fmt.currency(subtotal)}</span>
-                    </div>
-                    {discountVal > 0 ? (
-                      <div className="flex justify-between text-rose-600">
-                        <span>الخصم</span>
-                        <span className="tabular-nums">- {fmt.currency(discountVal)}</span>
-                      </div>
-                    ) : null}
-                    <div className="flex justify-between text-muted-foreground">
-                      <span>الضريبة ({taxRate}%)</span>
-                      <span className="tabular-nums">{fmt.currency(taxVal)}</span>
-                    </div>
-                    <div className="flex justify-between items-center pt-1.5 border-t border-border/60">
-                      <span className="font-semibold">الإجمالي</span>
-                      <span className="text-xl font-bold tabular-nums text-primary">
-                        {fmt.currency(total)}
+                  {/* ── Cart pagination controls ── */}
+                  {cartTotalPages > 1 ? (
+                    <div className="flex items-center justify-between gap-2 px-3 py-1.5 border-t border-border/40 shrink-0">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={cartPage <= 0}
+                        onClick={() => setCartPage((p) => Math.max(0, p - 1))}
+                        className="h-7 gap-1 text-xs"
+                      >
+                        <ChevronRight className="h-3.5 w-3.5" />
+                        السابق
+                      </Button>
+                      <span className="text-[10px] text-muted-foreground tabular-nums">
+                        {fmt.number(cartPage + 1)} / {fmt.number(cartTotalPages)} — {fmt.number(cart.length)} صنف
                       </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={cartPage >= cartTotalPages - 1}
+                        onClick={() => setCartPage((p) => Math.min(cartTotalPages - 1, p + 1))}
+                        className="h-7 gap-1 text-xs"
+                      >
+                        التالي
+                        <ChevronLeft className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
-                  </div>
+                  ) : null}
 
-                  <Button
-                    className="w-full h-11 gap-2 text-base"
-                    onClick={handleCheckout}
-                    disabled={createMut.isPending}
-                  >
-                    {createMut.isPending ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                    ) : (
-                      <CheckCircle2 className="h-5 w-5" />
-                    )}
-                    إتمام البيع — {fmt.currency(total)}
-                  </Button>
+                  {/* ── Summary + checkout (bottom) ── */}
+                  <div className="border-t border-border/60 p-3 space-y-2 shrink-0">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label htmlFor="disc" className="text-[10px] text-muted-foreground">الخصم ({fmt.symbol})</Label>
+                        <Input id="disc" type="number" min={0} className="h-7 text-xs tabular-nums" value={discount} onChange={(e) => setDiscount(e.target.value)} />
+                      </div>
+                      <div>
+                        <Label htmlFor="tax" className="text-[10px] text-muted-foreground">الضريبة %</Label>
+                        <Input id="tax" type="number" min={0} className="h-7 text-xs tabular-nums" value={taxRate} onChange={(e) => setTaxRate(e.target.value)} />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1 text-xs">
+                      <div className="flex justify-between text-muted-foreground">
+                        <span>المجموع الفرعي</span>
+                        <span className="tabular-nums">{fmt.currency(subtotal)}</span>
+                      </div>
+                      {discountVal > 0 ? (
+                        <div className="flex justify-between text-rose-600">
+                          <span>الخصم</span>
+                          <span className="tabular-nums">- {fmt.currency(discountVal)}</span>
+                        </div>
+                      ) : null}
+                      {taxVal > 0 ? (
+                        <div className="flex justify-between text-muted-foreground">
+                          <span>الضريبة ({taxRate}%)</span>
+                          <span className="tabular-nums">{fmt.currency(taxVal)}</span>
+                        </div>
+                      ) : null}
+                      <div className="flex justify-between items-center pt-1 border-t border-border/60">
+                        <span className="font-semibold text-sm">الإجمالي</span>
+                        <span className="text-lg font-bold tabular-nums text-primary">
+                          {fmt.currency(total)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <Button
+                      className="w-full h-10 gap-2 text-sm"
+                      onClick={handleCheckout}
+                      disabled={createMut.isPending}
+                    >
+                      {createMut.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="h-4 w-4" />
+                      )}
+                      إتمام البيع — {fmt.currency(total)}
+                    </Button>
+                  </div>
                 </div>
-              ) : null}
+              )}
             </CardContent>
           </Card>
         </div>
