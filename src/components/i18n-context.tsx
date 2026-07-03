@@ -14,21 +14,24 @@ const I18nContext = React.createContext<I18nContextValue | null>(null)
 
 const STORAGE_KEY = "erp-locale"
 
+/** Read the saved locale synchronously (for initial state to avoid flash). */
+function getInitialLocale(): Locale {
+  if (typeof window === "undefined") return "ar"
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY) as Locale | null
+    if (saved === "ar" || saved === "en") return saved
+  } catch {}
+  return "ar"
+}
+
 export function I18nProvider({ children }: { children: React.ReactNode }) {
-  // Start with Arabic (matches server-rendered dir/lang) to avoid hydration
-  // mismatch. We rehydrate from localStorage in an effect after mount.
-  const [locale, setLocaleState] = React.useState<Locale>("ar")
+  // Read saved locale synchronously on first client render to avoid a flash
+  // of the wrong direction. Server renders with "ar" (matching layout.tsx);
+  // if the client has a different saved locale, React will reconcile it
+  // immediately without a visible flash.
+  const [locale, setLocaleState] = React.useState<Locale>(getInitialLocale)
 
-  React.useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY) as Locale | null
-      if (saved === "ar" || saved === "en") {
-        setLocaleState(saved)
-      }
-    } catch {}
-  }, [])
-
-  // Keep <html dir/lang> in sync with the active locale.
+  // Keep <html dir/lang> in sync with the active locale — runs on every change.
   React.useEffect(() => {
     const dict = DICTS[locale]
     document.documentElement.dir = dict.dir
@@ -63,7 +66,6 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
 export function useI18n(): I18nContextValue {
   const ctx = React.useContext(I18nContext)
   if (!ctx) {
-    // Fallback (e.g. used outside provider during SSR) — return Arabic defaults.
     return { locale: "ar", dict: DICTS.ar, setLocale: () => {}, toggle: () => {} }
   }
   return ctx

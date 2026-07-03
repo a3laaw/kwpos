@@ -692,3 +692,36 @@ Verification (Agent Browser + VLM):
 - English: dir=ltr, lang=en, sidebar on LEFT, menu in English. ✓
 - Thermal print: window opened, content narrow (80mm), not full-screen. ✓
 - No errors, no hydration mismatch, ESLint clean. ✓
+
+---
+Task ID: RTL-SIDEBAR-POSITION-FIX
+Agent: main
+Task: Fix sidebar position — must be RIGHT in Arabic, LEFT in English
+
+Root cause of user's screenshot (Arabic menu with sidebar on LEFT):
+- The I18nProvider initialized locale to "ar" synchronously, then read
+  localStorage in a useEffect AFTER first paint. If localStorage held "en"
+  (from a previous session), the dir would momentarily be rtl (server
+  default) then flip to ltr — but the visible menu was Arabic while dir
+  was ltr, producing the wrong layout the user saw.
+
+Fix (src/components/i18n-context.tsx):
+- New `getInitialLocale()` reads localStorage SYNCHRONOUSLY during
+  useState initialization (not in an effect). So the very first client
+  render uses the correct locale → correct dir from the start, no flash,
+  no mismatch.
+- The dir-sync effect still runs to keep <html dir/lang> updated on toggle.
+- `suppressHydrationWarning` on <html> already present to tolerate the
+  server (ar/rtl) vs client (saved locale) difference.
+
+Also fixed earlier in this session:
+- Mobile sidebar `side` is now dynamic (right in AR, left in EN).
+- SheetHeader text-right → text-start.
+- Sidebar border uses border-s (logical).
+
+Verification (Agent Browser + VLM):
+- AR (localStorage=ar, reload): dir=rtl/ar, aside_left=1024, aside_right=1280
+  → sidebar on RIGHT. VLM: "الشريط الجانبي على اليمين، القائمة بالعربية". ✓
+- EN (localStorage=en, reload): dir=ltr/en, aside_left=0
+  → sidebar on LEFT. VLM: "الشريط الجانبي على اليسار". ✓
+- No errors, no hydration mismatch, ESLint clean. ✓
