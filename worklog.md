@@ -344,3 +344,40 @@ Stage Summary:
 - All numbers across the app now use Latin digits (0123) while keeping Arabic
   text, month names, and currency symbols.
 - Dashboard + analytics + P&L + trial balance all support date-range filtering.
+
+---
+Task ID: COLOR-PALETTE-APPLY
+Agent: main
+Task: Apply user-uploaded color palette to the entire system
+
+Palette (from /home/z/my-project/upload/color-palette.jpg, analyzed via VLM):
+- Primary blue: #055BE5
+- Aqua green accent: #5CDE9D
+- Dark teal (sidebar): #185B6B
+- White background: #FFFFFF
+
+Changes (src/app/globals.css):
+- `:root` light theme: primary = oklch(0.54 0.22 264) [#055BE5], accent =
+  oklch(0.84 0.14 162) [#5CDE9D], sidebar = oklch(0.38 0.06 220) [#185B6B],
+  background = oklch(0.99 0.004 240) [white]. All chart colors, ring, border,
+  sidebar-primary/accent updated to match.
+- `.dark` theme: primary lightened to oklch(0.65 0.2 264), accent stays aqua,
+  sidebar very dark teal.
+- Dashboard PIE_COLORS array → [#055BE5, #5CDE9D, #185B6B, ...].
+- Dashboard area chart gradient + stroke → #055BE5 (was emerald #10b981).
+- Login screen branding glow → bg-[#5CDE9D] (was emerald-400); demo-account
+  tone → text-[#055BE5]/[#5CDE9D].
+
+Kept semantic emerald usages (success/positive indicators: POS receipt success
+icon, positive net profit color, received PO status, cash payment badge) —
+green = good is a universal convention; only the BRAND identity changed.
+
+Verification (Agent Browser + VLM):
+- Login screen: "اللون الأساسي هو الأزرق، الشريط الجانبي أزرق غامق" ✓
+- Dashboard: "الشريط الجانبي أزرق غامق/تيركواز داكن، الأزرار أزرق #055BE5،
+  الرسم البياني أزرق #055BE5" ✓
+- Aqua accent: "عناصر باللون الأخضر المائي #5CDE9D في الأيقونات النشطة" ✓
+- No errors, ESLint clean. ✓
+
+Stage Summary:
+- Full brand color migration from emerald to the user's blue/aqua/teal palette.

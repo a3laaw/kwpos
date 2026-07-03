@@ -33,7 +33,7 @@ const demoAccounts = [
     email: "sales@demo.com",
     password: "sales123",
     icon: ShoppingCart,
-    tone: "text-emerald-600 dark:text-emerald-400",
+    tone: "text-[#055BE5] dark:text-[#5CDE9D]",
   },
   {
     role: "أمين مخزن",
@@ -87,7 +87,7 @@ export function LoginScreen({ country }: { country?: { flag: string; name: strin
       <div className="relative hidden lg:flex lg:w-1/2 flex-col justify-between p-10 text-sidebar-foreground bg-sidebar overflow-hidden">
         <div className="absolute inset-0 opacity-20 pointer-events-none">
           <div className="absolute -top-20 -right-20 h-80 w-80 rounded-full bg-sidebar-primary blur-3xl" />
-          <div className="absolute bottom-10 -left-10 h-72 w-72 rounded-full bg-emerald-400 blur-3xl" />
+          <div className="absolute bottom-10 -left-10 h-72 w-72 rounded-full bg-[#5CDE9D] blur-3xl" />
         </div>
         <div className="relative z-10 flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sidebar-primary text-sidebar-primary-foreground">
