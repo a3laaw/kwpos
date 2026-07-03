@@ -27,6 +27,7 @@ import {
   useSuppliers,
   useUpdateProduct,
   useUnits,
+  useWarehouses,
 } from "@/hooks/use-api"
 import type { Product } from "@/lib/types"
 
@@ -63,9 +64,11 @@ const empty: FormState = {
 export function ProductFormDialog({ open, onOpenChange, product }: ProductFormDialogProps) {
   const isEdit = !!product
   const [form, setForm] = React.useState<FormState>(empty)
+  const [stockByWh, setStockByWh] = React.useState<Record<string, string>>({})
   const { data: cats } = useCategories()
   const { data: sups } = useSuppliers()
   const { data: units } = useUnits()
+  const { data: whs } = useWarehouses()
   const createMut = useCreateProduct()
   const updateMut = useUpdateProduct(product?.id ?? "")
 
@@ -82,8 +85,13 @@ export function ProductFormDialog({ open, onOpenChange, product }: ProductFormDi
         salePrice: String(product.salePrice),
         unit: product.unit,
       })
+      // populate warehouse stock
+      const m: Record<string, string> = {}
+      for (const s of product.stockByWarehouse ?? []) m[s.warehouseId] = String(s.quantity)
+      setStockByWh(m)
     } else {
       setForm(empty)
+      setStockByWh({})
     }
   }, [product, open])
 
@@ -94,12 +102,18 @@ export function ProductFormDialog({ open, onOpenChange, product }: ProductFormDi
       ? (((Number(form.salePrice) - Number(form.costPrice)) / Number(form.costPrice)) * 100).toFixed(1)
       : "0"
 
+  const warehouses = whs?.items ?? []
+  const stockTotal = Object.values(stockByWh).reduce((a, b) => a + (Number(b) || 0), 0)
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!form.name.trim()) {
       toast.error("اسم المنتج مطلوب")
       return
     }
+    const warehouseStock = Object.entries(stockByWh)
+      .filter(([, q]) => Number(q) > 0)
+      .map(([warehouseId, q]) => ({ warehouseId, quantity: Number(q) }))
     const payload = {
       name: form.name.trim(),
       barcode: form.barcode.trim() || null,
@@ -110,6 +124,7 @@ export function ProductFormDialog({ open, onOpenChange, product }: ProductFormDi
       costPrice: Number(form.costPrice) || 0,
       salePrice: Number(form.salePrice) || 0,
       unit: form.unit.trim() || "قطعة",
+      warehouseStock,
     }
     try {
       if (isEdit) {
@@ -211,14 +226,18 @@ export function ProductFormDialog({ open, onOpenChange, product }: ProductFormDi
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="p-qty">الكمية الحالية</Label>
+              <Label htmlFor="p-qty">الكمية الإجمالية</Label>
               <Input
                 id="p-qty"
                 type="number"
                 min={0}
                 value={form.quantity}
                 onChange={(e) => set("quantity", e.target.value)}
+                className={stockTotal > 0 && stockTotal !== Number(form.quantity) ? "border-amber-500" : ""}
               />
+              {stockTotal > 0 && stockTotal !== Number(form.quantity) ? (
+                <p className="text-xs text-amber-600">مجموع المخازن: {stockTotal}</p>
+              ) : null}
             </div>
             <div className="space-y-2">
               <Label htmlFor="p-reorder">حد إعادة الطلب</Label>
@@ -230,6 +249,34 @@ export function ProductFormDialog({ open, onOpenChange, product }: ProductFormDi
                 onChange={(e) => set("reorderLevel", e.target.value)}
               />
             </div>
+
+            {/* Warehouse stock distribution */}
+            {warehouses.length > 0 ? (
+              <div className="sm:col-span-2 space-y-2">
+                <Label className="text-xs">توزيع الكمية على المخازن</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 rounded-lg border border-border/60 bg-muted/20 p-3">
+                  {warehouses.map((w) => (
+                    <div key={w.id} className="flex items-center gap-2">
+                      <span className="flex-1 min-w-0 text-sm truncate">
+                        <span className="font-medium">{w.name}</span>
+                        {w.code ? <span className="text-xs text-muted-foreground font-mono" dir="ltr"> {w.code}</span> : null}
+                      </span>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={stockByWh[w.id] ?? ""}
+                        onChange={(e) => setStockByWh((s) => ({ ...s, [w.id]: e.target.value }))}
+                        className="h-8 w-24 tabular-nums"
+                        placeholder="0"
+                      />
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  الإجمالي عبر المخازن: <strong className="tabular-nums">{stockTotal}</strong>
+                </p>
+              </div>
+            ) : null}
 
             <div className="space-y-2">
               <Label htmlFor="p-cost">سعر التكلفة (ر.س)</Label>

@@ -13,7 +13,7 @@ export async function GET(
   const { id } = await params
   const p = await db.product.findUnique({
     where: { id },
-    include: { category: true, supplier: true },
+    include: { category: true, supplier: true, stockItems: { include: { warehouse: true } } },
   })
   if (!p) return NextResponse.json({ error: "not-found" }, { status: 404 })
   return NextResponse.json(serializeProduct(p as any))
@@ -57,8 +57,9 @@ export async function PUT(
       ...(costPrice !== undefined ? { costPrice: Number(costPrice) || 0 } : {}),
       ...(salePrice !== undefined ? { salePrice: Number(salePrice) || 0 } : {}),
       ...(unit !== undefined ? { unit: String(unit).trim() || "قطعة" } : {}),
+      ...(body.unitId !== undefined ? { unitId: body.unitId || null } : {}),
     },
-    include: { category: true, supplier: true },
+    include: { category: true, supplier: true, stockItems: { include: { warehouse: true } } },
   })
 
   return NextResponse.json(serializeProduct(updated as any))

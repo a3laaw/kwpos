@@ -20,6 +20,7 @@ import type {
   AnalyticsReport,
   JournalEntry,
   TrialBalance,
+  Warehouse,
 } from "@/lib/types"
 import type { CountryConfig } from "@/lib/countries"
 
@@ -326,6 +327,36 @@ export function useDeleteUnit() {
   return useMutation({
     mutationFn: (id: string) => jsend(`/api/units/${id}`, "DELETE"),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["units"] }),
+  })
+}
+
+/* ----------------------------- Warehouses -------------------------- */
+export function useWarehouses() {
+  return useQuery<{ items: Warehouse[] }>({
+    queryKey: ["warehouses"],
+    queryFn: () => jget("/api/warehouses"),
+  })
+}
+export function useCreateWarehouse() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { name: string; code?: string; location?: string }) =>
+      jsend<Warehouse>("/api/warehouses", "POST", body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["warehouses"] }),
+  })
+}
+export function useUpdateWarehouse(id: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: Partial<Warehouse>) => jsend<Warehouse>(`/api/warehouses/${id}`, "PUT", body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["warehouses"] }),
+  })
+}
+export function useDeleteWarehouse() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => jsend(`/api/warehouses/${id}`, "DELETE"),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["warehouses"] }),
   })
 }
 

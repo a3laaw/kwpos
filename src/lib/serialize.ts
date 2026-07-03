@@ -9,12 +9,19 @@ import type {
   Account,
   ExpenseTransaction,
   Customer,
+  Warehouse,
 } from "@/lib/types"
 
 type AnyRow = Record<string, unknown>
 
 /** Convert a Prisma row into our API `Product` shape. */
 export function serializeProduct(p: AnyRow): Product {
+  const stockByWarehouse = (p.stockItems as AnyRow[] | undefined)?.map((si) => ({
+    warehouseId: String(si.warehouseId),
+    warehouseName: (si.warehouse as any)?.name ?? "",
+    warehouseCode: (si.warehouse as any)?.code ?? null,
+    quantity: Number(si.quantity ?? 0),
+  }))
   return {
     id: String(p.id),
     name: String(p.name),
@@ -28,8 +35,24 @@ export function serializeProduct(p: AnyRow): Product {
     costPrice: Number(p.costPrice ?? 0),
     salePrice: Number(p.salePrice ?? 0),
     unit: String(p.unit ?? "قطعة"),
+    unitId: (p.unitId as string | null) ?? null,
+    stockByWarehouse,
     createdAt: String(p.createdAt),
     updatedAt: String(p.updatedAt),
+  }
+}
+
+export function serializeWarehouse(w: AnyRow): Warehouse {
+  const stockItems = (w.stockItems as AnyRow[] | undefined) ?? []
+  return {
+    id: String(w.id),
+    name: String(w.name),
+    code: (w.code as string | null) ?? null,
+    location: (w.location as string | null) ?? null,
+    isActive: Boolean(w.isActive ?? true),
+    productsCount: stockItems.filter((si) => Number(si.quantity) > 0).length,
+    totalStock: stockItems.reduce((s, si) => s + Number(si.quantity ?? 0), 0),
+    createdAt: String(w.createdAt),
   }
 }
 

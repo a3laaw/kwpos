@@ -31,8 +31,21 @@ export interface Product {
   costPrice: number
   salePrice: number
   unit: string
+  unitId?: string | null
+  stockByWarehouse?: { warehouseId: string; warehouseName: string; warehouseCode?: string | null; quantity: number }[]
   createdAt: string
   updatedAt: string
+}
+
+export interface Warehouse {
+  id: string
+  name: string
+  code?: string | null
+  location?: string | null
+  isActive: boolean
+  productsCount?: number
+  totalStock?: number
+  createdAt: string
 }
 
 export interface PurchaseOrderItem {

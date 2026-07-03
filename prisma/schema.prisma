@@ -34,6 +34,7 @@ model Unit {
   id        String    @id @default(cuid())
   name      String    @unique
   createdAt DateTime  @default(now())
+  products  Product[]
 }
 
 model Supplier {
@@ -53,32 +54,62 @@ model Product {
   name         String
   barcode      String?
   categoryId   String?
-  quantity     Int              @default(0)
+  quantity     Int              @default(0) // total across all warehouses (derived)
   reorderLevel Int              @default(5)
   costPrice    Float            @default(0)
   salePrice    Float            @default(0)
   unit         String           @default("قطعة")
+  unitId       String?
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
 
   category     Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   supplier     Supplier?        @relation(fields: [supplierId], references: [id], onDelete: SetNull)
   supplierId   String?
+  unitRef      Unit?            @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  stockItems   StockItem[]
   saleItems    SaleItem[]
   poItems      PurchaseOrderItem[]
 }
 
-model PurchaseOrder {
-  id         String               @id @default(cuid())
-  supplierId String
-  status     String               @default("PENDING") // PENDING | RECEIVED | CANCELLED
-  total      Float                @default(0)
-  note       String?
-  createdAt  DateTime             @default(now())
-  updatedAt  DateTime             @updatedAt
+// Multiple warehouses
+model Warehouse {
+  id        String     @id @default(cuid())
+  name      String
+  code      String?    // short code e.g. "WH-01"
+  location  String?
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  stockItems StockItem[]
+  purchaseOrders PurchaseOrder[] @relation("POWarehouse")
+}
 
-  supplier   Supplier             @relation(fields: [supplierId], references: [id])
-  items      PurchaseOrderItem[]
+// Per-warehouse stock levels (a product can exist in many warehouses)
+model StockItem {
+  id          String   @id @default(cuid())
+  productId   String
+  warehouseId String
+  quantity    Int      @default(0)
+
+  product     Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  warehouse   Warehouse  @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, warehouseId])
+}
+
+model PurchaseOrder {
+  id          String               @id @default(cuid())
+  supplierId  String
+  warehouseId String? // destination warehouse for received stock
+  status      String               @default("PENDING") // PENDING | RECEIVED | CANCELLED
+  total       Float                @default(0)
+  note        String?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  supplier    Supplier             @relation(fields: [supplierId], references: [id])
+  warehouse   Warehouse?           @relation("POWarehouse", fields: [warehouseId], references: [id], onDelete: SetNull)
+  items       PurchaseOrderItem[]
 }
 
 model PurchaseOrderItem {
