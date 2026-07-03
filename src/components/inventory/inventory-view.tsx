@@ -46,6 +46,9 @@ import {
 } from "lucide-react"
 import { useUser } from "@/components/user-context"
 import { printBarcodeLabels } from "@/lib/print"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { WarehouseManager } from "@/components/inventory/warehouse-manager"
+import { Warehouse as WarehouseIcon } from "lucide-react"
 import { useProducts, useCategories, useDeleteProduct } from "@/hooks/use-api"
 import { useFmt } from "@/components/currency-context"
 import type { Product } from "@/lib/types"
@@ -129,6 +132,19 @@ export function InventoryView() {
         }
       />
 
+      <Tabs defaultValue="products" className="space-y-4">
+        <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsTrigger value="products" className="gap-1.5">
+            <Boxes className="h-3.5 w-3.5" />
+            الأصناف
+          </TabsTrigger>
+          <TabsTrigger value="warehouses" className="gap-1.5">
+            <WarehouseIcon className="h-3.5 w-3.5" />
+            المخازن
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="products" className="space-y-5 mt-0">
       {/* Filters */}
       <Card className="p-3 sm:p-4">
         <div className="flex flex-col sm:flex-row gap-3">
@@ -289,6 +305,12 @@ export function InventoryView() {
       <p className="text-xs text-muted-foreground text-center">
         إجمالي {fmt.number(products.length)} منتج
       </p>
+        </TabsContent>
+
+        <TabsContent value="warehouses" className="mt-0">
+          <WarehouseManager />
+        </TabsContent>
+      </Tabs>
 
       <ProductFormDialog open={dialogOpen} onOpenChange={setDialogOpen} product={editing} />
       <ConfirmDialog

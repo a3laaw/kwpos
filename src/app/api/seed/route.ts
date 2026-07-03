@@ -22,6 +22,8 @@ export async function POST(req: Request) {
       await db.purchaseOrderItem.deleteMany()
       await db.purchaseOrder.deleteMany()
       await db.product.deleteMany()
+      await db.stockItem.deleteMany()
+      await db.warehouse.deleteMany()
       await db.supplier.deleteMany()
       await db.category.deleteMany()
       await db.unit.deleteMany()
@@ -123,6 +125,14 @@ export async function POST(req: Request) {
     ])
     const [sFood, sGeneral, sTech, sStationery] = suppliers
 
+    // ---- Warehouses (multi-warehouse support) ----
+    const warehouses = await db.$transaction([
+      db.warehouse.create({ data: { name: "المخزن الرئيسي", code: "WH-01", location: "المقر الرئيسي" } }),
+      db.warehouse.create({ data: { name: "مخزن الفرع", code: "WH-02", location: "فرع السالمية" } }),
+      db.warehouse.create({ data: { name: "مخزن الإلكترونيات", code: "WH-03", location: "مبنى الإلكترونيات" } }),
+    ])
+    const [whMain, whBranch] = warehouses
+
     // ---- Products (prices in KWD — Kuwaiti Dinar) ----
     const productDefs: Array<{
       name: string
@@ -160,8 +170,25 @@ export async function POST(req: Request) {
     ]
 
     const products = await db.$transaction(
-      productDefs.map((p) =>
-        db.product.create({
+      productDefs.map((p, idx) => {
+        // Distribute: electronics → WH-03, food/drinks split WH-01/WH-02, rest → WH-01
+        const isElectronics = p.cat === electronics.id
+        const isFoodish = p.cat === food.id || p.cat === drinks.id
+        let stockItems: any
+        if (isElectronics) {
+          stockItems = { create: [{ warehouseId: whMain.id, quantity: p.qty }] }
+        } else if (isFoodish) {
+          const half = Math.ceil(p.qty / 2)
+          stockItems = {
+            create: [
+              { warehouseId: whMain.id, quantity: half },
+              { warehouseId: whBranch.id, quantity: p.qty - half },
+            ],
+          }
+        } else {
+          stockItems = { create: [{ warehouseId: whMain.id, quantity: p.qty }] }
+        }
+        return db.product.create({
           data: {
             name: p.name,
             barcode: p.barcode,
@@ -172,9 +199,10 @@ export async function POST(req: Request) {
             costPrice: p.cost,
             salePrice: p.sale,
             unit: p.unit,
+            stockItems,
           },
         })
-      )
+      })
     )
 
     // ---- A few purchase orders (one received, one pending) ----
@@ -453,6 +481,7 @@ export async function POST(req: Request) {
         expenses: await db.expenseTransaction.count(),
         customers: await db.customer.count(),
         units: await db.unit.count(),
+        warehouses: await db.warehouse.count(),
       },
     })
   } catch (e: any) {

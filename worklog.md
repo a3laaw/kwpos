@@ -425,3 +425,56 @@ Stage Summary:
 - Settings redesigned (units grid + categories pills + search).
 - Note: existing modules (inventory, purchases, suppliers, accounting) remain
   intact. Awaiting user clarification on "لا أريد إدخال الأصناف في المخازن".
+
+---
+Task ID: MULTI-WAREHOUSE+PRODUCT-ENTRY
+Agent: main
+Task: Upgrade inventory to multi-warehouse + enhanced product entry panel
+
+DB schema changes (prisma/schema.prisma):
+- New `Warehouse` model (id, name, code, location, isActive) with relations to
+  StockItem + PurchaseOrder ("POWarehouse").
+- New `StockItem` join model (productId, warehouseId, quantity) with
+  @@unique([productId, warehouseId]) — a product can live in many warehouses.
+- `Product` gained `unitId` (FK to Unit) + `stockItems` relation.
+- `PurchaseOrder` gained optional `warehouseId` (destination warehouse).
+- `Unit` gained back-relation `products`.
+- db:push'd; client regenerated; server restarted.
+
+API:
+- `GET/POST /api/warehouses`, `PUT/DELETE /api/warehouses/[id]` (admin/warehouse
+  for mutations; delete guarded against non-empty stock).
+- `GET /api/products` now includes `stockItems { include warehouse }` + accepts
+  `?warehouseId=` filter.
+- `POST /api/products` accepts `warehouseStock: [{warehouseId, quantity}]` and
+  creates StockItem rows; total quantity auto-computed.
+- `PUT /api/products/[id]` includes stockItems in response.
+- `serializeProduct` now returns `stockByWarehouse[]`; new `serializeWarehouse`.
+
+Hooks: useWarehouses, useCreateWarehouse, useUpdateWarehouse, useDeleteWarehouse.
+
+UI:
+- `WarehouseFormDialog` — add/edit warehouse (name, code, location).
+- `WarehouseManager` — card grid showing each warehouse (icon, code, location,
+  productsCount badge, totalStock badge, isActive) + add/edit/delete actions.
+- `InventoryView` now has 2 tabs: "الأصناف" (existing products table) + "المخازن"
+  (WarehouseManager).
+- `ProductFormDialog` enhanced: renamed quantity → "الكمية الإجمالية" + added
+  "توزيع الكمية على المخازن" section — a grid of inputs (one per warehouse)
+  with live running total; shows warning if warehouse sum ≠ total. Edit mode
+  pre-fills from product.stockByWarehouse.
+
+Seed: 3 warehouses created (WH-01 الرئيسي, WH-02 الفرع السالمية, WH-03 الإلكترونيات).
+Food/drink products split across WH-01+WH-02; electronics in WH-01; rest in WH-01.
+
+Verification (Agent Browser):
+- Inventory shows 2 tabs (الأصناف + المخازن). ✓
+- Warehouses tab: 3 warehouse cards with codes (WH-01/02/03) + counts. ✓
+- Product form: "توزيع الكمية على المخازن" section with 3 warehouse inputs +
+  live total. ✓
+- No errors, no hydration mismatch, ESLint clean. ✓
+
+Stage Summary:
+- Inventory upgraded to multi-warehouse with per-warehouse stock distribution.
+- Enhanced product entry panel with warehouse allocation.
+- Shopify sync can optionally push to a specific warehouse (future enhancement).

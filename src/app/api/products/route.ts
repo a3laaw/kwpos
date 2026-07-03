@@ -11,25 +11,24 @@ export async function GET(req: NextRequest) {
   const q = searchParams.get("q")?.trim() || ""
   const categoryId = searchParams.get("categoryId") || undefined
   const supplierId = searchParams.get("supplierId") || undefined
+  const warehouseId = searchParams.get("warehouseId") || undefined
   const lowStock = searchParams.get("lowStock") === "true"
 
   const where: any = {}
   if (q) {
-    where.OR = [
-      { name: { contains: q } },
-      { barcode: { contains: q } },
-    ]
+    where.OR = [{ name: { contains: q } }, { barcode: { contains: q } }]
   }
   if (categoryId) where.categoryId = categoryId
   if (supplierId) where.supplierId = supplierId
-  if (lowStock) {
-    // quantity <= reorderLevel
-    where.AND = []
-  }
+  if (warehouseId) where.stockItems = { some: { warehouseId } }
 
   let products = await db.product.findMany({
     where,
-    include: { category: true, supplier: true },
+    include: {
+      category: true,
+      supplier: true,
+      stockItems: { include: { warehouse: true } },
+    },
     orderBy: { name: "asc" },
   })
 
@@ -43,7 +42,6 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  // Admin & Warehouse can create products; Sales cannot
   if (!hasRole(user.role, ["ADMIN", "WAREHOUSE" as Role])) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 })
   }
@@ -59,11 +57,21 @@ export async function POST(req: NextRequest) {
     costPrice,
     salePrice,
     unit,
+    unitId,
+    warehouseStock, // array of { warehouseId, quantity }
   } = body || {}
 
   if (!name || typeof name !== "string") {
     return NextResponse.json({ error: "name-required" }, { status: 400 })
   }
+
+  // Total quantity = sum of warehouse stocks (if provided) else the quantity field
+  const stockRows: Array<{ warehouseId: string; quantity: number }> = Array.isArray(warehouseStock)
+    ? warehouseStock.filter((s: any) => s.warehouseId && Number(s.quantity) > 0)
+    : []
+  const totalQty = stockRows.length > 0
+    ? stockRows.reduce((a, b) => a + Number(b.quantity), 0)
+    : Number(quantity) || 0
 
   const created = await db.product.create({
     data: {
@@ -71,13 +79,17 @@ export async function POST(req: NextRequest) {
       barcode: barcode?.trim() || null,
       categoryId: categoryId || null,
       supplierId: supplierId || null,
-      quantity: Number(quantity) || 0,
+      quantity: totalQty,
       reorderLevel: Number(reorderLevel) || 0,
       costPrice: Number(costPrice) || 0,
       salePrice: Number(salePrice) || 0,
       unit: unit?.trim() || "قطعة",
+      unitId: unitId || null,
+      stockItems: stockRows.length
+        ? { create: stockRows.map((s) => ({ warehouseId: s.warehouseId, quantity: Number(s.quantity) })) }
+        : undefined,
     },
-    include: { category: true, supplier: true },
+    include: { category: true, supplier: true, stockItems: { include: { warehouse: true } } },
   })
 
   return NextResponse.json(serializeProduct(created), { status: 201 })
