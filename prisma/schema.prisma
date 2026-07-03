@@ -138,6 +138,8 @@ model Sale {
   discount     Float      @default(0)
   total        Float      @default(0)
   paid         Float      @default(0)
+  refundTotal  Float      @default(0) // cumulative refunded amount
+  refundStatus String     @default("NONE") // NONE | PARTIAL | FULL
   paymentMethod String    @default("CASH") // CASH | CARD | TRANSFER
   userId       String?
   createdAt    DateTime   @default(now())
@@ -148,12 +150,13 @@ model Sale {
 }
 
 model SaleItem {
-  id        String @id @default(cuid())
-  saleId    String
-  productId String
-  quantity  Int
-  unitPrice Float
-  subtotal  Float
+  id          String @id @default(cuid())
+  saleId      String
+  productId   String
+  quantity    Int
+  returnedQty Int    @default(0) // how many units have been returned
+  unitPrice   Float
+  subtotal    Float
 
   sale      Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
   product   Product  @relation(fields: [productId], references: [id])

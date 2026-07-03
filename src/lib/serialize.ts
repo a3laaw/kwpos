@@ -109,6 +109,7 @@ export function serializeSaleItem(i: AnyRow): SaleItem {
     productId: String(i.productId),
     productName: (i.product as any)?.name ?? "—",
     quantity: Number(i.quantity ?? 0),
+    returnedQty: Number(i.returnedQty ?? 0),
     unitPrice: Number(i.unitPrice ?? 0),
     subtotal: Number(i.subtotal ?? 0),
   }
@@ -127,6 +128,8 @@ export function serializeSale(s: AnyRow): Sale {
     discount: Number(s.discount ?? 0),
     total: Number(s.total ?? 0),
     paid: Number(s.paid ?? 0),
+    refundTotal: Number(s.refundTotal ?? 0),
+    refundStatus: (s.refundStatus as Sale["refundStatus"]) ?? "NONE",
     paymentMethod: (s.paymentMethod as Sale["paymentMethod"]) ?? "CASH",
     userId: (s.userId as string | null) ?? null,
     userName: (s.user as any)?.name ?? null,

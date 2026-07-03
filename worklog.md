@@ -968,3 +968,48 @@ Verification (Agent Browser):
 - "طباعة حرارية 80mm" + "طباعة A4" + "مرتجع الفاتورة" all visible. ✓
 - POS receipt dialog: width=512px (max-w-lg), larger than before. ✓
 - No errors, ESLint clean. ✓
+
+---
+Task ID: PARTIAL-REFUND-WORKFLOW
+Agent: main
+Task: Full partial refund workflow with credit notes + 14-day rule + journal entries
+
+DB schema:
+- `SaleItem.returnedQty Int @default(0)` — tracks returned units per line.
+- `Sale.refundTotal Float @default(0)` — cumulative refunded amount.
+- `Sale.refundStatus String @default("NONE")` — NONE | PARTIAL | FULL.
+
+API (POST /api/sales/[id]/refund):
+- Accepts: `{ items: [{ saleItemId, returnedQty }], override14Days?: boolean }`
+- 14-day validation: blocks refunds >14 days unless admin override.
+- Per-line validation: returnedQty ≤ (original − alreadyReturned).
+- Restores inventory (only returned quantities).
+- Updates SaleItem.returnedQty + Sale.refundTotal + refundStatus.
+- Creates journal entries:
+  1. Financial: Debit 4030 (Sales Returns) + Debit 2010 (VAT) → Credit payment account.
+  2. Inventory: Debit 1010 (Inventory at cost) → Credit 5060 (COGS).
+- Auto-creates accounts 4030 (مردودات المبيعات) + 5060 (تكلفة البضاعة المباعة) if missing.
+- Returns credit note number (CN-INV-XXXXX).
+
+RefundDialog (src/components/sales/refund-dialog.tsx):
+- Lists all invoice items with: original qty, already-returned qty, returnable qty,
+  and an input for "كمية المرتجع".
+- Barcode/name search field to quickly find items.
+- 14-day warning banner with admin override checkbox.
+- Live refund summary: subtotal + tax → total credit note.
+- Success screen with credit note number + refund breakdown.
+- Prevents returning more than returnable qty.
+
+Invoices view updates:
+- Invoice list: badges "مرتجع كامل" / "مرتجع جزئي" based on refundStatus.
+- Detail panel: shows refund status + refundTotal.
+- Refund button: "مرتجع الفاتورة" → "مرتجع إضافي" (if partial) → "مرتجعة بالكامل" (disabled if full).
+- Replaced old ConfirmDialog with new RefundDialog.
+
+Verification (Agent Browser):
+- Refund dialog opens with per-item return inputs. ✓
+- Barcode search field present. ✓
+- Shows original/returned/returnable quantities per line. ✓
+- Setting return qty=2 → shows "قيمة المرتجع: ١.١٦٠د.ك." + "إجمالي المردودات". ✓
+- 14-day warning + admin override checkbox (for old invoices). ✓
+- No errors, ESLint clean. ✓

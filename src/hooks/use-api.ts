@@ -225,8 +225,8 @@ export function useCreateSale() {
 export function useRefundSale() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
-      jsend<Sale>(`/api/sales/${id}/refund`, "POST", { reason }),
+    mutationFn: ({ id, reason, items, override14Days }: { id: string; reason?: string; items?: { saleItemId: string; returnedQty: number }[]; override14Days?: boolean }) =>
+      jsend<Sale>(`/api/sales/${id}/refund`, "POST", { reason, items, override14Days }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["sales"] })
       qc.invalidateQueries({ queryKey: ["products"] })
