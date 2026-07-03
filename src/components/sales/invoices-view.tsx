@@ -258,9 +258,9 @@ function InvoiceDetail({
 }) {
   const pm = PAYMENT_META[sale.paymentMethod]
   return (
-    <Card className="sticky top-20 overflow-hidden">
-      {/* Header */}
-      <div className="bg-primary/5 border-b border-border/60 p-5">
+    <Card className="flex flex-col max-h-[calc(100vh-10rem)] overflow-hidden">
+      {/* Header — fixed, not scrollable */}
+      <div className="bg-primary/5 border-b border-border/60 p-4 shrink-0">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h3 className="text-lg font-bold flex items-center gap-2">
@@ -278,113 +278,111 @@ function InvoiceDetail({
         </div>
       </div>
 
-      <ScrollArea className="max-h-[calc(100vh-18rem)] scrollbar-thin">
-        <div className="p-5 space-y-4">
-          {/* Customer + payment info */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-lg bg-muted/40 p-3">
-              <p className="text-xs text-muted-foreground flex items-center gap-1"><User className="h-3 w-3" /> العميل</p>
-              <p className="font-medium text-sm mt-1">{sale.customerName || "عميل نقدي"}</p>
-              {sale.customerPhone ? (
-                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5"><Phone className="h-3 w-3" /> <span dir="ltr">{sale.customerPhone}</span></p>
-              ) : null}
-            </div>
-            <div className="rounded-lg bg-muted/40 p-3">
-              <p className="text-xs text-muted-foreground flex items-center gap-1"><Calendar className="h-3 w-3" /> الدفع</p>
-              <p className="font-medium text-sm mt-1">
-                <Badge variant="outline" className={cn("gap-1", pm.className)}>
-                  <pm.icon className="h-3 w-3" /> {pm.label}
-                </Badge>
-              </p>
-              <p className="text-xs text-muted-foreground mt-0.5">{sale.userName || "—"}</p>
-            </div>
-          </div>
-
-          {/* Items table — larger now */}
-          <div className="rounded-lg border border-border/60 overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40">
-                <tr>
-                  <th className="text-right p-2.5 font-medium">الصنف</th>
-                  <th className="text-center p-2.5 font-medium w-16">كمية</th>
-                  <th className="text-center p-2.5 font-medium w-24">سعر</th>
-                  <th className="text-center p-2.5 font-medium w-28">إجمالي</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sale.items.map((it) => (
-                  <tr key={it.id} className="border-t border-border/40">
-                    <td className="p-2.5 font-medium">{it.productName}</td>
-                    <td className="p-2.5 text-center tabular-nums">{fmt.number(it.quantity)}</td>
-                    <td className="p-2.5 text-center tabular-nums">{fmt.currency(it.unitPrice)}</td>
-                    <td className="p-2.5 text-center font-semibold tabular-nums">{fmt.currency(it.subtotal)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Totals */}
-          <div className="space-y-1.5 text-sm">
-            <div className="flex justify-between text-muted-foreground">
-              <span>المجموع الفرعي</span>
-              <span className="tabular-nums" dir="ltr">{fmt.currency(sale.subtotal)}</span>
-            </div>
-            {sale.discount > 0 ? (
-              <div className="flex justify-between text-rose-600">
-                <span>الخصم</span>
-                <span className="tabular-nums" dir="ltr">- {fmt.currency(sale.discount)}</span>
-              </div>
+      {/* Scrollable content area */}
+      <div className="flex-1 overflow-y-auto scrollbar-thin p-4 space-y-4 min-h-0">
+        {/* Customer + payment info */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-lg bg-muted/40 p-3">
+            <p className="text-xs text-muted-foreground flex items-center gap-1"><User className="h-3 w-3" /> العميل</p>
+            <p className="font-medium text-sm mt-1">{sale.customerName || "عميل نقدي"}</p>
+            {sale.customerPhone ? (
+              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5"><Phone className="h-3 w-3" /> <span dir="ltr">{sale.customerPhone}</span></p>
             ) : null}
-            {sale.taxAmount > 0 ? (
-              <div className="flex justify-between text-muted-foreground">
-                <span>الضريبة ({fmt.number(sale.taxRate)}%)</span>
-                <span className="tabular-nums" dir="ltr">{fmt.currency(sale.taxAmount)}</span>
-              </div>
-            ) : null}
-            <Separator />
-            <div className="flex justify-between items-center pt-1">
-              <span className="font-semibold text-base">الإجمالي</span>
-              <span className={cn("text-2xl font-bold tabular-nums text-primary", isRefunded && "line-through")}>
-                {fmt.currency(sale.total)}
-              </span>
-            </div>
           </div>
-
-          {/* Action buttons */}
-          <div className="space-y-2 pt-2">
-            <div className="grid grid-cols-2 gap-2">
-              <Button variant="outline" className="gap-2" onClick={() => printThermalReceipt(sale)}>
-                <Flame className="h-4 w-4" />
-                طباعة حرارية 80mm
-              </Button>
-              <Button variant="outline" className="gap-2" onClick={() => printA4Invoice(sale)}>
-                <Printer className="h-4 w-4" />
-                طباعة A4
-              </Button>
-            </div>
-            {isAdmin ? (
-              <>
-                <Separator />
-                <Button
-                  variant="outline"
-                  className="w-full gap-2 text-destructive hover:text-destructive border-destructive/30 hover:border-destructive/50"
-                  onClick={onRefund}
-                  disabled={isRefunded}
-                >
-                  <RotateCcw className="h-4 w-4" />
-                  {isRefunded ? "تم مرتجعها" : "مرتجع الفاتورة"}
-                </Button>
-                {isRefunded ? (
-                  <p className="text-[10px] text-muted-foreground text-center">
-                    هذه الفاتورة تم مرتجعها — الكميات أُرجعت للمخزون
-                  </p>
-                ) : null}
-              </>
-            ) : null}
+          <div className="rounded-lg bg-muted/40 p-3">
+            <p className="text-xs text-muted-foreground flex items-center gap-1"><Calendar className="h-3 w-3" /> الدفع</p>
+            <p className="font-medium text-sm mt-1">
+              <Badge variant="outline" className={cn("gap-1", pm.className)}>
+                <pm.icon className="h-3 w-3" /> {pm.label}
+              </Badge>
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">{sale.userName || "—"}</p>
           </div>
         </div>
-      </ScrollArea>
+
+        {/* Items table */}
+        <div className="rounded-lg border border-border/60 overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/40">
+              <tr>
+                <th className="text-right p-2.5 font-medium">الصنف</th>
+                <th className="text-center p-2.5 font-medium w-16">كمية</th>
+                <th className="text-center p-2.5 font-medium w-24">سعر</th>
+                <th className="text-center p-2.5 font-medium w-28">إجمالي</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sale.items.map((it) => (
+                <tr key={it.id} className="border-t border-border/40">
+                  <td className="p-2.5 font-medium">{it.productName}</td>
+                  <td className="p-2.5 text-center tabular-nums">{fmt.number(it.quantity)}</td>
+                  <td className="p-2.5 text-center tabular-nums">{fmt.currency(it.unitPrice)}</td>
+                  <td className="p-2.5 text-center font-semibold tabular-nums">{fmt.currency(it.subtotal)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Totals */}
+        <div className="space-y-1.5 text-sm">
+          <div className="flex justify-between text-muted-foreground">
+            <span>المجموع الفرعي</span>
+            <span className="tabular-nums" dir="ltr">{fmt.currency(sale.subtotal)}</span>
+          </div>
+          {sale.discount > 0 ? (
+            <div className="flex justify-between text-rose-600">
+              <span>الخصم</span>
+              <span className="tabular-nums" dir="ltr">- {fmt.currency(sale.discount)}</span>
+            </div>
+          ) : null}
+          {sale.taxAmount > 0 ? (
+            <div className="flex justify-between text-muted-foreground">
+              <span>الضريبة ({fmt.number(sale.taxRate)}%)</span>
+              <span className="tabular-nums" dir="ltr">{fmt.currency(sale.taxAmount)}</span>
+            </div>
+          ) : null}
+          <Separator />
+          <div className="flex justify-between items-center pt-1">
+            <span className="font-semibold text-base">الإجمالي</span>
+            <span className={cn("text-2xl font-bold tabular-nums text-primary", isRefunded && "line-through")}>
+              {fmt.currency(sale.total)}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Action buttons — fixed at bottom, always visible */}
+      <div className="border-t border-border/60 p-3 space-y-2 shrink-0 bg-card">
+        <div className="grid grid-cols-2 gap-2">
+          <Button variant="outline" className="gap-2" onClick={() => printThermalReceipt(sale)}>
+            <Flame className="h-4 w-4" />
+            طباعة حرارية 80mm
+          </Button>
+          <Button variant="outline" className="gap-2" onClick={() => printA4Invoice(sale)}>
+            <Printer className="h-4 w-4" />
+            طباعة A4
+          </Button>
+        </div>
+        {isAdmin ? (
+          <>
+            <Button
+              variant="outline"
+              className="w-full gap-2 text-destructive hover:text-destructive border-destructive/30 hover:border-destructive/50"
+              onClick={onRefund}
+              disabled={isRefunded}
+            >
+              <RotateCcw className="h-4 w-4" />
+              {isRefunded ? "تم مرتجعها" : "مرتجع الفاتورة"}
+            </Button>
+            {isRefunded ? (
+              <p className="text-[10px] text-muted-foreground text-center">
+                هذه الفاتورة تم مرتجعها — الكميات أُرجعت للمخزون
+              </p>
+            ) : null}
+          </>
+        ) : null}
+      </div>
     </Card>
   )
 }

@@ -941,3 +941,30 @@ Verification (Agent Browser + VLM):
 - Total + checkout button always visible at BOTTOM. ✓
 - VLM: "بيانات العميل في أعلى السلة، الإجمالي وزر البيع في الأسفل". ✓
 - No errors, ESLint clean. ✓
+
+---
+Task ID: POS-RECEIPT-LARGER+INVOICE-DETAIL-FIX
+Agent: main
+Task: Fix POS receipt dialog size + invoice detail panel visibility + refund button
+
+1. POS receipt dialog (sales-view.tsx):
+- Changed `DialogContent` from `max-w-md` (448px) to `max-w-lg` (512px) — larger
+  receipt dialog that shows all content comfortably.
+
+2. Invoice detail panel (invoices-view.tsx) — full rewrite of InvoiceDetail:
+- Removed `ScrollArea` wrapper that was hiding content behind a scrollbar.
+- Card now uses `flex flex-col max-h-[calc(100vh-10rem)] overflow-hidden`.
+- Three sections, all with `shrink-0` except the scrollable content:
+  a) **Header** (invoice no + date + refunded badge) — fixed top.
+  b) **Scrollable content** (customer info, items table, totals) — flex-1,
+     `overflow-y-auto` — scrolls only if content is long.
+  c) **Action buttons** (thermal print + A4 print + refund) — fixed bottom,
+     ALWAYS visible regardless of content length.
+- The refund button is no longer hidden inside the scroll area — it's in a
+  separate fixed section at the bottom of the card.
+
+Verification (Agent Browser):
+- Invoice detail: shows all content (header, customer, items, totals, buttons). ✓
+- "طباعة حرارية 80mm" + "طباعة A4" + "مرتجع الفاتورة" all visible. ✓
+- POS receipt dialog: width=512px (max-w-lg), larger than before. ✓
+- No errors, ESLint clean. ✓
