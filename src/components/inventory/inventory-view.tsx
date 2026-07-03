@@ -49,6 +49,7 @@ import { printBarcodeLabels } from "@/lib/print"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { WarehouseManager } from "@/components/inventory/warehouse-manager"
 import { Warehouse as WarehouseIcon } from "lucide-react"
+import { ExcelExportButton, ExcelImportButton } from "@/components/shared/excel-buttons"
 import { useProducts, useCategories, useDeleteProduct } from "@/hooks/use-api"
 import { useFmt } from "@/components/currency-context"
 import type { Product } from "@/lib/types"
@@ -115,7 +116,9 @@ export function InventoryView() {
         description="عرض المنتجات وإدارتها، البحث والفلترة، ومتابعة كميات المخزون."
         icon={<Boxes className="h-5 w-5" />}
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {canManage ? <ExcelImportButton type="products" /> : null}
+            <ExcelExportButton type="products" />
             {products.length > 0 ? (
               <Button variant="outline" onClick={handlePrintBarcodes} className="gap-2">
                 <Barcode className="h-4 w-4" />

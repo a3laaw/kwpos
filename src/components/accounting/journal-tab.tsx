@@ -6,9 +6,12 @@ import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { LoadingState } from "@/components/shared/loading-state"
 import { EmptyState } from "@/components/shared/empty-state"
-import { BookOpen, FileText } from "lucide-react"
-import { useJournalEntries, useTrialBalance } from "@/hooks/use-api"
+import { BookOpen, FileText, Plus, Download } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { useJournalEntries, useTrialBalance, useExportExcel } from "@/hooks/use-api"
 import { useFmt } from "@/components/currency-context"
+import { ManualJournalDialog } from "@/components/accounting/manual-journal-dialog"
+import { toast } from "sonner"
 import type { JournalEntry } from "@/lib/types"
 
 const SOURCE_LABELS: Record<string, { label: string; className: string }> = {
@@ -22,19 +25,40 @@ export function JournalTab() {
   const fmt = useFmt()
   const { data, isLoading } = useJournalEntries()
   const items = data?.items ?? []
+  const [manualOpen, setManualOpen] = React.useState(false)
+  const exportMut = useExportExcel()
+
+  function handleExport() {
+    exportMut.mutate(
+      { type: "journal" },
+      { onSuccess: () => toast.success("تم تصدير القيود إلى Excel"), onError: () => toast.error("فشل التصدير") }
+    )
+  }
 
   return (
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <BookOpen className="h-4 w-4 text-primary" />
-            دفتر اليومية (القيود المحاسبية)
-            <Badge variant="secondary" className="tabular-nums">{items.length}</Badge>
-          </CardTitle>
-          <CardDescription>
-            كل قيد محاسبي مزدوج (مدين = دائن) يُولّد تلقائياً عند البيع أو صرف المصروفات
-          </CardDescription>
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <BookOpen className="h-4 w-4 text-primary" />
+                دفتر اليومية (القيود المحاسبية)
+                <Badge variant="secondary" className="tabular-nums">{items.length}</Badge>
+              </CardTitle>
+              <CardDescription className="mt-1">
+                قيود مزدوجة (مدين = دائن) — تُولّد تلقائياً عند البيع/المصروف/الاستلام، أو يدوياً
+              </CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={handleExport} disabled={exportMut.isPending} className="gap-1.5">
+                <Download className="h-3.5 w-3.5" /> Excel
+              </Button>
+              <Button size="sm" onClick={() => setManualOpen(true)} className="gap-1.5">
+                <Plus className="h-3.5 w-3.5" /> قيد يدوي
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -56,6 +80,8 @@ export function JournalTab() {
           )}
         </CardContent>
       </Card>
+
+      <ManualJournalDialog open={manualOpen} onOpenChange={setManualOpen} />
     </div>
   )
 }

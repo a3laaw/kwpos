@@ -451,6 +451,70 @@ export function useTrialBalance() {
   })
 }
 
+/* ----------------------------- Manual Journal Entry ---------------- */
+export function useCreateManualJournal() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { description: string; date?: string; lines: { accountCode: string; debit?: number; credit?: number; description?: string }[] }) =>
+      jsend("/api/journal-entries/manual", "POST", body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["journal-entries"] })
+      qc.invalidateQueries({ queryKey: ["accounts"] })
+      qc.invalidateQueries({ queryKey: ["trial-balance"] })
+    },
+  })
+}
+
+/* ----------------------------- Excel ------------------------------- */
+export function useExportExcel() {
+  return useMutation({
+    mutationFn: async ({ type, from, to }: { type: string; from?: string; to?: string }) => {
+      const qs = new URLSearchParams({ type })
+      if (from) qs.set("from", from)
+      if (to) qs.set("to", to)
+      const res = await fetch(`/api/excel/export?${qs.toString()}`)
+      if (!res.ok) throw new Error("export-failed")
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `${type}.xlsx`
+      a.click()
+      URL.revokeObjectURL(url)
+    },
+  })
+}
+
+export function useImportProducts() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const fd = new FormData()
+      fd.append("file", file)
+      const res = await fetch("/api/excel/import-products", { method: "POST", body: fd })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.error || "import-failed")
+      return data
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["products"] }),
+  })
+}
+
+export function useImportCustomers() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const fd = new FormData()
+      fd.append("file", file)
+      const res = await fetch("/api/excel/import-customers", { method: "POST", body: fd })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.error || "import-failed")
+      return data
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["customers"] }),
+  })
+}
+
 /* ----------------------------- Settings (country) ------------------ */
 export function useSettings() {
   return useQuery<CountryConfig>({

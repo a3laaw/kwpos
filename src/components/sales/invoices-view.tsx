@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { PageHeader } from "@/components/shared/page-header"
+import { ExcelExportButton } from "@/components/shared/excel-buttons"
 import { EmptyState } from "@/components/shared/empty-state"
 import { TableSkeleton } from "@/components/shared/loading-state"
 import { Button } from "@/components/ui/button"
@@ -62,9 +63,12 @@ export function InvoicesView() {
         description="سجل جميع فواتير المبيعات. ابحث وافتح أي فاتورة لعرض تفاصيلها."
         icon={<ReceiptText className="h-5 w-5" />}
         actions={
-          <Button variant="outline" onClick={() => setView("sales")} className="gap-2">
-            فاتورة جديدة
-          </Button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <ExcelExportButton type="sales" />
+            <Button variant="outline" onClick={() => setView("sales")} className="gap-2">
+              فاتورة جديدة
+            </Button>
+          </div>
         }
       />
 

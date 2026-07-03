@@ -3,6 +3,7 @@
 import * as React from "react"
 import { toast } from "sonner"
 import { PageHeader } from "@/components/shared/page-header"
+import { ExcelExportButton, ExcelImportButton } from "@/components/shared/excel-buttons"
 import { EmptyState } from "@/components/shared/empty-state"
 import { TableSkeleton } from "@/components/shared/loading-state"
 import { ConfirmDialog } from "@/components/shared/confirm-dialog"
@@ -80,10 +81,14 @@ export function CustomersView() {
         description="سجل بسيط لبيانات العملاء: الاسم، رقم الهاتف، والعنوان."
         icon={<Users className="h-5 w-5" />}
         actions={
-          <Button onClick={openAdd} className="gap-2">
-            <Plus className="h-4 w-4" />
-            إضافة عميل
-          </Button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <ExcelImportButton type="customers" />
+            <ExcelExportButton type="customers" />
+            <Button onClick={openAdd} className="gap-2">
+              <Plus className="h-4 w-4" />
+              إضافة عميل
+            </Button>
+          </div>
         }
       />
 
