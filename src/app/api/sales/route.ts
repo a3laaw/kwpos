@@ -11,6 +11,8 @@ export const dynamic = "force-dynamic"
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const q = searchParams.get("q")?.trim() || ""
+  const page = Math.max(1, Number(searchParams.get("page")) || 1)
+  const pageSize = Math.min(100, Math.max(1, Number(searchParams.get("pageSize")) || 10))
 
   const where: any = {}
   if (q) {
@@ -20,14 +22,26 @@ export async function GET(req: NextRequest) {
     ]
   }
 
-  const sales = await db.sale.findMany({
-    where,
-    include: { user: true, items: { include: { product: true } } },
-    orderBy: { createdAt: "desc" },
-    take: 200,
-  })
+  const [total, sales] = await Promise.all([
+    db.sale.count({ where }),
+    db.sale.findMany({
+      where,
+      include: { user: true, items: { include: { product: true } } },
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+  ])
 
-  return NextResponse.json({ items: sales.map(serializeSale) })
+  return NextResponse.json({
+    items: sales.map(serializeSale),
+    pagination: {
+      page,
+      pageSize,
+      total,
+      totalPages: Math.ceil(total / pageSize),
+    },
+  })
 }
 
 export async function POST(req: NextRequest) {
