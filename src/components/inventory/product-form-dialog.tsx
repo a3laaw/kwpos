@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Loader2 } from "lucide-react"
+import { ImageUpload } from "@/components/shared/image-upload"
 import {
   useCategories,
   useCreateProduct,
@@ -47,6 +48,7 @@ interface FormState {
   costPrice: string
   salePrice: string
   unit: string
+  imageUrl: string
 }
 
 const empty: FormState = {
@@ -59,6 +61,7 @@ const empty: FormState = {
   costPrice: "0",
   salePrice: "0",
   unit: "قطعة",
+  imageUrl: "",
 }
 
 export function ProductFormDialog({ open, onOpenChange, product }: ProductFormDialogProps) {
@@ -84,6 +87,7 @@ export function ProductFormDialog({ open, onOpenChange, product }: ProductFormDi
         costPrice: String(product.costPrice),
         salePrice: String(product.salePrice),
         unit: product.unit,
+        imageUrl: product.imageUrl ?? "",
       })
       // populate warehouse stock
       const m: Record<string, string> = {}
@@ -124,6 +128,7 @@ export function ProductFormDialog({ open, onOpenChange, product }: ProductFormDi
       costPrice: Number(form.costPrice) || 0,
       salePrice: Number(form.salePrice) || 0,
       unit: form.unit.trim() || "قطعة",
+      imageUrl: form.imageUrl.trim() || null,
       warehouseStock,
     }
     try {
@@ -154,6 +159,11 @@ export function ProductFormDialog({ open, onOpenChange, product }: ProductFormDi
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <ImageUpload
+            value={form.imageUrl}
+            onChange={(url) => setForm((f) => ({ ...f, imageUrl: url ?? "" }))}
+            label="صورة المنتج"
+          />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2 space-y-2">
               <Label htmlFor="p-name">اسم المنتج *</Label>

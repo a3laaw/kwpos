@@ -36,6 +36,7 @@ export function serializeProduct(p: AnyRow): Product {
     salePrice: Number(p.salePrice ?? 0),
     unit: String(p.unit ?? "قطعة"),
     unitId: (p.unitId as string | null) ?? null,
+    imageUrl: (p.imageUrl as string | null) ?? null,
     stockByWarehouse,
     createdAt: String(p.createdAt),
     updatedAt: String(p.updatedAt),
@@ -60,6 +61,7 @@ export function serializeCategory(c: AnyRow): Category {
   return {
     id: String(c.id),
     name: String(c.name),
+    imageUrl: (c.imageUrl as string | null) ?? null,
     createdAt: String(c.createdAt),
   }
 }

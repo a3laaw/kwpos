@@ -5,6 +5,7 @@ export type Role = "ADMIN" | "SALES" | "WAREHOUSE"
 export interface Category {
   id: string
   name: string
+  imageUrl?: string | null
   createdAt: string
 }
 
@@ -32,6 +33,7 @@ export interface Product {
   salePrice: number
   unit: string
   unitId?: string | null
+  imageUrl?: string | null
   stockByWarehouse?: { warehouseId: string; warehouseName: string; warehouseCode?: string | null; quantity: number }[]
   createdAt: string
   updatedAt: string

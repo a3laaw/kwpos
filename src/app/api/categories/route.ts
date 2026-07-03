@@ -20,6 +20,6 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
   const name = String(body?.name || "").trim()
   if (!name) return NextResponse.json({ error: "name-required" }, { status: 400 })
-  const created = await db.category.create({ data: { name } })
-  return NextResponse.json(serializeCategory(created), { status: 201 })
+  const created = await db.category.create({ data: { name, imageUrl: body.imageUrl?.trim() || null } })
+  return NextResponse.json(serializeCategory(created as any), { status: 201 })
 }

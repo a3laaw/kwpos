@@ -752,3 +752,49 @@ Verification (Agent Browser):
 - English (ltr): tabsDir=ltr, first th left=281 (on LEFT),
   last th right=1255 (on RIGHT). ✓
 - No errors, no hydration mismatch, ESLint clean. ✓
+
+---
+Task ID: PRODUCT+CATEGORY-IMAGES+POS-REDESIGN
+Agent: main
+Task: Add images for products & categories + redesign POS product cards with images (per user's reference screenshot)
+
+DB schema:
+- `Category.imageUrl String?` (category icon/photo)
+- `Product.imageUrl String?` (product photo)
+- db:push'd.
+
+Image upload infrastructure:
+- `POST /api/upload` — accepts multipart file (jpg/png/webp/gif, ≤5MB),
+  saves to /public/uploads, returns { url: "/uploads/..." }.
+- `useUploadImage()` hook.
+- `ImageUpload` component (`src/components/shared/image-upload.tsx`) —
+  preview thumbnail + "رفع صورة" button + remove (X) button + file picker.
+  Supports square/circle shapes.
+
+APIs updated to accept imageUrl:
+- POST/PUT /api/products (create/update pass imageUrl)
+- POST /api/categories (create with imageUrl)
+- serializers return imageUrl for Product + Category.
+
+Product form:
+- Added ImageUpload field at the top of ProductFormDialog ("صورة المنتج")
+  with live preview + upload + remove.
+
+POS redesign (src/components/sales/sales-view.tsx):
+- Product cards now match the user's reference POS screenshot:
+  - Image at top (h-24, object-cover) with hover zoom
+  - Placeholder Package icon when no image
+  - "نفد" overlay when out of stock
+  - Product name (line-clamp-2) + price + stock badge below
+- Verified via VLM: "المنتجات تظهر كبطاقات بصور في الأعلى، تصميم مشابه لنقاط
+  البيع الحديثة، واجهة أنيقة". ✓
+
+Verification:
+- Product form: "صورة المنتج" + "رفع صورة" button present. ✓
+- POS: cards with image area (Package placeholder for seed products). ✓
+- No errors, no hydration mismatch, ESLint clean. ✓
+
+Stage Summary:
+- Products & categories now support images (upload via form).
+- POS redesigned to match modern reference design (image cards).
+- Image storage is local (/public/uploads); for production, switch to S3/Cloudinary.

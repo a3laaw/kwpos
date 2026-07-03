@@ -58,6 +58,7 @@ export async function PUT(
       ...(salePrice !== undefined ? { salePrice: Number(salePrice) || 0 } : {}),
       ...(unit !== undefined ? { unit: String(unit).trim() || "قطعة" } : {}),
       ...(body.unitId !== undefined ? { unitId: body.unitId || null } : {}),
+      ...(body.imageUrl !== undefined ? { imageUrl: body.imageUrl ? String(body.imageUrl).trim() : null } : {}),
     },
     include: { category: true, supplier: true, stockItems: { include: { warehouse: true } } },
   })
