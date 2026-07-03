@@ -232,3 +232,39 @@ Stage Summary:
 - Units & categories fully manageable from Settings (admin-only mutations).
 - POS customer auto-registration by phone confirmed working (INV-00021).
 - Journal entries auto-generated on every sale (double-entry balanced).
+
+---
+Task ID: STALE-SESSION-FIX
+Agent: main
+Task: Root-cause fix for FK constraint error on tx.sale.create() after re-seed
+
+Root cause:
+- Every `POST /api/sales` with a stale session cookie failed with
+  "Foreign key constraint violated on the foreign key" (Prisma P2003) on
+  `tx.sale.create()`. The session JWT held the user id from BEFORE a re-seed,
+  but re-seeding deleted + recreated users with NEW cuid() ids — so the sale's
+  `userId` FK pointed at a non-existent user.
+
+Fix (two layers):
+1. **Stable user IDs in seed** (`src/app/api/seed/route.ts`): demo users now use
+   fixed ids (`user-admin-demo`, `user-sales-demo`, `user-warehouse-demo`) instead
+   of random cuids. After a re-seed, the existing session JWT still references a
+   valid user id → sales work without re-login.
+2. **Defensive session check in sales route** (`src/app/api/sales/route.ts`):
+   before the transaction, `db.user.findUnique({ where: { id: user.id } })`.
+   If the user no longer exists (truly stale session), return
+   `{ error: "session-expired" }` (401) instead of a cryptic FK error.
+3. **Frontend auto-logout on session-expired** (`src/components/sales/sales-view.tsx`):
+   the checkout catch block detects `session-expired`, shows a toast, and calls
+   `signOut()` + reload after 1.5s — so the user is gracefully sent back to
+   login instead of seeing a raw error.
+
+Verification (Agent Browser):
+- Logged in → re-seeded (reset=true) → went straight to POS → added product →
+  checked out → **sale succeeded (INV-00021, POST 201) WITHOUT logging out**.
+  Previously this exact flow threw the FK error. ✓
+- No errors, no hydration mismatch, ESLint clean. ✓
+
+Stage Summary:
+- The FK error is permanently resolved. Re-seeding no longer breaks the POS.
+- Two safety nets: stable IDs (primary) + defensive check + auto-logout (fallback).

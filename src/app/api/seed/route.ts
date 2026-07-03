@@ -40,9 +40,11 @@ export async function POST(req: Request) {
 
     // ---- Users ----
     const pw = (p: string) => bcrypt.hashSync(p, 10)
+    // Use stable IDs so existing sessions stay valid after a re-seed.
     const users = await db.$transaction([
       db.user.create({
         data: {
+          id: "user-admin-demo",
           email: "admin@demo.com",
           name: "أحمد المدير",
           passwordHash: pw("admin123"),
@@ -51,6 +53,7 @@ export async function POST(req: Request) {
       }),
       db.user.create({
         data: {
+          id: "user-sales-demo",
           email: "sales@demo.com",
           name: "سارة الموظفة",
           passwordHash: pw("sales123"),
@@ -59,6 +62,7 @@ export async function POST(req: Request) {
       }),
       db.user.create({
         data: {
+          id: "user-warehouse-demo",
           email: "warehouse@demo.com",
           name: "خالد أمين المخزن",
           passwordHash: pw("warehouse123"),

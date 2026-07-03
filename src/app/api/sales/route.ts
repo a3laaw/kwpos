@@ -38,6 +38,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 })
   }
 
+  // Verify the session user still exists in the DB (the session JWT may hold
+  // a stale user id after a re-seed). If not, tell the client to re-login.
+  const dbUser = await db.user.findUnique({ where: { id: user.id }, select: { id: true } })
+  if (!dbUser) {
+    return NextResponse.json({ error: "session-expired" }, { status: 401 })
+  }
+
   const body = await req.json()
   const { customerName, customerPhone, items, taxRate, discount, paymentMethod } = body || {}
 
