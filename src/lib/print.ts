@@ -41,18 +41,32 @@ function openPrintWindow(html: string, title: string) {
   w.document.write(html)
   w.document.close()
   w.document.title = title
-  // give the browser a tick to lay out before printing
-  setTimeout(() => {
+  // Wait for fonts (Libre Barcode 39, Tajawal) to load before printing,
+  // otherwise the barcode renders as plain text on first print.
+  const triggerPrint = () => {
     w.focus()
     w.print()
-  }, 400)
+  }
+  // Use the document.fonts API when available; fall back to a longer delay.
+  if (w.document.fonts && w.document.fonts.ready) {
+    w.document.fonts.ready.then(() => setTimeout(triggerPrint, 200))
+  } else {
+    setTimeout(triggerPrint, 1200)
+  }
 }
 
 /* ───────────────────────── 1. Thermal Receipt (80mm) ───────────────────────── */
 
 export function printThermalReceipt(sale: Sale) {
   const store = getStore()
-  const date = new Date(sale.createdAt).toLocaleString("ar")
+  // Format date in Arabic explicitly (avoid locale-dependent garbled output).
+  const dateStr = new Intl.DateTimeFormat("ar-EG", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(sale.createdAt))
   const itemsRows = sale.items
     .map(
       (it) => `
@@ -70,28 +84,37 @@ export function printThermalReceipt(sale: Sale) {
 <head>
 <meta charset="utf-8">
 <title>إيصال ${sale.invoiceNo}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Barcode+39&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   @page { size: 80mm auto; margin: 0; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: "Tajawal", "Cairo", sans-serif; width: 80mm; padding: 4mm 3mm; font-size: 11px; color: #000; }
-  .store { text-align: center; margin-bottom: 4mm; }
-  .store h1 { font-size: 16px; font-weight: 700; }
-  .store p { font-size: 10px; color: #333; margin-top: 1px; }
-  .sep { border-top: 1px dashed #000; margin: 3mm 0; }
-  .info { font-size: 10px; line-height: 1.6; }
-  .info div { display: flex; justify-content: space-between; }
-  table { width: 100%; border-collapse: collapse; margin: 2mm 0; }
-  th { font-size: 10px; text-align: right; border-bottom: 1px solid #000; padding: 1mm 0; }
+  html, body { width: 80mm; max-width: 80mm; }
+  body { font-family: "Tajawal", "Cairo", sans-serif; padding: 3mm 2mm; font-size: 10px; color: #000; line-height: 1.4; }
+  .store { text-align: center; margin-bottom: 3mm; }
+  .store h1 { font-size: 15px; font-weight: 700; }
+  .store p { font-size: 9px; color: #333; margin-top: 1px; }
+  .sep { border-top: 1px dashed #000; margin: 2.5mm 0; }
+  .info { font-size: 9.5px; line-height: 1.7; }
+  .info div { display: flex; justify-content: space-between; gap: 4px; }
+  .info .val { font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; margin: 1.5mm 0; }
+  th { font-size: 9px; text-align: right; border-bottom: 1px solid #000; padding: 1mm 0; font-weight: 700; }
   th.qty, th.price, th.total { text-align: center; }
-  td { font-size: 10px; padding: 1mm 0; vertical-align: top; }
-  td.qty, td.price, td.total { text-align: center; }
-  td.name { width: 45%; }
-  .totals { margin-top: 2mm; }
-  .totals div { display: flex; justify-content: space-between; font-size: 11px; padding: 0.5mm 0; }
-  .totals .grand { font-size: 14px; font-weight: 700; border-top: 2px solid #000; padding-top: 1mm; margin-top: 1mm; }
-  .footer { text-align: center; margin-top: 4mm; font-size: 10px; }
-  .barcode { text-align: center; font-family: "Libre Barcode 39", monospace; font-size: 28px; letter-spacing: 2px; margin-top: 2mm; }
-  @media print { body { width: 80mm; } }
+  td { font-size: 9.5px; padding: 0.8mm 0; vertical-align: top; }
+  td.qty, td.price, td.total { text-align: center; white-space: nowrap; }
+  td.name { width: 45%; padding-left: 1mm; }
+  .totals { margin-top: 1.5mm; }
+  .totals div { display: flex; justify-content: space-between; font-size: 10px; padding: 0.4mm 0; }
+  .totals .grand { font-size: 13px; font-weight: 700; border-top: 2px solid #000; padding-top: 1mm; margin-top: 1mm; }
+  .footer { text-align: center; margin-top: 3mm; font-size: 9px; }
+  .barcode { text-align: center; font-family: "Libre Barcode 39", "Courier New", monospace; font-size: 36px; line-height: 1; margin-top: 2mm; letter-spacing: 0; }
+  .barcode-code { text-align: center; font-family: "Courier New", monospace; font-size: 8px; letter-spacing: 1px; margin-top: 1mm; }
+  @media print {
+    body { width: 80mm; max-width: 80mm; padding: 3mm 2mm; }
+    @page { size: 80mm auto; margin: 0; }
+  }
 </style>
 </head>
 <body>
@@ -102,10 +125,10 @@ export function printThermalReceipt(sale: Sale) {
   </div>
   <div class="sep"></div>
   <div class="info">
-    <div><span>رقم الفاتورة:</span><strong>${sale.invoiceNo}</strong></div>
-    <div><span>التاريخ:</span><span>${date}</span></div>
-    <div><span>العميل:</span><span>${escapeHtml(sale.customerName || "عميل نقدي")}</span></div>
-    <div><span>الدفع:</span><span>${paymentLabel(sale.paymentMethod)}</span></div>
+    <div><span>رقم الفاتورة:</span><span class="val">${sale.invoiceNo}</span></div>
+    <div><span>التاريخ:</span><span class="val">${dateStr}</span></div>
+    <div><span>العميل:</span><span class="val">${escapeHtml(sale.customerName || "عميل نقدي")}</span></div>
+    <div><span>طريقة الدفع:</span><span class="val">${paymentLabel(sale.paymentMethod)}</span></div>
   </div>
   <div class="sep"></div>
   <table>
@@ -122,9 +145,11 @@ export function printThermalReceipt(sale: Sale) {
     <div class="grand"><span>الإجمالي</span><span>${fmtNum(sale.total)}</span></div>
   </div>
   <div class="footer">
-    <p>شكراً لزيارتكم 🌿</div>
-    <div class="barcode">*${sale.invoiceNo}*</div>
+    <p>شكراً لزيارتكم 🌿</p>
   </div>
+  <div class="sep"></div>
+  <div class="barcode">*${sale.invoiceNo}*</div>
+  <div class="barcode-code">${sale.invoiceNo}</div>
 </body>
 </html>`
   openPrintWindow(html, `إيصال ${sale.invoiceNo}`)
@@ -134,8 +159,8 @@ export function printThermalReceipt(sale: Sale) {
 
 export function printA4Invoice(sale: Sale) {
   const store = getStore()
-  const date = new Date(sale.createdAt).toLocaleDateString("ar")
-  const time = new Date(sale.createdAt).toLocaleTimeString("ar", { hour: "2-digit", minute: "2-digit" })
+  const dateStr = new Intl.DateTimeFormat("ar-EG", { year: "numeric", month: "long", day: "numeric" }).format(new Date(sale.createdAt))
+  const timeStr = new Intl.DateTimeFormat("ar-EG", { hour: "2-digit", minute: "2-digit" }).format(new Date(sale.createdAt))
   const itemsRows = sale.items
     .map(
       (it, i) => `
@@ -154,6 +179,9 @@ export function printA4Invoice(sale: Sale) {
 <head>
 <meta charset="utf-8">
 <title>فاتورة ${sale.invoiceNo}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   @page { size: A4; margin: 14mm; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -196,7 +224,7 @@ export function printA4Invoice(sale: Sale) {
       <h2>فاتورة مبيعات</h2>
       <p>رقم الفاتورة</p>
       <p class="no">${sale.invoiceNo}</p>
-      <p style="margin-top:2mm">التاريخ: ${date} - ${time}</p>
+      <p style="margin-top:2mm">التاريخ: ${dateStr} - ${timeStr}</p>
     </div>
   </div>
 
@@ -267,6 +295,9 @@ export function printBarcodeLabels(products: BarcodeLabelProduct[], copies = 1) 
 <head>
 <meta charset="utf-8">
 <title>ملصقات باركود</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Barcode+39&family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
 <style>
   @page { size: A4; margin: 8mm; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
