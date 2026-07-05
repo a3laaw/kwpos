@@ -4,12 +4,9 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-// Fallback: if DATABASE_URL env var is not set or invalid, use the hardcoded
-// Supabase connection string. This ensures the app ALWAYS connects to the
-// database, even if Vercel env vars are misconfigured.
+// Hardcoded Supabase connection — always used, ignores env vars.
+// This fixes the Vercel deployment where env vars were stuck with wrong password.
 const SUPABASE_URL = "***REMOVED***:***REMOVED***@***REMOVED***:5432/postgres"
-
-const dbUrl = process.env.DATABASE_URL || SUPABASE_URL
 
 if (globalForPrisma.prisma) {
   const hasPI = typeof (globalForPrisma.prisma as any).purchaseInvoice !== "undefined"
@@ -21,10 +18,16 @@ if (globalForPrisma.prisma) {
   }
 }
 
+// Force Prisma to use this URL via datasources override.
+// This takes precedence over both env vars AND schema.prisma url.
 export const db =
   globalForPrisma.prisma ??
   new PrismaClient({
-    datasources: { db: { url: dbUrl } },
+    datasources: {
+      db: {
+        url: SUPABASE_URL,
+      },
+    },
     log: process.env.NODE_ENV === 'production' ? ['error', 'warn'] : ['query'],
   })
 
