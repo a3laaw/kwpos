@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import type { Sale } from "@/lib/types"
+import type { ExchangeSale } from "@/hooks/use-api"
 
 /**
  * Print helpers — opens a dedicated print window with the right CSS @page
@@ -143,6 +144,7 @@ export function printThermalReceipt(sale: Sale) {
     <div><span>المجموع الفرعي</span><span>${fmtNum(sale.subtotal)}</span></div>
     ${sale.discount > 0 ? `<div><span>الخصم</span><span>-${fmtNum(sale.discount)}</span></div>` : ""}
     ${sale.taxAmount > 0 ? `<div><span>الضريبة (${sale.taxRate}%)</span><span>${fmtNum(sale.taxAmount)}</span></div>` : ""}
+    ${sale.deliveryFee > 0 ? `<div><span>رسوم التوصيل${sale.driverName ? ` (${escapeHtml(sale.driverName)})` : ""}</span><span>${fmtNum(sale.deliveryFee)}</span></div>` : ""}
     <div class="grand"><span>الإجمالي</span><span>${fmtNum(sale.total)}</span></div>
   </div>
   <div class="footer">
@@ -254,6 +256,7 @@ export function printA4Invoice(sale: Sale) {
       <div><span>المجموع الفرعي</span><span>${fmtNum(sale.subtotal)}</span></div>
       ${sale.discount > 0 ? `<div><span>الخصم</span><span>-${fmtNum(sale.discount)}</span></div>` : ""}
       ${sale.taxAmount > 0 ? `<div><span>الضريبة (${sale.taxRate}%)</span><span>${fmtNum(sale.taxAmount)}</span></div>` : ""}
+      ${sale.deliveryFee > 0 ? `<div><span>رسوم التوصيل${sale.driverName ? ` (${escapeHtml(sale.driverName)})` : ""}</span><span>${fmtNum(sale.deliveryFee)}</span></div>` : ""}
       <div class="grand"><span>الإجمالي المستحق</span><span>${fmtNum(sale.total)}</span></div>
     </div>
   </div>
@@ -336,4 +339,131 @@ function fmtNum(v: number): string {
 
 function paymentLabel(m: string): string {
   return m === "CASH" ? "نقدي" : m === "CARD" ? "بطاقة" : m === "TRANSFER" ? "تحويل" : m
+}
+
+/* ───────────────────────── 4. Exchange Receipt (80mm) ──────────────── */
+
+/**
+ * Print a thermal 80mm receipt for an exchange transaction.
+ *
+ * Returned items render with "-" prefix in red; new items with "+" prefix in
+ * green. The net settlement line shows "الصافي المستحق" when the customer pays
+ * the difference, or "الصافي المسترد" when the store refunds the customer.
+ */
+export function printExchangeReceipt(exchange: ExchangeSale) {
+  const store = getStore()
+  const dateStr = new Intl.DateTimeFormat("ar-KW-u-nu-latn", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(exchange.createdAt))
+
+  const itemsRows = exchange.lines
+    .map((ln) => {
+      const sign = ln.quantity < 0 ? "-" : "+"
+      const cls = ln.quantity < 0 ? "return" : "new"
+      const qtyStr = `${sign}${Math.abs(ln.quantity)}`
+      const totalStr = `${ln.lineTotal < 0 ? "-" : "+"}${fmtNum(Math.abs(ln.lineTotal))}`
+      return `
+      <tr>
+        <td class="name ${cls}">${escapeHtml(ln.productName)}</td>
+        <td class="qty ${cls}">${qtyStr}</td>
+        <td class="price">${fmtNum(ln.unitPrice)}</td>
+        <td class="total ${cls}">${totalStr}</td>
+      </tr>`
+    })
+    .join("")
+
+  // Net settlement label depends on the sign of the net amount.
+  const isCollect = exchange.netAmount > 0
+  const isRefund = exchange.netAmount < 0
+  const isEven = !isCollect && !isRefund
+  const netLabel = isCollect ? "الصافي المستحق" : isRefund ? "الصافي المسترد" : "تبديل متعادل"
+  const netSign = isCollect ? "+" : isRefund ? "-" : ""
+
+  const html = `<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="utf-8">
+<title>فاتورة تبديل ${exchange.exchangeNo}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Barcode+39&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  @page { size: 80mm auto; margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 80mm; max-width: 80mm; }
+  body { font-family: "Tajawal", "Cairo", sans-serif; padding: 3mm 2mm; font-size: 10px; color: #000; line-height: 1.4; }
+  .store { text-align: center; margin-bottom: 3mm; }
+  .store h1 { font-size: 15px; font-weight: 700; }
+  .store p { font-size: 9px; color: #333; margin-top: 1px; }
+  .title { text-align: center; font-size: 12px; font-weight: 700; margin-bottom: 2mm; padding: 1mm; background: #f0fdf4; border-radius: 2px; }
+  .sep { border-top: 1px dashed #000; margin: 2.5mm 0; }
+  .info { font-size: 9.5px; line-height: 1.7; }
+  .info div { display: flex; justify-content: space-between; gap: 4px; }
+  .info .val { font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; margin: 1.5mm 0; }
+  th { font-size: 9px; text-align: right; border-bottom: 1px solid #000; padding: 1mm 0; font-weight: 700; }
+  th.qty, th.price, th.total { text-align: center; }
+  td { font-size: 9.5px; padding: 0.8mm 0; vertical-align: top; }
+  td.qty, td.price, td.total { text-align: center; white-space: nowrap; }
+  td.name { width: 45%; padding-left: 1mm; }
+  td.return { color: #dc2626; }
+  td.new { color: #16a34a; }
+  .totals { margin-top: 1.5mm; }
+  .totals div { display: flex; justify-content: space-between; font-size: 10px; padding: 0.4mm 0; }
+  .totals .grand { font-size: 13px; font-weight: 700; border-top: 2px solid #000; padding-top: 1mm; margin-top: 1mm; }
+  .grand.collect { color: #16a34a; }
+  .grand.refund { color: #dc2626; }
+  .footer { text-align: center; margin-top: 3mm; font-size: 9px; }
+  .barcode { text-align: center; font-family: "Libre Barcode 39", "Courier New", monospace; font-size: 36px; line-height: 1; margin-top: 2mm; letter-spacing: 0; }
+  .barcode-code { text-align: center; font-family: "Courier New", monospace; font-size: 8px; letter-spacing: 1px; margin-top: 1mm; }
+  @media print {
+    body { width: 80mm; max-width: 80mm; padding: 3mm 2mm; }
+    @page { size: 80mm auto; margin: 0; }
+  }
+</style>
+</head>
+<body>
+  <div class="store">
+    <h1>${escapeHtml(store.name)}</h1>
+    ${store.address ? `<p>${escapeHtml(store.address)}</p>` : ""}
+    ${store.phone ? `<p>هاتف: ${escapeHtml(store.phone)}</p>` : ""}
+  </div>
+  <div class="title">فاتورة تبديل</div>
+  <div class="sep"></div>
+  <div class="info">
+    <div><span>رقم التبديل:</span><span class="val">${exchange.exchangeNo}</span></div>
+    <div><span>التاريخ:</span><span class="val">${dateStr}</span></div>
+    ${exchange.customerName ? `<div><span>العميل:</span><span class="val">${escapeHtml(exchange.customerName)}</span></div>` : ""}
+    ${exchange.customerPhone ? `<div><span>هاتف:</span><span class="val" dir="ltr">${escapeHtml(exchange.customerPhone)}</span></div>` : ""}
+    <div><span>طريقة التسوية:</span><span class="val">${paymentLabel(exchange.paymentMethod)}</span></div>
+    <div><span>عدد الأصناف:</span><span class="val">${exchange.itemCount}</span></div>
+  </div>
+  <div class="sep"></div>
+  <table>
+    <thead>
+      <tr><th>الصنف</th><th class="qty">كمية</th><th class="price">سعر</th><th class="total">الإجمالي</th></tr>
+    </thead>
+    <tbody>${itemsRows}</tbody>
+  </table>
+  <div class="sep"></div>
+  <div class="totals">
+    <div class="grand ${isCollect ? "collect" : isRefund ? "refund" : ""}">
+      <span>${netLabel}</span>
+      <span>${isEven ? fmtNum(0) : `${netSign}${fmtNum(Math.abs(exchange.netAmount))}`}</span>
+    </div>
+  </div>
+  ${exchange.note ? `<div class="sep"></div><div class="info"><div><span>ملاحظة:</span><span class="val">${escapeHtml(exchange.note)}</span></div></div>` : ""}
+  <div class="footer">
+    <p>شكراً لتعاملكم معنا 🌿</p>
+  </div>
+  <div class="sep"></div>
+  <div class="barcode">*${exchange.exchangeNo}*</div>
+  <div class="barcode-code">${exchange.exchangeNo}</div>
+</body>
+</html>`
+  openPrintWindow(html, `فاتورة تبديل ${exchange.exchangeNo}`, 360, 640)
 }

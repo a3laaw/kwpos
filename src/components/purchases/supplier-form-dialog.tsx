@@ -19,6 +19,7 @@ import {
   useUpdateSupplier,
 } from "@/hooks/use-api"
 import type { Supplier } from "@/lib/types"
+import { useT } from "@/components/i18n-context"
 
 interface SupplierFormDialogProps {
   open: boolean
@@ -38,6 +39,7 @@ const empty: FormState = { name: "", contact: "", phone: "", email: "", address:
 
 export function SupplierFormDialog({ open, onOpenChange, supplier }: SupplierFormDialogProps) {
   const isEdit = !!supplier
+  const t = useT()
   const [form, setForm] = React.useState<FormState>(empty)
   const createMut = useCreateSupplier()
   const updateMut = useUpdateSupplier(supplier?.id ?? "")
@@ -61,7 +63,7 @@ export function SupplierFormDialog({ open, onOpenChange, supplier }: SupplierFor
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!form.name.trim()) {
-      toast.error("اسم المورّد مطلوب")
+      toast.error(t.supplierNameRequired)
       return
     }
     const payload = {
@@ -74,14 +76,14 @@ export function SupplierFormDialog({ open, onOpenChange, supplier }: SupplierFor
     try {
       if (isEdit) {
         await updateMut.mutateAsync(payload)
-        toast.success("تم تحديث بيانات المورّد")
+        toast.success(t.supplierUpdated)
       } else {
         await createMut.mutateAsync(payload)
-        toast.success("تمت إضافة المورّد")
+        toast.success(t.supplierAdded)
       }
       onOpenChange(false)
     } catch (err: any) {
-      toast.error("فشل الحفظ", { description: err?.message })
+      toast.error(t.saveFailed, { description: err?.message })
     }
   }
 
@@ -91,72 +93,72 @@ export function SupplierFormDialog({ open, onOpenChange, supplier }: SupplierFor
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "تعديل مورّد" : "إضافة مورّد جديد"}</DialogTitle>
+          <DialogTitle>{isEdit ? t.editSupplier : t.addSupplierNew}</DialogTitle>
           <DialogDescription>
-            {isEdit ? "عدّل بيانات المورّد." : "أدخل بيانات المورّد الجديد."}
+            {isEdit ? t.editSupplierDesc : t.addSupplierDesc}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="s-name">اسم المورّد *</Label>
+            <Label htmlFor="s-name">{t.supplierName} *</Label>
             <Input
               id="s-name"
               value={form.name}
               onChange={(e) => set("name", e.target.value)}
-              placeholder="مثال: شركة الوطنية للأغذية"
+              placeholder={t.supplierNameInputPlaceholder}
               autoFocus
             />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="s-contact">مسؤول التواصل</Label>
+              <Label htmlFor="s-contact">{t.contactPerson}</Label>
               <Input
                 id="s-contact"
                 value={form.contact}
                 onChange={(e) => set("contact", e.target.value)}
-                placeholder="الاسم"
+                placeholder={t.contactPersonPlaceholder}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="s-phone">الهاتف</Label>
+              <Label htmlFor="s-phone">{t.phone}</Label>
               <Input
                 id="s-phone"
                 dir="ltr"
                 value={form.phone}
                 onChange={(e) => set("phone", e.target.value)}
-                placeholder="05xxxxxxxx"
+                placeholder={t.phoneInputPlaceholder}
                 className="text-left"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="s-email">البريد الإلكتروني</Label>
+              <Label htmlFor="s-email">{t.email}</Label>
               <Input
                 id="s-email"
                 dir="ltr"
                 type="email"
                 value={form.email}
                 onChange={(e) => set("email", e.target.value)}
-                placeholder="info@supplier.sa"
+                placeholder={t.emailInputPlaceholder}
                 className="text-left"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="s-address">العنوان</Label>
+              <Label htmlFor="s-address">{t.address}</Label>
               <Input
                 id="s-address"
                 value={form.address}
                 onChange={(e) => set("address", e.target.value)}
-                placeholder="المدينة - الحي"
+                placeholder={t.addressInputPlaceholder}
               />
             </div>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
-              إلغاء
+              {t.cancel}
             </Button>
             <Button type="submit" disabled={loading}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              {isEdit ? "حفظ" : "إضافة"}
+              {isEdit ? t.save : t.add}
             </Button>
           </DialogFooter>
         </form>

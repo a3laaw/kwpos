@@ -25,6 +25,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { useAppStore } from "@/lib/store"
 import { useDashboard } from "@/hooks/use-api"
 import { useFmt } from "@/components/currency-context"
+import { useT, useI18n } from "@/components/i18n-context"
 import { StatCard } from "@/components/shared/stat-card"
 import { LoadingState } from "@/components/shared/loading-state"
 import { EmptyState } from "@/components/shared/empty-state"
@@ -39,7 +40,6 @@ import {
   Receipt,
   Trophy,
   Tags,
-  Filter,
 } from "lucide-react"
 
 const PIE_COLORS = [
@@ -54,6 +54,8 @@ const PIE_COLORS = [
 
 export function DashboardView() {
   const fmt = useFmt()
+  const t = useT()
+  const { locale } = useI18n()
   const setView = useAppStore((s) => s.setView)
   const [from, setFrom] = React.useState("")
   const [to, setTo] = React.useState("")
@@ -84,15 +86,15 @@ export function DashboardView() {
 
   const rangeLabel = appliedFrom
     ? `${appliedFrom}${appliedTo ? ` ← ${appliedTo}` : ""}`
-    : `آخر ${appliedRange} يوم`
+    : t.dshLastXDays.replace("{x}", appliedRange)
 
-  if (isLoading) return <LoadingState text="جارٍ تحميل الإحصائيات..." />
+  if (isLoading) return <LoadingState text={t.dshLoadingStats} />
   if (isError || !data) {
     return (
       <EmptyState
-        title="تعذّر تحميل البيانات"
-        description="حدث خطأ أثناء جلب إحصائيات لوحة التحكم."
-        action={<Button onClick={() => refetch()}>إعادة المحاولة</Button>}
+        title={t.dshDataLoadFailed}
+        description={t.dshDataLoadFailedDesc}
+        action={<Button onClick={() => refetch()}>{t.retry}</Button>}
       />
     )
   }
@@ -110,29 +112,29 @@ export function DashboardView() {
         <div className="flex flex-col lg:flex-row lg:items-end gap-3">
           <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-2">
             <div className="space-y-1">
-              <Label className="text-xs">من تاريخ</Label>
+              <Label className="text-xs">{t.fromDate}</Label>
               <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="h-9" />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">إلى تاريخ</Label>
+              <Label className="text-xs">{t.toDate}</Label>
               <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="h-9" />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">نطاق سريع</Label>
+              <Label className="text-xs">{t.quickRange}</Label>
               <select
                 value={range}
                 onChange={(e) => setRange(e.target.value)}
                 className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
               >
-                <option value="7">آخر 7 أيام</option>
-                <option value="30">آخر 30 يوم</option>
-                <option value="90">آخر 90 يوم</option>
-                <option value="365">آخر سنة</option>
+                <option value="7">{t.last7Days}</option>
+                <option value="30">{t.last30Days}</option>
+                <option value="90">{t.last90Days}</option>
+                <option value="365">{t.lastYear}</option>
               </select>
             </div>
             <div className="flex items-end gap-2">
-              <Button onClick={applyRange} size="sm" className="h-9">تطبيق</Button>
-              <Button onClick={() => resetRange("30")} size="sm" variant="outline" className="h-9">إعادة تعيين</Button>
+              <Button onClick={applyRange} size="sm" className="h-9">{t.apply}</Button>
+              <Button onClick={() => resetRange("30")} size="sm" variant="outline" className="h-9">{t.reset}</Button>
             </div>
           </div>
           <Badge variant="outline" className="self-end lg:self-auto">{rangeLabel}</Badge>
@@ -142,30 +144,30 @@ export function DashboardView() {
       {/* KPI cards */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <StatCard
-          title="إجمالي المبيعات"
+          title={t.dshTotalSales}
           value={fmt.currency(data.totalSales)}
-          hint={`${fmt.number(data.salesCount)} فاتورة`}
+          hint={t.invoiceCountLabel.replace("{count}", fmt.number(data.salesCount))}
           icon={<DollarSign className="h-5 w-5" />}
           tone="success"
         />
         <StatCard
-          title="مبيعات اليوم"
+          title={t.dshTodaySales}
           value={fmt.currency(data.todaySales)}
-          hint="منذ بداية اليوم"
+          hint={t.dshSinceStartOfDay}
           icon={<TrendingUp className="h-5 w-5" />}
           tone="info"
         />
         <StatCard
-          title="عدد المنتجات"
+          title={t.dshProductsCount}
           value={fmt.number(data.productsCount)}
-          hint={`قيمة المخزون: ${fmt.currency(data.inventoryValue)}`}
+          hint={t.inventoryValueLabel.replace("{value}", fmt.currency(data.inventoryValue))}
           icon={<Package className="h-5 w-5" />}
           tone="default"
         />
         <StatCard
-          title="منتجات قريبة من النفاذ"
+          title={t.dshLowStockProducts}
           value={fmt.number(data.lowStockCount)}
-          hint={`${fmt.number(data.pendingPurchases)} أمر شراء معلّق`}
+          hint={t.pendingPoCountLabel.replace("{count}", fmt.number(data.pendingPurchases))}
           icon={<AlertTriangle className="h-5 w-5" />}
           tone={data.lowStockCount > 0 ? "danger" : "success"}
         />
@@ -178,13 +180,17 @@ export function DashboardView() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <TrendingUp className="h-4 w-4 text-primary" />
-              اتجاه المبيعات
+              {t.dshSalesTrend}
             </CardTitle>
-            <CardDescription>إجمالي المبيعات اليومية ({fmt.symbol}) — {rangeLabel}</CardDescription>
+            <CardDescription>
+              {t.dshDailySalesTotalDesc
+                .replace("{symbol}", fmt.symbol)
+                .replace("{range}", rangeLabel)}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {trend.length === 0 ? (
-              <EmptyState title="لا توجد مبيعات بعد" description="ستظهر بيانات المبيعات هنا." />
+              <EmptyState title={t.dshNoSalesYet} description={t.dshNoSalesYetDesc} />
             ) : (
               <ResponsiveContainer width="100%" height={260}>
                 <AreaChart data={trend} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
@@ -196,10 +202,22 @@ export function DashboardView() {
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
                   <XAxis
-                    dataKey="label"
+                    dataKey="date"
                     tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
                     tickLine={false}
                     axisLine={false}
+                    // Render day name in the active UI locale (Arabic month/day
+                    // names for `ar`, English for `en`). The backend still
+                    // sends a hardcoded Arabic `label` field, but we ignore it
+                    // here to avoid leaking Arabic when the UI is in English.
+                    tickFormatter={(iso: string) => {
+                      const d = new Date(iso)
+                      if (isNaN(d.getTime())) return ""
+                      return new Intl.DateTimeFormat(
+                        locale === "en" ? "en-GB" : "ar-KW-u-nu-latn",
+                        { weekday: "short" }
+                      ).format(d)
+                    }}
                   />
                   <YAxis
                     tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
@@ -215,7 +233,7 @@ export function DashboardView() {
                       color: "hsl(var(--popover-foreground))",
                       fontSize: 13,
                     }}
-                    formatter={(v: number) => [fmt.currency(v), "المبيعات"]}
+                    formatter={(v: number) => [fmt.currency(v), t.dshSales]}
                     labelStyle={{ color: "hsl(var(--muted-foreground))" }}
                   />
                   <Area
@@ -236,13 +254,13 @@ export function DashboardView() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Tags className="h-4 w-4 text-primary" />
-              توزيع قيمة المخزون
+              {t.dshInventoryValueDistribution}
             </CardTitle>
-            <CardDescription>حسب الفئة</CardDescription>
+            <CardDescription>{t.dshByCategory}</CardDescription>
           </CardHeader>
           <CardContent>
             {cats.length === 0 ? (
-              <EmptyState title="لا توجد فئات" />
+              <EmptyState title={t.dshNoCategories} description={t.noDataDescription} />
             ) : (
               <ResponsiveContainer width="100%" height={260}>
                 <PieChart>
@@ -284,13 +302,13 @@ export function DashboardView() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Trophy className="h-4 w-4 text-amber-500" />
-              الأكثر مبيعاً
+              {t.dshTopSelling}
             </CardTitle>
-            <CardDescription>حسب الإيرادات</CardDescription>
+            <CardDescription>{t.dshByRevenue}</CardDescription>
           </CardHeader>
           <CardContent>
             {top.length === 0 ? (
-              <EmptyState title="لا توجد مبيعات بعد" />
+              <EmptyState title={t.dshNoSalesYet} description={t.noDataDescription} />
             ) : (
               <div className="space-y-3">
                 {top.map((p, i) => {
@@ -334,9 +352,9 @@ export function DashboardView() {
             <div>
               <CardTitle className="flex items-center gap-2 text-base">
                 <AlertTriangle className="h-4 w-4 text-rose-500" />
-                تنبيهات المخزون
+                {t.dshInventoryAlerts}
               </CardTitle>
-              <CardDescription>منتجات تحتاج إعادة طلب</CardDescription>
+              <CardDescription>{t.dshProductsNeedReorder}</CardDescription>
             </div>
             <Button
               variant="ghost"
@@ -344,15 +362,15 @@ export function DashboardView() {
               className="gap-1 text-primary"
               onClick={() => setView("inventory")}
             >
-              الكل
+              {t.all}
               <ArrowLeft className="h-3.5 w-3.5" />
             </Button>
           </CardHeader>
           <CardContent>
             {lowStock.length === 0 ? (
               <EmptyState
-                title="المخزون بحالة جيدة"
-                description="لا توجد منتجات قريبة من النفاذ."
+                title={t.dshInventoryGood}
+                description={t.dshNoLowStockProducts}
                 icon={<Boxes className="h-7 w-7" />}
               />
             ) : (
@@ -368,7 +386,7 @@ export function DashboardView() {
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium">{p.name}</p>
                           <p className="text-xs text-muted-foreground">
-                            الحد: {fmt.number(p.reorderLevel)} {p.unit}
+                            {t.dshLimit}: {fmt.number(p.reorderLevel)} {p.unit}
                           </p>
                         </div>
                         <Badge
@@ -392,9 +410,9 @@ export function DashboardView() {
             <div>
               <CardTitle className="flex items-center gap-2 text-base">
                 <Receipt className="h-4 w-4 text-primary" />
-                أحدث الفواتير
+                {t.dshRecentInvoices}
               </CardTitle>
-              <CardDescription>آخر العمليات</CardDescription>
+              <CardDescription>{t.dshRecentOperations}</CardDescription>
             </div>
             <Button
               variant="ghost"
@@ -402,13 +420,13 @@ export function DashboardView() {
               className="gap-1 text-primary"
               onClick={() => setView("invoices")}
             >
-              الكل
+              {t.all}
               <ArrowLeft className="h-3.5 w-3.5" />
             </Button>
           </CardHeader>
           <CardContent>
             {recentSales.length === 0 ? (
-              <EmptyState title="لا توجد فواتير" />
+              <EmptyState title={t.dshNoInvoices} description={t.noDataDescription} />
             ) : (
               <ScrollArea className="h-[230px] pr-2 scrollbar-thin">
                 <div className="space-y-2">
@@ -422,7 +440,7 @@ export function DashboardView() {
                           {s.invoiceNo}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {s.customerName || "عميل نقدي"} • {fmt.dateTime(s.createdAt)}
+                          {s.customerName || t.cashCustomer} • {fmt.dateTime(s.createdAt)}
                         </p>
                       </div>
                       <span className="font-semibold tabular-nums text-primary">
@@ -447,15 +465,15 @@ export function DashboardView() {
               </span>
               <div>
                 <p className="font-medium text-sm">
-                  لديك {fmt.number(data.pendingPurchases)} أمر شراء معلّق
+                  {t.dshYouHavePendingPo} ({fmt.number(data.pendingPurchases)})
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  أكّد الاستلام لتحديث كميات المخزون تلقائياً
+                  {t.dshConfirmReceiptToUpdateStock}
                 </p>
               </div>
             </div>
             <Button size="sm" variant="outline" onClick={() => setView("purchases")}>
-              مراجعة المشتريات
+              {t.dshReviewPurchases}
             </Button>
           </CardContent>
         </Card>

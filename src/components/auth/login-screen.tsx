@@ -19,36 +19,57 @@ import {
   ShieldCheck,
   Sparkles,
 } from "lucide-react"
+import { useT, useI18n } from "@/components/i18n-context"
+import type { Dict } from "@/lib/i18n"
+import { getCountryName } from "@/lib/countries"
+import type { CountryConfig } from "@/lib/countries"
 
-const demoAccounts = [
-  {
-    role: "مدير النظام",
-    email: "admin@demo.com",
-    password: "admin123",
-    icon: ShieldCheck,
-    tone: "text-primary",
-  },
-  {
-    role: "موظف مبيعات",
-    email: "sales@demo.com",
-    password: "sales123",
-    icon: ShoppingCart,
-    tone: "text-[#055BE5] dark:text-[#5CDE9D]",
-  },
-  {
-    role: "أمين مخزن",
-    email: "warehouse@demo.com",
-    password: "warehouse123",
-    icon: Warehouse,
-    tone: "text-amber-600 dark:text-amber-400",
-  },
-]
+interface DemoAccount {
+  role: string
+  email: string
+  password: string
+  icon: React.ComponentType<{ className?: string }>
+  tone: string
+}
 
-export function LoginScreen({ country }: { country?: { flag: string; name: string; currencySymbol: string } }) {
+function useDemoAccounts(t: Dict): DemoAccount[] {
+  return React.useMemo(
+    () => [
+      {
+        role: t.roleAdmin,
+        email: "admin@demo.com",
+        password: "admin123",
+        icon: ShieldCheck,
+        tone: "text-primary",
+      },
+      {
+        role: t.roleSales,
+        email: "sales@demo.com",
+        password: "sales123",
+        icon: ShoppingCart,
+        tone: "text-[#055BE5] dark:text-[#5CDE9D]",
+      },
+      {
+        role: t.roleWarehouse,
+        email: "warehouse@demo.com",
+        password: "warehouse123",
+        icon: Warehouse,
+        tone: "text-amber-600 dark:text-amber-400",
+      },
+    ],
+    [t]
+  )
+}
+
+export function LoginScreen({ country }: { country?: CountryConfig }) {
+  const t = useT()
+  const { locale } = useI18n()
   const router = useRouter()
   const [email, setEmail] = React.useState("admin@demo.com")
   const [password, setPassword] = React.useState("admin123")
   const [loading, setLoading] = React.useState(false)
+
+  const demoAccounts = useDemoAccounts(t)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -60,18 +81,18 @@ export function LoginScreen({ country }: { country?: { flag: string; name: strin
         redirect: false,
       })
       if (!res || res.error) {
-        toast.error("بيانات الدخول غير صحيحة", {
-          description: "تحقق من البريد الإلكتروني وكلمة المرور.",
+        toast.error(t.logInvalidCredentials, {
+          description: t.logCheckEmailPassword,
         })
         setLoading(false)
         return
       }
-      toast.success("تم تسجيل الدخول بنجاح", {
-        description: "أهلاً بك في نظام إدارة المبيعات والمخازن.",
+      toast.success(t.logLoginSuccess, {
+        description: t.logWelcomeDesc,
       })
       router.refresh()
     } catch (err) {
-      toast.error("حدث خطأ غير متوقع")
+      toast.error(t.logUnexpectedError)
       setLoading(false)
     }
   }
@@ -95,30 +116,29 @@ export function LoginScreen({ country }: { country?: { flag: string; name: strin
           </div>
           <div>
             <p className="text-xl font-bold flex items-center gap-2">
-              نظام المتجر
+              {t.logAppName}
               {country ? (
-                <span className="text-base leading-none" title={country.name}>{country.flag}</span>
+                <span className="text-base leading-none" title={getCountryName(country, locale)}>{country.flag}</span>
               ) : null}
             </p>
             <p className="text-sm text-sidebar-foreground/70">
-              إدارة المبيعات والمخازن والمشتريات
+              {t.appTagline}
             </p>
           </div>
         </div>
 
         <div className="relative z-10 space-y-6">
           <h2 className="text-3xl font-bold leading-tight text-balance">
-            أدِر مشروعك الصغير بالكامل من مكان واحد
+            {t.logLoginHeroTitle}
           </h2>
           <p className="text-sidebar-foreground/80 leading-relaxed">
-            نقاط بيع سريعة، إدارة مخزون ذكية، أوامر شراء تلقائية، وتقارير لحظية —
-            كل ما تحتاجه نموك التجاري في نظام واحد متكامل.
+            {t.logLoginHeroDesc}
           </p>
           <ul className="space-y-3 text-sm">
             {[
-              { icon: ShoppingCart, text: "نقاط بيع (POS) فورية مع تحديث المخزون لحظياً" },
-              { icon: Warehouse, text: "تتبع المخزون وتنبيهات نقص المنتجات" },
-              { icon: Boxes, text: "إدارة الموردين وأوامر الشراء" },
+              { icon: ShoppingCart, text: t.logFeature1 },
+              { icon: Warehouse, text: t.logFeature2 },
+              { icon: Boxes, text: t.logFeature3 },
             ].map((f, i) => (
               <li key={i} className="flex items-center gap-3">
                 <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-accent text-sidebar-primary">
@@ -131,7 +151,7 @@ export function LoginScreen({ country }: { country?: { flag: string; name: strin
         </div>
 
         <div className="relative z-10 text-xs text-sidebar-foreground/60">
-          © {new Date().getFullYear()} نظام المتجر — جميع الحقوق محفوظة
+          © {new Date().getFullYear()} {t.logAppName} — {t.logCopyright}
         </div>
       </div>
 
@@ -143,8 +163,8 @@ export function LoginScreen({ country }: { country?: { flag: string; name: strin
               <Boxes className="h-6 w-6" />
             </div>
             <div>
-              <p className="text-lg font-bold">نظام المتجر</p>
-              <p className="text-xs text-muted-foreground">إدارة المبيعات والمخازن</p>
+              <p className="text-lg font-bold">{t.logAppName}</p>
+              <p className="text-xs text-muted-foreground">{t.logAppTaglineShort}</p>
             </div>
           </div>
 
@@ -153,18 +173,18 @@ export function LoginScreen({ country }: { country?: { flag: string; name: strin
               <div className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-primary" />
                 <Badge variant="secondary" className="font-normal">
-                  تجريبي
+                  {t.logDemo}
                 </Badge>
               </div>
-              <CardTitle className="text-2xl">تسجيل الدخول</CardTitle>
+              <CardTitle className="text-2xl">{t.loginTitle}</CardTitle>
               <CardDescription>
-                أدخل بيانات حسابك للوصول إلى لوحة التحكم
+                {t.loginDesc}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">البريد الإلكتروني</Label>
+                  <Label htmlFor="email">{t.email}</Label>
                   <Input
                     id="email"
                     type="email"
@@ -178,7 +198,7 @@ export function LoginScreen({ country }: { country?: { flag: string; name: strin
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="password">كلمة المرور</Label>
+                  <Label htmlFor="password">{t.password}</Label>
                   <Input
                     id="password"
                     type="password"
@@ -195,12 +215,12 @@ export function LoginScreen({ country }: { country?: { flag: string; name: strin
                   {loading ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      جارٍ الدخول...
+                      {t.loggingIn}
                     </>
                   ) : (
                     <>
                       <LogIn className="h-4 w-4" />
-                      دخول
+                      {t.login}
                     </>
                   )}
                 </Button>
@@ -209,7 +229,7 @@ export function LoginScreen({ country }: { country?: { flag: string; name: strin
               <div className="relative my-6">
                 <Separator />
                 <span className="absolute inset-0 -top-3 mx-auto w-fit bg-card px-3 text-xs text-muted-foreground">
-                  حسابات تجريبية — اضغط للتعبئة
+                  {t.demoAccounts} — {t.logTapToFill}
                 </span>
               </div>
 

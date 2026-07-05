@@ -41,13 +41,70 @@ import {
   Percent,
   Download,
   Calendar,
+  Layers,
+  LayoutDashboard,
 } from "lucide-react"
 import { useReport, type ReportFilters } from "@/hooks/use-api"
 import { useFmt } from "@/components/currency-context"
+import { useT } from "@/components/i18n-context"
+import { PerformanceMatrix } from "@/components/reports/performance-matrix"
+import { cn } from "@/lib/utils"
 
 const PIE_COLORS = ["#055BE5", "#5CDE9D", "#185B6B", "#f59e0b", "#8b5cf6", "#ec4899", "#0ea5e9"]
 
+type ReportTab = "general" | "matrix"
+
 export function ReportsView() {
+  const t = useT()
+  const [tab, setTab] = React.useState<ReportTab>("general")
+
+  return (
+    <div className="space-y-5">
+      <PageHeader
+        title={t.reportsTitle}
+        description={t.repDescFull}
+        icon={<FileBarChart className="h-5 w-5" />}
+        actions={
+          tab === "general" ? (
+            <Button variant="outline" className="gap-2" onClick={() => window.print()}>
+              <Download className="h-4 w-4" />
+              <span className="hidden sm-inline">{t.exportPrint}</span>
+            </Button>
+          ) : null
+        }
+      />
+
+      {/* Tab switcher — General reports vs Performance matrix */}
+      <div className="flex gap-1.5 p-1 rounded-lg bg-muted/60 w-fit">
+        <button
+          onClick={() => setTab("general")}
+          className={cn(
+            "flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors",
+            tab === "general" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <LayoutDashboard className="h-4 w-4" />
+          {t.generalReports}
+        </button>
+        <button
+          onClick={() => setTab("matrix")}
+          className={cn(
+            "flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors",
+            tab === "matrix" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <Layers className="h-4 w-4" />
+          {t.performanceMatrix}
+        </button>
+      </div>
+
+      {tab === "general" ? <GeneralReports /> : <PerformanceMatrix />}
+    </div>
+  )
+}
+
+function GeneralReports() {
+  const t = useT()
   const fmt = useFmt()
   const [from, setFrom] = React.useState("")
   const [to, setTo] = React.useState("")
@@ -89,19 +146,22 @@ export function ReportsView() {
   }
 
   const activeFiltersCount = Object.values(applied).filter(Boolean).length
-  const products = data?.products ?? []
-  const categories = data?.categories ?? []
+  const products: { id: string; name: string; categoryId?: string | null }[] =
+    data?.products ?? []
+  const categories: { id: string; name: string }[] = data?.categories ?? []
+  const byPayment: { method: string; count: number; revenue: number }[] =
+    data?.byPayment ?? []
 
   return (
     <div className="space-y-5">
       <PageHeader
-        title="التقارير"
-        description="تقارير مبيعات شاملة بفلاتر مرنة — نطاق تاريخ، منتج، فئة، طريقة دفع، مصدر."
+        title={t.reportsTitle}
+        description={t.repDescFull}
         icon={<FileBarChart className="h-5 w-5" />}
         actions={
           <Button variant="outline" className="gap-2" onClick={() => window.print()}>
             <Download className="h-4 w-4" />
-            <span className="hidden sm:inline">تصدير / طباعة</span>
+            <span className="hidden sm-inline">{t.exportPrint}</span>
           </Button>
         }
       />
@@ -112,95 +172,95 @@ export function ReportsView() {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-base">
               <Filter className="h-4 w-4 text-primary" />
-              الفلاتر
+              {t.filters}
               {activeFiltersCount > 0 ? (
-                <Badge className="tabular-nums">{activeFiltersCount} مفعّل</Badge>
+                <Badge className="tabular-nums">{activeFiltersCount} {t.activeLabel}</Badge>
               ) : null}
             </CardTitle>
             <div className="flex gap-1.5 flex-wrap">
-              <Button size="sm" variant="ghost" onClick={() => setQuickRange(7)} className="h-7 text-xs">٧ أيام</Button>
-              <Button size="sm" variant="ghost" onClick={() => setQuickRange(30)} className="h-7 text-xs">٣٠ يوم</Button>
-              <Button size="sm" variant="ghost" onClick={() => setQuickRange(90)} className="h-7 text-xs">٩٠ يوم</Button>
+              <Button size="sm" variant="ghost" onClick={() => setQuickRange(7)} className="h-7 text-xs">{t.last7Days}</Button>
+              <Button size="sm" variant="ghost" onClick={() => setQuickRange(30)} className="h-7 text-xs">{t.last30Days}</Button>
+              <Button size="sm" variant="ghost" onClick={() => setQuickRange(90)} className="h-7 text-xs">{t.last90Days}</Button>
             </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             <div className="space-y-1">
-              <Label className="text-xs flex items-center gap-1"><Calendar className="h-3 w-3" /> من</Label>
+              <Label className="text-xs flex items-center gap-1"><Calendar className="h-3 w-3" /> {t.from}</Label>
               <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="h-9" />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs flex items-center gap-1"><Calendar className="h-3 w-3" /> إلى</Label>
+              <Label className="text-xs flex items-center gap-1"><Calendar className="h-3 w-3" /> {t.to}</Label>
               <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="h-9" />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">الفئة</Label>
+              <Label className="text-xs">{t.category}</Label>
               <Select value={categoryId} onValueChange={(v) => setCategoryId(v === "all" ? "" : v)}>
-                <SelectTrigger className="h-9"><SelectValue placeholder="الكل" /></SelectTrigger>
+                <SelectTrigger className="h-9"><SelectValue placeholder={t.all} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">كل الفئات</SelectItem>
+                  <SelectItem value="all">{t.allCategories}</SelectItem>
                   {categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">المنتج</Label>
+              <Label className="text-xs">{t.product}</Label>
               <Select value={productId} onValueChange={(v) => setProductId(v === "all" ? "" : v)}>
-                <SelectTrigger className="h-9"><SelectValue placeholder="الكل" /></SelectTrigger>
+                <SelectTrigger className="h-9"><SelectValue placeholder={t.all} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">كل المنتجات</SelectItem>
+                  <SelectItem value="all">{t.allProducts}</SelectItem>
                   {products.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">طريقة الدفع</Label>
+              <Label className="text-xs">{t.paymentMethod}</Label>
               <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v === "all" ? "" : v)}>
-                <SelectTrigger className="h-9"><SelectValue placeholder="الكل" /></SelectTrigger>
+                <SelectTrigger className="h-9"><SelectValue placeholder={t.all} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">الكل</SelectItem>
-                  <SelectItem value="CASH">نقدي</SelectItem>
-                  <SelectItem value="CARD">بطاقة</SelectItem>
-                  <SelectItem value="TRANSFER">تحويل</SelectItem>
+                  <SelectItem value="all">{t.all}</SelectItem>
+                  <SelectItem value="CASH">{t.cash}</SelectItem>
+                  <SelectItem value="CARD">{t.card}</SelectItem>
+                  <SelectItem value="TRANSFER">{t.transfer}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">المصدر</Label>
+              <Label className="text-xs">{t.source}</Label>
               <Select value={source} onValueChange={(v) => setSource(v === "all" ? "" : v)}>
-                <SelectTrigger className="h-9"><SelectValue placeholder="الكل" /></SelectTrigger>
+                <SelectTrigger className="h-9"><SelectValue placeholder={t.all} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">الكل</SelectItem>
-                  <SelectItem value="POS">نقاط البيع</SelectItem>
-                  <SelectItem value="SHOPIFY">شوبيفاي</SelectItem>
+                  <SelectItem value="all">{t.all}</SelectItem>
+                  <SelectItem value="POS">{t.posSource}</SelectItem>
+                  <SelectItem value="SHOPIFY">{t.shopifySource}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
           <div className="flex justify-end gap-2">
             <Button variant="outline" size="sm" onClick={resetFilters} className="gap-1.5">
-              <RotateCcw className="h-3.5 w-3.5" /> إعادة تعيين
+              <RotateCcw className="h-3.5 w-3.5" /> {t.reset}
             </Button>
             <Button size="sm" onClick={applyFilters} className="gap-1.5">
-              <Filter className="h-3.5 w-3.5" /> تطبيق الفلاتر
+              <Filter className="h-3.5 w-3.5" /> {t.applyFilters}
             </Button>
           </div>
         </CardContent>
       </Card>
 
       {isLoading ? (
-        <LoadingState text="جارٍ حساب التقرير..." />
+        <LoadingState text={t.calculatingReport} />
       ) : isError ? (
-        <EmptyState title="تعذّر تحميل التقرير" action={<Button onClick={() => refetch()}>إعادة المحاولة</Button>} />
+        <EmptyState title={t.reportLoadFailed} action={<Button onClick={() => refetch()}>{t.retry}</Button>} />
       ) : !data ? null : (
         <>
           {/* Summary KPIs */}
           <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-            <StatCard title="إجمالي الإيرادات" value={fmt.currency(data.summary.totalRevenue)} hint={`${fmt.number(data.summary.salesCount)} فاتورة`} icon={<DollarSign className="h-5 w-5" />} tone="default" />
-            <StatCard title="إجمالي التكلفة" value={fmt.currency(data.summary.totalCost)} hint={`${fmt.number(data.summary.itemsSold)} وحدة مباعة`} icon={<Package className="h-5 w-5" />} tone="info" />
-            <StatCard title="إجمالي الربح" value={fmt.currency(data.summary.grossProfit)} hint={`هامش ${fmt.number(data.summary.marginPct)}%`} icon={<TrendingUp className="h-5 w-5" />} tone="success" />
-            <StatCard title="متوسط الفاتورة" value={fmt.currency(data.summary.avgSale)} hint={`خصم: ${fmt.currency(data.summary.totalDiscount)}`} icon={<Percent className="h-5 w-5" />} tone="default" />
+            <StatCard title={t.repTotalRevenue} value={fmt.currency(data.summary.totalRevenue)} hint={t.repInvoicesCount.replace("{count}", fmt.number(data.summary.salesCount))} icon={<DollarSign className="h-5 w-5" />} tone="default" />
+            <StatCard title={t.repTotalCost} value={fmt.currency(data.summary.totalCost)} hint={t.repUnitsSoldCount.replace("{count}", fmt.number(data.summary.itemsSold))} icon={<Package className="h-5 w-5" />} tone="info" />
+            <StatCard title={t.repGrossProfit} value={fmt.currency(data.summary.grossProfit)} hint={t.repMarginPctLabel.replace("{x}", fmt.number(data.summary.marginPct))} icon={<TrendingUp className="h-5 w-5" />} tone="success" />
+            <StatCard title={t.repAvgInvoice} value={fmt.currency(data.summary.avgSale)} hint={t.repDiscountLabel.replace("{x}", fmt.currency(data.summary.totalDiscount))} icon={<Percent className="h-5 w-5" />} tone="default" />
           </div>
 
           {/* Charts row */}
@@ -208,12 +268,12 @@ export function ReportsView() {
             {/* Revenue trend */}
             <Card className="lg:col-span-2">
               <CardHeader>
-                <CardTitle className="text-base">اتجاه الإيرادات اليومي</CardTitle>
-                <CardDescription>الإيرادات وعدد الفواتير حسب اليوم</CardDescription>
+                <CardTitle className="text-base">{t.repRevenueTrendDaily}</CardTitle>
+                <CardDescription>{t.repRevenueTrendDailyDesc}</CardDescription>
               </CardHeader>
               <CardContent>
                 {data.byDay.length === 0 ? (
-                  <EmptyState title="لا توجد بيانات" />
+                  <EmptyState title={t.noData} />
                 ) : (
                   <ResponsiveContainer width="100%" height={280}>
                     <AreaChart data={data.byDay} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
@@ -237,28 +297,28 @@ export function ReportsView() {
             {/* Payment methods pie */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">طرق الدفع</CardTitle>
-                <CardDescription>توزيع الإيرادات</CardDescription>
+                <CardTitle className="text-base">{t.repPaymentMethods}</CardTitle>
+                <CardDescription>{t.repRevenueDistribution}</CardDescription>
               </CardHeader>
               <CardContent>
-                {data.byPayment.length === 0 ? (
-                  <EmptyState title="لا توجد بيانات" />
+                {byPayment.length === 0 ? (
+                  <EmptyState title={t.noData} />
                 ) : (
                   <>
                     <ResponsiveContainer width="100%" height={200}>
                       <PieChart>
-                        <Pie data={data.byPayment} dataKey="revenue" nameKey="method" cx="50%" cy="50%" innerRadius={50} outerRadius={85} paddingAngle={2}>
-                          {data.byPayment.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                        <Pie data={byPayment} dataKey="revenue" nameKey="method" cx="50%" cy="50%" innerRadius={50} outerRadius={85} paddingAngle={2}>
+                          {byPayment.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                         </Pie>
                         <Tooltip formatter={(v: number) => fmt.currency(v)} />
                       </PieChart>
                     </ResponsiveContainer>
                     <div className="space-y-1.5 mt-2">
-                      {data.byPayment.map((p, i) => (
+                      {byPayment.map((p, i) => (
                         <div key={p.method} className="flex items-center justify-between text-sm">
                           <span className="flex items-center gap-2">
                             <span className="h-3 w-3 rounded-full" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
-                            {p.method === "CASH" ? "نقدي" : p.method === "CARD" ? "بطاقة" : "تحويل"}
+                            {p.method === "CASH" ? t.cash : p.method === "CARD" ? t.card : t.transfer}
                           </span>
                           <span className="font-medium tabular-nums">{fmt.currency(p.revenue)}</span>
                         </div>
@@ -273,12 +333,12 @@ export function ReportsView() {
           {/* Category breakdown bar chart */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">الإيرادات حسب الفئة</CardTitle>
-              <CardDescription>مقارنة الإيرادات والربح عبر الفئات</CardDescription>
+              <CardTitle className="text-base">{t.repRevenueByCategory}</CardTitle>
+              <CardDescription>{t.repRevenueByCategoryFullDesc}</CardDescription>
             </CardHeader>
             <CardContent>
               {data.byCategory.length === 0 ? (
-                <EmptyState title="لا توجد بيانات" />
+                <EmptyState title={t.noData} />
               ) : (
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={data.byCategory} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
@@ -286,8 +346,8 @@ export function ReportsView() {
                     <XAxis dataKey="category" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} />
                     <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} width={50} />
                     <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))", fontSize: 12 }} formatter={(v: number) => fmt.currency(v)} />
-                    <Bar dataKey="revenue" name="الإيراد" fill="#055BE5" radius={[6, 6, 0, 0]} />
-                    <Bar dataKey="profit" name="الربح" fill="#5CDE9D" radius={[6, 6, 0, 0]} />
+                    <Bar dataKey="revenue" name={t.repRevenue} fill="#055BE5" radius={[6, 6, 0, 0]} />
+                    <Bar dataKey="profit" name={t.repProfit} fill="#5CDE9D" radius={[6, 6, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               )}
@@ -297,23 +357,23 @@ export function ReportsView() {
           {/* Product breakdown table */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">تفصيل حسب المنتج</CardTitle>
-              <CardDescription>الكمية، الإيراد، التكلفة، والربح لكل منتج</CardDescription>
+              <CardTitle className="text-base">{t.repProductBreakdown}</CardTitle>
+              <CardDescription>{t.repProductBreakdownFullDesc}</CardDescription>
             </CardHeader>
             <CardContent>
               {data.byProduct.length === 0 ? (
-                <EmptyState title="لا توجد منتجات" />
+                <EmptyState title={t.noProducts} />
               ) : (
                 <div className="overflow-x-auto scrollbar-thin">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-border text-muted-foreground">
-                        <th className="text-right py-2 px-2 font-medium">المنتج</th>
-                        <th className="text-right py-2 px-2 font-medium hidden sm:table-cell">الفئة</th>
-                        <th className="text-center py-2 px-2 font-medium">كمية</th>
-                        <th className="text-center py-2 px-2 font-medium">إيراد</th>
-                        <th className="text-center py-2 px-2 font-medium hidden md:table-cell">تكلفة</th>
-                        <th className="text-center py-2 px-2 font-medium">ربح</th>
+                        <th className="text-right py-2 px-2 font-medium">{t.colProduct}</th>
+                        <th className="text-right py-2 px-2 font-medium hidden sm:table-cell">{t.colCategory}</th>
+                        <th className="text-center py-2 px-2 font-medium">{t.repColQty}</th>
+                        <th className="text-center py-2 px-2 font-medium">{t.repColRevenue}</th>
+                        <th className="text-center py-2 px-2 font-medium hidden md:table-cell">{t.repColCost}</th>
+                        <th className="text-center py-2 px-2 font-medium">{t.repColProfit}</th>
                       </tr>
                     </thead>
                     <tbody>

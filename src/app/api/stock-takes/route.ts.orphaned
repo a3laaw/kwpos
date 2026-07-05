@@ -1,0 +1,73 @@
+import { NextRequest, NextResponse } from "next/server"
+import { db } from "@/lib/db"
+import { getCurrentUser } from "@/lib/session"
+import { createJournalEntry } from "@/lib/journal"
+
+export const dynamic = "force-dynamic"
+
+/** GET /api/stock-takes — list all stock takes */
+export async function GET() {
+  const user = await getCurrentUser()
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+  const takes = await db.stockTake.findMany({
+    include: { items: { include: { product: { include: { category: true } } } } },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+  })
+  return NextResponse.json({ items: takes })
+}
+
+/**
+ * POST /api/stock-takes — create a stock take with items.
+ * Body: { warehouseId?, note?, items: [{ productId, actualQty }] }
+ * System captures systemQty + unitCost from current product state.
+ */
+export async function POST(req: NextRequest) {
+  const user = await getCurrentUser()
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+  if (user.role !== "ADMIN" && user.role !== "WAREHOUSE") {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 })
+  }
+
+  const body = await req.json()
+  const { warehouseId, note, items } = body || {}
+  if (!Array.isArray(items) || items.length === 0) {
+    return NextResponse.json({ error: "items-required" }, { status: 400 })
+  }
+
+  const count = await db.stockTake.count()
+  const takeNo = `ST-${String(count + 1).padStart(5, "0")}`
+
+  // Build items with system qty + cost
+  const productIds = items.map((i: any) => i.productId)
+  const products = await db.product.findMany({ where: { id: { in: productIds } } })
+
+  const itemsData = items.map((it: any) => {
+    const p = products.find((pr) => pr.id === it.productId)
+    const systemQty = p?.quantity ?? 0
+    const actualQty = Number(it.actualQty) || 0
+    const variance = actualQty - systemQty
+    const unitCost = p?.costPrice ?? 0
+    return {
+      productId: it.productId,
+      systemQty,
+      actualQty,
+      variance,
+      unitCost,
+      varianceValue: +(variance * unitCost).toFixed(3),
+    }
+  })
+
+  const created = await db.stockTake.create({
+    data: {
+      takeNo,
+      warehouseId: warehouseId || null,
+      note: note?.trim() || null,
+      createdById: user.id,
+      items: { create: itemsData },
+    },
+    include: { items: { include: { product: { include: { category: true } } } } },
+  })
+
+  return NextResponse.json(created, { status: 201 })
+}

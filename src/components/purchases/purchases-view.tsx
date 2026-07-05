@@ -7,9 +7,13 @@ import { EmptyState } from "@/components/shared/empty-state"
 import { TableSkeleton } from "@/components/shared/loading-state"
 import { ConfirmDialog } from "@/components/shared/confirm-dialog"
 import { PurchaseOrderDialog } from "@/components/purchases/purchase-order-dialog"
+import { PoApprovalPanel } from "@/components/purchases/po-approval-panel"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Loader2 } from "lucide-react"
 import {
   Table,
   TableBody,
@@ -40,62 +44,116 @@ import {
   PackageCheck,
   Eye,
   Calendar,
+  Clock,
+  FileCheck2,
+  Ban,
+  AlertTriangle,
+  Truck,
+  Sparkles,
 } from "lucide-react"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
 import { useUser } from "@/components/user-context"
+import { useT } from "@/components/i18n-context"
 import {
   usePurchaseOrders,
   useReceivePurchaseOrder,
   useCancelPurchaseOrder,
   useDeletePurchaseOrder,
+  useSuppliers,
+  useAutoDraftPO,
 } from "@/hooks/use-api"
 import { useFmt } from "@/components/currency-context"
 import type { PurchaseOrder } from "@/lib/types"
 
-const statusMeta: Record<
+const STATUS_META: Record<
   PurchaseOrder["status"],
-  { label: string; variant: "secondary" | "default" | "outline"; className: string; icon: any }
+  { labelKey: keyof import("@/lib/i18n").Dict; variant: "secondary" | "default" | "outline"; className: string; icon: any }
 > = {
-  PENDING: { label: "معلّق", variant: "secondary", className: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30", icon: Calendar },
-  RECEIVED: { label: "مستلم", variant: "default", className: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30", icon: CheckCircle2 },
-  CANCELLED: { label: "ملغي", variant: "outline", className: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30", icon: XCircle },
+  PENDING_APPROVAL: { labelKey: "poStatusPendingApproval", variant: "secondary", className: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30", icon: Clock },
+  APPROVED: { labelKey: "poStatusApproved", variant: "secondary", className: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30", icon: CheckCircle2 },
+  PENDING: { labelKey: "poStatusPending", variant: "secondary", className: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30", icon: Calendar },
+  RECEIVED: { labelKey: "poStatusReceived", variant: "default", className: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30", icon: PackageCheck },
+  CANCELLED: { labelKey: "poStatusCancelled", variant: "outline", className: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30", icon: XCircle },
+  REJECTED: { labelKey: "poStatusRejected", variant: "outline", className: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30", icon: Ban },
 }
 
 export function PurchasesView() {
   const fmt = useFmt()
+  const t = useT()
   const user = useUser()
   const [statusFilter, setStatusFilter] = React.useState<string>("all")
   const [createOpen, setCreateOpen] = React.useState(false)
   const [detail, setDetail] = React.useState<PurchaseOrder | null>(null)
   const [receiveTarget, setReceiveTarget] = React.useState<PurchaseOrder | null>(null)
   const [cancelTarget, setCancelTarget] = React.useState<PurchaseOrder | null>(null)
+  const [autoDraftOpen, setAutoDraftOpen] = React.useState(false)
+  const [autoDraftSupplier, setAutoDraftSupplier] = React.useState("")
 
   const { data, isLoading, isError, refetch } = usePurchaseOrders(
     statusFilter === "all" ? undefined : statusFilter
   )
+  const { data: sups } = useSuppliers()
   const receiveMut = useReceivePurchaseOrder()
   const cancelMut = useCancelPurchaseOrder()
   const deleteMut = useDeletePurchaseOrder()
+  const autoDraftMut = useAutoDraftPO()
 
   const canManage = user.role === "ADMIN" || user.role === "WAREHOUSE"
+  const isAdmin = user.role === "ADMIN"
   const orders = data?.items ?? []
+  const suppliers = sups?.items ?? []
+
+  function poLabel(po: PurchaseOrder): string {
+    return `PO-${(po.id || "").slice(-6).toUpperCase()}`
+  }
+
+  async function handleAutoDraft() {
+    if (!autoDraftSupplier) {
+      toast.error(t.selectSupplierFirst)
+      return
+    }
+    try {
+      const res: any = await autoDraftMut.mutateAsync({ supplierId: autoDraftSupplier })
+      // The auto-draft endpoint returns either a PurchaseOrder (has `id`)
+      // or `{ message: "no-items-needed", count: 0 }` when nothing was
+      // low-stock for the selected supplier.
+      if (res && typeof res === "object" && typeof res.id === "string") {
+        toast.success(t.poDraftCreated, {
+          description: t.poDraftPendingApprovalDesc.replace("{poLabel}", poLabel(res as PurchaseOrder)),
+        })
+        setAutoDraftOpen(false)
+        setAutoDraftSupplier("")
+      } else if (res && (res as any).message === "no-items-needed") {
+        toast.info(t.noItemsNeedReorderForSupplier, {
+          description: t.noItemsNeedReorderForSupplierDesc,
+        })
+      } else {
+        toast.success(t.poDraftCreated)
+        setAutoDraftOpen(false)
+        setAutoDraftSupplier("")
+      }
+    } catch (err: any) {
+      toast.error(t.poDraftCreateFailed, { description: err?.message })
+    }
+  }
 
   async function handleReceive() {
     if (!receiveTarget) return
     try {
       await receiveMut.mutateAsync(receiveTarget.id)
-      toast.success("تم استلام الأمر وتحديث المخزون", {
-        description: "أُضيفت الكميات إلى المنتجات تلقائياً.",
+      toast.success(t.poReceived, {
+        description: t.poReceivedWithStockDesc,
       })
       setReceiveTarget(null)
     } catch (err: any) {
-      toast.error("فشل تأكيد الاستلام", { description: err?.message })
+      toast.error(t.poReceiveFailedShort, { description: err?.message })
     }
   }
 
@@ -103,37 +161,50 @@ export function PurchasesView() {
     if (!cancelTarget) return
     try {
       await cancelMut.mutateAsync(cancelTarget.id)
-      toast.success("تم إلغاء أمر الشراء")
+      toast.success(t.poCancelled)
       setCancelTarget(null)
     } catch (err: any) {
-      toast.error("فشل الإلغاء", { description: err?.message })
+      toast.error(t.poCancelFailedShort, { description: err?.message })
     }
   }
 
   async function handleDelete(id: string) {
     try {
       await deleteMut.mutateAsync(id)
-      toast.success("تم حذف أمر الشراء")
+      toast.success(t.poDeleted)
     } catch (err: any) {
-      toast.error("فشل الحذف", { description: err?.message })
+      toast.error(t.poDeleteFailedShort, { description: err?.message })
     }
   }
 
   return (
     <div className="space-y-5">
       <PageHeader
-        title="المشتريات وأوامر الشراء"
-        description="إنشاء أوامر شراء لتزويد المخزن وتأكيد الاستلام لتحديث الكميات تلقائياً."
+        title={t.purchasesTitleLong}
+        description={t.purchasesDescLong}
         icon={<ShoppingCart className="h-5 w-5" />}
         actions={
           canManage ? (
-            <Button onClick={() => setCreateOpen(true)} className="gap-2">
-              <Plus className="h-4 w-4" />
-              أمر شراء جديد
-            </Button>
+            <>
+              <Button
+                variant="outline"
+                onClick={() => setAutoDraftOpen(true)}
+                className="gap-2"
+              >
+                <Sparkles className="h-4 w-4" />
+                {t.fetchSupplierRequiredItems}
+              </Button>
+              <Button onClick={() => setCreateOpen(true)} className="gap-2">
+                <Plus className="h-4 w-4" />
+                {t.newPurchaseOrder}
+              </Button>
+            </>
           ) : null
         }
       />
+
+      {/* ADMIN-only auto-draft approval panel */}
+      {isAdmin ? <PoApprovalPanel /> : null}
 
       <Card className="p-3 sm:p-4">
         <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -141,10 +212,13 @@ export function PurchasesView() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">كل الحالات</SelectItem>
-            <SelectItem value="PENDING">معلّقة</SelectItem>
-            <SelectItem value="RECEIVED">مستلمة</SelectItem>
-            <SelectItem value="CANCELLED">ملغاة</SelectItem>
+            <SelectItem value="all">{t.allStatuses}</SelectItem>
+            <SelectItem value="PENDING_APPROVAL">{t.poStatusPendingApproval}</SelectItem>
+            <SelectItem value="APPROVED">{t.poStatusApproved}</SelectItem>
+            <SelectItem value="PENDING">{t.poStatusPending}</SelectItem>
+            <SelectItem value="RECEIVED">{t.poStatusReceived}</SelectItem>
+            <SelectItem value="CANCELLED">{t.poStatusCancelled}</SelectItem>
+            <SelectItem value="REJECTED">{t.poStatusRejected}</SelectItem>
           </SelectContent>
         </Select>
       </Card>
@@ -154,19 +228,19 @@ export function PurchasesView() {
           <div className="p-4"><TableSkeleton rows={5} /></div>
         ) : isError ? (
           <div className="p-4">
-            <EmptyState title="تعذّر تحميل أوامر الشراء" action={<Button onClick={() => refetch()}>إعادة المحاولة</Button>} />
+            <EmptyState title={t.poLoadFailed} action={<Button onClick={() => refetch()}>{t.retry}</Button>} />
           </div>
         ) : orders.length === 0 ? (
           <div className="p-4">
             <EmptyState
               icon={<ShoppingCart className="h-7 w-7" />}
-              title="لا توجد أوامر شراء"
-              description="أنشئ أول أمر شراء لتزويد المخزن بالمنتجات."
+              title={t.noPurchaseOrders}
+              description={t.noPurchaseOrdersDesc}
               action={
                 canManage ? (
                   <Button onClick={() => setCreateOpen(true)} className="gap-2">
                     <Plus className="h-4 w-4" />
-                    أمر شراء جديد
+                    {t.newPurchaseOrder}
                   </Button>
                 ) : null
               }
@@ -177,17 +251,17 @@ export function PurchasesView() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
-                  <TableHead>المورّد</TableHead>
-                  <TableHead className="hidden sm:table-cell">التاريخ</TableHead>
-                  <TableHead className="text-center">عدد الأصناف</TableHead>
-                  <TableHead className="text-center">الإجمالي</TableHead>
-                  <TableHead className="text-center">الحالة</TableHead>
+                  <TableHead>{t.colSupplier}</TableHead>
+                  <TableHead className="hidden sm:table-cell">{t.colDate}</TableHead>
+                  <TableHead className="text-center">{t.colItemsCount}</TableHead>
+                  <TableHead className="text-center">{t.colTotal}</TableHead>
+                  <TableHead className="text-center">{t.colStatus}</TableHead>
                   <TableHead className="w-12 text-center"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {orders.map((po) => {
-                  const meta = statusMeta[po.status]
+                  const meta = STATUS_META[po.status]
                   const Icon = meta.icon
                   return (
                     <TableRow key={po.id} className="hover:bg-muted/30 cursor-pointer" onClick={() => setDetail(po)}>
@@ -209,7 +283,7 @@ export function PurchasesView() {
                       <TableCell className="text-center">
                         <Badge variant={meta.variant} className={`gap-1 ${meta.className}`}>
                           <Icon className="h-3 w-3" />
-                          {meta.label}
+                          {t[meta.labelKey]}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
@@ -222,7 +296,7 @@ export function PurchasesView() {
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => setDetail(po)} className="gap-2">
                               <Eye className="h-4 w-4" />
-                              عرض التفاصيل
+                              {t.viewDetails}
                             </DropdownMenuItem>
                             {canManage && po.status === "PENDING" && (
                               <>
@@ -231,23 +305,32 @@ export function PurchasesView() {
                                   className="gap-2 text-emerald-600 focus:text-emerald-600"
                                 >
                                   <PackageCheck className="h-4 w-4" />
-                                  تأكيد الاستلام
+                                  {t.confirmReceipt}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   onClick={() => setCancelTarget(po)}
                                   className="gap-2 text-amber-600 focus:text-amber-600"
                                 >
                                   <XCircle className="h-4 w-4" />
-                                  إلغاء الأمر
+                                  {t.cancelOrder}
                                 </DropdownMenuItem>
                               </>
+                            )}
+                            {canManage && po.status === "APPROVED" && (
+                              <DropdownMenuItem
+                                onClick={() => setReceiveTarget(po)}
+                                className="gap-2 text-emerald-600 focus:text-emerald-600"
+                              >
+                                <PackageCheck className="h-4 w-4" />
+                                {t.confirmReceipt}
+                              </DropdownMenuItem>
                             )}
                             {canManage && po.status !== "RECEIVED" && (
                               <DropdownMenuItem
                                 onClick={() => handleDelete(po.id)}
                                 className="gap-2 text-destructive focus:text-destructive"
                               >
-                                حذف
+                                {t.delete}
                               </DropdownMenuItem>
                             )}
                           </DropdownMenuContent>
@@ -266,36 +349,36 @@ export function PurchasesView() {
       <Dialog open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>تفاصيل أمر الشراء</DialogTitle>
+            <DialogTitle>{t.poDetailsTitle}</DialogTitle>
             <DialogDescription className="sr-only">
-              عرض أصناف أمر الشراء والإجمالي.
+              {t.poDetailsDescLong}
             </DialogDescription>
           </DialogHeader>
           {detail ? (
             <div className="space-y-4">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
                 <div>
-                  <p className="text-xs text-muted-foreground">المورّد</p>
+                  <p className="text-xs text-muted-foreground">{t.supplier}</p>
                   <p className="font-medium">{detail.supplierName}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">التاريخ</p>
+                  <p className="text-xs text-muted-foreground">{t.date}</p>
                   <p className="font-medium">{fmt.dateTime(detail.createdAt)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">الحالة</p>
-                  <Badge variant={statusMeta[detail.status].variant} className={`gap-1 ${statusMeta[detail.status].className}`}>
-                    {statusMeta[detail.status].label}
+                  <p className="text-xs text-muted-foreground">{t.status}</p>
+                  <Badge variant={STATUS_META[detail.status].variant} className={`gap-1 ${STATUS_META[detail.status].className}`}>
+                    {t[STATUS_META[detail.status].labelKey]}
                   </Badge>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">الإجمالي</p>
+                  <p className="text-xs text-muted-foreground">{t.total}</p>
                   <p className="font-semibold text-primary">{fmt.currency(detail.total)}</p>
                 </div>
               </div>
               {detail.note ? (
                 <div className="rounded-lg bg-muted/40 p-3 text-sm">
-                  <p className="text-xs text-muted-foreground mb-1">ملاحظة</p>
+                  <p className="text-xs text-muted-foreground mb-1">{t.note}</p>
                   {detail.note}
                 </div>
               ) : null}
@@ -303,10 +386,10 @@ export function PurchasesView() {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/40">
-                      <TableHead>المنتج</TableHead>
-                      <TableHead className="text-center">الكمية</TableHead>
-                      <TableHead className="text-center">سعر الوحدة</TableHead>
-                      <TableHead className="text-center">الإجمالي</TableHead>
+                      <TableHead>{t.colProduct}</TableHead>
+                      <TableHead className="text-center">{t.colQty}</TableHead>
+                      <TableHead className="text-center">{t.unitPrice}</TableHead>
+                      <TableHead className="text-center">{t.colTotal}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -321,6 +404,58 @@ export function PurchasesView() {
                   </TableBody>
                 </Table>
               </div>
+
+              {(() => {
+                const customs = Number(detail.customsAmount) || 0
+                const shipping = Number(detail.shippingAmount) || 0
+                const other = Number(detail.otherCharges) || 0
+                const extraTotal = customs + shipping + other
+                if (extraTotal <= 0) return null
+                const applied = detail.landedCostApplied && detail.status === "RECEIVED"
+                return (
+                  <div
+                    className={`rounded-lg border p-3 text-sm ${
+                      applied
+                        ? "border-emerald-500/30 bg-emerald-500/5"
+                        : "border-amber-500/30 bg-amber-500/5"
+                    }`}
+                  >
+                    <p className="mb-2 flex items-center gap-2 font-medium">
+                      <Truck className="h-4 w-4 text-primary" />
+                      {t.landedCostSectionTitle}
+                    </p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                      <div>
+                        <span className="text-muted-foreground">{t.customs}</span>
+                        <p className="font-semibold tabular-nums">{fmt.currency(customs)}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">{t.shipping}</span>
+                        <p className="font-semibold tabular-nums">{fmt.currency(shipping)}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">{t.otherFees}</span>
+                        <p className="font-semibold tabular-nums">{fmt.currency(other)}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">{t.total}</span>
+                        <p className="font-semibold tabular-nums text-primary">
+                          {fmt.currency(extraTotal)}
+                        </p>
+                      </div>
+                    </div>
+                    <p
+                      className={`mt-2 text-xs leading-relaxed ${
+                        applied
+                          ? "text-emerald-700 dark:text-emerald-400"
+                          : "text-amber-700 dark:text-amber-400"
+                      }`}
+                    >
+                      {applied ? t.landedCostAppliedLong : t.landedCostPreviewLongDetail}
+                    </p>
+                  </div>
+                )
+              })()}
             </div>
           ) : null}
         </DialogContent>
@@ -328,18 +463,119 @@ export function PurchasesView() {
 
       <PurchaseOrderDialog open={createOpen} onOpenChange={setCreateOpen} />
 
+      {/* Auto-draft dialog — summon low-stock items for a supplier */}
+      <Dialog
+        open={autoDraftOpen}
+        onOpenChange={(o) => {
+          setAutoDraftOpen(o)
+          if (!o) setAutoDraftSupplier("")
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              {t.autoDraftDialogTitle}
+            </DialogTitle>
+            <DialogDescription>
+              {t.autoDraftDialogDesc}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>{t.supplier} *</Label>
+            <Select value={autoDraftSupplier} onValueChange={setAutoDraftSupplier}>
+              <SelectTrigger>
+                <SelectValue placeholder={t.selectSupplier} />
+              </SelectTrigger>
+              <SelectContent>
+                {suppliers.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {t.suggestedQtyFormulaLong}
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setAutoDraftOpen(false)
+                setAutoDraftSupplier("")
+              }}
+              disabled={autoDraftMut.isPending}
+            >
+              {t.cancel}
+            </Button>
+            <Button
+              type="button"
+              onClick={handleAutoDraft}
+              disabled={autoDraftMut.isPending || !autoDraftSupplier}
+              className="gap-1.5"
+            >
+              {autoDraftMut.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+              {t.createDraftButton}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <ConfirmDialog
         open={!!receiveTarget}
         onOpenChange={(o) => !o && setReceiveTarget(null)}
-        title="تأكيد استلام أمر الشراء"
-        description={
-          <>
-            سيتم تحويل الأمر إلى “مستلم” وإضافة الكميات إلى المخزون. لا يمكن التراجع
-            عن هذه العملية.
-          </>
+        title={
+          receiveTarget &&
+          (Number(receiveTarget.customsAmount) || 0) +
+            (Number(receiveTarget.shippingAmount) || 0) +
+            (Number(receiveTarget.otherCharges) || 0) >
+            0
+            ? t.updateCostPricesTitle
+            : t.confirmPoReceipt
         }
-        confirmText="تأكيد الاستلام"
+        description={
+          receiveTarget &&
+          (Number(receiveTarget.customsAmount) || 0) +
+            (Number(receiveTarget.shippingAmount) || 0) +
+            (Number(receiveTarget.otherCharges) || 0) >
+            0 ? (
+            <span className="flex flex-col gap-2 text-sm leading-relaxed">
+              <span className="flex items-start gap-2 font-medium text-amber-700 dark:text-amber-400">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                {t.updateCostPricesTitle}
+              </span>
+              <span>
+                {t.updateCostPricesConfirmDesc}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {t.customs}: {fmt.currency(Number(receiveTarget.customsAmount) || 0)} — {t.shipping}: {fmt.currency(Number(receiveTarget.shippingAmount) || 0)} — {t.otherFees}: {fmt.currency(Number(receiveTarget.otherCharges) || 0)}
+              </span>
+              <span className="font-medium">{t.proceedQuestion}</span>
+            </span>
+          ) : (
+            <>
+              {t.confirmReceiptDescLong}
+            </>
+          )
+        }
+        confirmText={t.confirmReceipt}
         destructive={false}
+        cancelClassName={
+          receiveTarget &&
+          (Number(receiveTarget.customsAmount) || 0) +
+            (Number(receiveTarget.shippingAmount) || 0) +
+            (Number(receiveTarget.otherCharges) || 0) >
+            0
+            ? "border-destructive/40 text-destructive hover:bg-destructive/5"
+            : undefined
+        }
         loading={receiveMut.isPending}
         onConfirm={handleReceive}
       />
@@ -347,14 +583,13 @@ export function PurchasesView() {
       <ConfirmDialog
         open={!!cancelTarget}
         onOpenChange={(o) => !o && setCancelTarget(null)}
-        title="إلغاء أمر الشراء"
+        title={t.cancelPoTitle}
         description={
           <>
-            سيتم إلغاء أمر الشراء من{" "}
-            <span className="font-semibold">“{cancelTarget?.supplierName}”</span>.
+            {t.cancelPoConfirmLong.replace("{supplier}", cancelTarget?.supplierName ?? "")}
           </>
         }
-        confirmText="إلغاء الأمر"
+        confirmText={t.cancelOrder}
         loading={cancelMut.isPending}
         onConfirm={handleCancel}
       />

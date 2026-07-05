@@ -2,7 +2,8 @@
 // (Sales, Inventory, Purchasing)
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
@@ -20,11 +21,18 @@ model User {
   updatedAt    DateTime @updatedAt
 
   sales Sale[]
+  shifts Shift[]
+  spotChecks SpotCheck[]
+  suspendedSales SuspendedSale[]
+  exchanges ExchangeSale[]
+  promotions Promotion[]
+  priceChanges PriceChange[]
 }
 
 model Category {
   id        String    @id @default(cuid())
   name      String    @unique
+  code      String?   @unique // short code for barcode generation (e.g. "03")
   imageUrl  String?
   createdAt DateTime  @default(now())
   products  Product[]
@@ -46,32 +54,42 @@ model Supplier {
   email     String?
   address   String?
   createdAt DateTime         @default(now())
-  products  Product[]
+  products  Product[]        @relation("ProductSupplier")
+  defaultForProducts Product[] @relation("DefaultProductSupplier")
   orders    PurchaseOrder[]
 }
 
 model Product {
-  id           String           @id @default(cuid())
-  name         String
-  barcode      String?
-  categoryId   String?
-  quantity     Int              @default(0) // total across all warehouses (derived)
-  reorderLevel Int              @default(5)
-  costPrice    Float            @default(0)
-  salePrice    Float            @default(0)
-  unit         String           @default("قطعة")
-  unitId       String?
-  imageUrl     String? // product image (local path or remote URL)
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
+  id              String           @id @default(cuid())
+  name            String
+  barcode         String?
+  categoryId      String?
+  quantity        Int              @default(0) // total across all warehouses (derived)
+  reorderLevel    Int              @default(5)
+  optimalOrderQty Int              @default(0) // optimal reorder quantity (0 = not set)
+  costPrice       Float            @default(0)
+  salePrice       Float            @default(0) // retail price (default tier)
+  wholesalePrice  Float            @default(0) // wholesale tier (0 = same as retail)
+  corporatePrice  Float            @default(0) // corporate/contract tier (0 = same as retail)
+  unit            String           @default("قطعة")
+  unitId          String?
+  imageUrl        String? // product image (local path or remote URL)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
   category     Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  supplier     Supplier?        @relation(fields: [supplierId], references: [id], onDelete: SetNull)
-  supplierId   String?
+  supplier     Supplier?        @relation("ProductSupplier", fields: [supplierId], references: [id], onDelete: SetNull)
+  supplierId   String? // current supplier (editable)
+  defaultSupplierId String? // preferred supplier for auto-PO
+  defaultSupplier Supplier? @relation("DefaultProductSupplier", fields: [defaultSupplierId], references: [id], onDelete: SetNull)
   unitRef      Unit?            @relation(fields: [unitId], references: [id], onDelete: SetNull)
   stockItems   StockItem[]
   saleItems    SaleItem[]
   poItems      PurchaseOrderItem[]
+  spotChecks   SpotCheck[]
+  exchangeLines ExchangeLine[]
+  promotions   Promotion[]
+  priceChanges PriceChange[]
 }
 
 // Multiple warehouses
@@ -103,8 +121,20 @@ model PurchaseOrder {
   id          String               @id @default(cuid())
   supplierId  String
   warehouseId String? // destination warehouse for received stock
-  status      String               @default("PENDING") // PENDING | RECEIVED | CANCELLED
+  // PENDING_APPROVAL = auto-draft awaiting manager approval
+  // APPROVED = manager approved → ready to send to supplier
+  // PENDING = manually created, awaiting receipt (legacy/default)
+  // RECEIVED = goods received, stock updated, cost prices recalculated
+  // CANCELLED = cancelled
+  // REJECTED = manager rejected the auto-draft
+  status      String               @default("PENDING") // PENDING_APPROVAL | APPROVED | PENDING | RECEIVED | CANCELLED | REJECTED
+  rejectionReason String?
   total       Float                @default(0)
+  // Landed cost: extra charges allocated across items
+  customsAmount  Float             @default(0) // جمارك
+  shippingAmount Float             @default(0) // شحن
+  otherCharges   Float             @default(0) // رسوم أخرى
+  landedCostApplied Boolean        @default(false) // whether cost prices were updated on receipt
   note        String?
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
@@ -121,6 +151,11 @@ model PurchaseOrderItem {
   quantity        Int
   unitCost        Float
   subtotal        Float
+  // Optional manager-suggested retail sale price for this product. When set
+  // (> 0) and different from the product's current `salePrice`, the receive
+  // flow writes a PriceChange audit row + updates the product's salePrice
+  // via the pricing engine (instead of editing the product directly).
+  suggestedSalePrice Float     @default(0)
 
   purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
   product         Product       @relation(fields: [productId], references: [id])
@@ -141,6 +176,8 @@ model Sale {
   refundTotal  Float      @default(0) // cumulative refunded amount
   refundStatus String     @default("NONE") // NONE | PARTIAL | FULL
   paymentMethod String    @default("CASH") // CASH | CARD | TRANSFER
+  deliveryFee  Float      @default(0) // delivery fee (0 = no delivery)
+  driverName   String?    // optional delivery driver name
   userId       String?
   createdAt    DateTime   @default(now())
 
@@ -207,6 +244,7 @@ model Customer {
   name      String
   phone     String
   address   String
+  type      String   @default("RETAIL") // RETAIL | WHOLESALE | CORPORATE
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   sales     Sale[]
@@ -245,4 +283,151 @@ model JournalLine {
 
   journalEntry   JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
   account        Account      @relation(fields: [accountId], references: [id])
+}
+
+// ─── MODULE 3: Shift Closing & Cash/Terminal Reconciliation ─────────
+model Shift {
+  id            String   @id @default(cuid())
+  shiftNo       String   @unique
+  userId        String?
+  openedAt      DateTime @default(now())
+  closedAt      DateTime?
+  status        String   @default("OPEN") // OPEN | CLOSED
+
+  // System-recorded totals during the shift (from sales)
+  expectedCash     Float @default(0)
+  expectedKnet     Float @default(0) // K-Net card sales
+  expectedVisa     Float @default(0) // Visa/Mastercard sales
+
+  // Actual counted amounts at close (entered by supervisor)
+  countedCash      Float @default(0)
+  countedKnet      Float @default(0) // actual from K-Net terminal receipts
+  countedVisa      Float @default(0) // actual from Visa terminal receipts
+
+  // Computed variances (counted − expected)
+  cashVariance     Float @default(0)
+  knetVariance     Float @default(0)
+  visaVariance     Float @default(0)
+
+  note         String?
+  createdAt    DateTime @default(now())
+
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+// ─── MODULE 4: Blind Spot-Check Inventory ───────────────────────────
+// Quick surprise count of a single product/category by a supervisor,
+// without revealing the book quantity. Variance is computed instantly.
+model SpotCheck {
+  id           String   @id @default(cuid())
+  productId    String
+  userId       String?
+  // The book (system) quantity at the moment of the check — recorded
+  // AFTER the supervisor enters the counted qty to keep the check blind.
+  bookQty      Int      @default(0)
+  countedQty   Int      @default(0)
+  variance     Int      @default(0) // counted − book
+  note         String?
+  createdAt    DateTime @default(now())
+
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+// ─── MODULE 5: Suspended / Parked Sales ─────────────────────────────
+// A parked sale holds the cart snapshot (items + customer + totals) so
+// the cashier can serve the next customer and resume later.
+model SuspendedSale {
+  id            String   @id @default(cuid())
+  holdNo        String   @unique // e.g. "HOLD-001"
+  label         String?  // optional customer name or note
+  cartJson      String   // JSON snapshot of cart items + customer + totals
+  itemCount     Int      @default(0)
+  total         Float    @default(0)
+  userId        String?
+  createdAt     DateTime @default(now())
+  resumedAt     DateTime?
+  status        String   @default("PARKED") // PARKED | RESUMED | DISCARDED
+
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+// ─── MODULE 6: Exchange / Swap Sales ────────────────────────────────
+// An exchange records returned items (negative value) + new items (positive)
+// in one transaction. Net settlement = sum of all line values.
+// If net > 0 → customer pays the difference (cash/card).
+// If net < 0 → refund the difference to customer.
+// If net = 0 → even swap, no cash movement.
+model ExchangeSale {
+  id            String   @id @default(cuid())
+  exchangeNo    String   @unique // e.g. "EXC-00001"
+  originalSaleId String? // the sale being exchanged against (optional)
+  customerName  String?
+  customerPhone String?
+  netAmount     Float    @default(0) // positive = collect, negative = refund
+  paymentMethod String   @default("CASH") // how the net difference is settled
+  itemCount     Int      @default(0)
+  note          String?
+  userId        String?
+  createdAt     DateTime @default(now())
+
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  lines         ExchangeLine[]
+}
+
+model ExchangeLine {
+  id            String   @id @default(cuid())
+  exchangeId    String
+  productId     String
+  productName   String
+  quantity      Int      // negative = returned, positive = new item
+  unitPrice     Float
+  lineTotal     Float    // quantity × unitPrice (signed)
+  isReturn      Boolean  @default(false)
+
+  exchange      ExchangeSale @relation(fields: [exchangeId], references: [id], onDelete: Cascade)
+  product       Product  @relation(fields: [productId], references: [id])
+}
+
+// ─── MODULE 7: Pricing Engine — Promotions + Audit Log ──────────────
+// Temporary/promotional pricing with a date window. The POS reads the
+// active promotion (if any) and applies it as the effective sale price.
+//
+// A promotion has a SCOPE that determines which products it applies to:
+//   PRODUCT               — a single product (productId required)
+//   CATEGORY              — all products in one or more categories (categoryIdsJson)
+//   ALL                   — every product
+//   ALL_EXCEPT_CATEGORIES — every product EXCEPT those in categoryIdsJson
+model Promotion {
+  id              String   @id @default(cuid())
+  productId       String?  // required when scope = PRODUCT; null otherwise
+  scope           String   @default("PRODUCT") // PRODUCT | CATEGORY | ALL | ALL_EXCEPT_CATEGORIES
+  categoryIdsJson String?  // JSON array of category IDs (CATEGORY + ALL_EXCEPT_CATEGORIES)
+  discountType    String   // PERCENT | AMOUNT
+  discountValue   Float    // percentage (0-100) or fixed amount in currency
+  startAt         DateTime
+  endAt           DateTime
+  isActive        Boolean  @default(true)
+  note            String?
+  createdById     String?
+  createdAt       DateTime @default(now())
+
+  product         Product?  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdBy       User?     @relation(fields: [createdById], references: [id], onDelete: SetNull)
+}
+
+// Immutable audit log of every sale-price change. Once written, a row can
+// never be updated or deleted — the API enforces this (no PATCH/DELETE).
+model PriceChange {
+  id           String   @id @default(cuid())
+  productId    String
+  priceType    String   // RETAIL | WHOLESALE | CORPORATE
+  oldPrice     Float
+  newPrice     Float
+  changedById  String?
+  changedAt    DateTime @default(now())
+  note         String?
+
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  changedBy    User?    @relation(fields: [changedById], references: [id], onDelete: SetNull)
 }

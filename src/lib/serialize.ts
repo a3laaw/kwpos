@@ -32,8 +32,13 @@ export function serializeProduct(p: AnyRow): Product {
     supplierName: (p.supplier as any)?.name ?? null,
     quantity: Number(p.quantity ?? 0),
     reorderLevel: Number(p.reorderLevel ?? 0),
+    optimalOrderQty: Number(p.optimalOrderQty ?? 0),
+    defaultSupplierId: (p.defaultSupplierId as string | null) ?? null,
+    defaultSupplierName: (p.defaultSupplier as any)?.name ?? null,
     costPrice: Number(p.costPrice ?? 0),
     salePrice: Number(p.salePrice ?? 0),
+    wholesalePrice: Number(p.wholesalePrice ?? 0),
+    corporatePrice: Number(p.corporatePrice ?? 0),
     unit: String(p.unit ?? "قطعة"),
     unitId: (p.unitId as string | null) ?? null,
     imageUrl: (p.imageUrl as string | null) ?? null,
@@ -61,6 +66,7 @@ export function serializeCategory(c: AnyRow): Category {
   return {
     id: String(c.id),
     name: String(c.name),
+    code: (c.code as string | null) ?? null,
     imageUrl: (c.imageUrl as string | null) ?? null,
     createdAt: String(c.createdAt),
   }
@@ -86,6 +92,7 @@ export function serializePoItem(i: AnyRow): PurchaseOrderItem {
     quantity: Number(i.quantity ?? 0),
     unitCost: Number(i.unitCost ?? 0),
     subtotal: Number(i.subtotal ?? 0),
+    suggestedSalePrice: Number(i.suggestedSalePrice ?? 0),
   }
 }
 
@@ -96,6 +103,11 @@ export function serializePurchaseOrder(po: AnyRow): PurchaseOrder {
     supplierName: (po.supplier as any)?.name ?? "—",
     status: (po.status as PurchaseOrder["status"]) ?? "PENDING",
     total: Number(po.total ?? 0),
+    customsAmount: Number(po.customsAmount ?? 0),
+    shippingAmount: Number(po.shippingAmount ?? 0),
+    otherCharges: Number(po.otherCharges ?? 0),
+    landedCostApplied: Boolean(po.landedCostApplied ?? false),
+    rejectionReason: (po.rejectionReason as string | null) ?? null,
     note: (po.note as string | null) ?? null,
     items: (po.items as AnyRow[] | undefined)?.map(serializePoItem) ?? [],
     createdAt: String(po.createdAt),
@@ -131,6 +143,8 @@ export function serializeSale(s: AnyRow): Sale {
     refundTotal: Number(s.refundTotal ?? 0),
     refundStatus: (s.refundStatus as Sale["refundStatus"]) ?? "NONE",
     paymentMethod: (s.paymentMethod as Sale["paymentMethod"]) ?? "CASH",
+    deliveryFee: Number(s.deliveryFee ?? 0),
+    driverName: (s.driverName as string | null) ?? null,
     userId: (s.userId as string | null) ?? null,
     userName: (s.user as any)?.name ?? null,
     items: (s.items as AnyRow[] | undefined)?.map(serializeSaleItem) ?? [],
@@ -179,7 +193,51 @@ export function serializeCustomer(c: AnyRow): Customer {
     name: String(c.name),
     phone: String(c.phone ?? ""),
     address: String(c.address ?? ""),
+    type: ((c.type as string) || "RETAIL") as Customer["type"],
     createdAt: String(c.createdAt),
     updatedAt: String(c.updatedAt),
+  }
+}
+
+/* ----------------------------- Exchanges --------------------------- */
+/** Convert a Prisma ExchangeLine row into our API shape. */
+export function serializeExchangeLine(l: AnyRow): {
+  id: string
+  exchangeId: string
+  productId: string
+  productName: string
+  quantity: number
+  unitPrice: number
+  lineTotal: number
+  isReturn: boolean
+} {
+  return {
+    id: String(l.id),
+    exchangeId: String(l.exchangeId),
+    productId: String(l.productId),
+    productName: String(l.productName ?? (l.product as any)?.name ?? "—"),
+    quantity: Number(l.quantity ?? 0),
+    unitPrice: Number(l.unitPrice ?? 0),
+    lineTotal: Number(l.lineTotal ?? 0),
+    isReturn: Boolean(l.isReturn ?? false),
+  }
+}
+
+/** Convert a Prisma ExchangeSale row (with lines + user) into our API shape. */
+export function serializeExchange(e: AnyRow) {
+  return {
+    id: String(e.id),
+    exchangeNo: String(e.exchangeNo),
+    originalSaleId: (e.originalSaleId as string | null) ?? null,
+    customerName: (e.customerName as string | null) ?? null,
+    customerPhone: (e.customerPhone as string | null) ?? null,
+    netAmount: Number(e.netAmount ?? 0),
+    paymentMethod: (e.paymentMethod as string) ?? "CASH",
+    itemCount: Number(e.itemCount ?? 0),
+    note: (e.note as string | null) ?? null,
+    userId: (e.userId as string | null) ?? null,
+    userName: (e.user as any)?.name ?? null,
+    lines: ((e.lines as AnyRow[] | undefined) ?? []).map(serializeExchangeLine),
+    createdAt: String(e.createdAt),
   }
 }

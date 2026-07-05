@@ -181,3 +181,13 @@ export const DEFAULT_COUNTRY_CODE = "KW"
 export function getCountry(code: string): CountryConfig {
   return COUNTRIES.find((c) => c.code === code) ?? COUNTRIES[0]
 }
+
+/**
+ * Return the country's display name for the given UI locale.
+ * Arabic UI → `name` (Arabic), English UI → `nameEn` (English).
+ * Falls back gracefully if `nameEn` is missing.
+ */
+export function getCountryName(c: CountryConfig, locale: "ar" | "en"): string {
+  if (locale === "en" && c.nameEn) return c.nameEn
+  return c.name
+}

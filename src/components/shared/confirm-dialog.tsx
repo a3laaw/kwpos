@@ -20,6 +20,10 @@ interface ConfirmDialogProps {
   confirmText?: string
   cancelText?: string
   destructive?: boolean
+  /** Extra class for the confirm button (overrides destructive default). */
+  confirmClassName?: string
+  /** Extra class for the cancel button (e.g. red outline). */
+  cancelClassName?: string
   loading?: boolean
   onConfirm: () => void | Promise<void>
 }
@@ -32,6 +36,8 @@ export function ConfirmDialog({
   confirmText = "تأكيد",
   cancelText = "إلغاء",
   destructive = true,
+  confirmClassName,
+  cancelClassName,
   loading = false,
   onConfirm,
 }: ConfirmDialogProps) {
@@ -43,14 +49,25 @@ export function ConfirmDialog({
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={loading}>{cancelText}</AlertDialogCancel>
+          <AlertDialogCancel
+            disabled={loading}
+            className={cancelClassName || undefined}
+          >
+            {cancelText}
+          </AlertDialogCancel>
           <AlertDialogAction
             disabled={loading}
             onClick={async (e) => {
               e.preventDefault()
               await onConfirm()
             }}
-            className={destructive ? "bg-destructive text-white hover:bg-destructive/90" : ""}
+            className={
+              confirmClassName
+                ? confirmClassName
+                : destructive
+                  ? "bg-destructive text-white hover:bg-destructive/90"
+                  : ""
+            }
           >
             {loading ? "جارٍ التنفيذ..." : confirmText}
           </AlertDialogAction>

@@ -1,0 +1,2002 @@
+     1→export type Locale = "ar" | "en"
+     2→
+     3→export interface Dict {
+     4→  // Direction
+     5→  dir: "rtl" | "ltr"
+     6→
+     7→  // Brand
+     8→  appName: string
+     9→  appTagline: string
+    10→
+    11→  // Nav
+    12→  navDashboard: string
+    13→  navSales: string
+    14→  navInvoices: string
+    15→  navReports: string
+    16→  navInventory: string
+    17→  navPurchases: string
+    18→  navSuppliers: string
+    19→  navCustomers: string
+    20→  navAnalytics: string
+    21→  navAccounting: string
+    22→  navIntegrations: string
+    23→  navSettings: string
+    24→  navShifts: string
+    25→  navSpotCheck: string
+    26→  navExchanges: string
+    27→  navPricing: string
+    28→  // Parent (grouped) nav labels
+    29→  navInvoicesReports: string
+    30→  navInventoryPurchases: string
+    31→  navAccountingCustomers: string
+    32→
+    33→  // Roles
+    34→  roleAdmin: string
+    35→  roleSales: string
+    36→  roleWarehouse: string
+    37→
+    38→  // Common actions (existing)
+    39→  add: string
+    40→  edit: string
+    41→  delete: string
+    42→  save: string
+    43→  cancel: string
+    44→  search: string
+    45→  apply: string
+    46→  reset: string
+    47→  export: string
+    48→  import: string
+    49→  print: string
+    50→  close: string
+    51→  confirm: string
+    52→  loading: string
+    53→  noData: string
+    54→  retry: string
+    55→  total: string
+    56→
+    57→  // Common — products
+    58→  product: string
+    59→  products: string
+    60→  productRequired: string
+    61→  productName: string
+    62→  productNotFound: string
+    63→  productDeleted: string
+    64→  productUpdated: string
+    65→  productAdded: string
+    66→  productNameRequired: string
+    67→  productImage: string
+    68→
+    69→  // Common — customers
+    70→  customer: string
+    71→  customers: string
+    72→  cashCustomer: string
+    73→  customerName: string
+    74→  customerPhone: string
+    75→  customerNameRequired: string
+    76→
+    77→  // Common — suppliers
+    78→  supplier: string
+    79→  suppliers: string
+    80→  supplierName: string
+    81→  supplierNameRequired: string
+    82→  supplierNamePlaceholder: string
+    83→  contactPerson: string
+    84→  supplierRequired: string
+    85→  selectSupplier: string
+    86→  selectSupplierFirst: string
+    87→  supplierDeleted: string
+    88→  supplierUpdated: string
+    89→  supplierAdded: string
+    90→
+    91→  // Common — quantity / stock
+    92→  qty: string
+    93→  quantity: string
+    94→  qtyRequired: string
+    95→  qtyUnavailable: string
+    96→  qtyExceedsStock: string
+    97→  qtyInsufficient: string
+    98→  stockInsufficient: string
+    99→  stock: string
+   100→  inStock: string
+   101→  outOfStock: string
+   102→  outOfStockShort: string
+   103→  outOfStockFull: string
+   104→  lowStock: string
+   105→  nearOutOfStock: string
+   106→  available: string
+   107→  availableFrom: string
+   108→  currentQty: string
+   109→
+   110→  // Common — price / barcode
+   111→  price: string
+   112→  unitPrice: string
+   113→  costPrice: string
+   114→  salePrice: string
+   115→  wholesalePrice: string
+   116→  corporatePrice: string
+   117→  barcode: string
+   118→  barcodeGenerated: string
+   119→  barcodeGenerateFailed: string
+   120→  autoGenerate: string
+   121→  autoGenerateBarcode: string
+   122→  selectCategoryFirst: string
+   123→  selectCategoryForAuto: string
+   124→  generateBarcode: string
+   125→
+   126→  // Common — category
+   127→  category: string
+   128→  categories: string
+   129→  allCategories: string
+   130→  selectCategory: string
+   131→  categoryRequired: string
+   132→  categoryName: string
+   133→  categoryCode: string
+   134→  categoryCodePlaceholder: string
+   135→
+   136→  // Common — date / period
+   137→  date: string
+   138→  fromDate: string
+   139→  toDate: string
+   140→  from: string
+   141→  to: string
+   142→  period: string
+   143→  allPeriods: string
+   144→  quickRange: string
+   145→  last7Days: string
+   146→  last30Days: string
+   147→  last90Days: string
+   148→  lastYear: string
+   149→
+   150→  // Common — status / misc
+   151→  status: string
+   152→  note: string
+   153→  noteOptional: string
+   154→  notePlaceholder: string
+   155→  optional: string
+   156→  required: string
+   157→  actions: string
+   158→  open: string
+   159→  yes: string
+   160→  no: string
+   161→  all: string
+   162→  none: string
+   163→
+   164→  // Common — money
+   165→  subtotal: string
+   166→  discount: string
+   167→  tax: string
+   168→  taxPercent: string
+   169→  taxRate: string
+   170→  totalAmount: string
+   171→  amount: string
+   172→  amountDue: string
+   173→  totalPaid: string
+   174→  grandTotal: string
+   175→  invoiceTotal: string
+   176→  additionalFees: string
+   177→  country: string
+   178→  currency: string
+   179→
+   180→  // Common — payment
+   181→  payment: string
+   182→  paymentMethod: string
+   183→  paymentMethodShort: string
+   184→  cash: string
+   185→  card: string
+   186→  transfer: string
+   187→  cashShort: string
+   188→  cardShort: string
+   189→  transferShort: string
+   190→  payCash: string
+   191→  payCard: string
+   192→  payTransfer: string
+   193→
+   194→  // Common — unit
+   195→  unit: string
+   196→  units: string
+   197→  unitRequired: string
+   198→  selectUnit: string
+   199→  piece: string
+   200→  pieceDefault: string
+   201→
+   202→  // Common — warehouse
+   203→  warehouse: string
+   204→  warehouses: string
+   205→  warehouseName: string
+   206→  warehouseNameRequired: string
+   207→  warehouseNamePlaceholder: string
+   208→  warehouseCode: string
+   209→  warehouseLocation: string
+   210→  warehouseDeleted: string
+   211→  warehouseUpdated: string
+   212→  warehouseAdded: string
+   213→  warehouseHasStock: string
+   214→  noWarehouses: string
+   215→  addWarehouse: string
+   216→  addFirstWarehouse: string
+   217→  selectWarehouse: string
+   218→
+   219→  // Common — branch
+   220→  branch: string
+   221→  branchWarehouse: string
+   222→  allBranches: string
+   223→
+   224→  // Common — search
+   225→  searchPlaceholder: string
+   226→  searchProductPlaceholder: string
+   227→  searchNameBarcode: string
+   228→  searchInvoicePlaceholder: string
+   229→  searchNameBarcodePlaceholder: string
+   230→
+   231→  // Common — items
+   232→  items: string
+   233→  itemsCount: string
+   234→  itemCount: string
+   235→  itemsCountLabel: string
+   236→  noItems: string
+   237→  noProducts: string
+   238→  noProductsToPrint: string
+   239→  noMatchingProducts: string
+   240→  noDataForPeriod: string
+   241→  tryAnotherKeyword: string
+   242→
+   243→  // Common — loading / progress
+   244→  reload: string
+   245→  loadingPrices: string
+   246→  loadingShifts: string
+   247→  loadingJournal: string
+   248→  loadingStats: string
+   249→  loadingAudit: string
+   250→  calculatingReport: string
+   251→  calculatingMatrix: string
+   252→  calculatingFinancialReport: string
+   253→  updating: string
+   254→  executing: string
+   255→  completing: string
+   256→  approving: string
+   257→  applying: string
+   258→
+   259→  // Common — errors
+   260→  loadFailed: string
+   261→  productsLoadFailed: string
+   262→  invoicesLoadFailed: string
+   263→  poLoadFailed: string
+   264→  suppliersLoadFailed: string
+   265→  reportLoadFailed: string
+   266→  pricesLoadFailed: string
+   267→  approvalDraftsLoadFailed: string
+   268→  auditLoadFailed: string
+   269→  dataLoadFailed: string
+   270→
+   271→  // Common — save / export / import
+   272→  saveChanges: string
+   273→  saveFailed: string
+   274→  deleteFailed: string
+   275→  addFailed: string
+   276→  recordFailed: string
+   277→  exportFailed: string
+   278→  exportSucceeded: string
+   279→  importedToExcel: string
+   280→  exportedToExcel: string
+   281→  importSucceeded: string
+   282→  importFailed: string
+   283→  uploadExcelFile: string
+   284→  downloadEmptyTemplate: string
+   285→  imageUploaded: string
+   286→  imageUploadFailed: string
+   287→  changeImage: string
+   288→  uploadImage: string
+   289→  imageFormatsHint: string
+   290→
+   291→  // Common — filters
+   292→  filters: string
+   293→  activeFilters: string
+   294→  applyFilters: string
+   295→  resetFilters: string
+   296→  activeLabel: string
+   297→  filterBy: string
+   298→  source: string
+   299→  allSources: string
+   300→  posSource: string
+   301→  shopifySource: string
+   302→
+   303→  // Common — pagination / nav
+   304→  expandAll: string
+   305→  collapseAll: string
+   306→  previous: string
+   307→  next: string
+   308→  pageXofY: string
+   309→  viewDetails: string
+   310→  openItem: string
+   311→  fetchInvoice: string
+   312→  lookupInvoice: string
+   313→
+   314→  // Common — form fields
+   315→  name: string
+   316→  namePlaceholder: string
+   317→  phone: string
+   318→  phonePlaceholder: string
+   319→  emailPlaceholder: string
+   320→  address: string
+   321→  addressPlaceholder: string
+   322→  selectPlaceholder: string
+   323→  selectItem: string
+   324→
+   325→  // Common — selection actions
+   326→  selectProduct: string
+   327→  selectProductFirst: string
+   328→  addAtLeastOneProduct: string
+   329→  addLine: string
+   330→  addRow: string
+   331→  addProduct: string
+   332→  addProductNew: string
+   333→  editProduct: string
+   334→  addSupplier: string
+   335→  addSupplierNew: string
+   336→  editSupplier: string
+   337→  addWarehouseNew: string
+   338→  editWarehouse: string
+   339→  addCategory: string
+   340→  editCategory: string
+   341→
+   342→  // Common — delete confirmations
+   343→  deleteProductTitle: string
+   344→  deleteProductConfirm: string
+   345→  deleteSupplierTitle: string
+   346→  deleteSupplierConfirm: string
+   347→  deleteWarehouseTitle: string
+   348→  deleteWarehouseConfirm: string
+   349→  deleteConfirm: string
+   350→
+   351→  // Page titles
+   352→  dashboardTitle: string
+   353→  dashboardDesc: string
+   354→  salesTitle: string
+   355→  salesDesc: string
+   356→  invoicesTitle: string
+   357→  invoicesDesc: string
+   358→  reportsTitle: string
+   359→  reportsDesc: string
+   360→  inventoryTitle: string
+   361→  inventoryDesc: string
+   362→  purchasesTitle: string
+   363→  purchasesDesc: string
+   364→  suppliersTitle: string
+   365→  suppliersDesc: string
+   366→  customersTitle: string
+   367→  customersDesc: string
+   368→  analyticsTitle: string
+   369→  analyticsDesc: string
+   370→  accountingTitle: string
+   371→  accountingDesc: string
+   372→  integrationsTitle: string
+   373→  integrationsDesc: string
+   374→  settingsTitle: string
+   375→  settingsDesc: string
+   376→  shiftsTitle: string
+   377→  shiftsDesc: string
+   378→  spotCheckTitle: string
+   379→  spotCheckDesc: string
+   380→  exchangesTitle: string
+   381→  exchangesDesc: string
+   382→  pricingTitle: string
+   383→  pricingDesc: string
+   384→
+   385→  // Theme + language
+   386→  darkMode: string
+   387→  lightMode: string
+   388→  switchLang: string
+   389→  logout: string
+   390→
+   391→  // Login
+   392→  loginTitle: string
+   393→  loginDesc: string
+   394→  email: string
+   395→  password: string
+   396→  login: string
+   397→  loggingIn: string
+   398→  demoAccounts: string
+   399→  welcomeBack: string
+   400→
+   401→  // POS module
+   402→  cart: string
+   403→  cartEmpty: string
+   404→  cartEmptyPark: string
+   405→  clearCart: string
+   406→  tapToAddProduct: string
+   407→  checkoutSale: string
+   408→  checkoutFailed: string
+   409→  saleCompleted: string
+   410→  saleCompletedDesc: string
+   411→  sessionExpired: string
+   412→  pleaseRelogin: string
+   413→  park: string
+   414→  parked: string
+   415→  parkedInvoices: string
+   416→  parkedInvoicesCount: string
+   417→  noParkedInvoices: string
+   418→  parkCurrentInvoice: string
+   419→  parkFailed: string
+   420→  invoiceParked: string
+   421→  holdNo: string
+   422→  parkedDeleted: string
+   423→  deleteParkedConfirm: string
+   424→  replaceCartConfirm: string
+   425→  resume: string
+   426→  resumeInvoiceFailed: string
+   427→  invoiceRestored: string
+   428→  unnamed: string
+   429→  parkListTitle: string
+   430→  customerSection: string
+   431→  paymentSection: string
+   432→  phoneAutoSearch: string
+   433→  existingCustomer: string
+   434→  newCustomerAuto: string
+   435→  priceTier: string
+   436→  tierRetail: string
+   437→  tierWholesale: string
+   438→  tierCorporate: string
+   439→  priceType: string
+   440→  basePrice: string
+   441→  effectivePrice: string
+   442→  promoPrice: string
+   443→  promo: string
+   444→  promoActive: string
+   445→  deliveryRequest: string
+   446→  deliveryFee: string
+   447→  driverName: string
+   448→  driverNamePlaceholder: string
+   449→  deliveryFeeLabel: string
+   450→
+   451→  // Exchange module
+   452→  fullyReturned: string
+   453→  original: string
+   454→  returned: string
+   455→  returnable: string
+   456→  returnQty: string
+   457→  returnValue: string
+   458→  refundTotal: string
+   459→  refundInvoice: string
+   460→  refundDialogDesc: string
+   461→  refundApproved: string
+   462→  refundFailed: string
+   463→  refundApprovedSuccess: string
+   464→  refundBlocked: string
+   465→  exceeded14Days: string
+   466→  enable14DayOverride: string
+   467→  override14Days: string
+   468→  partialRefund: string
+   469→  partialRefundReason: string
+   470→  fullRefund: string
+   471→  refundedFull: string
+   472→  refundedPartial: string
+   473→  refundedFully: string
+   474→  refundMore: string
+   475→  creditNote: string
+   476→  creditNoteTotal: string
+   477→  totalReturns: string
+   478→  returns: string
+   479→  scanOrTypePlaceholder: string
+   480→  perUnit: string
+   481→  originalInvoice: string
+   482→  originalInvoiceRequired: string
+   483→  originalInvoiceNotFound: string
+   484→  invoiceExpired14Days: string
+   485→  invoiceExpired14DaysLong: string
+   486→  invoiceDate: string
+   487→  invoiceNo: string
+   488→  invoiceNoPlaceholder: string
+   489→  invoiceNotFoundRetry: string
+   490→  invoiceNumber: string
+   491→  originalInvoiceItems: string
+   492→  returnableQtyHint: string
+   493→  itemNotInOriginalInvoice: string
+   494→  itemFullyReturned: string
+   495→  scannedQtyExceedsReturnable: string
+   496→  returnExceedsRemaining: string
+   497→  enterInvoiceNoFirst: string
+   498→  fetchOriginalInvoice: string
+   499→  mandatory: string
+   500→  eligibleForExchange: string
+   501→  daysPassed: string
+   502→  newExchange: string
+   503→  exchangeApproved: string
+   504→  exchangeApproveFailed: string
+   505→  exchangeApprovedSuccess: string
+   506→  exchangeNo: string
+   507→  exchangeNotePlaceholder: string
+   508→  settlementMethod: string
+   509→  returnsTotal: string
+   510→  newTotal: string
+   511→  returnsByScan: string
+   512→  newItems: string
+   513→  scanReturnPlaceholder: string
+   514→  scanAddsOneHint: string
+   515→  scanToAddReturn: string
+   516→  remainingAfterReturn: string
+   517→  undoLastScan: string
+   518→  qtyScanOnly: string
+   519→  addAnotherScan: string
+   520→  deleteReturnItem: string
+   521→  searchNewPlaceholder: string
+   522→  noNewItemsSearch: string
+   523→  collectFromCustomer: string
+   524→  refundToCustomer: string
+   525→  exchange: string
+   526→  even: string
+   527→  evenExchange: string
+   528→  approveExchange: string
+   529→  confirmExchangeTitle: string
+   530→  confirmExchangeDesc: string
+   531→  afterApprovalReady: string
+   532→  ctrlEnterHint: string
+   533→  ctrlEnterShortcut: string
+   534→  yesApproveExchange: string
+   535→  yesComplete: string
+   536→  printReceipt: string
+   537→  newSale: string
+   538→  thermalPrint: string
+   539→  thermalPrint80: string
+   540→  a4Print: string
+   541→
+   542→  // Promotions / discounts
+   543→  discountType: string
+   544→  discountValue: string
+   545→  discountPercent: string
+   546→  discountAmount: string
+   547→  discountMustBePositive: string
+   548→  discountMax100: string
+   549→  percent: string
+   550→  fixedAmount: string
+   551→  value: string
+   552→  valuePlaceholder: string
+   553→  fromDate2: string
+   554→  toDate2: string
+   555→  promotions: string
+   556→  promotionsAndDiscounts: string
+   557→  newPromotion: string
+   558→  createPromotion: string
+   559→  promoCreated: string
+   560→  promoCreateFailed: string
+   561→  promoDeactivated: string
+   562→  promoDeactivateFailed: string
+   563→  deactivatePromotionConfirm: string
+   564→  deactivate: string
+   565→  currentPromotions: string
+   566→  noPromotions: string
+   567→  createFirstPromo: string
+   568→  activeNow: string
+   569→  scheduled: string
+   570→  stopped: string
+   571→  createdBy: string
+   572→  applyScope: string
+   573→  applyToAllDesc: string
+   574→  includedCategories: string
+   575→  excludedCategories: string
+   576→  categoriesSelected: string
+   577→  categoriesExcluded: string
+   578→  noCategories: string
+   579→  scopeProduct: string
+   580→  scopeCategory: string
+   581→  scopeAll: string
+   582→  scopeAllExcept: string
+   583→  scopeProductShort: string
+   584→  scopeCategoryShort: string
+   585→  scopeAllShort: string
+   586→  scopeAllExceptShort: string
+   587→
+   588→  // Pricing module
+   589→  priceManagement: string
+   590→  changeLog: string
+   591→  approveAndApplyPrices: string
+   592→  approveAndApply: string
+   593→  approvePriceChangesTitle: string
+   594→  approvePriceChangesDesc: string
+   595→  noChangesToApprove: string
+   596→  pricesApproved: string
+   597→  applyPricesFailed: string
+   598→  belowCostTitle: string
+   599→  belowCostDesc: string
+   600→  belowCostWarning: string
+   601→  belowCostWarningDesc: string
+   602→  confirmApplyAll: string
+   603→  violatingItemsCount: string
+   604→  pendingChanges: string
+   605→  editCellToEnable: string
+   606→  cancelChanges: string
+   607→  viewOnlyAdminCanEdit: string
+   608→  adminOnlyEdit: string
+   609→  editSalePricesInPricing: string
+   610→  openPricingScreen: string
+   611→  estimatedProfitMargin: string
+   612→  zeroMeansRetail: string
+   613→  zeroMeansUnspecified: string
+   614→  salePriceEditLocked: string
+   615→  totalQty: string
+   616→  warehousesTotal: string
+   617→  distributeQtyAcrossWarehouses: string
+   618→  totalAcrossWarehouses: string
+   619→  optimalOrderQty: string
+   620→  defaultSupplier: string
+   621→  selectDefaultSupplier: string
+   622→  defaultSupplierHint: string
+   623→  reorderLevel: string
+   624→
+   625→  // Purchase orders module
+   626→  poSupplier: string
+   627→  poNote: string
+   628→  poProducts: string
+   629→  poTotal: string
+   630→  poCreated: string
+   631→  poCreateFailed: string
+   632→  poDetailsTitle: string
+   633→  poDetailsDesc: string
+   634→  poStatus: string
+   635→  poStatusPendingApproval: string
+   636→  poStatusApproved: string
+   637→  poStatusPending: string
+   638→  poStatusReceived: string
+   639→  poStatusCancelled: string
+   640→  poStatusRejected: string
+   641→  poReceived: string
+   642→  poReceiveFailed: string
+   643→  poCancelled: string
+   644→  poCancelFailed: string
+   645→  poDeleted: string
+   646→  poDeleteFailed: string
+   647→  poApproved: string
+   648→  poApproveFailed: string
+   649→  poEditedAndApproved: string
+   650→  poRejected: string
+   651→  poRejectFailed: string
+   652→  poDraftCreated: string
+   653→  poDraftCreateFailed: string
+   654→  noItemsNeedReorder: string
+   655→  fetchSupplierRequiredItems: string
+   656→  autoPoDesc: string
+   657→  suggestedQtyFormula: string
+   658→  createDraft: string
+   659→  newPurchaseOrder: string
+   660→  newPoDesc: string
+   661→  confirmReceipt: string
+   662→  confirmReceiptDesc: string
+   663→  confirmPoReceipt: string
+   664→  updateCostPrices: string
+   665→  updateCostPricesDesc: string
+   666→  cancelPoTitle: string
+   667→  cancelPoConfirm: string
+   668→  cancelOrder: string
+   669→  pendingManagementApproval: string
+   670→  autoPoDraftsDesc: string
+   671→  pendingReview: string
+   672→  noApprovalDrafts: string
+   673→  noApprovalDraftsDesc: string
+   674→  reviewPoDraft: string
+   675→  totalAfterEdits: string
+   676→  fullReject: string
+   677→  approveWithEdits: string
+   678→  approveAsIs: string
+   679→  editAndAccept: string
+   680→  approveAndAccept: string
+   681→  editAndApprovePo: string
+   682→  approvePo: string
+   683→  editAndApproveDesc: string
+   684→  approvePoDesc: string
+   685→  editAndApprove: string
+   686→  approve: string
+   687→  reject: string
+   688→  rejectPoTitle: string
+   689→  rejectReason: string
+   690→  rejectReasonPlaceholder: string
+   691→  enterRejectReason: string
+   692→  confirmReject: string
+   693→  orderNo: string
+   694→  landedCost: string
+   695→  landedCostDesc: string
+   696→  landedCostAppliedDesc: string
+   697→  landedCostPreviewDesc: string
+   698→  customs: string
+   699→  shipping: string
+   700→  otherFees: string
+   701→  invoiceTotal2: string
+   702→  suggestedSalePrice: string
+   703→  emptyMeansNoChange: string
+   704→
+   705→  // Reports module
+   706→  repTotalRevenue: string
+   707→  repTotalCost: string
+   708→  repGrossProfit: string
+   709→  repAvgInvoice: string
+   710→  repRevenueTrend: string
+   711→  repRevenueTrendDesc: string
+   712→  repPaymentMethods: string
+   713→  repRevenueDistribution: string
+   714→  repRevenueByCategory: string
+   715→  repRevenueByCategoryDesc: string
+   716→  repProductBreakdown: string
+   717→  repProductBreakdownDesc: string
+   718→  repRevenue: string
+   719→  repProfit: string
+   720→  generalReports: string
+   721→  performanceMatrix: string
+   722→  matrixTitle: string
+   723→  matrixLongDesc: string
+   724→  reportFilters: string
+   725→  calculatingMatrix2: string
+   726→  noDataForPeriod2: string
+   727→  performanceMatrixCount: string
+   728→  matrixClickHint: string
+   729→  branchWarehouse2: string
+   730→  allSuppliers: string
+   731→  matrixKpiRevenue: string
+   732→  matrixKpiCost: string
+   733→  matrixKpiProfit: string
+   734→  matrixKpiTurnover: string
+   735→  margin: string
+   736→  stagnantDays: string
+   737→  colName: string
+   738→  colBarcode: string
+   739→  colCategory: string
+   740→  colQty: string
+   741→  colReorderLevel: string
+   742→  colCostPrice: string
+   743→  colSalePrice: string
+   744→  colProduct: string
+   745→  colItem: string
+   746→  colPrice: string
+   747→  colTotal: string
+   748→  colSupplier: string
+   749→  colDate: string
+   750→  colItemsCount: string
+   751→  colStatus: string
+   752→  colActions: string
+   753→  colBook: string
+   754→  colActual: string
+   755→  colVariance: string
+   756→  colUser: string
+   757→  colType: string
+   758→  colFrom: string
+   759→  colTo: string
+   760→  colChange: string
+   761→  colBy: string
+   762→  colNote: string
+   763→  colUnit: string
+   764→  colOrderNo: string
+   765→  totalProducts: string
+   766→  totalCategories: string
+   767→  exportPrint: string
+   768→  noInvoices: string
+   769→  noPurchaseOrders: string
+   770→  createFirstPo: string
+   771→
+   772→  // Shifts module
+   773→  shfOpenNewShift: string
+   774→  shfOpenShift: string
+   775→  shfNoOpenShift: string
+   776→  shfOpenShiftToStart: string
+   777→  shfClosedShiftsHistory: string
+   778→  shfLastShiftsWithVariances: string
+   779→  shfActiveShift: string
+   780→  shfOpenedAtHint: string
+   781→  shfOpen: string
+   782→  shfCash: string
+   783→  shfKnet: string
+   784→  shfVisaMaster: string
+   785→  shfElectronicPaymentVariances: string
+   786→  shfVarianceExplanation: string
+   787→  shfKnetVariance: string
+   788→  shfVisaVariance: string
+   789→  shfExpectedBook: string
+   790→  shfActualFromMachine: string
+   791→  shfVariance: string
+   792→  shfCloseShiftAndReconcile: string
+   793→
+   794→  // Spot-check module
+   795→  spcBlindItemCount: string
+   796→  spcSpotCheckDesc: string
+   797→  spcItemToCount: string
+   798→  spcSelectItemPlaceholder: string
+   799→  spcBookQtyHiddenHint: string
+   800→  spcActualQtyOnShelf: string
+   801→  spcApproveCountAndCalcVariance: string
+   802→  spcBook: string
+   803→  spcActual: string
+   804→  spcShortageCheckRecords: string
+   805→  spcSurplusCheckReceipts: string
+   806→  spcBlindCountHistory: string
+   807→  spcLastCounts: string
+   808→  spcNoCountsYet: string
+   809→
+   810→  // Dashboard module
+   811→  dshTotalSales: string
+   812→  dshTodaySales: string
+   813→  dshSinceStartOfDay: string
+   814→  dshProductsCount: string
+   815→  dshInventoryValue: string
+   816→  dshLowStockProducts: string
+   817→  dshPendingPurchaseOrders: string
+   818→  dshSalesTrend: string
+   819→  dshDailySalesTrendDesc: string
+   820→  dshNoSalesYet: string
+   821→  dshNoSalesYetDesc: string
+   822→  dshInventoryValueDistribution: string
+   823→  dshByCategory: string
+   824→  dshTopSelling: string
+   825→  dshByRevenue: string
+   826→  dshInventoryAlerts: string
+   827→  dshProductsNeedReorder: string
+   828→  dshInventoryGood: string
+   829→  dshNoLowStockProducts: string
+   830→  dshLimit: string
+   831→  dshRecentInvoices: string
+   832→  dshRecentOperations: string
+   833→  dshYouHavePendingPo: string
+   834→  dshConfirmReceiptToUpdateStock: string
+   835→  dshReviewPurchases: string
+   836→  dshLastXDays: string
+   837→  dshDataLoadFailedDesc: string
+   838→
+   839→  // Accounting module
+   840→  accChartOfAccounts: string
+   841→  accExpenses: string
+   842→  accJournalEntries: string
+   843→  accPnl: string
+   844→  accTrialBalance: string
+   845→  accAccountingLongDesc: string
+   846→  accMainAccount: string
+   847→  accNoAccountsYet: string
+   848→  accAddSubaccountTitle: string
+   849→  accCodeAndNameRequired: string
+   850→  accSubaccountAdded: string
+   851→  accAccountAdded: string
+   852→  accCodeAlreadyUsed: string
+   853→  accAddFailed: string
+   854→  accAddSubaccountUnder: string
+   855→  accAddMainAccount: string
+   856→  accEnterNewAccountData: string
+   857→  accAccountType: string
+   858→  accTypeAsset: string
+   859→  accTypeLiability: string
+   860→  accTypeEquity: string
+   861→  accTypeRevenue: string
+   862→  accTypeExpense: string
+   863→  accTypeInheritedFromParent: string
+   864→  accAdd2: string
+   865→  accFromDateOptional: string
+   866→  accToDateOptional: string
+   867→  accAllPeriods: string
+   868→  accPnlExplanation: string
+   869→  accNetProfit: string
+   870→  accForPeriod: string
+   871→  accPnlStatement: string
+   872→  accPnlStatementDesc: string
+   873→  accTotalRevenue: string
+   874→  accCogs: string
+   875→  accGrossProfit: string
+   876→  accSalaries: string
+   877→  accAdminExpenses: string
+   878→  accTotalOpex: string
+   879→  accExpensesByCategory: string
+   880→  accJournalLedger: string
+   881→  accJournalDesc: string
+   882→  accManualEntry: string
+   883→  accLoadingJournal: string
+   884→  accNoJournalEntries: string
+   885→  accNoJournalEntriesDesc: string
+   886→  accSum: string
+   887→  accBalanced: string
+   888→  accNotBalanced: string
+   889→  accTrialBalanceDesc: string
+   890→  accNoBalances: string
+   891→  accNoBalancesDesc: string
+   892→  accCalculatingTrialBalance: string
+   893→  accRecordExpense: string
+   894→  accUpdatesBalancesImmediately: string
+   895→  accSalary: string
+   896→  accAdminExpense: string
+   897→  accEmployeeName: string
+   898→  accEmployeeNameRequired: string
+   899→  accEmployeeNamePlaceholder: string
+   900→  accAmount: string
+   901→  accPaymentDate: string
+   902→  accExpenseTitle: string
+   903→  accExpenseTitleRequired: string
+   904→  accExpenseTitlePlaceholder: string
+   905→  accPaymentAccount: string
+   906→  accSelectPaymentAccount: string
+   907→  accExpenseAccountUndefined: string
+   908→  accTotalAmount: string
+   909→  accRecordSalary: string
+   910→  accCannotDeleteWhileSaving: string
+   911→  accExpenseDeletedReversed: string
+   912→  accExpensesHistory: string
+   913→  accNoExpensesRecorded: string
+   914→  accPaidVia: string
+   915→  accEnterValidAmount: string
+   916→  accSalaryRecorded: string
+   917→  accExpenseRecorded: string
+   918→  accJournalTypeSale: string
+   919→  accJournalTypeExpense: string
+   920→  accJournalTypePurchase: string
+   921→  accJournalTypeManual: string
+   922→
+   923→  // Customers module
+   924→  cusAddCustomer: string
+   925→  cusEditCustomer: string
+   926→  cusCustomerName: string
+   927→  cusCustomerPhone: string
+   928→  cusCustomerAddress: string
+   929→  cusCustomerType: string
+   930→  cusCustomerTypeRetail: string
+   931→  cusCustomerTypeWholesale: string
+   932→  cusCustomerTypeCorporate: string
+   933→  cusCustomerAdded: string
+   934→  cusCustomerUpdated: string
+   935→  cusCustomerDeleted: string
+   936→  cusNoCustomers: string
+   937→  cusAddFirstCustomer: string
+   938→  cusCustomerNameRequired: string
+   939→  cusCustomerPhoneRequired: string
+   940→
+   941→  // Analytics module
+   942→  anlAnalyticsCards: string
+   943→  anlOverview: string
+   944→  anlSalesByDay: string
+   945→  anlTopProducts: string
+   946→  anlPaymentMethods: string
+   947→  anlCategorySales: string
+   948→  anlLowStockAnalysis: string
+   949→  anlNoData: string
+   950→
+   951→  // Settings module
+   952→  setActiveCountry: string
+   953→  setCountry: string
+   954→  setCurrency: string
+   955→  setTaxRate: string
+   956→  setUnits: string
+   957→  setCategories: string
+   958→  setAddUnit: string
+   959→  setUnitName: string
+   960→  setUnitNamePlaceholder: string
+   961→  setUnitAdded: string
+   962→  setUnitDeleted: string
+   963→  setUnitExists: string
+   964→  setAddCategory: string
+   965→  setCategoryName: string
+   966→  setCategoryCode: string
+   967→  setCategoryCodePlaceholder: string
+   968→  setCategoryAdded: string
+   969→  setCategoryUpdated: string
+   970→  setCategoryDeleted: string
+   971→  setCategoryInUse: string
+   972→  setNoUnits: string
+   973→  setNoCategories: string
+   974→  setEditCategory: string
+   975→  setCategoryNameRequired: string
+   976→
+   977→  // Integrations module
+   978→  intShopify: string
+   979→  intShopifyDesc: string
+   980→  intConnect: string
+   981→  intDisconnect: string
+   982→  intSync: string
+   983→  intSyncing: string
+   984→  intSynced: string
+   985→  intSyncFailed: string
+   986→  intNotConnected: string
+   987→  intSetupGuide: string
+   988→  intStoreDomain: string
+   989→  intAccessToken: string
+   990→  intSave: string
+   991→  intTestConnection: string
+   992→  intConnectionOk: string
+   993→  intConnectionFailed: string
+   994→  intImportProducts: string
+   995→  intImportOrders: string
+   996→  intProductsImported: string
+   997→  intOrdersImported: string
+   998→  intImportFailed2: string
+   999→
+  1000→  // Login module (extended)
+  1001→  logInvalidCredentials: string
+  1002→  logCheckEmailPassword: string
+  1003→  logLoginSuccess: string
+  1004→  logWelcomeDesc: string
+  1005→  logUnexpectedError: string
+  1006→  logLoginHeroTitle: string
+  1007→  logLoginHeroDesc: string
+  1008→  logFeature1: string
+  1009→  logFeature2: string
+  1010→  logFeature3: string
+  1011→  logCopyright: string
+  1012→  logDemo: string
+  1013→  logTapToFill: string
+  1014→  logAppName: string
+  1015→  logAppTaglineShort: string
+  1016→
+  1017→  // App-shell
+  1018→  appFooterDesc: string
+  1019→  appMadeWith: string
+  1020→  appForSmallProjects: string
+  1021→}
+  1022→
+  1023→export const DICTS: Record<Locale, Dict> = {
+  1024→  ar: {
+  1025→    dir: "rtl",
+  1026→    appName: "نظام المتجر",
+  1027→    appTagline: "إدارة المبيعات والمخازن والمشتريات",
+  1028→    navDashboard: "لوحة التحكم",
+  1029→    navSales: "نقاط البيع",
+  1030→    navInvoices: "الفواتير",
+  1031→    navReports: "التقارير",
+  1032→    navInventory: "المخازن",
+  1033→    navPurchases: "المشتريات",
+  1034→    navSuppliers: "الموردين",
+  1035→    navCustomers: "العملاء",
+  1036→    navAnalytics: "تحليلات المبيعات",
+  1037→    navAccounting: "المحاسبة",
+  1038→    navIntegrations: "التكاملات",
+  1039→    navSettings: "الإعدادات",
+  1040→    navShifts: "الورديات",
+  1041→    navSpotCheck: "الجرد الأعمى",
+  1042→    navExchanges: "التبديل",
+  1043→    navPricing: "إدارة الأسعار",
+  1044→    navInvoicesReports: "الفواتير والتقارير",
+  1045→    navInventoryPurchases: "إدارة المخازن والمشتريات",
+  1046→    navAccountingCustomers: "الحسابات والعملاء",
+  1047→    roleAdmin: "مدير النظام",
+  1048→    roleSales: "موظف مبيعات",
+  1049→    roleWarehouse: "أمين مخزن",
+  1050→    add: "إضافة",
+  1051→    edit: "تعديل",
+  1052→    delete: "حذف",
+  1053→    save: "حفظ",
+  1054→    cancel: "إلغاء",
+  1055→    search: "بحث",
+  1056→    apply: "تطبيق",
+  1057→    reset: "إعادة تعيين",
+  1058→    export: "تصدير",
+  1059→    import: "استيراد",
+  1060→    print: "طباعة",
+  1061→    close: "إغلاق",
+  1062→    confirm: "تأكيد",
+  1063→    loading: "جارٍ التحميل...",
+  1064→    noData: "لا توجد بيانات",
+  1065→    retry: "إعادة المحاولة",
+  1066→    total: "الإجمالي",
+  1067→
+  1068→    // Common — products
+  1069→    product: "المنتج",
+  1070→    products: "المنتجات",
+  1071→    productRequired: "المنتج مطلوب",
+  1072→    productName: "اسم المنتج",
+  1073→    productNotFound: "المنتج غير موجود",
+  1074→    productDeleted: "تم حذف المنتج",
+  1075→    productUpdated: "تم تحديث المنتج",
+  1076→    productAdded: "تمت إضافة المنتج",
+  1077→    productNameRequired: "اسم المنتج مطلوب",
+  1078→    productImage: "صورة المنتج",
+  1079→
+  1080→    // Common — customers
+  1081→    customer: "العميل",
+  1082→    customers: "العملاء",
+  1083→    cashCustomer: "عميل نقدي",
+  1084→    customerName: "اسم العميل",
+  1085→    customerPhone: "هاتف العميل",
+  1086→    customerNameRequired: "اسم العميل مطلوب",
+  1087→
+  1088→    // Common — suppliers
+  1089→    supplier: "المورّد",
+  1090→    suppliers: "الموردين",
+  1091→    supplierName: "اسم المورّد",
+  1092→    supplierNameRequired: "اسم المورّد مطلوب",
+  1093→    supplierNamePlaceholder: "اكتب اسم المورّد",
+  1094→    contactPerson: "مسؤول التواصل",
+  1095→    supplierRequired: "المورّد مطلوب",
+  1096→    selectSupplier: "اختر المورّد",
+  1097→    selectSupplierFirst: "اختر المورّد أولاً",
+  1098→    supplierDeleted: "تم حذف المورّد",
+  1099→    supplierUpdated: "تم تحديث المورّد",
+  1100→    supplierAdded: "تمت إضافة المورّد",
+  1101→
+  1102→    // Common — quantity / stock
+  1103→    qty: "الكمية",
+  1104→    quantity: "الكمية",
+  1105→    qtyRequired: "الكمية مطلوبة",
+  1106→    qtyUnavailable: "الكمية غير متوفرة",
+  1107→    qtyExceedsStock: "الكمية تتجاوز المخزون",
+  1108→    qtyInsufficient: "الكمية غير كافية",
+  1109→    stockInsufficient: "المخزون غير كافٍ",
+  1110→    stock: "المخزون",
+  1111→    inStock: "متوفر",
+  1112→    outOfStock: "نفد من المخزون",
+  1113→    outOfStockShort: "نفد",
+  1114→    outOfStockFull: "نفد من المخزون",
+  1115→    lowStock: "مخزون منخفض",
+  1116→    nearOutOfStock: "قارب على النفاد",
+  1117→    available: "متوفر",
+  1118→    availableFrom: "متوفر من",
+  1119→    currentQty: "الكمية الحالية",
+  1120→
+  1121→    // Common — price / barcode
+  1122→    price: "السعر",
+  1123→    unitPrice: "سعر الوحدة",
+  1124→    costPrice: "سعر التكلفة",
+  1125→    salePrice: "سعر البيع",
+  1126→    wholesalePrice: "سعر الجملة",
+  1127→    corporatePrice: "سعر الشركات",
+  1128→    barcode: "الباركود",
+  1129→    barcodeGenerated: "تم توليد الباركود",
+  1130→    barcodeGenerateFailed: "فشل توليد الباركود",
+  1131→    autoGenerate: "توليد تلقائي",
+  1132→    autoGenerateBarcode: "توليد الباركود تلقائياً",
+  1133→    selectCategoryFirst: "اختر التصنيف أولاً",
+  1134→    selectCategoryForAuto: "اختر التصنيف للتوليد التلقائي",
+  1135→    generateBarcode: "توليد الباركود",
+  1136→
+  1137→    // Common — category
+  1138→    category: "التصنيف",
+  1139→    categories: "التصنيفات",
+  1140→    allCategories: "كل الأقسام",
+  1141→    selectCategory: "اختر التصنيف",
+  1142→    categoryRequired: "التصنيف مطلوب",
+  1143→    categoryName: "اسم التصنيف",
+  1144→    categoryCode: "رمز التصنيف",
+  1145→    categoryCodePlaceholder: "مثال: FOOD",
+  1146→
+  1147→    // Common — date / period
+  1148→    date: "التاريخ",
+  1149→    fromDate: "من تاريخ",
+  1150→    toDate: "إلى تاريخ",
+  1151→    from: "من",
+  1152→    to: "إلى",
+  1153→    period: "الفترة",
+  1154→    allPeriods: "كل الفترات",
+  1155→    quickRange: "نطاق سريع",
+  1156→    last7Days: "آخر 7 أيام",
+  1157→    last30Days: "آخر 30 يوماً",
+  1158→    last90Days: "آخر 90 يوماً",
+  1159→    lastYear: "السنة الماضية",
+  1160→
+  1161→    // Common — status / misc
+  1162→    status: "الحالة",
+  1163→    note: "ملاحظة",
+  1164→    noteOptional: "ملاحظة (اختياري)",
+  1165→    notePlaceholder: "أضف ملاحظة...",
+  1166→    optional: "اختياري",
+  1167→    required: "مطلوب",
+  1168→    actions: "إجراءات",
+  1169→    open: "فتح",
+  1170→    yes: "نعم",
+  1171→    no: "لا",
+  1172→    all: "الكل",
+  1173→    none: "لا شيء",
+  1174→
+  1175→    // Common — money
+  1176→    subtotal: "المجموع الفرعي",
+  1177→    discount: "الخصم",
+  1178→    tax: "الضريبة",
+  1179→    taxPercent: "نسبة الضريبة",
+  1180→    taxRate: "نسبة الضريبة",
+  1181→    totalAmount: "المبلغ الإجمالي",
+  1182→    amount: "المبلغ",
+  1183→    amountDue: "المبلغ المستحق",
+  1184→    totalPaid: "الإجمالي المدفوع",
+  1185→    grandTotal: "الإجمالي الكلي",
+  1186→    invoiceTotal: "إجمالي الفاتورة",
+  1187→    additionalFees: "رسوم إضافية",
+  1188→    country: "الدولة",
+  1189→    currency: "العملة",
+  1190→
+  1191→    // Common — payment
+  1192→    payment: "الدفع",
+  1193→    paymentMethod: "طريقة الدفع",
+  1194→    paymentMethodShort: "الدفع",
+  1195→    cash: "نقدي",
+  1196→    card: "بطاقة",
+  1197→    transfer: "تحويل",
+  1198→    cashShort: "نقدي",
+  1199→    cardShort: "بطاقة",
+  1200→    transferShort: "تحويل",
+  1201→    payCash: "دفع نقدي",
+  1202→    payCard: "دفع بالبطاقة",
+  1203→    payTransfer: "دفع بالتحويل",
+  1204→
+  1205→    // Common — unit
+  1206→    unit: "الوحدة",
+  1207→    units: "وحدات القياس",
+  1208→    unitRequired: "الوحدة مطلوبة",
+  1209→    selectUnit: "اختر الوحدة",
+  1210→    piece: "قطعة",
+  1211→    pieceDefault: "قطعة (افتراضي)",
+  1212→
+  1213→    // Common — warehouse
+  1214→    warehouse: "المخزن",
+  1215→    warehouses: "المخازن",
+  1216→    warehouseName: "اسم المخزن",
+  1217→    warehouseNameRequired: "اسم المخزن مطلوب",
+  1218→    warehouseNamePlaceholder: "اكتب اسم المخزن",
+  1219→    warehouseCode: "رمز المخزن",
+  1220→    warehouseLocation: "موقع المخزن",
+  1221→    warehouseDeleted: "تم حذف المخزن",
+  1222→    warehouseUpdated: "تم تحديث المخزن",
+  1223→    warehouseAdded: "تمت إضافة المخزن",
+  1224→    warehouseHasStock: "لا يمكن حذف مخزن يحتوي على مخزون",
+  1225→    noWarehouses: "لا توجد مخازن",
+  1226→    addWarehouse: "إضافة مخزن",
+  1227→    addFirstWarehouse: "أضف مخزنك الأول",
+  1228→    selectWarehouse: "اختر المخزن",
+  1229→
+  1230→    // Common — branch
+  1231→    branch: "الفرع",
+  1232→    branchWarehouse: "فرع / مخزن",
+  1233→    allBranches: "كل الفروع",
+  1234→
+  1235→    // Common — search
+  1236→    searchPlaceholder: "بحث...",
+  1237→    searchProductPlaceholder: "ابحث عن منتج...",
+  1238→    searchNameBarcode: "ابحث بالاسم أو الباركود",
+  1239→    searchInvoicePlaceholder: "ابحث عن فاتورة...",
+  1240→    searchNameBarcodePlaceholder: "اكتب الاسم أو امسح الباركود...",
+  1241→
+  1242→    // Common — items
+  1243→    items: "الأصناف",
+  1244→    itemsCount: "عدد الأصناف",
+  1245→    itemCount: "صنف",
+  1246→    itemsCountLabel: "{count} صنف",
+  1247→    noItems: "لا توجد أصناف",
+  1248→    noProducts: "لا توجد منتجات",
+  1249→    noProductsToPrint: "لا توجد منتجات للطباعة",
+  1250→    noMatchingProducts: "لا توجد منتجات مطابقة",
+  1251→    noDataForPeriod: "لا توجد بيانات لهذه الفترة",
+  1252→    tryAnotherKeyword: "جرّب كلمة بحث أخرى",
+  1253→
+  1254→    // Common — loading / progress
+  1255→    reload: "إعادة تحميل",
+  1256→    loadingPrices: "جارٍ تحميل الأسعار...",
+  1257→    loadingShifts: "جارٍ تحميل الورديات...",
+  1258→    loadingJournal: "جارٍ تحميل القيود...",
+  1259→    loadingStats: "جارٍ تحميل الإحصائيات...",
+  1260→    loadingAudit: "جارٍ تحميل سجل التدقيق...",
+  1261→    calculatingReport: "جارٍ حساب التقرير...",
+  1262→    calculatingMatrix: "جارٍ حساب المصفوفة...",
+  1263→    calculatingFinancialReport: "جارٍ حساب التقرير المالي...",
+  1264→    updating: "جارٍ التحديث...",
+  1265→    executing: "جارٍ التنفيذ...",
+  1266→    completing: "جارٍ الإتمام...",
+  1267→    approving: "جارٍ الاعتماد...",
+  1268→    applying: "جارٍ التطبيق...",
+  1269→
+  1270→    // Common — errors
+  1271→    loadFailed: "فشل التحميل",
+  1272→    productsLoadFailed: "فشل تحميل المنتجات",
+  1273→    invoicesLoadFailed: "فشل تحميل الفواتير",
+  1274→    poLoadFailed: "فشل تحميل أوامر الشراء",
+  1275→    suppliersLoadFailed: "فشل تحميل الموردين",
+  1276→    reportLoadFailed: "فشل تحميل التقرير",
+  1277→    pricesLoadFailed: "فشل تحميل الأسعار",
+  1278→    approvalDraftsLoadFailed: "فشل تحميل مسودات الاعتماد",
+  1279→    auditLoadFailed: "فشل تحميل سجل التدقيق",
+  1280→    dataLoadFailed: "فشل تحميل البيانات",
+  1281→
+  1282→    // Common — save / export / import
+  1283→    saveChanges: "حفظ التغييرات",
+  1284→    saveFailed: "فشل الحفظ",
+  1285→    deleteFailed: "فشل الحذف",
+  1286→    addFailed: "فشل الإضافة",
+  1287→    recordFailed: "فشل التسجيل",
+  1288→    exportFailed: "فشل التصدير",
+  1289→    exportSucceeded: "تم التصدير بنجاح",
+  1290→    importedToExcel: "تم الاستيراد إلى Excel",
+  1291→    exportedToExcel: "تم التصدير إلى Excel",
+  1292→    importSucceeded: "تم الاستيراد بنجاح",
+  1293→    importFailed: "فشل الاستيراد",
+  1294→    uploadExcelFile: "ارفع ملف Excel",
+  1295→    downloadEmptyTemplate: "تحميل قالب فارغ",
+  1296→    imageUploaded: "تم رفع الصورة",
+  1297→    imageUploadFailed: "فشل رفع الصورة",
+  1298→    changeImage: "تغيير الصورة",
+  1299→    uploadImage: "رفع صورة",
+  1300→    imageFormatsHint: "الصيغ المسموحة: JPG, PNG, WEBP",
+  1301→
+  1302→    // Common — filters
+  1303→    filters: "الفلاتر",
+  1304→    activeFilters: "الفلاتر المفعّلة",
+  1305→    applyFilters: "تطبيق الفلاتر",
+  1306→    resetFilters: "إعادة تعيين الفلاتر",
+  1307→    activeLabel: "مفعّل",
+  1308→    filterBy: "تصفية حسب",
+  1309→    source: "المصدر",
+  1310→    allSources: "كل المصادر",
+  1311→    posSource: "نقاط البيع",
+  1312→    shopifySource: "شوبيفاي",
+  1313→
+  1314→    // Common — pagination / nav
+  1315→    expandAll: "توسيع الكل",
+  1316→    collapseAll: "طيّ الكل",
+  1317→    previous: "السابق",
+  1318→    next: "التالي",
+  1319→    pageXofY: "صفحة {x} من {y}",
+  1320→    viewDetails: "عرض التفاصيل",
+  1321→    openItem: "فتح العنصر",
+  1322→    fetchInvoice: "استدعاء الفاتورة",
+  1323→    lookupInvoice: "البحث عن فاتورة",
+  1324→
+  1325→    // Common — form fields
+  1326→    name: "الاسم",
+  1327→    namePlaceholder: "اكتب الاسم",
+  1328→    phone: "الهاتف",
+  1329→    phonePlaceholder: "اكتب رقم الهاتف",
+  1330→    emailPlaceholder: "name@example.com",
+  1331→    address: "العنوان",
+  1332→    addressPlaceholder: "اكتب العنوان",
+  1333→    selectPlaceholder: "اختر...",
+  1334→    selectItem: "اختر عنصراً",
+  1335→
+  1336→    // Common — selection actions
+  1337→    selectProduct: "اختر المنتج",
+  1338→    selectProductFirst: "اختر المنتج أولاً",
+  1339→    addAtLeastOneProduct: "أضف منتجاً واحداً على الأقل",
+  1340→    addLine: "إضافة سطر",
+  1341→    addRow: "إضافة صف",
+  1342→    addProduct: "إضافة منتج",
+  1343→    addProductNew: "إضافة منتج جديد",
+  1344→    editProduct: "تعديل المنتج",
+  1345→    addSupplier: "إضافة مورّد",
+  1346→    addSupplierNew: "إضافة مورّد جديد",
+  1347→    editSupplier: "تعديل المورّد",
+  1348→    addWarehouseNew: "إضافة مخزن جديد",
+  1349→    editWarehouse: "تعديل المخزن",
+  1350→    addCategory: "إضافة تصنيف",
+  1351→    editCategory: "تعديل التصنيف",
+  1352→
+  1353→    // Common — delete confirmations
+  1354→    deleteProductTitle: "حذف المنتج",
+  1355→    deleteProductConfirm: "هل أنت متأكد من حذف هذا المنتج؟ لا يمكن التراجع.",
+  1356→    deleteSupplierTitle: "حذف المورّد",
+  1357→    deleteSupplierConfirm: "هل أنت متأكد من حذف هذا المورّد؟ لا يمكن التراجع.",
+  1358→    deleteWarehouseTitle: "حذف المخزن",
+  1359→    deleteWarehouseConfirm: "هل أنت متأكد من حذف هذا المخزن؟ لا يمكن التراجع.",
+  1360→    deleteConfirm: "هل أنت متأكد من الحذف؟",
+  1361→
+  1362→    // Page titles
+  1363→    dashboardTitle: "لوحة التحكم",
+  1364→    dashboardDesc: "نظرة عامة على الأداء",
+  1365→    salesTitle: "نقاط البيع",
+  1366→    salesDesc: "إنشاء فاتورة جديدة",
+  1367→    invoicesTitle: "الفواتير",
+  1368→    invoicesDesc: "سجل المبيعات",
+  1369→    reportsTitle: "التقارير",
+  1370→    reportsDesc: "تقارير مبيعات مرنة بفلاتر",
+  1371→    inventoryTitle: "المخازن",
+  1372→    inventoryDesc: "إدارة المنتجات والمخازن",
+  1373→    purchasesTitle: "المشتريات",
+  1374→    purchasesDesc: "أوامر الشراء",
+  1375→    suppliersTitle: "الموردين",
+  1376→    suppliersDesc: "بيانات الموردين",
+  1377→    customersTitle: "العملاء",
+  1378→    customersDesc: "دليل العملاء",
+  1379→    analyticsTitle: "تحليلات المبيعات والمخزون",
+  1380→    analyticsDesc: "تقارير ذكية مفصّلة",
+  1381→    accountingTitle: "المحاسبة",
+  1382→    accountingDesc: "شجرة الحسابات والقيود",
+  1383→    integrationsTitle: "التكاملات",
+  1384→    integrationsDesc: "ربط مع شوبيفاي وغيره",
+  1385→    settingsTitle: "الإعدادات",
+  1386→    settingsDesc: "الدولة والعملة والوحدات",
+  1387→    shiftsTitle: "الورديات وتصفير الصندوق",
+  1388→    shiftsDesc: "فتح/إغلاق الوردية ومطابقة K-Net والفيزا",
+  1389→    spotCheckTitle: "الجرد الأعمى السريع",
+  1390→    spotCheckDesc: "جرد مفاجئ للأصناف الحساسة بدون كشف الرصيد الدفتري",
+  1391→    exchangesTitle: "فاتورة تبديل",
+  1392→    exchangesDesc: "تبديل الأصناف وإشعارات الدائن",
+  1393→    pricingTitle: "شاشة إدارة الأسعار والعروض الذكية",
+  1394→    pricingDesc: "تعديل أسعار البيع وإدارة الخصومات المؤقتة وسجل التغييرات",
+  1395→
+  1396→    // Theme + language
+  1397→    darkMode: "الوضع الليلي",
+  1398→    lightMode: "الوضع النهاري",
+  1399→    switchLang: "English",
+  1400→    logout: "تسجيل الخروج",
+  1401→
+  1402→    // Login
+  1403→    loginTitle: "تسجيل الدخول",
+  1404→    loginDesc: "أدخل بيانات حسابك للوصول إلى لوحة التحكم",
+  1405→    email: "البريد الإلكتروني",
+  1406→    password: "كلمة المرور",
+  1407→    login: "دخول",
+  1408→    loggingIn: "جارٍ الدخول...",
+  1409→    demoAccounts: "حسابات تجريبية",
+  1410→    welcomeBack: "أهلاً بك",
+  1411→
+  1412→    // POS module
+  1413→    cart: "السلة",
+  1414→    cartEmpty: "السلة فارغة",
+  1415→    cartEmptyPark: "السلة فارغة — لا يمكن التعليق",
+  1416→    clearCart: "إفراغ السلة",
+  1417→    tapToAddProduct: "انقر لإضافة منتج",
+  1418→    checkoutSale: "إتمام البيع",
+  1419→    checkoutFailed: "فشل إتمام البيع",
+  1420→    saleCompleted: "تم إتمام البيع",
+  1421→    saleCompletedDesc: "تم تسجيل الفاتورة بنجاح",
+  1422→    sessionExpired: "انتهت الجلسة",
+  1423→    pleaseRelogin: "يرجى إعادة تسجيل الدخول",
+  1424→    park: "تعليق",
+  1425→    parked: "معلّقة",
+  1426→    parkedInvoices: "الفواتير المعلّقة",
+  1427→    parkedInvoicesCount: "{count} فاتورة معلّقة",
+  1428→    noParkedInvoices: "لا توجد فواتير معلّقة",
+  1429→    parkCurrentInvoice: "تعليق الفاتورة الحالية",
+  1430→    parkFailed: "فشل تعليق الفاتورة",
+  1431→    invoiceParked: "تم تعليق الفاتورة",
+  1432→    holdNo: "رقم التعليق",
+  1433→    parkedDeleted: "تم حذف الفاتورة المعلّقة",
+  1434→    deleteParkedConfirm: "هل تريد حذف هذه الفاتورة المعلّقة؟",
+  1435→    replaceCartConfirm: "هل تريد استبدال محتويات السلة الحالية؟",
+  1436→    resume: "استئناف",
+  1437→    resumeInvoiceFailed: "فشل استئناف الفاتورة",
+  1438→    invoiceRestored: "تم استعادة الفاتورة",
+  1439→    unnamed: "بدون اسم",
+  1440→    parkListTitle: "الفواتير المعلّقة",
+  1441→    customerSection: "بيانات العميل",
+  1442→    paymentSection: "الدفع",
+  1443→    phoneAutoSearch: "البحث التلقائي بالهاتف",
+  1444→    existingCustomer: "عميل حالي",
+  1445→    newCustomerAuto: "عميل جديد تلقائياً",
+  1446→    priceTier: "فئة السعر",
+  1447→    tierRetail: "تجزئة",
+  1448→    tierWholesale: "جملة",
+  1449→    tierCorporate: "شركات",
+  1450→    priceType: "نوع السعر",
+  1451→    basePrice: "السعر الأساسي",
+  1452→    effectivePrice: "السعر الفعلي",
+  1453→    promoPrice: "سعر العرض",
+  1454→    promo: "عرض",
+  1455→    promoActive: "عرض ساري",
+  1456→    deliveryRequest: "طلب توصيل",
+  1457→    deliveryFee: "رسوم التوصيل",
+  1458→    driverName: "اسم السائق",
+  1459→    driverNamePlaceholder: "اكتب اسم السائق",
+  1460→    deliveryFeeLabel: "رسوم التوصيل",
+  1461→
+  1462→    // Exchange module
+  1463→    fullyReturned: "مُرتجع بالكامل",
+  1464→    original: "الأصلية",
+  1465→    returned: "مُرتجع",
+  1466→    returnable: "قابل للإرجاع",
+  1467→    returnQty: "كمية الإرجاع",
+  1468→    returnValue: "قيمة الإرجاع",
+  1469→    refundTotal: "إجمالي الاسترداد",
+  1470→    refundInvoice: "استرداد الفاتورة",
+  1471→    refundDialogDesc: "هل أنت متأكد من اعتماد استرداد هذه الفاتورة؟",
+  1472→    refundApproved: "تم اعتماد الاسترداد",
+  1473→    refundFailed: "فشل اعتماد الاسترداد",
+  1474→    refundApprovedSuccess: "تم اعتماد الاسترداد بنجاح",
+  1475→    refundBlocked: "لا يمكن الاسترداد",
+  1476→    exceeded14Days: "تجاوزت 14 يوماً",
+  1477→    enable14DayOverride: "تفعيل تجاوز قاعدة 14 يوماً",
+  1478→    override14Days: "تجاوز قاعدة 14 يوماً",
+  1479→    partialRefund: "استرداد جزئي",
+  1480→    partialRefundReason: "سبب الاسترداد الجزئي",
+  1481→    fullRefund: "استرداد كلي",
+  1482→    refundedFull: "تم الاسترداد كاملاً",
+  1483→    refundedPartial: "تم الاسترداد جزئياً",
+  1484→    refundedFully: "مسترد بالكامل",
+  1485→    refundMore: "استرداد المزيد",
+  1486→    creditNote: "إشعار دائن",
+  1487→    creditNoteTotal: "إجمالي إشعار الدائن",
+  1488→    totalReturns: "إجمالي المرتجعات",
+  1489→    returns: "المرتجعات",
+  1490→    scanOrTypePlaceholder: "امسح أو اكتب...",
+  1491→    perUnit: "للوحدة",
+  1492→    originalInvoice: "الفاتورة الأصلية",
+  1493→    originalInvoiceRequired: "الفاتورة الأصلية مطلوبة",
+  1494→    originalInvoiceNotFound: "الفاتورة الأصلية غير موجودة",
+  1495→    invoiceExpired14Days: "انقضت أكثر من 14 يوماً على الفاتورة",
+  1496→    invoiceExpired14DaysLong: "عذراً، انقضت أكثر من 14 يوماً على هذه الفاتورة — لا يمكن التبديل",
+  1497→    invoiceDate: "تاريخ الفاتورة",
+  1498→    invoiceNo: "رقم الفاتورة",
+  1499→    invoiceNoPlaceholder: "اكتب أو امسح رقم الفاتورة...",
+  1500→    invoiceNotFoundRetry: "الفاتورة غير موجودة، حاول مرة أخرى",
+  1501→    invoiceNumber: "رقم الفاتورة",
+  1502→    originalInvoiceItems: "أصناف الفاتورة الأصلية",
+  1503→    returnableQtyHint: "الكمية القابلة للإرجاع",
+  1504→    itemNotInOriginalInvoice: "عذراً، هذا الصنف غير موجود في الفاتورة الأصلية!",
+  1505→    itemFullyReturned: "عذراً، هذا الصنف تم استبداله أو إرجاعه بالكامل سابقاً من هذه الفاتورة!",
+  1506→    scannedQtyExceedsReturnable: "الكمية الممسوحة تجاوزت الكمية القابلة للإرجاع",
+  1507→    returnExceedsRemaining: "الإرجاع يتجاوز الكمية المتبقية",
+  1508→    enterInvoiceNoFirst: "أدخل رقم الفاتورة أولاً",
+  1509→    fetchOriginalInvoice: "استدعاء الفاتورة الأصلية",
+  1510→    mandatory: "إلزامي",
+  1511→    eligibleForExchange: "صالحة للتبديل",
+  1512→    daysPassed: "الأيام المنقضية",
+  1513→    newExchange: "تبديل جديد",
+  1514→    exchangeApproved: "تم اعتماد التبديل",
+  1515→    exchangeApproveFailed: "فشل اعتماد التبديل",
+  1516→    exchangeApprovedSuccess: "تم اعتماد التبديل بنجاح",
+  1517→    exchangeNo: "رقم التبديل",
+  1518→    exchangeNotePlaceholder: "ملاحظة (اختياري)",
+  1519→    settlementMethod: "طريقة التسوية",
+  1520→    returnsTotal: "إجمالي المرتجع",
+  1521→    newTotal: "الإجمالي الجديد",
+  1522→    returnsByScan: "المرتجع بالمسح",
+  1523→    newItems: "الأصناف الجديدة",
+  1524→    scanReturnPlaceholder: "امسح باركود الصنف المرجع",
+  1525→    scanAddsOneHint: "كل مسح يضيف وحدة واحدة. لا يمكن إدخال الكمية يدوياً — فقط بالمسح وزر الإلغاء.",
+  1526→    scanToAddReturn: "امسح لإضافة مرتجع",
+  1527→    remainingAfterReturn: "المتبقي بعد الإرجاع",
+  1528→    undoLastScan: "تراجع عن آخر مسح (−1)",
+  1529→    qtyScanOnly: "الكمية بالمسح فقط",
+  1530→    addAnotherScan: "أضف مسحاً آخر",
+  1531→    deleteReturnItem: "حذف صنف المرتجع",
+  1532→    searchNewPlaceholder: "ابحث عن صنف جديد...",
+  1533→    noNewItemsSearch: "لا توجد أصناف مطابقة",
+  1534→    collectFromCustomer: "تحصيل من العميل",
+  1535→    refundToCustomer: "رد للعميل",
+  1536→    exchange: "تبديل",
+  1537→    even: "متساوي",
+  1538→    evenExchange: "تبديل متساوي",
+  1539→    approveExchange: "اعتماد التبديل",
+  1540→    confirmExchangeTitle: "تأكيد اعتماد التبديل",
+  1541→    confirmExchangeDesc: "هل أنت متأكد من اعتماد هذا التبديل؟",
+  1542→    afterApprovalReady: "بعد الاعتماد سيتم تنفيذ التبديل",
+  1543→    ctrlEnterHint: "Ctrl+Enter للاعتماد",
+  1544→    ctrlEnterShortcut: "Ctrl+Enter",
+  1545→    yesApproveExchange: "نعم، اعتماد التبديل",
+  1546→    yesComplete: "نعم، إتمام",
+  1547→    printReceipt: "طباعة الإيصال",
+  1548→    newSale: "بيع جديد",
+  1549→    thermalPrint: "طباعة حرارية",
+  1550→    thermalPrint80: "طباعة حرارية 80مم",
+  1551→    a4Print: "طباعة A4",
+  1552→
+  1553→    // Promotions / discounts
+  1554→    discountType: "نوع الخصم",
+  1555→    discountValue: "قيمة الخصم",
+  1556→    discountPercent: "نسبة الخصم",
+  1557→    discountAmount: "مبلغ الخصم",
+  1558→    discountMustBePositive: "قيمة الخصم يجب أن تكون موجبة",
+  1559→    discountMax100: "نسبة الخصم لا يمكن أن تتجاوز 100%",
+  1560→    percent: "نسبة مئوية",
+  1561→    fixedAmount: "مبلغ ثابت",
+  1562→    value: "القيمة",
+  1563→    valuePlaceholder: "أدخل القيمة",
+  1564→    fromDate2: "من تاريخ",
+  1565→    toDate2: "إلى تاريخ",
+  1566→    promotions: "العروض",
+  1567→    promotionsAndDiscounts: "العروض والخصومات",
+  1568→    newPromotion: "عرض جديد",
+  1569→    createPromotion: "إنشاء عرض",
+  1570→    promoCreated: "تم إنشاء العرض",
+  1571→    promoCreateFailed: "فشل إنشاء العرض",
+  1572→    promoDeactivated: "تم إيقاف العرض",
+  1573→    promoDeactivateFailed: "فشل إيقاف العرض",
+  1574→    deactivatePromotionConfirm: "هل تريد إيقاف هذا العرض؟",
+  1575→    deactivate: "إيقاف",
+  1576→    currentPromotions: "العروض الحالية",
+  1577→    noPromotions: "لا توجد عروض",
+  1578→    createFirstPromo: "أنشئ عرضك الأول",
+  1579→    activeNow: "ساري الآن",
+  1580→    scheduled: "مجدول",
+  1581→    stopped: "متوقف",
+  1582→    createdBy: "أنشأه",
+  1583→    applyScope: "نطاق التطبيق",
+  1584→    applyToAllDesc: "يطبّق على كل المنتجات",
+  1585→    includedCategories: "التصنيفات المشمولة",
+  1586→    excludedCategories: "التصنيفات المستثناة",
+  1587→    categoriesSelected: "تصنيفات مختارة",
+  1588→    categoriesExcluded: "تصنيفات مستثناة",
+  1589→    noCategories: "لا توجد تصنيفات",
+  1590→    scopeProduct: "منتج محدد",
+  1591→    scopeCategory: "تصنيف محدد",
+  1592→    scopeAll: "كل المنتجات",
+  1593→    scopeAllExcept: "كل المنتجات عدا",
+  1594→    scopeProductShort: "منتج",
+  1595→    scopeCategoryShort: "تصنيف",
+  1596→    scopeAllShort: "الكل",
+  1597→    scopeAllExceptShort: "الكل عدا",
+  1598→
+  1599→    // Pricing module
+  1600→    priceManagement: "إدارة الأسعار",
+  1601→    changeLog: "سجل التغييرات",
+  1602→    approveAndApplyPrices: "اعتماد وتطبيق الأسعار",
+  1603→    approveAndApply: "اعتماد وتطبيق",
+  1604→    approvePriceChangesTitle: "اعتماد تغييرات الأسعار",
+  1605→    approvePriceChangesDesc: "هل تريد اعتماد وتطبيق تغييرات الأسعار؟",
+  1606→    noChangesToApprove: "لا توجد تغييرات للاعتماد",
+  1607→    pricesApproved: "تم اعتماد الأسعار",
+  1608→    applyPricesFailed: "فشل تطبيق الأسعار",
+  1609→    belowCostTitle: "سعر أقل من التكلفة",
+  1610→    belowCostDesc: "بعض الأسعار أقل من سعر التكلفة",
+  1611→    belowCostWarning: "تحذير: سعر أقل من التكلفة",
+  1612→    belowCostWarningDesc: "بعض الأسعار الجديدة أقل من سعر التكلفة. تأكد قبل الاعتماد.",
+  1613→    confirmApplyAll: "تأكيد تطبيق الكل",
+  1614→    violatingItemsCount: "{count} صنف مخالف",
+  1615→    pendingChanges: "تغييرات معلّقة",
+  1616→    editCellToEnable: "حرّر الخلية للتفعيل",
+  1617→    cancelChanges: "إلغاء التغييرات",
+  1618→    viewOnlyAdminCanEdit: "للعرض فقط — المدير وحده يمكنه التعديل",
+  1619→    adminOnlyEdit: "المدير وحده يمكنه التعديل",
+  1620→    editSalePricesInPricing: "تعديل أسعار البيع من شاشة الأسعار",
+  1621→    openPricingScreen: "فتح شاشة الأسعار",
+  1622→    estimatedProfitMargin: "هامش الربح المقدّر",
+  1623→    zeroMeansRetail: "صفر = سعر التجزئة",
+  1624→    zeroMeansUnspecified: "صفر = غير محدد",
+  1625→    salePriceEditLocked: "تعديل سعر البيع مقفل",
+  1626→    totalQty: "إجمالي الكمية",
+  1627→    warehousesTotal: "إجمالي المخازن",
+  1628→    distributeQtyAcrossWarehouses: "توزيع الكمية على المخازن",
+  1629→    totalAcrossWarehouses: "الإجمالي عبر المخازن",
+  1630→    optimalOrderQty: "الكمية المثلى لإعادة الطلب",
+  1631→    defaultSupplier: "المورّد الافتراضي",
+  1632→    selectDefaultSupplier: "اختر المورّد الافتراضي",
+  1633→    defaultSupplierHint: "المورّد المستخدم في توليد أوامر الشراء التلقائية",
+  1634→    reorderLevel: "حد إعادة الطلب",
+  1635→
+  1636→    // Purchase orders module
+  1637→    poSupplier: "المورّد",
+  1638→    poNote: "ملاحظة أمر الشراء",
+  1639→    poProducts: "منتجات أمر الشراء",
+  1640→    poTotal: "إجمالي أمر الشراء",
+  1641→    poCreated: "تم إنشاء أمر الشراء",
+  1642→    poCreateFailed: "فشل إنشاء أمر الشراء",
+  1643→    poDetailsTitle: "تفاصيل أمر الشراء",
+  1644→    poDetailsDesc: "تفاصيل أمر الشراء وأصنافه",
+  1645→    poStatus: "حالة أمر الشراء",
+  1646→    poStatusPendingApproval: "بانتظار الاعتماد",
+  1647→    poStatusApproved: "معتمد",
+  1648→    poStatusPending: "معلّق",
+  1649→    poStatusReceived: "مستلم",
+  1650→    poStatusCancelled: "ملغى",
+  1651→    poStatusRejected: "مرفوض",
+  1652→    poReceived: "تم استلام أمر الشراء",
+  1653→    poReceiveFailed: "فشل استلام أمر الشراء",
+  1654→    poCancelled: "تم إلغاء أمر الشراء",
+  1655→    poCancelFailed: "فشل إلغاء أمر الشراء",
+  1656→    poDeleted: "تم حذف أمر الشراء",
+  1657→    poDeleteFailed: "فشل حذف أمر الشراء",
+  1658→    poApproved: "تم اعتماد أمر الشراء",
+  1659→    poApproveFailed: "فشل اعتماد أمر الشراء",
+  1660→    poEditedAndApproved: "تم التعديل والاعتماد",
+  1661→    poRejected: "تم رفض أمر الشراء",
+  1662→    poRejectFailed: "فشل رفض أمر الشراء",
+  1663→    poDraftCreated: "تم إنشاء مسودة أمر الشراء",
+  1664→    poDraftCreateFailed: "فشل إنشاء مسودة أمر الشراء",
+  1665→    noItemsNeedReorder: "لا توجد أصناف بحاجة لإعادة الطلب",
+  1666→    fetchSupplierRequiredItems: "استدعاء الأصناف المطلوبة من المورّد",
+  1667→    autoPoDesc: "توليد تلقائي لأوامر شراء للأصناف التي وصلت حد إعادة الطلب",
+  1668→    suggestedQtyFormula: "صيغة الكمية المقترحة",
+  1669→    createDraft: "إنشاء مسودة",
+  1670→    newPurchaseOrder: "أمر شراء جديد",
+  1671→    newPoDesc: "إنشاء أمر شراء جديد للمورّد",
+  1672→    confirmReceipt: "تأكيد الاستلام",
+  1673→    confirmReceiptDesc: "هل تريد تأكيد استلام هذا الأمر؟ سيتم تحديث المخزون وأسعار التكلفة.",
+  1674→    confirmPoReceipt: "تأكيد استلام أمر الشراء",
+  1675→    updateCostPrices: "تحديث أسعار التكلفة",
+  1676→    updateCostPricesDesc: "سيتم تحديث أسعار تكلفة المنتجات عند الاستلام",
+  1677→    cancelPoTitle: "إلغاء أمر الشراء",
+  1678→    cancelPoConfirm: "هل تريد إلغاء هذا الأمر؟ لا يمكن التراجع.",
+  1679→    cancelOrder: "إلغاء الأمر",
+  1680→    pendingManagementApproval: "بانتظار اعتماد الإدارة",
+  1681→    autoPoDraftsDesc: "مسودات أوامر شراء مولّدة تلقائياً بانتظار المراجعة",
+  1682→    pendingReview: "بانتظار المراجعة",
+  1683→    noApprovalDrafts: "لا توجد مسودات للاعتماد",
+  1684→    noApprovalDraftsDesc: "لا توجد مسودات أوامر شراء بانتظار المراجعة",
+  1685→    reviewPoDraft: "مراجعة مسودة أمر الشراء",
+  1686→    totalAfterEdits: "الإجمالي بعد التعديلات",
+  1687→    fullReject: "رفض كامل",
+  1688→    approveWithEdits: "اعتماد مع تعديلات",
+  1689→    approveAsIs: "اعتماد كما هو",
+  1690→    editAndAccept: "تعديل وقبول",
+  1691→    approveAndAccept: "اعتماد وقبول",
+  1692→    editAndApprovePo: "تعديل واعتماد أمر الشراء",
+  1693→    approvePo: "اعتماد أمر الشراء",
+  1694→    editAndApproveDesc: "عدّل الكميات والأسعار ثم اعتمد الأمر",
+  1695→    approvePoDesc: "اعتماد أمر الشراء بالقيم الحالية",
+  1696→    editAndApprove: "تعديل واعتماد",
+  1697→    approve: "اعتماد",
+  1698→    reject: "رفض",
+  1699→    rejectPoTitle: "رفض أمر الشراء",
+  1700→    rejectReason: "سبب الرفض",
+  1701→    rejectReasonPlaceholder: "اكتب سبب الرفض",
+  1702→    enterRejectReason: "أدخل سبب الرفض",
+  1703→    confirmReject: "تأكيد الرفض",
+  1704→    orderNo: "رقم الأمر",
+  1705→    landedCost: "التكلفة المستلمة",
+  1706→    landedCostDesc: "تكلفة الشراء + رسوم جمركية + شحن + رسوم أخرى",
+  1707→    landedCostAppliedDesc: "سيتم توزيع التكلفة المستلمة على الأصناف وتحديث سعر التكلفة",
+  1708→    landedCostPreviewDesc: "معاينة تأثير التكلفة المستلمة على أسعار التكلفة",
+  1709→    customs: "جمارك",
+  1710→    shipping: "شحن",
+  1711→    otherFees: "رسوم أخرى",
+  1712→    invoiceTotal2: "إجمالي الفاتورة",
+  1713→    suggestedSalePrice: "سعر البيع المقترح",
+  1714→    emptyMeansNoChange: "اتركه فارغاً = بدون تغيير",
+  1715→
+  1716→    // Reports module
+  1717→    repTotalRevenue: "إجمالي الإيرادات",
+  1718→    repTotalCost: "إجمالي التكلفة",
+  1719→    repGrossProfit: "إجمالي الربح",
+  1720→    repAvgInvoice: "متوسط الفاتورة",
+  1721→    repRevenueTrend: "اتجاه الإيرادات",
+  1722→    repRevenueTrendDesc: "تطور الإيرادات اليومية",
+  1723→    repPaymentMethods: "طرق الدفع",
+  1724→    repRevenueDistribution: "توزيع الإيرادات",
+  1725→    repRevenueByCategory: "الإيرادات حسب التصنيف",
+  1726→    repRevenueByCategoryDesc: "توزيع الإيرادات على التصنيفات",
+  1727→    repProductBreakdown: "تفصيل المنتجات",
+  1728→    repProductBreakdownDesc: "الأداء حسب المنتج",
+  1729→    repRevenue: "الإيرادات",
+  1730→    repProfit: "الربح",
+  1731→    generalReports: "التقارير العامة",
+  1732→    performanceMatrix: "مصفوفة الأداء",
+  1733→    matrixTitle: "مصفوفة أداء المنتجات",
+  1734→    matrixLongDesc: "مصفوفة شاملة لتحليل أداء كل منتج: الإيراد، التكلفة، الربح، معدل الدوران، الهامش، والأيام الراكدة",
+  1735→    reportFilters: "فلاتر التقرير",
+  1736→    calculatingMatrix2: "جارٍ حساب المصفوفة...",
+  1737→    noDataForPeriod2: "لا توجد بيانات لهذه الفترة",
+  1738→    performanceMatrixCount: "مصفوفة {count} منتج",
+  1739→    matrixClickHint: "انقر على صف للتفاصيل",
+  1740→    branchWarehouse2: "فرع / مخزن",
+  1741→    allSuppliers: "كل الموردين",
+  1742→    matrixKpiRevenue: "الإيراد",
+  1743→    matrixKpiCost: "التكلفة",
+  1744→    matrixKpiProfit: "الربح",
+  1745→    matrixKpiTurnover: "معدل الدوران",
+  1746→    margin: "الهامش",
+  1747→    stagnantDays: "أيام راكدة",
+  1748→    colName: "الاسم",
+  1749→    colBarcode: "الباركود",
+  1750→    colCategory: "التصنيف",
+  1751→    colQty: "الكمية",
+  1752→    colReorderLevel: "حد إعادة الطلب",
+  1753→    colCostPrice: "سعر التكلفة",
+  1754→    colSalePrice: "سعر البيع",
+  1755→    colProduct: "المنتج",
+  1756→    colItem: "الصنف",
+  1757→    colPrice: "السعر",
+  1758→    colTotal: "الإجمالي",
+  1759→    colSupplier: "المورّد",
+  1760→    colDate: "التاريخ",
+  1761→    colItemsCount: "عدد الأصناف",
+  1762→    colStatus: "الحالة",
+  1763→    colActions: "إجراءات",
+  1764→    colBook: "الدفتري",
+  1765→    colActual: "الفعلي",
+  1766→    colVariance: "الفرق",
+  1767→    colUser: "المستخدم",
+  1768→    colType: "النوع",
+  1769→    colFrom: "من",
+  1770→    colTo: "إلى",
+  1771→    colChange: "التغيير",
+  1772→    colBy: "بواسطة",
+  1773→    colNote: "ملاحظة",
+  1774→    colUnit: "الوحدة",
+  1775→    colOrderNo: "رقم الأمر",
+  1776→    totalProducts: "إجمالي المنتجات",
+  1777→    totalCategories: "إجمالي التصنيفات",
+  1778→    exportPrint: "تصدير وطباعة",
+  1779→    noInvoices: "لا توجد فواتير",
+  1780→    noPurchaseOrders: "لا توجد أوامر شراء",
+  1781→    createFirstPo: "أنشئ أول أمر شراء",
+  1782→
+  1783→    // Shifts module
+  1784→    shfOpenNewShift: "فتح وردية جديدة",
+  1785→    shfOpenShift: "فتح وردية",
+  1786→    shfNoOpenShift: "لا توجد وردية مفتوحة",
+  1787→    shfOpenShiftToStart: "افتح وردية لبدء المبيعات",
+  1788→    shfClosedShiftsHistory: "سجل الورديات المغلقة",
+  1789→    shfLastShiftsWithVariances: "آخر الورديات ذات الفروقات",
+  1790→    shfActiveShift: "الوردية الحالية",
+  1791→    shfOpenedAtHint: "فُتحت في",
+  1792→    shfOpen: "فتح",
+  1793→    shfCash: "نقدي",
+  1794→    shfKnet: "كي نت",
+  1795→    shfVisaMaster: "فيزا / ماستركارد",
+  1796→    shfElectronicPaymentVariances: "فروقات المدفوعات الإلكترونية",
+  1797→    shfVarianceExplanation: "تفسير الفرق",
+  1798→    shfKnetVariance: "فرق كي نت",
+  1799→    shfVisaVariance: "فرق الفيزا",
+  1800→    shfExpectedBook: "الدفتري المتوقع",
+  1801→    shfActualFromMachine: "الفعلي من الجهاز",
+  1802→    shfVariance: "الفرق",
+  1803→    shfCloseShiftAndReconcile: "إغلاق الوردية ومطابقة الصندوق",
+  1804→
+  1805→    // Spot-check module
+  1806→    spcBlindItemCount: "جرد أعمى للأصناف",
+  1807→    spcSpotCheckDesc: "جرد مفاجئ للأصناف الحساسة بدون كشف الرصيد الدفتري",
+  1808→    spcItemToCount: "الصنف المطلوب جرده",
+  1809→    spcSelectItemPlaceholder: "اختر صنفاً للجرد",
+  1810→    spcBookQtyHiddenHint: "الرصيد الدفتري مخفي أثناء الجرد الأعمى",
+  1811→    spcActualQtyOnShelf: "الكمية الفعلية على الرف",
+  1812→    spcApproveCountAndCalcVariance: "اعتمد الجردة واحسب الفرق",
+  1813→    spcBook: "الدفتري",
+  1814→    spcActual: "الفعلي",
+  1815→    spcShortageCheckRecords: "تحقق من سجلات النقص",
+  1816→    spcSurplusCheckReceipts: "تحقق من إيصالات الزيادة",
+  1817→    spcBlindCountHistory: "سجل الجردات العمياء",
+  1818→    spcLastCounts: "آخر الجردات",
+  1819→    spcNoCountsYet: "لا توجد جردات بعد",
+  1820→
+  1821→    // Dashboard module
+  1822→    dshTotalSales: "إجمالي المبيعات",
+  1823→    dshTodaySales: "مبيعات اليوم",
+  1824→    dshSinceStartOfDay: "منذ بداية اليوم",
+  1825→    dshProductsCount: "عدد المنتجات",
+  1826→    dshInventoryValue: "قيمة المخزون",
+  1827→    dshLowStockProducts: "منتجات بمخزون منخفض",
+  1828→    dshPendingPurchaseOrders: "أوامر شراء معلّقة",
+  1829→    dshSalesTrend: "اتجاه المبيعات",
+  1830→    dshDailySalesTrendDesc: "اتجاه المبيعات اليومية",
+  1831→    dshNoSalesYet: "لا توجد مبيعات بعد",
+  1832→    dshNoSalesYetDesc: "لم تسجّل أي مبيعات بعد. ابدأ بإنشاء فاتورة جديدة.",
+  1833→    dshInventoryValueDistribution: "توزيع قيمة المخزون",
+  1834→    dshByCategory: "حسب التصنيف",
+  1835→    dshTopSelling: "الأكثر مبيعاً",
+  1836→    dshByRevenue: "حسب الإيراد",
+  1837→    dshInventoryAlerts: "تنبيهات المخزون",
+  1838→    dshProductsNeedReorder: "منتجات بحاجة لإعادة الطلب",
+  1839→    dshInventoryGood: "المخزون بحالة جيدة",
+  1840→    dshNoLowStockProducts: "لا توجد منتجات بمخزون منخفض",
+  1841→    dshLimit: "الحد",
+  1842→    dshRecentInvoices: "أحدث الفواتير",
+  1843→    dshRecentOperations: "أحدث العمليات",
+  1844→    dshYouHavePendingPo: "لديك أوامر شراء معلّقة",
+  1845→    dshConfirmReceiptToUpdateStock: "أكّد الاستلام لتحديث المخزون",
+  1846→    dshReviewPurchases: "مراجعة المشتريات",
+  1847→    dshLastXDays: "آخر {x} يوماً",
+  1848→    dshDataLoadFailedDesc: "فشل تحميل بيانات لوحة التحكم. حاول مرة أخرى.",
+  1849→
+  1850→    // Accounting module
+  1851→    accChartOfAccounts: "شجرة الحسابات",
+  1852→    accExpenses: "المصروفات",
+  1853→    accJournalEntries: "قيود اليومية",
+  1854→    accPnl: "قائمة الدخل",
+  1855→    accTrialBalance: "ميزان المراجعة",
+  1856→    accAccountingLongDesc: "نظام محاسبي كامل بشجرة حسابات وقيود يومية تلقائية",
+  1857→    accMainAccount: "حساب رئيسي",
+  1858→    accNoAccountsYet: "لا توجد حسابات بعد",
+  1859→    accAddSubaccountTitle: "إضافة حساب فرعي",
+  1860→    accCodeAndNameRequired: "الرمز والاسم مطلوبان",
+  1861→    accSubaccountAdded: "تمت إضافة الحساب الفرعي",
+  1862→    accAccountAdded: "تمت إضافة الحساب",
+  1863→    accCodeAlreadyUsed: "الرمز مستخدم مسبقاً",
+  1864→    accAddFailed: "فشل الإضافة",
+  1865→    accAddSubaccountUnder: "إضافة حساب فرعي تحت",
+  1866→    accAddMainAccount: "إضافة حساب رئيسي",
+  1867→    accEnterNewAccountData: "أدخل بيانات الحساب الجديد",
+  1868→    accAccountType: "نوع الحساب",
+  1869→    accTypeAsset: "أصول",
+  1870→    accTypeLiability: "خصوم",
+  1871→    accTypeEquity: "حقوق ملكية",
+  1872→    accTypeRevenue: "إيرادات",
+  1873→    accTypeExpense: "مصروفات",
+  1874→    accTypeInheritedFromParent: "موروث من الحساب الأب",
+  1875→    accAdd2: "إضافة",
+  1876→    accFromDateOptional: "من تاريخ (اختياري)",
+  1877→    accToDateOptional: "إلى تاريخ (اختياري)",
+  1878→    accAllPeriods: "كل الفترات",
+  1879→    accPnlExplanation: "قائمة الدخل تُحسب من الإيرادات ناقص تكلفة البضاعة المباعة ناقص المصروفات التشغيلية",
+  1880→    accNetProfit: "صافي الربح",
+  1881→    accForPeriod: "للفترة",
+  1882→    accPnlStatement: "قائمة الدخل",
+  1883→    accPnlStatementDesc: "بيان الإيرادات والمصروفات وصافي الربح",
+  1884→    accTotalRevenue: "إجمالي الإيرادات",
+  1885→    accCogs: "تكلفة البضاعة المباعة",
+  1886→    accGrossProfit: "إجمالي الربح",
+  1887→    accSalaries: "الرواتب",
+  1888→    accAdminExpenses: "المصروفات الإدارية",
+  1889→    accTotalOpex: "إجمالي المصروفات التشغيلية",
+  1890→    accExpensesByCategory: "المصروفات حسب التصنيف",
+  1891→    accJournalLedger: "دفتر اليومية",
+  1892→    accJournalDesc: "سجل القيود المحاسبية",
+  1893→    accManualEntry: "قيد يدوي",
+  1894→    accLoadingJournal: "جارٍ تحميل القيود...",
+  1895→    accNoJournalEntries: "لا توجد قيود",
+  1896→    accNoJournalEntriesDesc: "لم تسجّل أي قيود يومية بعد",
+  1897→    accSum: "المجموع",
+  1898→    accBalanced: "متوازن",
+  1899→    accNotBalanced: "غير متوازن",
+  1900→    accTrialBalanceDesc: "ميزان المراجعة يعرض أرصدة كل الحسابات",
+  1901→    accNoBalances: "لا توجد أرصدة",
+  1902→    accNoBalancesDesc: "لا توجد أرصدة لعرضها",
+  1903→    accCalculatingTrialBalance: "جارٍ حساب ميزان المراجعة...",
+  1904→    accRecordExpense: "تسجيل مصروف",
+  1905→    accUpdatesBalancesImmediately: "يحدّث الأرصدة فوراً",
+  1906→    accSalary: "راتب",
+  1907→    accAdminExpense: "مصروف إداري",
+  1908→    accEmployeeName: "اسم الموظف",
+  1909→    accEmployeeNameRequired: "اسم الموظف مطلوب",
+  1910→    accEmployeeNamePlaceholder: "اكتب اسم الموظف",
+  1911→    accAmount: "المبلغ",
+  1912→    accPaymentDate: "تاريخ الدفع",
+  1913→    accExpenseTitle: "عنوان المصروف",
+  1914→    accExpenseTitleRequired: "عنوان المصروف مطلوب",
+  1915→    accExpenseTitlePlaceholder: "اكتب عنوان المصروف",
+  1916→    accPaymentAccount: "حساب الدفع",
+  1917→    accSelectPaymentAccount: "اختر حساب الدفع",
+  1918→    accExpenseAccountUndefined: "حساب المصروف غير محدد",
+  1919→    accTotalAmount: "المبلغ الإجمالي",
+  1920→    accRecordSalary: "تسجيل راتب",
+  1921→    accCannotDeleteWhileSaving: "لا يمكن الحذف أثناء الحفظ",
+  1922→    accExpenseDeletedReversed: "تم حذف المصروف وعكس القيد",
+  1923→    accExpensesHistory: "سجل المصروفات",
+  1924→    accNoExpensesRecorded: "لم تسجّل أي مصروفات",
+  1925→    accPaidVia: "مدفوع عبر",
+  1926→    accEnterValidAmount: "أدخل مبلغاً صحيحاً",
+  1927→    accSalaryRecorded: "تم تسجيل الراتب",
+  1928→    accExpenseRecorded: "تم تسجيل المصروف",
+  1929→    accJournalTypeSale: "قيد بيع",
+  1930→    accJournalTypeExpense: "قيد مصروف",
+  1931→    accJournalTypePurchase: "قيد شراء",
+  1932→    accJournalTypeManual: "قيد يدوي",
+  1933→
+  1934→    // Customers module
+  1935→    cusAddCustomer: "إضافة عميل",
+  1936→    cusEditCustomer: "تعديل العميل",
+  1937→    cusCustomerName: "اسم العميل",
+  1938→    cusCustomerPhone: "هاتف العميل",
+  1939→    cusCustomerAddress: "عنوان العميل",
+  1940→    cusCustomerType: "نوع العميل",
+  1941→    cusCustomerTypeRetail: "عميل تجزئة",
+  1942→    cusCustomerTypeWholesale: "عميل جملة",
+  1943→    cusCustomerTypeCorporate: "عميل شركة",
+  1944→    cusCustomerAdded: "تمت إضافة العميل",
+  1945→    cusCustomerUpdated: "تم تحديث العميل",
+  1946→    cusCustomerDeleted: "تم حذف العميل",
+  1947→    cusNoCustomers: "لا يوجد عملاء",
+  1948→    cusAddFirstCustomer: "أضف عميلك الأول",
+  1949→    cusCustomerNameRequired: "اسم العميل مطلوب",
+  1950→    cusCustomerPhoneRequired: "هاتف العميل مطلوب",
+  1951→
+  1952→    // Analytics module
+  1953→    anlAnalyticsCards: "بطاقات التحليلات",
+  1954→    anlOverview: "نظرة عامة",
+  1955→    anlSalesByDay: "المبيعات حسب اليوم",
+  1956→    anlTopProducts: "أفضل المنتجات",
+  1957→    anlPaymentMethods: "طرق الدفع",
+  1958→    anlCategorySales: "مبيعات التصنيفات",
+  1959→    anlLowStockAnalysis: "تحليل المخزون المنخفض",
+  1960→    anlNoData: "لا توجد بيانات",
+  1961→
+  1962→    // Settings module
+  1963→    setActiveCountry: "تعيين الدولة الفعّالة",
+  1964→    setCountry: "الدولة",
+  1965→    setCurrency: "العملة",
+  1966→    setTaxRate: "نسبة الضريبة",
+  1967→    setUnits: "وحدات القياس",
+  1968→    setCategories: "التصنيفات",
+  1969→    setAddUnit: "إضافة وحدة",
+  1970→    setUnitName: "اسم الوحدة",
+  1971→    setUnitNamePlaceholder: "مثال: كيلوغرام",
+  1972→    setUnitAdded: "تمت إضافة الوحدة",
+  1973→    setUnitDeleted: "تم حذف الوحدة",
+  1974→    setUnitExists: "الوحدة موجودة مسبقاً",
+  1975→    setAddCategory: "إضافة تصنيف",
+  1976→    setCategoryName: "اسم التصنيف",
+  1977→    setCategoryCode: "رمز التصنيف",
+  1978→    setCategoryCodePlaceholder: "مثال: FOOD",
+  1979→    setCategoryAdded: "تمت إضافة التصنيف",
+  1980→    setCategoryUpdated: "تم تحديث التصنيف",
+  1981→    setCategoryDeleted: "تم حذف التصنيف",
+  1982→    setCategoryInUse: "لا يمكن حذف تصنيف مستخدم بمنتجات",
+  1983→    setNoUnits: "لا توجد وحدات قياس",
+  1984→    setNoCategories: "لا توجد تصنيفات",
+  1985→    setEditCategory: "تعديل التصنيف",
+  1986→    setCategoryNameRequired: "اسم التصنيف مطلوب",
+  1987→
+  1988→    // Integrations module
+  1989→    intShopify: "شوبيفاي",
+  1990→    intShopifyDesc: "ربط متجرك مع شوبيفاي لمزامنة المنتجات والطلبات",
+  1991→    intConnect: "ربط",
+  1992→    intDisconnect: "قطع الربط",
+  1993→    intSync: "مزامنة",
+  1994→    intSyncing: "جارٍ المزامنة...",
+  1995→    intSynced: "تمت المزامنة",
+  1996→    intSyncFailed: "فشلت المزامنة",
+  1997→    intNotConnected: "غير مربوط",
+  1998→    intSetupGuide: "دليل الإعداد",
+  1999→    intStoreDomain: "نطاق المتجر",
+  2000→    intAccessToken: "رمز الوصول (Access Token)",
+
+[showing lines 1-2000 of 3043; use offset=2001 with limit to continue reading]

@@ -36,15 +36,20 @@ import { printA4Invoice, printThermalReceipt } from "@/lib/print"
 import { useUser } from "@/components/user-context"
 import type { Sale } from "@/lib/types"
 import { cn } from "@/lib/utils"
+import { useT } from "@/components/i18n-context"
+import type { Dict } from "@/lib/i18n"
 
-const PAYMENT_META: Record<Sale["paymentMethod"], { label: string; icon: any; className: string }> = {
-  CASH: { label: "نقدي", icon: Banknote, className: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30" },
-  CARD: { label: "بطاقة", icon: CreditCard, className: "bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-500/30" },
-  TRANSFER: { label: "تحويل", icon: ArrowLeftRight, className: "bg-violet-500/10 text-violet-700 dark:text-violet-400 border-violet-500/30" },
+function paymentMeta(t: Dict) {
+  return {
+    CASH: { label: t.cash, icon: Banknote, className: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30" },
+    CARD: { label: t.card, icon: CreditCard, className: "bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-500/30" },
+    TRANSFER: { label: t.transfer, icon: ArrowLeftRight, className: "bg-violet-500/10 text-violet-700 dark:text-violet-400 border-violet-500/30" },
+  } as const
 }
 
 export function InvoicesView() {
   const fmt = useFmt()
+  const t = useT()
   const user = useUser()
   const setView = useAppStore((s) => s.setView)
   const [q, setQ] = React.useState("")
@@ -56,6 +61,7 @@ export function InvoicesView() {
   const debouncedQ = React.useDeferredValue(q)
   const { data, isLoading, isError, refetch } = useSales(debouncedQ || undefined, page, pageSize)
   const refundMut = useRefundSale()
+  const PAYMENT_META = paymentMeta(t)
 
   const sales = data?.items ?? []
   const pagination = data?.pagination
@@ -74,12 +80,12 @@ export function InvoicesView() {
   return (
     <div className="space-y-5">
       <PageHeader
-        title="الفواتير"
-        description="سجل فواتير المبيعات — تصفّح، اطبع، وأدِر المرتجعات."
+        title={t.invoicesTitle}
+        description={t.invoicesDescFull}
         icon={<ReceiptText className="h-5 w-5" />}
         actions={
           <Button variant="outline" onClick={() => setView("sales")} className="gap-2">
-            فاتورة جديدة
+            {t.newInvoice}
           </Button>
         }
       />
@@ -91,7 +97,7 @@ export function InvoicesView() {
           <Input
             value={q}
             onChange={(e) => { setQ(e.target.value); setPage(1) }}
-            placeholder="ابحث برقم الفاتورة أو اسم العميل..."
+            placeholder={t.searchInvoiceOrCustomer}
             className="pr-9"
           />
         </div>
@@ -104,9 +110,9 @@ export function InvoicesView() {
           {isLoading ? (
             <TableSkeleton rows={6} />
           ) : isError ? (
-            <EmptyState title="تعذّر تحميل الفواتير" action={<Button onClick={() => refetch()}>إعادة المحاولة</Button>} />
+            <EmptyState title={t.invoicesLoadFailed} action={<Button onClick={() => refetch()}>{t.retry}</Button>} />
           ) : sales.length === 0 ? (
-            <EmptyState icon={<ReceiptText className="h-7 w-7" />} title="لا توجد فواتير" />
+            <EmptyState icon={<ReceiptText className="h-7 w-7" />} title={t.noInvoices} />
           ) : (
             <>
               <ScrollArea className="max-h-[calc(100vh-16rem)] scrollbar-thin pr-1">
@@ -132,13 +138,13 @@ export function InvoicesView() {
                             <div className="flex items-center gap-2">
                               <span className="font-mono font-semibold text-sm" dir="ltr">{s.invoiceNo}</span>
                               {refunded ? (
-                                <Badge variant="destructive" className="text-[10px]">مرتجع كامل</Badge>
+                                <Badge variant="destructive" className="text-[10px]">{t.invoicesRefundFullBadge}</Badge>
                               ) : partial ? (
-                                <Badge variant="secondary" className="text-[10px] bg-amber-500/15 text-amber-700">مرتجع جزئي</Badge>
+                                <Badge variant="secondary" className="text-[10px] bg-amber-500/15 text-amber-700">{t.invoicesRefundPartialBadge}</Badge>
                               ) : null}
                             </div>
                             <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                              {s.customerName || "عميل نقدي"}
+                              {s.customerName || t.cashCustomer}
                               {s.customerPhone ? ` • ${s.customerPhone}` : ""}
                             </p>
                             <p className="text-[10px] text-muted-foreground">{fmt.dateTime(s.createdAt)}</p>
@@ -170,10 +176,13 @@ export function InvoicesView() {
                     className="gap-1"
                   >
                     <ChevronRight className="h-4 w-4" />
-                    السابق
+                    {t.previous}
                   </Button>
                   <span className="text-xs text-muted-foreground tabular-nums">
-                    صفحة {fmt.number(page)} من {fmt.number(pagination.totalPages)} ({fmt.number(pagination.total)} فاتورة)
+                    {t.invoicesPageLabel
+                      .replace("{x}", fmt.number(page))
+                      .replace("{y}", fmt.number(pagination.totalPages))
+                      .replace("{total}", fmt.number(pagination.total))}
                   </span>
                   <Button
                     variant="outline"
@@ -182,13 +191,13 @@ export function InvoicesView() {
                     onClick={() => setPage((p) => p + 1)}
                     className="gap-1"
                   >
-                    التالي
+                    {t.next}
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
                 </div>
               ) : pagination ? (
                 <p className="text-xs text-muted-foreground text-center pt-1">
-                  {fmt.number(pagination.total)} فاتورة
+                  {t.invoicesCountLabel.replace("{total}", fmt.number(pagination.total))}
                 </p>
               ) : null}
             </>
@@ -201,6 +210,7 @@ export function InvoicesView() {
             <InvoiceDetail
               sale={selected}
               fmt={fmt}
+              t={t}
               isAdmin={isAdmin}
               isRefunded={isRefunded(selected)}
               onRefund={() => setRefundTarget(selected)}
@@ -209,7 +219,7 @@ export function InvoicesView() {
             <Card className="flex items-center justify-center h-[400px] border-dashed">
               <div className="text-center text-muted-foreground">
                 <Eye className="h-10 w-10 mx-auto opacity-40 mb-2" />
-                <p className="text-sm">اختر فاتورة من القائمة لعرض تفاصيلها</p>
+                <p className="text-sm">{t.selectInvoiceHint}</p>
               </div>
             </Card>
           )}
@@ -235,17 +245,19 @@ export function InvoicesView() {
 function InvoiceDetail({
   sale,
   fmt,
+  t,
   isAdmin,
   isRefunded,
   onRefund,
 }: {
   sale: Sale
   fmt: ReturnType<typeof useFmt>
+  t: Dict
   isAdmin: boolean
   isRefunded: boolean
   onRefund: () => void
 }) {
-  const pm = PAYMENT_META[sale.paymentMethod]
+  const pm = paymentMeta(t)[sale.paymentMethod]
   return (
     <Card className="flex flex-col max-h-[calc(100vh-10rem)] overflow-hidden">
       {/* Header — fixed, not scrollable */}
@@ -254,13 +266,13 @@ function InvoiceDetail({
           <div>
             <h3 className="text-lg font-bold flex items-center gap-2">
               <ReceiptText className="h-5 w-5 text-primary" />
-              فاتورة مبيعات
+              {t.salesInvoice}
             </h3>
             <p className="font-mono text-sm text-primary mt-1" dir="ltr">{sale.invoiceNo}</p>
             {isRefunded ? (
-              <Badge variant="destructive" className="mt-1">مرتجعة كاملة</Badge>
+              <Badge variant="destructive" className="mt-1">{t.invoicesRefundedFullyBadge}</Badge>
             ) : sale.refundStatus === "PARTIAL" ? (
-              <Badge variant="secondary" className="mt-1 bg-amber-500/15 text-amber-700">مرتجع جزئي — {fmt.currency(sale.refundTotal)}</Badge>
+              <Badge variant="secondary" className="mt-1 bg-amber-500/15 text-amber-700">{t.invoicesRefundedPartialWithAmount.replace("{amount}", fmt.currency(sale.refundTotal))}</Badge>
             ) : null}
           </div>
           <div className="text-left">
@@ -274,14 +286,14 @@ function InvoiceDetail({
         {/* Customer + payment info */}
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-lg bg-muted/40 p-3">
-            <p className="text-xs text-muted-foreground flex items-center gap-1"><User className="h-3 w-3" /> العميل</p>
-            <p className="font-medium text-sm mt-1">{sale.customerName || "عميل نقدي"}</p>
+            <p className="text-xs text-muted-foreground flex items-center gap-1"><User className="h-3 w-3" /> {t.customer}</p>
+            <p className="font-medium text-sm mt-1">{sale.customerName || t.cashCustomer}</p>
             {sale.customerPhone ? (
               <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5"><Phone className="h-3 w-3" /> <span dir="ltr">{sale.customerPhone}</span></p>
             ) : null}
           </div>
           <div className="rounded-lg bg-muted/40 p-3">
-            <p className="text-xs text-muted-foreground flex items-center gap-1"><Calendar className="h-3 w-3" /> الدفع</p>
+            <p className="text-xs text-muted-foreground flex items-center gap-1"><Calendar className="h-3 w-3" /> {t.payment}</p>
             <p className="font-medium text-sm mt-1">
               <Badge variant="outline" className={cn("gap-1", pm.className)}>
                 <pm.icon className="h-3 w-3" /> {pm.label}
@@ -296,10 +308,10 @@ function InvoiceDetail({
           <table className="w-full text-sm">
             <thead className="bg-muted/40">
               <tr>
-                <th className="text-right p-2.5 font-medium">الصنف</th>
-                <th className="text-center p-2.5 font-medium w-16">كمية</th>
-                <th className="text-center p-2.5 font-medium w-24">سعر</th>
-                <th className="text-center p-2.5 font-medium w-28">إجمالي</th>
+                <th className="text-right p-2.5 font-medium">{t.colItem}</th>
+                <th className="text-center p-2.5 font-medium w-16">{t.colQty}</th>
+                <th className="text-center p-2.5 font-medium w-24">{t.colPrice}</th>
+                <th className="text-center p-2.5 font-medium w-28">{t.colTotal}</th>
               </tr>
             </thead>
             <tbody>
@@ -318,24 +330,24 @@ function InvoiceDetail({
         {/* Totals */}
         <div className="space-y-1.5 text-sm">
           <div className="flex justify-between text-muted-foreground">
-            <span>المجموع الفرعي</span>
+            <span>{t.subtotal}</span>
             <span className="tabular-nums" dir="ltr">{fmt.currency(sale.subtotal)}</span>
           </div>
           {sale.discount > 0 ? (
             <div className="flex justify-between text-rose-600">
-              <span>الخصم</span>
+              <span>{t.discount}</span>
               <span className="tabular-nums" dir="ltr">- {fmt.currency(sale.discount)}</span>
             </div>
           ) : null}
           {sale.taxAmount > 0 ? (
             <div className="flex justify-between text-muted-foreground">
-              <span>الضريبة ({fmt.number(sale.taxRate)}%)</span>
+              <span>{t.tax} ({fmt.number(sale.taxRate)}%)</span>
               <span className="tabular-nums" dir="ltr">{fmt.currency(sale.taxAmount)}</span>
             </div>
           ) : null}
           <Separator />
           <div className="flex justify-between items-center pt-1">
-            <span className="font-semibold text-base">الإجمالي</span>
+            <span className="font-semibold text-base">{t.total}</span>
             <span className={cn("text-2xl font-bold tabular-nums text-primary", isRefunded && "line-through")}>
               {fmt.currency(sale.total)}
             </span>
@@ -348,11 +360,11 @@ function InvoiceDetail({
         <div className="grid grid-cols-2 gap-2">
           <Button variant="outline" className="gap-2" onClick={() => printThermalReceipt(sale)}>
             <Flame className="h-4 w-4" />
-            طباعة حرارية 80mm
+            {t.thermalPrint80}
           </Button>
           <Button variant="outline" className="gap-2" onClick={() => printA4Invoice(sale)}>
             <Printer className="h-4 w-4" />
-            طباعة A4
+            {t.a4Print}
           </Button>
         </div>
         {isAdmin ? (
@@ -364,15 +376,15 @@ function InvoiceDetail({
               disabled={isRefunded}
             >
               <RotateCcw className="h-4 w-4" />
-              {isRefunded ? "مرتجعة بالكامل" : sale.refundStatus === "PARTIAL" ? "مرتجع إضافي" : "مرتجع الفاتورة"}
+              {isRefunded ? t.invoicesRefundedFullyBadge : sale.refundStatus === "PARTIAL" ? t.invoicesAdditionalRefund : t.invoicesRefundInvoiceAction}
             </Button>
             {isRefunded ? (
               <p className="text-[10px] text-muted-foreground text-center">
-                مرتجعة بالكامل — إجمالي المرتجع {fmt.currency(sale.refundTotal)}
+                {t.invoicesRefundedFullTotalDesc.replace("{total}", fmt.currency(sale.refundTotal))}
               </p>
             ) : sale.refundStatus === "PARTIAL" ? (
               <p className="text-[10px] text-amber-600 text-center">
-                مرتجع جزئي سابق: {fmt.currency(sale.refundTotal)} — يمكن إرجاع المتبقي
+                {t.invoicesRefundedPartialDesc.replace("{amount}", fmt.currency(sale.refundTotal))}
               </p>
             ) : null}
           </>

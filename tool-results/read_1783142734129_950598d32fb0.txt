@@ -1,0 +1,710 @@
+     1→     1→"use client"
+     2→     2→
+     3→     3→import * as React from "react"
+     4→     4→import { toast } from "sonner"
+     5→     5→import { signOut } from "next-auth/react"
+     6→     6→import { PageHeader } from "@/components/shared/page-header"
+     7→     7→import { Button } from "@/components/ui/button"
+     8→     8→import { Input } from "@/components/ui/input"
+     9→     9→import { Label } from "@/components/ui/label"
+    10→    10→import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+    11→    11→import { Badge } from "@/components/ui/badge"
+    12→    12→import { ScrollArea } from "@/components/ui/scroll-area"
+    13→    13→import { Separator } from "@/components/ui/separator"
+    14→    14→import {
+    15→    15→  Select,
+    16→    16→  SelectContent,
+    17→    17→  SelectItem,
+    18→    18→  SelectTrigger,
+    19→    19→  SelectValue,
+    20→    20→} from "@/components/ui/select"
+    21→    21→import {
+    22→    22→  Calculator,
+    23→    23→  Search,
+    24→    24→  Plus,
+    25→    25→  Minus,
+    26→    26→  Trash2,
+    27→    27→  ShoppingCart,
+    28→    28→  X,
+    29→    29→  CheckCircle2,
+    30→    30→  Printer,
+    31→    31→  Loader2,
+    32→    32→  PackageX,
+    33→    33→  Package,
+    34→    34→  Receipt,
+    35→    35→  LayoutGrid,
+    36→    36→  Tag,
+    37→    37→  UserCheck,
+    38→    38→  UserPlus,
+    39→    39→  Coffee,
+    40→    40→  Apple,
+    41→    41→  Smartphone,
+    42→    42→  Sparkles,
+    43→    43→  Home,
+    44→    44→  Phone,
+    45→    45→  ChevronRight,
+    46→    46→  ChevronLeft,
+    47→    47→} from "lucide-react"
+    48→    48→import {
+    49→    49→  Dialog,
+    50→    50→  DialogContent,
+    51→    51→  DialogDescription,
+    52→    52→  DialogHeader,
+    53→    53→  DialogTitle,
+    54→    54→} from "@/components/ui/dialog"
+    55→    55→import { useProducts, useCreateSale, useCategories } from "@/hooks/use-api"
+    56→    56→import { useFmt } from "@/components/currency-context"
+    57→    57→import { printThermalReceipt } from "@/lib/print"
+    58→    58→import type { Product, Sale } from "@/lib/types"
+    59→    59→import { cn } from "@/lib/utils"
+    60→    60→
+    61→    61→interface CartItem {
+    62→    62→  product: Product
+    63→    63→  quantity: number
+    64→    64→}
+    65→    65→
+    66→    66→const PAYMENT_LABELS: Record<string, string> = {
+    67→    67→  CASH: "نقدي",
+    68→    68→  CARD: "بطاقة",
+    69→    69→  TRANSFER: "تحويل",
+    70→    70→}
+    71→    71→
+    72→    72→/** Icon mapping for known category names (falls back to Tag). */
+    73→    73→const CATEGORY_ICONS: Record<string, any> = {
+    74→    74→  "مواد غذائية": Apple,
+    75→    75→  "مشروبات": Coffee,
+    76→    76→  "منظفات": Sparkles,
+    77→    77→  "إلكترونيات": Smartphone,
+    78→    78→  "قرطاسية": Tag,
+    79→    79→  "أدوات منزلية": Home,
+    80→    80→}
+    81→    81→
+    82→    82→export function SalesView() {
+    83→    83→  const fmt = useFmt()
+    84→    84→  const [q, setQ] = React.useState("")
+    85→    85→  const [categoryId, setCategoryId] = React.useState("")
+    86→    86→  const [cart, setCart] = React.useState<CartItem[]>([])
+    87→    87→  const [discount, setDiscount] = React.useState("0")
+    88→    88→  const [taxRate, setTaxRate] = React.useState(String(fmt.taxRate))
+    89→    89→  const [paymentMethod, setPaymentMethod] = React.useState<"CASH" | "CARD" | "TRANSFER">("CASH")
+    90→    90→  const [customerName, setCustomerName] = React.useState("")
+    91→    91→  const [customerPhone, setCustomerPhone] = React.useState("")
+    92→    92→  const [customerFound, setCustomerFound] = React.useState<{ name: string; address: string } | null>(null)
+    93→    93→  const [lastSale, setLastSale] = React.useState<Sale | null>(null)
+    94→    94→
+    95→    95→  // ── Cart pagination ──
+    96→    96→  // Show a fixed number of items per "page" in the cart. Auto-advance to the
+    97→    97→  // next page when a new item is added beyond the current page's capacity.
+    98→    98→  // Manual "previous" button lets the cashier review earlier items.
+    99→    99→  const ITEMS_PER_CART_PAGE = 5
+   100→   100→  const [cartPage, setCartPage] = React.useState(0)
+   101→   101→  const cartTotalPages = Math.max(1, Math.ceil(cart.length / ITEMS_PER_CART_PAGE))
+   102→   102→
+   103→   103→  // Clamp cartPage when cart shrinks (e.g. after remove/clear)
+   104→   104→  React.useEffect(() => {
+   105→   105→    if (cartPage >= cartTotalPages) setCartPage(Math.max(0, cartTotalPages - 1))
+   106→   106→  }, [cartTotalPages, cartPage])
+   107→   107→
+   108→   108→  const cartPageItems = cart.slice(
+   109→   109→    cartPage * ITEMS_PER_CART_PAGE,
+   110→   110→    (cartPage + 1) * ITEMS_PER_CART_PAGE
+   111→   111→  )
+   112→   112→
+   113→   113→  const debouncedQ = React.useDeferredValue(q)
+   114→   114→  const { data, isLoading } = useProducts({ q: debouncedQ || undefined, categoryId: categoryId || undefined })
+   115→   115→  const { data: categoriesData } = useCategories()
+   116→   116→  const createMut = useCreateSale()
+   117→   117→
+   118→   118→  const products = data?.items ?? []
+   119→   119→  const categories = categoriesData?.items ?? []
+   120→   120→
+   121→   121→  // ── Auto-lookup customer by phone (debounced) ──
+   122→   122→  // When the cashier types a phone number, search the CRM. If found, auto-fill
+   123→   123→  // the name to prevent duplicates. If not found, mark as "new customer".
+   124→   124→  const debouncedPhone = React.useDeferredValue(customerPhone)
+   125→   125→  React.useEffect(() => {
+   126→   126→    const phone = debouncedPhone.trim()
+   127→   127→    if (!phone || phone.length < 4) {
+   128→   128→      setCustomerFound(null)
+   129→   129→      return
+   130→   130→    }
+   131→   131→    let cancelled = false
+   132→   132→    fetch(`/api/customers?q=${encodeURIComponent(phone)}`)
+   133→   133→      .then((r) => r.json())
+   134→   134→      .then((data) => {
+   135→   135→        if (cancelled) return
+   136→   136→        const match = (data.items as any[])?.find((c) => c.phone === phone)
+   137→   137→        if (match) {
+   138→   138→          setCustomerFound({ name: match.name, address: match.address })
+   139→   139→          setCustomerName(match.name)
+   140→   140→        } else {
+   141→   141→          setCustomerFound(null) // new customer — will be auto-registered on checkout
+   142→   142→        }
+   143→   143→      })
+   144→   144→      .catch(() => setCustomerFound(null))
+   145→   145→    return () => { cancelled = true }
+   146→   146→  }, [debouncedPhone])
+   147→   147→
+   148→   148→  // Quantity already in cart per product (for optimistic availability)
+   149→   149→  const inCart = React.useMemo(() => {
+   150→   150→    const m = new Map<string, number>()
+   151→   151→    for (const it of cart) m.set(it.product.id, (m.get(it.product.id) || 0) + it.quantity)
+   152→   152→    return m
+   153→   153→  }, [cart])
+   154→   154→
+   155→   155→  function addToCart(p: Product) {
+   156→   156→    const inCartQty = inCart.get(p.id) || 0
+   157→   157→    if (inCartQty >= p.quantity) {
+   158→   158→      toast.error("الكمية غير متوفرة", {
+   159→   159→        description: `المتاح من ${p.name}: ${fmt.number(p.quantity)} ${p.unit}`,
+   160→   160→      })
+   161→   161→      return
+   162→   162→    }
+   163→   163→    const existing = cart.find((it) => it.product.id === p.id)
+   164→   164→    if (!existing) {
+   165→   165→      // New item — auto-advance to the page it will appear on
+   166→   166→      const newIndex = cart.length // index of the new item
+   167→   167→      const newPage = Math.floor(newIndex / ITEMS_PER_CART_PAGE)
+   168→   168→      setCartPage(newPage)
+   169→   169→    }
+   170→   170→    setCart((c) => {
+   171→   171→      const ex = c.find((it) => it.product.id === p.id)
+   172→   172→      if (ex) {
+   173→   173→        return c.map((it) =>
+   174→   174→          it.product.id === p.id ? { ...it, quantity: it.quantity + 1 } : it
+   175→   175→        )
+   176→   176→      }
+   177→   177→      return [...c, { product: p, quantity: 1 }]
+   178→   178→    })
+   179→   179→  }
+   180→   180→
+   181→   181→  function changeQty(productId: string, delta: number) {
+   182→   182→    setCart((c) =>
+   183→   183→      c
+   184→   184→        .map((it) => {
+   185→   185→          if (it.product.id !== productId) return it
+   186→   186→          const next = it.quantity + delta
+   187→   187→          if (next > it.product.quantity) {
+   188→   188→            toast.error("الكمية تجاوزت المخزون المتاح")
+   189→   189→            return it
+   190→   190→          }
+   191→   191→          return { ...it, quantity: next }
+   192→   192→        })
+   193→   193→        .filter((it) => it.quantity > 0)
+   194→   194→    )
+   195→   195→  }
+   196→   196→
+   197→   197→  function setQty(productId: string, qty: number) {
+   198→   198→    const p = cart.find((it) => it.product.id === productId)?.product
+   199→   199→    if (!p) return
+   200→   200→    if (qty > p.quantity) {
+   201→   201→      toast.error("الكمية تجاوزت المخزون المتاح")
+   202→   202→      return
+   203→   203→    }
+   204→   204→    setCart((c) =>
+   205→   205→      qty <= 0
+   206→   206→        ? c.filter((it) => it.product.id !== productId)
+   207→   207→        : c.map((it) => (it.product.id === productId ? { ...it, quantity: qty } : it))
+   208→   208→    )
+   209→   209→  }
+   210→   210→
+   211→   211→  function removeItem(productId: string) {
+   212→   212→    setCart((c) => c.filter((it) => it.product.id !== productId))
+   213→   213→  }
+   214→   214→
+   215→   215→  function clearCart() {
+   216→   216→    setCart([])
+   217→   217→    setDiscount("0")
+   218→   218→    setCustomerName("")
+   219→   219→    setCustomerPhone("")
+   220→   220→  }
+   221→   221→
+   222→   222→  const subtotal = cart.reduce((acc, it) => acc + it.product.salePrice * it.quantity, 0)
+   223→   223→  const discountVal = Math.max(0, Math.min(Number(discount) || 0, subtotal))
+   224→   224→  const afterDiscount = Math.max(0, subtotal - discountVal)
+   225→   225→  const taxVal = +(afterDiscount * ((Number(taxRate) || 0) / 100)).toFixed(2)
+   226→   226→  const total = +(afterDiscount + taxVal).toFixed(2)
+   227→   227→  const itemCount = cart.reduce((a, b) => a + b.quantity, 0)
+   228→   228→
+   229→   229→  async function handleCheckout() {
+   230→   230→    if (cart.length === 0) {
+   231→   231→      toast.error("السلة فارغة")
+   232→   232→      return
+   233→   233→    }
+   234→   234→    try {
+   235→   235→      const sale = await createMut.mutateAsync({
+   236→   236→        customerName: customerName.trim() || undefined,
+   237→   237→        customerPhone: customerPhone.trim() || undefined,
+   238→   238→        items: cart.map((it) => ({
+   239→   239→          productId: it.product.id,
+   240→   240→          quantity: it.quantity,
+   241→   241→          unitPrice: it.product.salePrice,
+   242→   242→        })),
+   243→   243→        taxRate: Number(taxRate) || 0,
+   244→   244→        discount: discountVal,
+   245→   245→        paymentMethod,
+   246→   246→      })
+   247→   247→      toast.success("تمت عملية البيع بنجاح", {
+   248→   248→        description: `رقم الفاتورة: ${sale.invoiceNo}`,
+   249→   249→      })
+   250→   250→      setLastSale(sale)
+   251→   251→      clearCart()
+   252→   252→    } catch (err: any) {
+   253→   253→      // Stale session (e.g. after re-seed) — auto-logout so user can re-login.
+   254→   254→      if (err?.message === "session-expired") {
+   255→   255→        toast.error("انتهت الجلسة", {
+   256→   256→          description: "يرجى تسجيل الدخول مرة أخرى.",
+   257→   257→        })
+   258→   258→        setTimeout(() => {
+   259→   259→          signOut({ redirect: false }).then(() => window.location.reload())
+   260→   260→        }, 1500)
+   261→   261→        return
+   262→   262→      }
+   263→   263→      // Handle stock-insufficient errors specifically
+   264→   264→      if (err?.message?.startsWith("stock-insufficient")) {
+   265→   265→        const parts = err.message.split(":")
+   266→   266→        const name = parts[2] || "منتج"
+   267→   267→        toast.error("كمية غير كافية في المخزون", {
+   268→   268→          description: `الرصيد المتاح من ${name} لا يكفي. تم تحديث الكميات.`,
+   269→   269→        })
+   270→   270→      } else {
+   271→   271→        toast.error("فشل إتمام البيع", { description: err?.message })
+   272→   272→      }
+   273→   273→    }
+   274→   274→  }
+   275→   275→
+   276→   276→  return (
+   277→   277→    <div className="space-y-5">
+   278→   278→      <PageHeader
+   279→   279→        title="نقاط البيع (POS)"
+   280→   280→        description="أنشئ فاتورة مبيعات جديدة — ابحث عن المنتجات وأضفها للسلة، احسب الإجمالي والضريبة والخصم تلقائياً."
+   281→   281→        icon={<Calculator className="h-5 w-5" />}
+   282→   282→      />
+   283→   283→
+   284→   284→      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+   285→   285→        {/* Product picker */}
+   286→   286→        <div className="lg:col-span-3 space-y-4">
+   287→   287→          <div className="relative">
+   288→   288→            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+   289→   289→            <Input
+   290→   290→              value={q}
+   291→   291→              onChange={(e) => setQ(e.target.value)}
+   292→   292→              placeholder="ابحث عن منتج بالاسم أو الباركود..."
+   293→   293→              className="pr-9 h-11 text-base"
+   294→   294→              autoFocus
+   295→   295→            />
+   296→   296→          </div>
+   297→   297→
+   298→   298→          {/* Category filter cards */}
+   299→   299→          {categories.length > 0 ? (
+   300→   300→            <div className="flex gap-2 overflow-x-auto scrollbar-thin pb-1">
+   301→   301→              <button
+   302→   302→                onClick={() => setCategoryId("")}
+   303→   303→                className={cn(
+   304→   304→                  "shrink-0 flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-all border",
+   305→   305→                  !categoryId
+   306→   306→                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+   307→   307→                    : "bg-card border-border/70 hover:border-primary/40 text-foreground"
+   308→   308→                )}
+   309→   309→              >
+   310→   310→                <LayoutGrid className="h-4 w-4" />
+   311→   311→                الكل
+   312→   312→              </button>
+   313→   313→              {categories.map((c) => {
+   314→   314→                const active = categoryId === c.id
+   315→   315→                const Icon = CATEGORY_ICONS[c.name] || Tag
+   316→   316→                return (
+   317→   317→                  <button
+   318→   318→                    key={c.id}
+   319→   319→                    onClick={() => setCategoryId(active ? "" : c.id)}
+   320→   320→                    className={cn(
+   321→   321→                      "shrink-0 flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-all border",
+   322→   322→                      active
+   323→   323→                        ? "bg-primary text-primary-foreground border-primary shadow-sm"
+   324→   324→                        : "bg-card border-border/70 hover:border-primary/40 text-foreground"
+   325→   325→                    )}
+   326→   326→                  >
+   327→   327→                    {c.imageUrl ? (
+   328→   328→                      <img src={c.imageUrl} alt="" className="h-4 w-4 rounded object-cover" />
+   329→   329→                    ) : (
+   330→   330→                      <Icon className="h-4 w-4" />
+   331→   331→                    )}
+   332→   332→                    {c.name}
+   333→   333→                  </button>
+   334→   334→                )
+   335→   335→              })}
+   336→   336→            </div>
+   337→   337→          ) : null}
+   338→   338→
+   339→   339→          {isLoading ? (
+   340→   340→            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+   341→   341→              {Array.from({ length: 6 }).map((_, i) => (
+   342→   342→                <div key={i} className="h-28 rounded-xl bg-muted/50 animate-pulse" />
+   343→   343→              ))}
+   344→   344→            </div>
+   345→   345→          ) : products.length === 0 ? (
+   346→   346→            <div className="rounded-xl border border-dashed border-border bg-muted/20 px-6 py-14 text-center">
+   347→   347→              <PackageX className="h-10 w-10 mx-auto text-muted-foreground" />
+   348→   348→              <p className="mt-2 font-medium">لا توجد منتجات مطابقة</p>
+   349→   349→              <p className="text-sm text-muted-foreground">جرّب كلمة بحث أخرى.</p>
+   350→   350→            </div>
+   351→   351→          ) : (
+   352→   352→            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+   353→   353→              {products.map((p) => {
+   354→   354→                const used = inCart.get(p.id) || 0
+   355→   355→                const available = p.quantity - used
+   356→   356→                const out = available <= 0
+   357→   357→                return (
+   358→   358→                  <button
+   359→   359→                    key={p.id}
+   360→   360→                    onClick={() => addToCart(p)}
+   361→   361→                    disabled={out}
+   362→   362→                    className={cn(
+   363→   363→                      "group relative flex flex-col overflow-hidden rounded-xl border border-border/70 bg-card transition-all hover:border-primary/50 hover:shadow-md",
+   364→   364→                      out && "opacity-50 cursor-not-allowed hover:border-border"
+   365→   365→                    )}
+   366→   366→                  >
+   367→   367→                    {/* Product image */}
+   368→   368→                    <div className="relative h-24 w-full bg-muted/40 overflow-hidden">
+   369→   369→                      {p.imageUrl ? (
+   370→   370→                        <img src={p.imageUrl} alt={p.name} className="h-full w-full object-cover group-hover:scale-105 transition-transform" />
+   371→   371→                      ) : (
+   372→   372→                        <div className="flex h-full w-full items-center justify-center">
+   373→   373→                          <Package className="h-8 w-8 text-muted-foreground/40" />
+   374→   374→                        </div>
+   375→   375→                      )}
+   376→   376→                      {out ? (
+   377→   377→                        <span className="absolute inset-0 flex items-center justify-center bg-background/70 text-xs font-bold text-destructive">نفد</span>
+   378→   378→                      ) : null}
+   379→   379→                    </div>
+   380→   380→                    {/* Info */}
+   381→   381→                    <div className="p-2.5 text-right flex-1 flex flex-col gap-1">
+   382→   382→                      <p className="font-medium text-sm leading-snug line-clamp-2">{p.name}</p>
+   383→   383→                      <div className="flex items-center justify-between gap-1 mt-auto">
+   384→   384→                        <span className="font-bold text-primary tabular-nums text-sm">
+   385→   385→                          {fmt.currency(p.salePrice)}
+   386→   386→                        </span>
+   387→   387→                        {!out ? (
+   388→   388→                          <Badge variant={available <= p.reorderLevel ? "secondary" : "outline"} className="tabular-nums text-[10px]">
+   389→   389→                            {fmt.number(available)}
+   390→   390→                          </Badge>
+   391→   391→                        ) : null}
+   392→   392→                      </div>
+   393→   393→                    </div>
+   394→   394→                    {used > 0 ? (
+   395→   395→                      <span className="absolute -top-2 -left-2 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold shadow">
+   396→   396→                        {used}
+   397→   397→                      </span>
+   398→   398→                    ) : null}
+   399→   399→                  </button>
+   400→   400→                )
+   401→   401→              })}
+   402→   402→            </div>
+   403→   403→          )}
+   404→   404→        </div>
+   405→   405→
+   406→   406→        {/* Cart */}
+   407→   407→        <div className="lg:col-span-2">
+   408→   408→          <Card className="lg:sticky lg:top-20 flex flex-col max-h-[calc(100vh-7rem)]">
+   409→   409→            {/* Header: title + clear */}
+   410→   410→            <CardHeader className="pb-2 shrink-0">
+   411→   411→              <div className="flex items-center justify-between">
+   412→   412→                <CardTitle className="flex items-center gap-2 text-base">
+   413→   413→                  <ShoppingCart className="h-4 w-4 text-primary" />
+   414→   414→                  السلة
+   415→   415→                  {itemCount > 0 ? (
+   416→   416→                    <Badge className="tabular-nums">{itemCount}</Badge>
+   417→   417→                  ) : null}
+   418→   418→                </CardTitle>
+   419→   419→                {cart.length > 0 ? (
+   420→   420→                  <Button variant="ghost" size="sm" onClick={() => { clearCart(); setCartPage(0) }} className="gap-1 text-muted-foreground h-7">
+   421→   421→                    <X className="h-3.5 w-3.5" />
+   422→   422→                    تفريغ
+   423→   423→                  </Button>
+   424→   424→                ) : null}
+   425→   425→              </div>
+   426→   426→            </CardHeader>
+   427→   427→
+   428→   428→            <CardContent className="flex-1 flex flex-col min-h-0 p-0">
+   429→   429→              {cart.length === 0 ? (
+   430→   430→                /* Empty cart */
+   431→   431→                <div className="flex-1 flex flex-col items-center justify-center gap-2 px-6 py-10 text-center text-muted-foreground">
+   432→   432→                  <ShoppingCart className="h-10 w-10 opacity-40" />
+   433→   433→                  <p className="text-sm">السلة فارغة</p>
+   434→   434→                  <p className="text-xs">اضغط على منتج لإضافته</p>
+   435→   435→                </div>
+   436→   436→              ) : (
+   437→   437→                <div className="flex-1 flex flex-col min-h-0">
+   438→   438→                  {/* ── Customer info at the TOP ── */}
+   439→   439→                  <div className="px-3 py-2 border-b border-border/60 bg-muted/20 space-y-2 shrink-0">
+   440→   440→                    <div className="grid grid-cols-2 gap-2">
+   441→   441→                      <div>
+   442→   442→                        <Label htmlFor="cust" className="text-[10px] text-muted-foreground">العميل</Label>
+   443→   443→                        <Input
+   444→   444→                          id="cust"
+   445→   445→                          className="h-7 text-xs"
+   446→   446→                          value={customerName}
+   447→   447→                          onChange={(e) => setCustomerName(e.target.value)}
+   448→   448→                          placeholder="عميل نقدي"
+   449→   449→                        />
+   450→   450→                      </div>
+   451→   451→                      <div>
+   452→   452→                        <Label className="text-[10px] text-muted-foreground">الدفع</Label>
+   453→   453→                        <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as any)}>
+   454→   454→                          <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+   455→   455→                          <SelectContent>
+   456→   456→                            <SelectItem value="CASH">نقدي</SelectItem>
+   457→   457→                            <SelectItem value="CARD">بطاقة</SelectItem>
+   458→   458→                            <SelectItem value="TRANSFER">تحويل</SelectItem>
+   459→   459→                          </SelectContent>
+   460→   460→                        </Select>
+   461→   461→                      </div>
+   462→   462→                    </div>
+   463→   463→                    <div>
+   464→   464→                      <Label htmlFor="cphone" className="text-[10px] text-muted-foreground flex items-center gap-1">
+   465→   465→                        <Phone className="h-2.5 w-2.5" /> هاتف (بحث تلقائي)
+   466→   466→                      </Label>
+   467→   467→                      <Input
+   468→   468→                        id="cphone"
+   469→   469→                        dir="ltr"
+   470→   470→                        className={cn(
+   471→   471→                          "h-7 text-xs text-left",
+   472→   472→                          customerFound && "border-[#5CDE9D] bg-[#5CDE9D]/5",
+   473→   473→                          customerPhone.trim().length >= 4 && !customerFound && "border-amber-500"
+   474→   474→                        )}
+   475→   475→                        value={customerPhone}
+   476→   476→                        onChange={(e) => setCustomerPhone(e.target.value)}
+   477→   477→                        placeholder="+965 5xxx xxxx"
+   478→   478→                      />
+   479→   479→                      {customerFound ? (
+   480→   480→                        <p className="text-[9px] text-[#5CDE9D] flex items-center gap-0.5 mt-0.5">
+   481→   481→                          <UserCheck className="h-2.5 w-2.5" />
+   482→   482→                          عميل موجود: {customerFound.name}
+   483→   483→                        </p>
+   484→   484→                      ) : customerPhone.trim().length >= 4 ? (
+   485→   485→                        <p className="text-[9px] text-amber-600 flex items-center gap-0.5 mt-0.5">
+   486→   486→                          <UserPlus className="h-2.5 w-2.5" />
+   487→   487→                          عميل جديد — يُسجّل تلقائياً
+   488→   488→                        </p>
+   489→   489→                      ) : null}
+   490→   490→                    </div>
+   491→   491→                  </div>
+   492→   492→
+   493→   493→                  {/* ── Paginated cart items ── */}
+   494→   494→                  <div className="flex-1 overflow-y-auto scrollbar-thin px-3 py-2 min-h-0">
+   495→   495→                    <div className="space-y-1.5">
+   496→   496→                      {cartPageItems.map((it) => (
+   497→   497→                        <div
+   498→   498→                          key={it.product.id}
+   499→   499→                          className="flex items-center gap-2 rounded-lg border border-border/60 bg-card p-2"
+   500→   500→                        >
+   501→   501→                          <div className="min-w-0 flex-1">
+   502→   502→                            <p className="text-sm font-medium truncate">{it.product.name}</p>
+   503→   503→                            <p className="text-xs text-muted-foreground tabular-nums">
+   504→   504→                              {fmt.currency(it.product.salePrice)} × {it.quantity}
+   505→   505→                            </p>
+   506→   506→                          </div>
+   507→   507→                          <div className="flex items-center gap-1 shrink-0">
+   508→   508→                            <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => changeQty(it.product.id, -1)}>
+   509→   509→                              <Minus className="h-3 w-3" />
+   510→   510→                            </Button>
+   511→   511→                            <Input
+   512→   512→                              dir="ltr"
+   513→   513→                              className="h-7 w-10 text-center px-0 tabular-nums"
+   514→   514→                              value={it.quantity}
+   515→   515→                              onChange={(e) => {
+   516→   516→                                const v = parseInt(e.target.value, 10)
+   517→   517→                                if (!isNaN(v)) setQty(it.product.id, v)
+   518→   518→                              }}
+   519→   519→                            />
+   520→   520→                            <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => changeQty(it.product.id, 1)} disabled={it.quantity >= it.product.quantity}>
+   521→   521→                              <Plus className="h-3 w-3" />
+   522→   522→                            </Button>
+   523→   523→                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => removeItem(it.product.id)}>
+   524→   524→                              <Trash2 className="h-3.5 w-3.5" />
+   525→   525→                            </Button>
+   526→   526→                          </div>
+   527→   527→                        </div>
+   528→   528→                      ))}
+   529→   529→                    </div>
+   530→   530→                  </div>
+   531→   531→
+   532→   532→                  {/* ── Cart pagination controls ── */}
+   533→   533→                  {cartTotalPages > 1 ? (
+   534→   534→                    <div className="flex items-center justify-between gap-2 px-3 py-1.5 border-t border-border/40 shrink-0">
+   535→   535→                      <Button
+   536→   536→                        variant="outline"
+   537→   537→                        size="sm"
+   538→   538→                        disabled={cartPage <= 0}
+   539→   539→                        onClick={() => setCartPage((p) => Math.max(0, p - 1))}
+   540→   540→                        className="h-7 gap-1 text-xs"
+   541→   541→                      >
+   542→   542→                        <ChevronRight className="h-3.5 w-3.5" />
+   543→   543→                        السابق
+   544→   544→                      </Button>
+   545→   545→                      <span className="text-[10px] text-muted-foreground tabular-nums">
+   546→   546→                        {fmt.number(cartPage + 1)} / {fmt.number(cartTotalPages)} — {fmt.number(cart.length)} صنف
+   547→   547→                      </span>
+   548→   548→                      <Button
+   549→   549→                        variant="outline"
+   550→   550→                        size="sm"
+   551→   551→                        disabled={cartPage >= cartTotalPages - 1}
+   552→   552→                        onClick={() => setCartPage((p) => Math.min(cartTotalPages - 1, p + 1))}
+   553→   553→                        className="h-7 gap-1 text-xs"
+   554→   554→                      >
+   555→   555→                        التالي
+   556→   556→                        <ChevronLeft className="h-3.5 w-3.5" />
+   557→   557→                      </Button>
+   558→   558→                    </div>
+   559→   559→                  ) : null}
+   560→   560→
+   561→   561→                  {/* ── Summary + checkout (bottom) ── */}
+   562→   562→                  <div className="border-t border-border/60 p-3 space-y-2 shrink-0">
+   563→   563→                    <div className="grid grid-cols-2 gap-2">
+   564→   564→                      <div>
+   565→   565→                        <Label htmlFor="disc" className="text-[10px] text-muted-foreground">الخصم ({fmt.symbol})</Label>
+   566→   566→                        <Input id="disc" type="number" min={0} className="h-7 text-xs tabular-nums" value={discount} onChange={(e) => setDiscount(e.target.value)} />
+   567→   567→                      </div>
+   568→   568→                      <div>
+   569→   569→                        <Label htmlFor="tax" className="text-[10px] text-muted-foreground">الضريبة %</Label>
+   570→   570→                        <Input id="tax" type="number" min={0} className="h-7 text-xs tabular-nums" value={taxRate} onChange={(e) => setTaxRate(e.target.value)} />
+   571→   571→                      </div>
+   572→   572→                    </div>
+   573→   573→
+   574→   574→                    <div className="space-y-1 text-xs">
+   575→   575→                      <div className="flex justify-between text-muted-foreground">
+   576→   576→                        <span>المجموع الفرعي</span>
+   577→   577→                        <span className="tabular-nums">{fmt.currency(subtotal)}</span>
+   578→   578→                      </div>
+   579→   579→                      {discountVal > 0 ? (
+   580→   580→                        <div className="flex justify-between text-rose-600">
+   581→   581→                          <span>الخصم</span>
+   582→   582→                          <span className="tabular-nums">- {fmt.currency(discountVal)}</span>
+   583→   583→                        </div>
+   584→   584→                      ) : null}
+   585→   585→                      {taxVal > 0 ? (
+   586→   586→                        <div className="flex justify-between text-muted-foreground">
+   587→   587→                          <span>الضريبة ({taxRate}%)</span>
+   588→   588→                          <span className="tabular-nums">{fmt.currency(taxVal)}</span>
+   589→   589→                        </div>
+   590→   590→                      ) : null}
+   591→   591→                      <div className="flex justify-between items-center pt-1 border-t border-border/60">
+   592→   592→                        <span className="font-semibold text-sm">الإجمالي</span>
+   593→   593→                        <span className="text-lg font-bold tabular-nums text-primary">
+   594→   594→                          {fmt.currency(total)}
+   595→   595→                        </span>
+   596→   596→                      </div>
+   597→   597→                    </div>
+   598→   598→
+   599→   599→                    <Button
+   600→   600→                      className="w-full h-10 gap-2 text-sm"
+   601→   601→                      onClick={handleCheckout}
+   602→   602→                      disabled={createMut.isPending}
+   603→   603→                    >
+   604→   604→                      {createMut.isPending ? (
+   605→   605→                        <Loader2 className="h-4 w-4 animate-spin" />
+   606→   606→                      ) : (
+   607→   607→                        <CheckCircle2 className="h-4 w-4" />
+   608→   608→                      )}
+   609→   609→                      إتمام البيع — {fmt.currency(total)}
+   610→   610→                    </Button>
+   611→   611→                  </div>
+   612→   612→                </div>
+   613→   613→              )}
+   614→   614→            </CardContent>
+   615→   615→          </Card>
+   616→   616→        </div>
+   617→   617→      </div>
+   618→   618→
+   619→   619→      {/* Receipt dialog */}
+   620→   620→      <Dialog open={!!lastSale} onOpenChange={(o) => !o && setLastSale(null)}>
+   621→   621→        <DialogContent className="max-w-lg">
+   622→   622→          <DialogHeader>
+   623→   623→            <DialogTitle className="flex items-center gap-2 justify-center">
+   624→   624→              <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+   625→   625→              تمت عملية البيع
+   626→   626→            </DialogTitle>
+   627→   627→            <DialogDescription className="sr-only">
+   628→   628→              عرض ملخص الفاتورة المُنشأة حديثاً.
+   629→   629→            </DialogDescription>
+   630→   630→          </DialogHeader>
+   631→   631→          {lastSale ? (
+   632→   632→            <div className="space-y-4">
+   633→   633→              <div className="text-center">
+   634→   634→                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600">
+   635→   635→                  <Receipt className="h-8 w-8" />
+   636→   636→                </div>
+   637→   637→                <p className="mt-3 font-mono font-bold text-lg" dir="ltr">{lastSale.invoiceNo}</p>
+   638→   638→                <p className="text-xs text-muted-foreground">{fmt.dateTime(lastSale.createdAt)}</p>
+   639→   639→                {lastSale.customerPhone ? (
+   640→   640→                  <p className="text-xs text-muted-foreground mt-1" dir="ltr">
+   641→   641→                    هاتف العميل: {lastSale.customerPhone}
+   642→   642→                  </p>
+   643→   643→                ) : null}
+   644→   644→              </div>
+   645→   645→
+   646→   646→              <div className="rounded-lg border border-border/60 overflow-hidden">
+   647→   647→                <table className="w-full text-sm">
+   648→   648→                  <thead className="bg-muted/40">
+   649→   649→                    <tr>
+   650→   650→                      <th className="text-right p-2 font-medium">الصنف</th>
+   651→   651→                      <th className="text-center p-2 font-medium">كمية</th>
+   652→   652→                      <th className="text-center p-2 font-medium">إجمالي</th>
+   653→   653→                    </tr>
+   654→   654→                  </thead>
+   655→   655→                  <tbody>
+   656→   656→                    {lastSale.items.map((it) => (
+   657→   657→                      <tr key={it.id} className="border-t border-border/40">
+   658→   658→                        <td className="p-2">{it.productName}</td>
+   659→   659→                        <td className="p-2 text-center tabular-nums">{it.quantity}</td>
+   660→   660→                        <td className="p-2 text-center tabular-nums">{fmt.currency(it.subtotal)}</td>
+   661→   661→                      </tr>
+   662→   662→                    ))}
+   663→   663→                  </tbody>
+   664→   664→                </table>
+   665→   665→              </div>
+   666→   666→
+   667→   667→              <div className="space-y-1.5 text-sm">
+   668→   668→                <div className="flex justify-between text-muted-foreground">
+   669→   669→                  <span>المجموع الفرعي</span>
+   670→   670→                  <span className="tabular-nums">{fmt.currency(lastSale.subtotal)}</span>
+   671→   671→                </div>
+   672→   672→                {lastSale.discount > 0 ? (
+   673→   673→                  <div className="flex justify-between text-rose-600">
+   674→   674→                    <span>الخصم</span>
+   675→   675→                    <span className="tabular-nums">- {fmt.currency(lastSale.discount)}</span>
+   676→   676→                  </div>
+   677→   677→                ) : null}
+   678→   678→                <div className="flex justify-between text-muted-foreground">
+   679→   679→                  <span>الضريبة ({lastSale.taxRate}%)</span>
+   680→   680→                  <span className="tabular-nums">{fmt.currency(lastSale.taxAmount)}</span>
+   681→   681→                </div>
+   682→   682→                <Separator />
+   683→   683→                <div className="flex justify-between items-center pt-1">
+   684→   684→                  <span className="font-semibold">الإجمالي المدفوع</span>
+   685→   685→                  <span className="text-xl font-bold tabular-nums text-primary">
+   686→   686→                    {fmt.currency(lastSale.total)}
+   687→   687→                  </span>
+   688→   688→                </div>
+   689→   689→                <p className="text-xs text-muted-foreground text-center pt-1">
+   690→   690→                  طريقة الدفع: {PAYMENT_LABELS[lastSale.paymentMethod]}
+   691→   691→                </p>
+   692→   692→              </div>
+   693→   693→
+   694→   694→              <div className="flex gap-2">
+   695→   695→                <Button variant="outline" className="flex-1 gap-2" onClick={() => printThermalReceipt(lastSale)}>
+   696→   696→                  <Printer className="h-4 w-4" />
+   697→   697→                  طباعة حرارية
+   698→   698→                </Button>
+   699→   699→                <Button className="flex-1" onClick={() => setLastSale(null)}>
+   700→   700→                  بيع جديد
+   701→   701→                </Button>
+   702→   702→              </div>
+   703→   703→            </div>
+   704→   704→          ) : null}
+   705→   705→        </DialogContent>
+   706→   706→      </Dialog>
+   707→   707→    </div>
+   708→   708→  )
+   709→   709→}
+   710→   710→

@@ -19,6 +19,7 @@ import {
   useUpdateWarehouse,
 } from "@/hooks/use-api"
 import type { Warehouse } from "@/lib/types"
+import { useT } from "@/components/i18n-context"
 
 interface WarehouseFormDialogProps {
   open: boolean
@@ -36,6 +37,7 @@ const empty: FormState = { name: "", code: "", location: "" }
 
 export function WarehouseFormDialog({ open, onOpenChange, warehouse }: WarehouseFormDialogProps) {
   const isEdit = !!warehouse
+  const t = useT()
   const [form, setForm] = React.useState<FormState>(empty)
   const createMut = useCreateWarehouse()
   const updateMut = useUpdateWarehouse(warehouse?.id ?? "")
@@ -53,7 +55,7 @@ export function WarehouseFormDialog({ open, onOpenChange, warehouse }: Warehouse
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!form.name.trim()) {
-      toast.error("اسم المخزن مطلوب")
+      toast.error(t.warehouseNameRequired)
       return
     }
     const payload = {
@@ -64,14 +66,14 @@ export function WarehouseFormDialog({ open, onOpenChange, warehouse }: Warehouse
     try {
       if (isEdit) {
         await updateMut.mutateAsync(payload)
-        toast.success("تم تحديث المخزن")
+        toast.success(t.warehouseUpdated)
       } else {
         await createMut.mutateAsync(payload)
-        toast.success("تمت إضافة المخزن")
+        toast.success(t.warehouseAdded)
       }
       onOpenChange(false)
     } catch (err: any) {
-      toast.error("فشل الحفظ", { description: err?.message })
+      toast.error(t.saveFailed, { description: err?.message })
     }
   }
 
@@ -81,31 +83,31 @@ export function WarehouseFormDialog({ open, onOpenChange, warehouse }: Warehouse
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "تعديل مخزن" : "إضافة مخزن جديد"}</DialogTitle>
+          <DialogTitle>{isEdit ? t.editWarehouse : t.addWarehouseNew}</DialogTitle>
           <DialogDescription>
-            {isEdit ? "عدّل بيانات المخزن." : "أضف مخزناً جديداً لإدارة أصناف متعددة."}
+            {isEdit ? t.editWarehouseDesc : t.addWarehouseDesc}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="w-name">اسم المخزن *</Label>
-            <Input id="w-name" value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="مثال: المخزن الرئيسي" autoFocus />
+            <Label htmlFor="w-name">{t.warehouseName} *</Label>
+            <Input id="w-name" value={form.name} onChange={(e) => set("name", e.target.value)} placeholder={t.warehouseNameInputPlaceholder} autoFocus />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="w-code">الرمز</Label>
-              <Input id="w-code" dir="ltr" value={form.code} onChange={(e) => set("code", e.target.value)} placeholder="WH-01" className="text-left" />
+              <Label htmlFor="w-code">{t.warehouseCode}</Label>
+              <Input id="w-code" dir="ltr" value={form.code} onChange={(e) => set("code", e.target.value)} placeholder={t.warehouseCodePlaceholder} className="text-left" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="w-loc">الموقع</Label>
-              <Input id="w-loc" value={form.location} onChange={(e) => set("location", e.target.value)} placeholder="المقر الرئيسي" />
+              <Label htmlFor="w-loc">{t.warehouseLocation}</Label>
+              <Input id="w-loc" value={form.location} onChange={(e) => set("location", e.target.value)} placeholder={t.warehouseLocationInputPlaceholder} />
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>إلغاء</Button>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>{t.cancel}</Button>
             <Button type="submit" disabled={loading}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              {isEdit ? "حفظ" : "إضافة"}
+              {isEdit ? t.save : t.add}
             </Button>
           </DialogFooter>
         </form>

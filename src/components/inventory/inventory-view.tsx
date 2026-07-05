@@ -52,10 +52,12 @@ import { Warehouse as WarehouseIcon } from "lucide-react"
 import { ExcelExportButton, ExcelImportButton } from "@/components/shared/excel-buttons"
 import { useProducts, useCategories, useDeleteProduct } from "@/hooks/use-api"
 import { useFmt } from "@/components/currency-context"
+import { useT } from "@/components/i18n-context"
 import type { Product } from "@/lib/types"
 
 export function InventoryView() {
   const fmt = useFmt()
+  const t = useT()
   const user = useUser()
   const [q, setQ] = React.useState("")
   const [categoryId, setCategoryId] = React.useState<string>("")
@@ -90,30 +92,32 @@ export function InventoryView() {
     if (!deleteTarget) return
     try {
       await deleteMut.mutateAsync(deleteTarget.id)
-      toast.success("تم حذف المنتج")
+      toast.success(t.productDeleted)
       setDeleteTarget(null)
     } catch (err: any) {
-      toast.error("فشل الحذف", { description: err?.message })
+      toast.error(t.deleteFailed, { description: err?.message })
     }
   }
 
   function handlePrintBarcodes() {
     if (products.length === 0) {
-      toast.error("لا توجد منتجات للطباعة")
+      toast.error(t.noProductsToPrint)
       return
     }
     printBarcodeLabels(
       products.map((p) => ({ name: p.name, barcode: p.barcode, salePrice: p.salePrice })),
       1
     )
-    toast.success("جارٍ فتح نافذة الطباعة", { description: `${products.length} ملصق باركود` })
+    toast.success(t.openingPrintWindow, {
+      description: t.barcodeLabelsCount.replace("{count}", String(products.length)),
+    })
   }
 
   return (
     <div className="space-y-5">
       <PageHeader
-        title="إدارة المخازن"
-        description="عرض المنتجات وإدارتها، البحث والفلترة، ومتابعة كميات المخزون."
+        title={t.invManageTitle}
+        description={t.invManageDesc}
         icon={<Boxes className="h-5 w-5" />}
         actions={
           <div className="flex items-center gap-2 flex-wrap">
@@ -122,13 +126,13 @@ export function InventoryView() {
             {products.length > 0 ? (
               <Button variant="outline" onClick={handlePrintBarcodes} className="gap-2">
                 <Barcode className="h-4 w-4" />
-                <span className="hidden sm:inline">طباعة باركود</span>
+                <span className="hidden sm:inline">{t.printBarcode}</span>
               </Button>
             ) : null}
             {canManage ? (
               <Button onClick={openAdd} className="gap-2">
                 <Plus className="h-4 w-4" />
-                إضافة منتج
+                {t.addProduct}
               </Button>
             ) : null}
           </div>
@@ -139,11 +143,11 @@ export function InventoryView() {
         <TabsList className="grid w-full max-w-md grid-cols-2">
           <TabsTrigger value="products" className="gap-1.5">
             <Boxes className="h-3.5 w-3.5" />
-            الأصناف
+            {t.invItemsTab}
           </TabsTrigger>
           <TabsTrigger value="warehouses" className="gap-1.5">
             <WarehouseIcon className="h-3.5 w-3.5" />
-            المخازن
+            {t.warehouses}
           </TabsTrigger>
         </TabsList>
 
@@ -156,17 +160,17 @@ export function InventoryView() {
             <Input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="ابحث بالاسم أو الباركود..."
+              placeholder={t.searchNameBarcodePlaceholder}
               className="pr-9"
             />
           </div>
           <Select value={categoryId} onValueChange={(v) => setCategoryId(v === "all" ? "" : v)}>
             <SelectTrigger className="sm:w-48">
               <Filter className="h-4 w-4 ml-1 text-muted-foreground" />
-              <SelectValue placeholder="كل الفئات" />
+              <SelectValue placeholder={t.allCategories} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">كل الفئات</SelectItem>
+              <SelectItem value="all">{t.allCategories}</SelectItem>
               {(cats?.items ?? []).map((c) => (
                 <SelectItem key={c.id} value={c.id}>
                   {c.name}
@@ -180,7 +184,7 @@ export function InventoryView() {
             className="gap-2 sm:w-auto"
           >
             <AlertTriangle className="h-4 w-4" />
-            قريبة من النفاذ
+            {t.nearOutOfStock}
           </Button>
         </div>
       </Card>
@@ -194,25 +198,21 @@ export function InventoryView() {
         ) : isError ? (
           <div className="p-4">
             <EmptyState
-              title="تعذّر تحميل المنتجات"
-              action={<Button onClick={() => refetch()}>إعادة المحاولة</Button>}
+              title={t.productsLoadFailed}
+              action={<Button onClick={() => refetch()}>{t.retry}</Button>}
             />
           </div>
         ) : products.length === 0 ? (
           <div className="p-4">
             <EmptyState
               icon={<PackageX className="h-7 w-7" />}
-              title={lowStockOnly ? "لا توجد منتجات قريبة من النفاذ" : "لا توجد منتجات"}
-              description={
-                lowStockOnly
-                  ? "جميع المنتجات ضمن الحدود الآمنة."
-                  : "ابدأ بإضافة منتجك الأول إلى المخزون."
-              }
+              title={lowStockOnly ? t.noLowStockProducts : t.noProducts}
+              description={lowStockOnly ? t.noLowStockDesc : t.addFirstProduct}
               action={
                 canManage ? (
                   <Button onClick={openAdd} className="gap-2">
                     <Plus className="h-4 w-4" />
-                    إضافة منتج
+                    {t.addProduct}
                   </Button>
                 ) : null
               }
@@ -223,13 +223,13 @@ export function InventoryView() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
-                  <TableHead className="min-w-[180px]">المنتج</TableHead>
-                  <TableHead className="hidden md:table-cell">الباركود</TableHead>
-                  <TableHead className="hidden sm:table-cell">الفئة</TableHead>
-                  <TableHead className="text-center">الكمية</TableHead>
-                  <TableHead className="hidden lg:table-cell text-center">حد الطلب</TableHead>
-                  <TableHead className="text-center hidden sm:table-cell">سعر التكلفة</TableHead>
-                  <TableHead className="text-center">سعر البيع</TableHead>
+                  <TableHead className="min-w-[180px]">{t.colProduct}</TableHead>
+                  <TableHead className="hidden md:table-cell">{t.colBarcode}</TableHead>
+                  <TableHead className="hidden sm:table-cell">{t.colCategory}</TableHead>
+                  <TableHead className="text-center">{t.colQty}</TableHead>
+                  <TableHead className="hidden lg:table-cell text-center">{t.colReorderLevel}</TableHead>
+                  <TableHead className="text-center hidden sm:table-cell">{t.colCostPrice}</TableHead>
+                  <TableHead className="text-center">{t.colSalePrice}</TableHead>
                   {canManage ? <TableHead className="w-12 text-center"></TableHead> : null}
                 </TableRow>
               </TableHeader>
@@ -283,14 +283,14 @@ export function InventoryView() {
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={() => openEdit(p)} className="gap-2">
                                 <Pencil className="h-4 w-4" />
-                                تعديل
+                                {t.edit}
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => setDeleteTarget(p)}
                                 className="gap-2 text-destructive focus:text-destructive"
                               >
                                 <Trash2 className="h-4 w-4" />
-                                حذف
+                                {t.delete}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -306,7 +306,7 @@ export function InventoryView() {
       </Card>
 
       <p className="text-xs text-muted-foreground text-center">
-        إجمالي {fmt.number(products.length)} منتج
+        {t.productsCountLabel.replace("{count}", String(fmt.number(products.length)))}
       </p>
         </TabsContent>
 
@@ -319,15 +319,13 @@ export function InventoryView() {
       <ConfirmDialog
         open={!!deleteTarget}
         onOpenChange={(o) => !o && setDeleteTarget(null)}
-        title="حذف المنتج"
+        title={t.deleteProductTitle}
         description={
           <>
-            سيتم حذف المنتج{" "}
-            <span className="font-semibold">“{deleteTarget?.name}”</span> نهائياً. لا يمكن
-            التراجع عن هذه العملية.
+            {t.deleteProductPermanent.replace("{name}", deleteTarget?.name ?? "")}
           </>
         }
-        confirmText="حذف"
+        confirmText={t.delete}
         loading={deleteMut.isPending}
         onConfirm={handleDelete}
       />

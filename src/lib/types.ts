@@ -5,6 +5,8 @@ export type Role = "ADMIN" | "SALES" | "WAREHOUSE"
 export interface Category {
   id: string
   name: string
+  /** Short code used for auto-barcode generation (e.g. "03"). Optional. */
+  code?: string | null
   imageUrl?: string | null
   createdAt: string
 }
@@ -29,8 +31,15 @@ export interface Product {
   supplierName?: string | null
   quantity: number
   reorderLevel: number
+  /** Optimal reorder quantity (0 = not set). Used by auto-PO suggestions. */
+  optimalOrderQty: number
+  /** Preferred supplier for auto-PO generation. */
+  defaultSupplierId?: string | null
+  defaultSupplierName?: string | null
   costPrice: number
   salePrice: number
+  wholesalePrice: number
+  corporatePrice: number
   unit: string
   unitId?: string | null
   imageUrl?: string | null
@@ -57,14 +66,30 @@ export interface PurchaseOrderItem {
   quantity: number
   unitCost: number
   subtotal: number
+  /** Optional manager-suggested retail sale price (0 = not set). Applied
+   *  to the pricing engine on PO receive if > 0 and different from current salePrice. */
+  suggestedSalePrice?: number
 }
 
 export interface PurchaseOrder {
   id: string
   supplierId: string
   supplierName: string
-  status: "PENDING" | "RECEIVED" | "CANCELLED"
+  status:
+    | "PENDING_APPROVAL"
+    | "APPROVED"
+    | "PENDING"
+    | "RECEIVED"
+    | "CANCELLED"
+    | "REJECTED"
   total: number
+  // Landed cost (تكلفة الوصول) — extra charges saved on the PO and
+  // allocated across items on receipt using the weighted-average method.
+  customsAmount: number
+  shippingAmount: number
+  otherCharges: number
+  landedCostApplied: boolean
+  rejectionReason?: string | null
   note?: string | null
   items: PurchaseOrderItem[]
   createdAt: string
@@ -96,6 +121,8 @@ export interface Sale {
   refundTotal: number
   refundStatus: "NONE" | "PARTIAL" | "FULL"
   paymentMethod: "CASH" | "CARD" | "TRANSFER"
+  deliveryFee: number
+  driverName?: string | null
   userId?: string | null
   userName?: string | null
   items: SaleItem[]
@@ -130,6 +157,10 @@ export type AppView =
   | "analytics"
   | "reports"
   | "settings"
+  | "shifts"
+  | "spotcheck"
+  | "exchanges"
+  | "pricing"
 
 // ─── Accounting types ───────────────────────────────────────────────
 export type AccountType = "ASSET" | "LIABILITY" | "EQUITY" | "REVENUE" | "EXPENSE"
@@ -186,8 +217,28 @@ export interface Customer {
   name: string
   phone: string
   address: string
+  type: "RETAIL" | "WHOLESALE" | "CORPORATE"
   createdAt: string
   updatedAt: string
+}
+
+// ─── Customer pricing tier ──────────────────────────────────────────
+export type CustomerTier = "RETAIL" | "WHOLESALE" | "CORPORATE"
+
+export const TIER_LABELS: Record<CustomerTier, string> = {
+  RETAIL: "تجزئة",
+  WHOLESALE: "جملة",
+  CORPORATE: "شركات/تعاقدات",
+}
+
+/** Resolve the effective sale price for a product given the customer tier. */
+export function effectivePrice(
+  product: Pick<Product, "salePrice" | "wholesalePrice" | "corporatePrice">,
+  tier: CustomerTier
+): number {
+  if (tier === "WHOLESALE" && product.wholesalePrice > 0) return product.wholesalePrice
+  if (tier === "CORPORATE" && product.corporatePrice > 0) return product.corporatePrice
+  return product.salePrice
 }
 
 // ─── Journal (double-entry) types ───────────────────────────────────

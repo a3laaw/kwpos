@@ -27,6 +27,7 @@ export async function GET(req: NextRequest) {
     include: {
       category: true,
       supplier: true,
+      defaultSupplier: true,
       stockItems: { include: { warehouse: true } },
     },
     orderBy: { name: "asc" },
@@ -52,10 +53,14 @@ export async function POST(req: NextRequest) {
     barcode,
     categoryId,
     supplierId,
+    defaultSupplierId,
     quantity,
     reorderLevel,
+    optimalOrderQty,
     costPrice,
     salePrice,
+    wholesalePrice,
+    corporatePrice,
     unit,
     unitId,
     warehouseStock, // array of { warehouseId, quantity }
@@ -79,10 +84,14 @@ export async function POST(req: NextRequest) {
       barcode: barcode?.trim() || null,
       categoryId: categoryId || null,
       supplierId: supplierId || null,
+      defaultSupplierId: defaultSupplierId || null,
       quantity: totalQty,
       reorderLevel: Number(reorderLevel) || 0,
+      optimalOrderQty: Number(optimalOrderQty) || 0,
       costPrice: Number(costPrice) || 0,
       salePrice: Number(salePrice) || 0,
+      wholesalePrice: Number(wholesalePrice) || 0,
+      corporatePrice: Number(corporatePrice) || 0,
       unit: unit?.trim() || "قطعة",
       unitId: unitId || null,
       imageUrl: body.imageUrl?.trim() || null,
@@ -90,7 +99,7 @@ export async function POST(req: NextRequest) {
         ? { create: stockRows.map((s) => ({ warehouseId: s.warehouseId, quantity: Number(s.quantity) })) }
         : undefined,
     },
-    include: { category: true, supplier: true, stockItems: { include: { warehouse: true } } },
+    include: { category: true, supplier: true, defaultSupplier: true, stockItems: { include: { warehouse: true } } },
   })
 
   return NextResponse.json(serializeProduct(created), { status: 201 })

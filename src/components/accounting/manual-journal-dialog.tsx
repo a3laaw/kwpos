@@ -24,6 +24,7 @@ import { Separator } from "@/components/ui/separator"
 import { Plus, Trash2, Loader2, BookCopy } from "lucide-react"
 import { useAccounts, useCreateManualJournal } from "@/hooks/use-api"
 import { useFmt } from "@/components/currency-context"
+import { useT } from "@/components/i18n-context"
 
 interface Line {
   key: string
@@ -44,6 +45,7 @@ export function ManualJournalDialog({
   onOpenChange: (open: boolean) => void
 }) {
   const fmt = useFmt()
+  const t = useT()
   const { data: accountsData } = useAccounts()
   const createMut = useCreateManualJournal()
   const [description, setDescription] = React.useState("")
@@ -83,16 +85,16 @@ export function ManualJournalDialog({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!description.trim()) {
-      toast.error("الوصف مطلوب")
+      toast.error(t.accDescriptionRequired)
       return
     }
     const validLines = lines.filter((l) => l.accountCode && (Number(l.debit) > 0 || Number(l.credit) > 0))
     if (validLines.length < 2) {
-      toast.error("أضف سطرين على الأقل")
+      toast.error(t.accAtLeastTwoLines)
       return
     }
     if (!balanced) {
-      toast.error("القيد غير متوازن", { description: `مدين ${fmt.currency(totalDebit)} ≠ دائن ${fmt.currency(totalCredit)}` })
+      toast.error(t.accNotBalanced, { description: `${t.accDebit} ${fmt.currency(totalDebit)} ≠ ${t.accCredit} ${fmt.currency(totalCredit)}` })
       return
     }
     try {
@@ -106,10 +108,10 @@ export function ManualJournalDialog({
           description: l.description.trim() || undefined,
         })),
       })
-      toast.success("تم إنشاء القيد المحاسبي")
+      toast.success(t.accJournalCreated)
       onOpenChange(false)
     } catch (err: any) {
-      toast.error("فشل إنشاء القيد", { description: err?.message })
+      toast.error(t.accJournalCreateFailed, { description: err?.message })
     }
   }
 
@@ -119,18 +121,18 @@ export function ManualJournalDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <BookCopy className="h-5 w-5 text-primary" />
-            قيد محاسبي يدوي
+            {t.accManualEntryTitle}
           </DialogTitle>
-          <DialogDescription>أدخل قيداً مزدوجاً متوازناً (مدين = دائن)</DialogDescription>
+          <DialogDescription>{t.accManualEntryDesc}</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="je-desc">الوصف *</Label>
-              <Input id="je-desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="مثال: تسوية رصيد" autoFocus />
+              <Label htmlFor="je-desc">{t.accDescription} *</Label>
+              <Input id="je-desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t.accDescriptionPlaceholder} autoFocus />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="je-date">التاريخ</Label>
+              <Label htmlFor="je-date">{t.date}</Label>
               <Input id="je-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
           </div>
@@ -139,9 +141,9 @@ export function ManualJournalDialog({
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>سطور القيد</Label>
+              <Label>{t.accJournalLines}</Label>
               <Button type="button" variant="outline" size="sm" onClick={addLine} className="gap-1.5">
-                <Plus className="h-3.5 w-3.5" /> إضافة سطر
+                <Plus className="h-3.5 w-3.5" /> {t.addLine}
               </Button>
             </div>
 
@@ -150,7 +152,7 @@ export function ManualJournalDialog({
                 <div key={l.key} className="grid grid-cols-12 gap-2 items-center rounded-lg border border-border/60 bg-muted/20 p-2">
                   <div className="col-span-12 sm:col-span-5">
                     <Select value={l.accountCode} onValueChange={(v) => updateLine(l.key, { accountCode: v })}>
-                      <SelectTrigger className="h-9"><SelectValue placeholder="اختر الحساب" /></SelectTrigger>
+                      <SelectTrigger className="h-9"><SelectValue placeholder={t.accSelectAccount} /></SelectTrigger>
                       <SelectContent>
                         {accounts.map((a) => (
                           <SelectItem key={a.id} value={a.code}>
@@ -161,13 +163,13 @@ export function ManualJournalDialog({
                     </Select>
                   </div>
                   <div className="col-span-4 sm:col-span-2">
-                    <Input type="number" min={0} step="0.001" placeholder="مدين" value={l.debit} onChange={(e) => updateLine(l.key, { debit: e.target.value })} className="h-9 tabular-nums" />
+                    <Input type="number" min={0} step="0.001" placeholder={t.accDebit} value={l.debit} onChange={(e) => updateLine(l.key, { debit: e.target.value })} className="h-9 tabular-nums" />
                   </div>
                   <div className="col-span-4 sm:col-span-2">
-                    <Input type="number" min={0} step="0.001" placeholder="دائن" value={l.credit} onChange={(e) => updateLine(l.key, { credit: e.target.value })} className="h-9 tabular-nums" />
+                    <Input type="number" min={0} step="0.001" placeholder={t.accCredit} value={l.credit} onChange={(e) => updateLine(l.key, { credit: e.target.value })} className="h-9 tabular-nums" />
                   </div>
                   <div className="col-span-3 sm:col-span-2">
-                    <Input placeholder="وصف" value={l.description} onChange={(e) => updateLine(l.key, { description: e.target.value })} className="h-9" />
+                    <Input placeholder={t.accDescription} value={l.description} onChange={(e) => updateLine(l.key, { description: e.target.value })} className="h-9" />
                   </div>
                   <div className="col-span-1 flex justify-center">
                     <Button type="button" variant="ghost" size="icon" className="h-9 w-9 text-destructive hover:text-destructive" onClick={() => removeLine(l.key)} disabled={lines.length <= 2}>
@@ -181,18 +183,18 @@ export function ManualJournalDialog({
 
           <div className="flex items-center justify-between rounded-lg px-4 py-2.5 text-sm font-bold"
             style={{ background: balanced ? "rgba(92,222,157,0.1)" : "rgba(244,63,94,0.1)" }}>
-            <span>المجموع</span>
+            <span>{t.accSum}</span>
             <div className="flex gap-6">
-              <span className="text-emerald-600 tabular-nums">مدين: {fmt.currency(totalDebit)}</span>
-              <span className="text-rose-600 tabular-nums">دائن: {fmt.currency(totalCredit)}</span>
+              <span className="text-emerald-600 tabular-nums">{t.accDebit}: {fmt.currency(totalDebit)}</span>
+              <span className="text-rose-600 tabular-nums">{t.accCredit}: {fmt.currency(totalCredit)}</span>
             </div>
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={createMut.isPending}>إلغاء</Button>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={createMut.isPending}>{t.cancel}</Button>
             <Button type="submit" disabled={createMut.isPending || !balanced || !description.trim()}>
               {createMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              حفظ القيد
+              {t.accSaveJournal}
             </Button>
           </DialogFooter>
         </form>

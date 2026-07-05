@@ -18,6 +18,7 @@ import {
   useCreateCustomer,
   useUpdateCustomer,
 } from "@/hooks/use-api"
+import { useT } from "@/components/i18n-context"
 import type { Customer } from "@/lib/types"
 
 interface CustomerFormDialogProps {
@@ -36,6 +37,7 @@ const empty: FormState = { name: "", phone: "", address: "" }
 
 export function CustomerFormDialog({ open, onOpenChange, customer }: CustomerFormDialogProps) {
   const isEdit = !!customer
+  const t = useT()
   const [form, setForm] = React.useState<FormState>(empty)
   const createMut = useCreateCustomer()
   const updateMut = useUpdateCustomer(customer?.id ?? "")
@@ -53,7 +55,7 @@ export function CustomerFormDialog({ open, onOpenChange, customer }: CustomerFor
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!form.name.trim()) {
-      toast.error("اسم العميل مطلوب")
+      toast.error(t.cusCustomerNameRequired)
       return
     }
     const payload = {
@@ -64,14 +66,14 @@ export function CustomerFormDialog({ open, onOpenChange, customer }: CustomerFor
     try {
       if (isEdit) {
         await updateMut.mutateAsync(payload)
-        toast.success("تم تحديث بيانات العميل")
+        toast.success(t.cusCustomerUpdated)
       } else {
         await createMut.mutateAsync(payload)
-        toast.success("تمت إضافة العميل")
+        toast.success(t.cusCustomerAdded)
       }
       onOpenChange(false)
     } catch (err: any) {
-      toast.error("فشل الحفظ", { description: err?.message })
+      toast.error(t.saveFailed, { description: err?.message })
     }
   }
 
@@ -81,24 +83,24 @@ export function CustomerFormDialog({ open, onOpenChange, customer }: CustomerFor
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "تعديل عميل" : "إضافة عميل جديد"}</DialogTitle>
+          <DialogTitle>{isEdit ? t.cusEditCustomer : t.cusAddNewTitle}</DialogTitle>
           <DialogDescription>
-            {isEdit ? "عدّل بيانات العميل." : "أدخل بيانات العميل الجديد."}
+            {isEdit ? t.cusEditDesc : t.cusAddDesc}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="c-name">اسم العميل *</Label>
+            <Label htmlFor="c-name">{t.cusCustomerName} *</Label>
             <Input
               id="c-name"
               value={form.name}
               onChange={(e) => set("name", e.target.value)}
-              placeholder="مثال: نور الصباح"
+              placeholder={t.cusNamePlaceholder}
               autoFocus
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="c-phone">رقم الهاتف</Label>
+            <Label htmlFor="c-phone">{t.phone}</Label>
             <Input
               id="c-phone"
               dir="ltr"
@@ -109,21 +111,21 @@ export function CustomerFormDialog({ open, onOpenChange, customer }: CustomerFor
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="c-address">العنوان</Label>
+            <Label htmlFor="c-address">{t.address}</Label>
             <Input
               id="c-address"
               value={form.address}
               onChange={(e) => set("address", e.target.value)}
-              placeholder="المدينة - الحي"
+              placeholder={t.cusAddressPlaceholder}
             />
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
-              إلغاء
+              {t.cancel}
             </Button>
             <Button type="submit" disabled={loading}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              {isEdit ? "حفظ" : "إضافة"}
+              {isEdit ? t.save : t.add}
             </Button>
           </DialogFooter>
         </form>
