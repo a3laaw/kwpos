@@ -66,3 +66,9 @@ prompt
 
 # Skills directory
 /skills/
+
+# Sandbox artifacts (not deployed)
+/screenshots/
+/tool-results/
+/worklog.md
+/dev.log

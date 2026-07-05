@@ -47,9 +47,9 @@
   --radius: 0.75rem;
   /* Approved palette:
      #2E6237 (dark green primary), #DFC196 (gold accent),
-     #F9EDC5 (light beige bg), #F9DC7C (bright yellow),
-     #1A1A1A (text), #FFFFFF (white) */
-  --background: #F9EDC5;
+     #F9EDC5 (light beige highlight), #F9DC7C (bright yellow),
+     #1A1A1A (text), #FFFFFF (white canvas) */
+  --background: #FFFFFF;
   --foreground: #1A1A1A;
   --card: #FFFFFF;
   --card-foreground: #1A1A1A;
