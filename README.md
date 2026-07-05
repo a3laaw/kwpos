@@ -230,4 +230,65 @@ kwpos/
 
 صُنع بـ ❤️ للمشاريع الصغيرة الكويتية
 
+---
+
+## 🔄 الانتقال إلى Supabase (PostgreSQL)
+
+### لماذا Supabase؟
+- نسخ احتياطي تلقائي يومي
+- جاهزية للفروع المستقبلية
+- أمان ودعم جيد لـ Prisma
+
+### الخطوات
+
+#### 1. إنشاء مشروع Supabase
+1. اذهب إلى https://supabase.com → سجّل بـ GitHub
+2. **New Project** → اسمه `kwpos-production`
+3. المنطقة: **Frankfurt (eu-central-1)** (أقرب للكويت)
+4. احفظ كلمة مرور قاعدة البيانات
+
+#### 2. نسخ Connection Strings
+من **Project Settings → Database → Connection string**:
+- **Direct URL** (للـ migrations): `postgresql://postgres:PASSWORD@db.HOST.supabase.co:5432/postgres`
+- **Pooled URL** (للتشغيل): `postgresql://postgres:PASSWORD@db.HOST.supabase.co:6543/postgres?pgbouncer=true&connection_limit=1`
+
+#### 3. تحديث `.env`
+```env
+DATABASE_URL="postgresql://postgres:PASSWORD@db.HOST.supabase.co:6543/postgres?pgbouncer=true&connection_limit=1"
+DIRECT_DATABASE_URL="postgresql://postgres:PASSWORD@db.HOST.supabase.co:5432/postgres"
+```
+
+#### 4. تحديث `schema.prisma`
+```prisma
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
+}
+```
+
+#### 5. إنشاء الجداول
+```bash
+bun run db:push
+```
+
+#### 6. نقل البيانات من SQLite
+```bash
+bun scripts/migrate-sqlite-to-supabase.ts
+```
+
+#### 7. اختبار التطبيق
+```bash
+bun run dev
+# سجّل الدخول → POS → بيع → تحقق من الفاتورة
+```
+
+#### 8. إنشاء Migration رسمي
+```bash
+bun run db:migrate --name init_supabase
+```
+
+#### 9. تأمين RLS (اختياري)
+في Supabase Dashboard → **Authentication → Policies** → فعّل RLS على الجداول الحساسة.
+
 </div>
