@@ -1,5 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "installCommand": "bun install"
+  "installCommand": "bun install",
+  "env": {
+    "DATABASE_URL": "postgresql://postgres:vbXpbAPWDilRjcWy@db.qwicxgoslxmypksytklo.supabase.co:5432/postgres",
+    "DIRECT_DATABASE_URL": "postgresql://postgres:vbXpbAPWDilRjcWy@db.qwicxgoslxmypksytklo.supabase.co:5432/postgres",
+    "NEXTAUTH_SECRET": "XZU3p3h3nhI7u1Ocgiu/DWvyQPfKBaQhHnYFoGJ2AcE=",
+    "NEXTAUTH_URL": "https://kwpos.vercel.app"
+  }
 }
