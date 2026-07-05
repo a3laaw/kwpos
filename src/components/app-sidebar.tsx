@@ -353,10 +353,10 @@ export function AppSidebar({ user }: SidebarProps) {
   return (
     <aside
       dir={locale === "ar" ? "rtl" : "ltr"}
-      className="hidden lg:flex w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground border-s border-sidebar-border h-screen sticky top-0"
+      className="hidden lg:flex w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground border-s border-sidebar-border h-screen sticky top-0 overflow-hidden"
     >
       <Brand />
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 min-h-0">
         {mounted ? <NavLinks user={user} /> : <div className="p-3 space-y-2">
           {/* Skeleton placeholder to prevent layout shift */}
           {Array.from({ length: 7 }).map((_, i) => (
@@ -387,7 +387,7 @@ export function MobileSidebar({ user }: SidebarProps) {
             <Brand />
           </SheetTitle>
         </SheetHeader>
-        <ScrollArea className="flex-1 h-[calc(100vh-140px)]">
+        <ScrollArea className="flex-1 min-h-0 h-[calc(100vh-140px)]">
           <NavLinks user={user} onNavigate={() => setOpen(false)} />
         </ScrollArea>
         <UserCard user={user} />

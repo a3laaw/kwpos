@@ -213,6 +213,20 @@ html[dir="rtl"] .nav-active {
   overflow: hidden;
 }
 
+/* Sidebar ScrollArea — always-visible, contrasting scrollbar.
+   The default Radix thumb (bg-border) is near-invisible on the green
+   sidebar background, so users don't realize the menu scrolls when an
+   accordion group expands. Use a soft beige thumb with gold hover. */
+aside [data-slot="scroll-area-scrollbar"][data-orientation="vertical"] {
+  background-color: transparent;
+}
+aside [data-slot="scroll-area-thumb"] {
+  background-color: rgba(249, 237, 197, 0.5);
+}
+aside [data-slot="scroll-area-thumb"]:hover {
+  background-color: rgba(249, 220, 124, 0.8);
+}
+
 /* Hide number input spinners (up/down arrows) globally — prevents accidental
    value changes when scrolling. Users type values explicitly via keyboard. */
 input[type="number"]::-webkit-inner-spin-button,

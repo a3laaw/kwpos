@@ -48,10 +48,10 @@ export type NavEntry =
  * Standalone items: dashboard, sales
  * Grouped parents:
  *   - الفواتير والتقارير → invoices, reports, analytics
- *   - إدارة المخازن والمشتريات → inventory, purchases, suppliers, pricing
+ *   - إدارة المخازن والمشتريات → inventory, purchases, suppliers, pricing, spotcheck
  *   - الحسابات والعملاء → accounting, customers
- *   - العمليات اليومية → shifts, spotcheck, exchanges
- *   - النظام والإعدادات → integrations, users, settings
+ *   - العمليات اليومية → shifts, exchanges
+ *   - الإعدادات → integrations, users, settings
  */
 export const NAV_ENTRIES: NavEntry[] = [
   { type: "leaf", view: "dashboard", labelKey: "navDashboard", icon: LayoutDashboard },
@@ -75,6 +75,7 @@ export const NAV_ENTRIES: NavEntry[] = [
       { view: "purchases", labelKey: "navPurchases", icon: ShoppingCart },
       { view: "suppliers", labelKey: "navSuppliers", icon: Truck },
       { view: "pricing", labelKey: "navPricing", icon: Tags },
+      { view: "spotcheck", labelKey: "navSpotCheck", icon: ClipboardCheck },
     ],
   },
   {
@@ -92,7 +93,6 @@ export const NAV_ENTRIES: NavEntry[] = [
     icon: Clock,
     children: [
       { view: "shifts", labelKey: "navShifts", icon: Clock },
-      { view: "spotcheck", labelKey: "navSpotCheck", icon: ClipboardCheck },
       { view: "exchanges", labelKey: "navExchanges", icon: ArrowLeftRight },
     ],
   },
