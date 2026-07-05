@@ -1512,6 +1512,37 @@ export interface Dict {
   phoneInputPlaceholder: string
   emailInputPlaceholder: string
   addressInputPlaceholder: string
+
+  // Purchase invoices / GRN
+  navPurchaseInvoices: string
+  piTitle: string
+  piDesc: string
+  piNew: string
+  piNo: string
+  piPost: string
+  piSaveDraft: string
+  piSavePost: string
+  piPostConfirm: string
+  piDraft: string
+  piPosted: string
+  piCancelled: string
+  piReceiveFromPO: string
+  piImportFromPO: string
+  piPostedSuccess: string
+  piCreated: string
+  piDeleted: string
+  piCannotDeletePosted: string
+  piSelectSupplier: string
+  piSelectWarehouse: string
+  piSelectPO: string
+  piNoPO: string
+  piItems: string
+  piAddItem: string
+  piSubtotal: string
+  piTaxAmount: string
+  piTotal: string
+  piLandedCost: string
+  piNoInvoices: string
 }
 
 export const DICTS: Record<Locale, Dict> = {
@@ -3017,6 +3048,37 @@ export const DICTS: Record<Locale, Dict> = {
     phoneInputPlaceholder: "05xxxxxxxx",
     emailInputPlaceholder: "info@supplier.sa",
     addressInputPlaceholder: "المدينة - الحي",
+
+    // Purchase invoices / GRN
+    navPurchaseInvoices: "فواتير المشتريات",
+    piTitle: "فواتير المشتريات",
+    piDesc: "فواتير المشتريات وسندات استلام البضاعة",
+    piNew: "فاتورة جديدة",
+    piNo: "رقم الفاتورة",
+    piPost: "اعتماد",
+    piSaveDraft: "حفظ كمسودة",
+    piSavePost: "حفظ واعتماد",
+    piPostConfirm: "سيتم تحديث المخزون وإنشاء قيد محاسبي. متابعة؟",
+    piDraft: "مسودة",
+    piPosted: "معتمدة",
+    piCancelled: "ملغاة",
+    piReceiveFromPO: "استلام وإنشاء فاتورة",
+    piImportFromPO: "استيراد من أمر شراء",
+    piPostedSuccess: "تم اعتماد الفاتورة وتحديث المخزون",
+    piCreated: "تم إنشاء الفاتورة",
+    piDeleted: "تم حذف المسودة",
+    piCannotDeletePosted: "لا يمكن حذف فاتورة معتمدة",
+    piSelectSupplier: "اختر المورد",
+    piSelectWarehouse: "اختر المستودع",
+    piSelectPO: "اختر أمر الشراء",
+    piNoPO: "بدون أمر شراء",
+    piItems: "الأصناف",
+    piAddItem: "إضافة صنف",
+    piSubtotal: "المجموع الفرعي",
+    piTaxAmount: "قيمة الضريبة",
+    piTotal: "الإجمالي",
+    piLandedCost: "تكلفة الوصول",
+    piNoInvoices: "لا توجد فواتير مشتريات",
   },
   en: {
     dir: "ltr",
@@ -4520,5 +4582,36 @@ export const DICTS: Record<Locale, Dict> = {
     phoneInputPlaceholder: "05xxxxxxxx",
     emailInputPlaceholder: "info@supplier.sa",
     addressInputPlaceholder: "City - District",
+
+    // Purchase invoices / GRN
+    navPurchaseInvoices: "Purchase Invoices",
+    piTitle: "Purchase Invoices",
+    piDesc: "Purchase invoices and goods receipt notes",
+    piNew: "New Invoice",
+    piNo: "Invoice No.",
+    piPost: "Post",
+    piSaveDraft: "Save Draft",
+    piSavePost: "Save & Post",
+    piPostConfirm: "Stock will be updated and a journal entry created. Continue?",
+    piDraft: "Draft",
+    piPosted: "Posted",
+    piCancelled: "Cancelled",
+    piReceiveFromPO: "Receive & Create Invoice",
+    piImportFromPO: "Import from PO",
+    piPostedSuccess: "Invoice posted and stock updated",
+    piCreated: "Invoice created",
+    piDeleted: "Draft deleted",
+    piCannotDeletePosted: "Cannot delete a posted invoice",
+    piSelectSupplier: "Select supplier",
+    piSelectWarehouse: "Select warehouse",
+    piSelectPO: "Select purchase order",
+    piNoPO: "No purchase order",
+    piItems: "Items",
+    piAddItem: "Add item",
+    piSubtotal: "Subtotal",
+    piTaxAmount: "Tax amount",
+    piTotal: "Total",
+    piLandedCost: "Landed cost",
+    piNoInvoices: "No purchase invoices",
   },
 }

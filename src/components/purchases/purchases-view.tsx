@@ -8,11 +8,23 @@ import { TableSkeleton } from "@/components/shared/loading-state"
 import { ConfirmDialog } from "@/components/shared/confirm-dialog"
 import { PurchaseOrderDialog } from "@/components/purchases/purchase-order-dialog"
 import { PoApprovalPanel } from "@/components/purchases/po-approval-panel"
+import {
+  PurchaseInvoiceDialog,
+  type PurchaseInvoicePrefill,
+} from "@/components/purchases/purchase-invoice-dialog"
+import { PurchaseInvoicesView } from "@/components/purchases/purchase-invoices-view"
+import { SuppliersView } from "@/components/purchases/suppliers-view"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs"
 import { Loader2 } from "lucide-react"
 import {
   Table,
@@ -50,6 +62,8 @@ import {
   AlertTriangle,
   Truck,
   Sparkles,
+  FileText,
+  Users,
 } from "lucide-react"
 import {
   Dialog,
@@ -88,6 +102,7 @@ export function PurchasesView() {
   const fmt = useFmt()
   const t = useT()
   const user = useUser()
+  const [tab, setTab] = React.useState<"orders" | "invoices" | "suppliers">("orders")
   const [statusFilter, setStatusFilter] = React.useState<string>("all")
   const [createOpen, setCreateOpen] = React.useState(false)
   const [detail, setDetail] = React.useState<PurchaseOrder | null>(null)
@@ -95,6 +110,10 @@ export function PurchasesView() {
   const [cancelTarget, setCancelTarget] = React.useState<PurchaseOrder | null>(null)
   const [autoDraftOpen, setAutoDraftOpen] = React.useState(false)
   const [autoDraftSupplier, setAutoDraftSupplier] = React.useState("")
+  // Purchase-invoice dialog (used by the "Receive & Create Invoice" action
+  // on APPROVED/PENDING POs). Pre-filled with the PO's supplier + items.
+  const [piOpen, setPiOpen] = React.useState(false)
+  const [piPrefill, setPiPrefill] = React.useState<PurchaseInvoicePrefill | null>(null)
 
   const { data, isLoading, isError, refetch } = usePurchaseOrders(
     statusFilter === "all" ? undefined : statusFilter
@@ -112,6 +131,23 @@ export function PurchasesView() {
 
   function poLabel(po: PurchaseOrder): string {
     return `PO-${(po.id || "").slice(-6).toUpperCase()}`
+  }
+
+  /** Open the purchase-invoice dialog pre-filled from a PO. */
+  function receiveAndCreateInvoice(po: PurchaseOrder) {
+    setPiPrefill({
+      purchaseOrderId: po.id,
+      supplierId: po.supplierId,
+      warehouseId: null,
+      items: po.items.map((it) => ({
+        productId: it.productId,
+        productName: it.productName,
+        quantity: it.quantity,
+        unitCost: it.unitCost,
+        purchaseOrderItemId: it.id,
+      })),
+    })
+    setPiOpen(true)
   }
 
   async function handleAutoDraft() {
@@ -183,167 +219,215 @@ export function PurchasesView() {
         title={t.purchasesTitleLong}
         description={t.purchasesDescLong}
         icon={<ShoppingCart className="h-5 w-5" />}
-        actions={
-          canManage ? (
-            <>
-              <Button
-                variant="outline"
-                onClick={() => setAutoDraftOpen(true)}
-                className="gap-2"
-              >
-                <Sparkles className="h-4 w-4" />
-                {t.fetchSupplierRequiredItems}
-              </Button>
-              <Button onClick={() => setCreateOpen(true)} className="gap-2">
-                <Plus className="h-4 w-4" />
-                {t.newPurchaseOrder}
-              </Button>
-            </>
-          ) : null
-        }
       />
 
-      {/* ADMIN-only auto-draft approval panel */}
-      {isAdmin ? <PoApprovalPanel /> : null}
+      <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
+        <TabsList>
+          <TabsTrigger value="orders" className="gap-1.5">
+            <ShoppingCart className="h-4 w-4" />
+            {t.navPurchases}
+          </TabsTrigger>
+          <TabsTrigger value="invoices" className="gap-1.5">
+            <FileText className="h-4 w-4" />
+            {t.navPurchaseInvoices}
+          </TabsTrigger>
+          <TabsTrigger value="suppliers" className="gap-1.5">
+            <Users className="h-4 w-4" />
+            {t.navSuppliers}
+          </TabsTrigger>
+        </TabsList>
 
-      <Card className="p-3 sm:p-4">
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="sm:w-52">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t.allStatuses}</SelectItem>
-            <SelectItem value="PENDING_APPROVAL">{t.poStatusPendingApproval}</SelectItem>
-            <SelectItem value="APPROVED">{t.poStatusApproved}</SelectItem>
-            <SelectItem value="PENDING">{t.poStatusPending}</SelectItem>
-            <SelectItem value="RECEIVED">{t.poStatusReceived}</SelectItem>
-            <SelectItem value="CANCELLED">{t.poStatusCancelled}</SelectItem>
-            <SelectItem value="REJECTED">{t.poStatusRejected}</SelectItem>
-          </SelectContent>
-        </Select>
-      </Card>
+        <TabsContent value="invoices" className="mt-4">
+          <PurchaseInvoicesView />
+        </TabsContent>
 
-      <Card className="overflow-hidden">
-        {isLoading ? (
-          <div className="p-4"><TableSkeleton rows={5} /></div>
-        ) : isError ? (
-          <div className="p-4">
-            <EmptyState title={t.poLoadFailed} action={<Button onClick={() => refetch()}>{t.retry}</Button>} />
+        <TabsContent value="suppliers" className="mt-4">
+          <SuppliersView />
+        </TabsContent>
+
+        <TabsContent value="orders" className="mt-4 space-y-5">
+          {/* Inner header with PO-specific actions */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-sm text-muted-foreground">
+              {t.purchasesDescLong}
+            </div>
+            {canManage ? (
+              <div className="flex items-center gap-2 flex-wrap">
+                <Button
+                  variant="outline"
+                  onClick={() => setAutoDraftOpen(true)}
+                  className="gap-2"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  {t.fetchSupplierRequiredItems}
+                </Button>
+                <Button onClick={() => setCreateOpen(true)} className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  {t.newPurchaseOrder}
+                </Button>
+              </div>
+            ) : null}
           </div>
-        ) : orders.length === 0 ? (
-          <div className="p-4">
-            <EmptyState
-              icon={<ShoppingCart className="h-7 w-7" />}
-              title={t.noPurchaseOrders}
-              description={t.noPurchaseOrdersDesc}
-              action={
-                canManage ? (
-                  <Button onClick={() => setCreateOpen(true)} className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    {t.newPurchaseOrder}
-                  </Button>
-                ) : null
-              }
-            />
-          </div>
-        ) : (
-          <div className="overflow-x-auto scrollbar-thin">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/40 hover:bg-muted/40">
-                  <TableHead>{t.colSupplier}</TableHead>
-                  <TableHead className="hidden sm:table-cell">{t.colDate}</TableHead>
-                  <TableHead className="text-center">{t.colItemsCount}</TableHead>
-                  <TableHead className="text-center">{t.colTotal}</TableHead>
-                  <TableHead className="text-center">{t.colStatus}</TableHead>
-                  <TableHead className="w-12 text-center"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {orders.map((po) => {
-                  const meta = STATUS_META[po.status]
-                  const Icon = meta.icon
-                  return (
-                    <TableRow key={po.id} className="hover:bg-muted/30 cursor-pointer" onClick={() => setDetail(po)}>
-                      <TableCell>
-                        <div className="font-medium">{po.supplierName}</div>
-                        <div className="text-xs text-muted-foreground sm:hidden">
-                          {fmt.dateTime(po.createdAt)}
-                        </div>
-                      </TableCell>
-                      <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
-                        {fmt.dateTime(po.createdAt)}
-                      </TableCell>
-                      <TableCell className="text-center tabular-nums">
-                        {po.items.length}
-                      </TableCell>
-                      <TableCell className="text-center font-semibold tabular-nums">
-                        {fmt.currency(po.total)}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge variant={meta.variant} className={`gap-1 ${meta.className}`}>
-                          <Icon className="h-3 w-3" />
-                          {t[meta.labelKey]}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => setDetail(po)} className="gap-2">
-                              <Eye className="h-4 w-4" />
-                              {t.viewDetails}
-                            </DropdownMenuItem>
-                            {canManage && po.status === "PENDING" && (
-                              <>
-                                <DropdownMenuItem
-                                  onClick={() => setReceiveTarget(po)}
-                                  className="gap-2 text-emerald-600 focus:text-emerald-600"
-                                >
-                                  <PackageCheck className="h-4 w-4" />
-                                  {t.confirmReceipt}
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => setCancelTarget(po)}
-                                  className="gap-2 text-amber-600 focus:text-amber-600"
-                                >
-                                  <XCircle className="h-4 w-4" />
-                                  {t.cancelOrder}
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                            {canManage && po.status === "APPROVED" && (
-                              <DropdownMenuItem
-                                onClick={() => setReceiveTarget(po)}
-                                className="gap-2 text-emerald-600 focus:text-emerald-600"
-                              >
-                                <PackageCheck className="h-4 w-4" />
-                                {t.confirmReceipt}
-                              </DropdownMenuItem>
-                            )}
-                            {canManage && po.status !== "RECEIVED" && (
-                              <DropdownMenuItem
-                                onClick={() => handleDelete(po.id)}
-                                className="gap-2 text-destructive focus:text-destructive"
-                              >
-                                {t.delete}
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
+
+          {/* ADMIN-only auto-draft approval panel */}
+          {isAdmin ? <PoApprovalPanel /> : null}
+
+          <Card className="p-3 sm:p-4">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="sm:w-52">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t.allStatuses}</SelectItem>
+                <SelectItem value="PENDING_APPROVAL">{t.poStatusPendingApproval}</SelectItem>
+                <SelectItem value="APPROVED">{t.poStatusApproved}</SelectItem>
+                <SelectItem value="PENDING">{t.poStatusPending}</SelectItem>
+                <SelectItem value="RECEIVED">{t.poStatusReceived}</SelectItem>
+                <SelectItem value="CANCELLED">{t.poStatusCancelled}</SelectItem>
+                <SelectItem value="REJECTED">{t.poStatusRejected}</SelectItem>
+              </SelectContent>
+            </Select>
+          </Card>
+
+          <Card className="overflow-hidden">
+            {isLoading ? (
+              <div className="p-4"><TableSkeleton rows={5} /></div>
+            ) : isError ? (
+              <div className="p-4">
+                <EmptyState title={t.poLoadFailed} action={<Button onClick={() => refetch()}>{t.retry}</Button>} />
+              </div>
+            ) : orders.length === 0 ? (
+              <div className="p-4">
+                <EmptyState
+                  icon={<ShoppingCart className="h-7 w-7" />}
+                  title={t.noPurchaseOrders}
+                  description={t.noPurchaseOrdersDesc}
+                  action={
+                    canManage ? (
+                      <Button onClick={() => setCreateOpen(true)} className="gap-2">
+                        <Plus className="h-4 w-4" />
+                        {t.newPurchaseOrder}
+                      </Button>
+                    ) : null
+                  }
+                />
+              </div>
+            ) : (
+              <div className="overflow-x-auto scrollbar-thin">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/40 hover:bg-muted/40">
+                      <TableHead>{t.colSupplier}</TableHead>
+                      <TableHead className="hidden sm:table-cell">{t.colDate}</TableHead>
+                      <TableHead className="text-center">{t.colItemsCount}</TableHead>
+                      <TableHead className="text-center">{t.colTotal}</TableHead>
+                      <TableHead className="text-center">{t.colStatus}</TableHead>
+                      <TableHead className="w-12 text-center"></TableHead>
                     </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {orders.map((po) => {
+                      const meta = STATUS_META[po.status]
+                      const Icon = meta.icon
+                      return (
+                        <TableRow key={po.id} className="hover:bg-muted/30 cursor-pointer" onClick={() => setDetail(po)}>
+                          <TableCell>
+                            <div className="font-medium">{po.supplierName}</div>
+                            <div className="text-xs text-muted-foreground sm:hidden">
+                              {fmt.dateTime(po.createdAt)}
+                            </div>
+                          </TableCell>
+                          <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
+                            {fmt.dateTime(po.createdAt)}
+                          </TableCell>
+                          <TableCell className="text-center tabular-nums">
+                            {po.items.length}
+                          </TableCell>
+                          <TableCell className="text-center font-semibold tabular-nums">
+                            {fmt.currency(po.total)}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Badge variant={meta.variant} className={`gap-1 ${meta.className}`}>
+                              <Icon className="h-3 w-3" />
+                              {t[meta.labelKey]}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => setDetail(po)} className="gap-2">
+                                  <Eye className="h-4 w-4" />
+                                  {t.viewDetails}
+                                </DropdownMenuItem>
+                                {canManage && po.status === "PENDING" && (
+                                  <>
+                                    <DropdownMenuItem
+                                      onClick={() => setReceiveTarget(po)}
+                                      className="gap-2 text-emerald-600 focus:text-emerald-600"
+                                    >
+                                      <PackageCheck className="h-4 w-4" />
+                                      {t.confirmReceipt}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => receiveAndCreateInvoice(po)}
+                                      className="gap-2 text-primary focus:text-primary"
+                                    >
+                                      <FileText className="h-4 w-4" />
+                                      {t.piReceiveFromPO}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => setCancelTarget(po)}
+                                      className="gap-2 text-amber-600 focus:text-amber-600"
+                                    >
+                                      <XCircle className="h-4 w-4" />
+                                      {t.cancelOrder}
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                                {canManage && po.status === "APPROVED" && (
+                                  <>
+                                    <DropdownMenuItem
+                                      onClick={() => setReceiveTarget(po)}
+                                      className="gap-2 text-emerald-600 focus:text-emerald-600"
+                                    >
+                                      <PackageCheck className="h-4 w-4" />
+                                      {t.confirmReceipt}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => receiveAndCreateInvoice(po)}
+                                      className="gap-2 text-primary focus:text-primary"
+                                    >
+                                      <FileText className="h-4 w-4" />
+                                      {t.piReceiveFromPO}
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                                {canManage && po.status !== "RECEIVED" && (
+                                  <DropdownMenuItem
+                                    onClick={() => handleDelete(po.id)}
+                                    className="gap-2 text-destructive focus:text-destructive"
+                                  >
+                                    {t.delete}
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Detail dialog */}
       <Dialog open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
@@ -592,6 +676,13 @@ export function PurchasesView() {
         confirmText={t.cancelOrder}
         loading={cancelMut.isPending}
         onConfirm={handleCancel}
+      />
+
+      {/* Purchase-invoice dialog (opened from a PO via "Receive & Create Invoice") */}
+      <PurchaseInvoiceDialog
+        open={piOpen}
+        onOpenChange={setPiOpen}
+        prefill={piPrefill}
       />
     </div>
   )

@@ -1,0 +1,300 @@
+
+Component rewiring:
+
+1. `src/components/reports/reports-view.tsx` — replaced ALL hardcoded Arabic:
+   - Imported `useT` from `@/components/i18n-context`; declared `const t = useT()` at the top of both `ReportsView` and `GeneralReports`.
+   - PageHeader title/description → `t.reportsTitle` / `t.repDescFull`.
+   - Tab labels → `t.generalReports` / `t.performanceMatrix`.
+   - Filters card: `t.filters`, `t.activeLabel` + count, quick ranges (`t.last7Days` / `t.last30Days` / `t.last90Days`), `t.from` / `t.to`, `t.category` / `t.allCategories` / `t.product` / `t.allProducts` / `t.all`, `t.paymentMethod` + `t.cash` / `t.card` / `t.transfer`, `t.source` + `t.posSource` / `t.shopifySource`, `t.reset` / `t.applyFilters`.
+   - Loading / error states → `t.calculatingReport` / `t.reportLoadFailed` / `t.retry`.
+   - KPI StatCards → `t.repTotalRevenue` / `t.repTotalCost` / `t.repGrossProfit` / `t.repAvgInvoice` with `.replace("{count}", …)` hints for `repInvoicesCount` / `repUnitsSoldCount` / `repMarginPctLabel` / `repDiscountLabel`.
+   - Chart titles/descs → `t.repRevenueTrendDaily` / `t.repRevenueTrendDailyDesc` / `t.repPaymentMethods` / `t.repRevenueDistribution` / `t.repRevenueByCategory` / `t.repRevenueByCategoryFullDesc` / `t.repProductBreakdown` / `t.repProductBreakdownFullDesc`.
+   - Payment-method legend → `t.cash` / `t.card` / `t.transfer`.
+   - Table headers → `t.colProduct` / `t.colCategory` / `t.repColQty` / `t.repColRevenue` / `t.repColCost` / `t.repColProfit`.
+   - Empty states → `t.noData` / `t.noProducts`.
+   - Bar-chart series names → `t.repRevenue` / `t.repProfit`.
+
+2. `src/components/reports/performance-matrix.tsx` — replaced ALL hardcoded Arabic:
+   - Imported `useT` from `@/components/i18n-context`; declared `const t = useT()` at the top of `PerformanceMatrix` (kept existing `useI18n()` for `locale`-aware chevron direction).
+   - Removed unused `PAYMENT_LABELS` const (was dead code with `void PAYMENT_LABELS`).
+   - PageHeader title/description → `t.matrixTitleFull` / `t.matrixLongDescFull`.
+   - Filters card: `t.reportFilters`, `t.activeLabel`, quick ranges, `t.from` / `t.to`, `t.branchWarehouse2` / `t.allBranches`, `t.supplier` / `t.allSuppliers`, `t.reset` / `t.applyFilters`.
+   - Loading / error / empty states → `t.calculatingMatrix` / `t.reportLoadFailed` / `t.retry` / `t.matrixNoDataForPeriod`.
+   - KPI tiles → `t.repTotalRevenue` / `t.matrixCogsLabel` / `t.repGrossProfit` / `t.matrixKpiTurnover` + `.replace` hints (`t.repMarginPctLabel`, `t.matrixStagnantDaysHint`).
+   - Matrix table title → `t.matrixTableTitle.replace("{count}", …)`; description hint → `t.matrixHintFull`.
+   - Expand/collapse buttons → `t.expandAll` / `t.collapseAll`.
+   - Sort-header labels → `t.matrixColCategoryItem` / `t.colBarcode` / `t.matrixColNetQty` / `t.matrixColSales` / `t.matrixKpiCost` / `t.matrixColGrossProfit` / `t.matrixColMarginPct` / `t.matrixKpiTurnover` / `t.matrixColStagnantDays`.
+   - Category row badge → `t.itemsCountLabel.replace("{count}", …)`.
+   - Grand total footer → `t.matrixGrandTotal.replace("{count}", …)`.
+
+3. `src/components/pricing/pricing-engine-view.tsx` (1095 lines) — replaced ALL hardcoded Arabic:
+   - Imported `useT`; replaced the static `PRICE_TYPE_LABEL` Record with a `usePriceTypeLabels()` hook (calls `useT()` and returns `{RETAIL: t.tierRetail, WHOLESALE: t.tierWholesale, CORPORATE: t.tierCorporate}`) — used in `AuditLogTab`.
+   - `PricingConfirmDialog`: declared `const t = useT()`; cancel button → `t.prcBack`; loading label → `t.applying`; tooltip → `t.prcConfirmTooltip`; ctrl+enter hint → `t.prcCtrlEnterHint`.
+   - `PriceManagementTab`: declared `const t = useT()`; search placeholder → `t.searchNameBarcodePlaceholder`; view-only badge → `t.prcViewOnlyAdminCanEditBadge`; cancel-changes button → `t.prcCancelChangesCount.replace("{count}", …)`; loading/error/empty → `t.loadingPrices` / `t.pricesLoadFailed` / `t.retry` / `t.noMatchingProducts`; table headers → `t.colProduct` / `t.colBarcode` / `t.colCategory` / `t.colCostPrice` / `t.tierRetail` / `t.tierWholesale` / `t.tierCorporate` / `t.promoActive`; input title (locked) → `t.prcInputLockedTitle`; sticky footer → `t.prcPendingCountDesc.replace("{count}", …)` + `t.editCellToEnable` + `t.prcApproveAndApplyNew`; toast errors → `t.noChangesToApprove` / `t.applyPricesFailed` / `t.prcBelowCostAlertToast` + `t.prcBelowCostAlertToastDesc`; toast success → `t.pricesApproved` with `t.prcAppliedToastDesc.replace("{applied}", …).replace("{audits}", …)` description; simple modal → `t.prcApproveCountTitle` + `t.prcApproveCountDesc.replace("{count}", …)` + `t.approveAndApply`; below-cost modal → `t.prcBelowCostTitleFull` + `t.prcBelowCostDescFull` + `t.confirmApplyAll` + `t.violatingItemsCount.replace("{count}", …)` + `t.colItem` / `t.colCostPrice` / `t.prcNewPriceCol` / `t.colVariance`.
+   - `PromotionsTab`: declared `const t = useT()`; validation toasts → `t.selectProductFirst` / `t.prcSelectOneCategoryMin` / `t.prcSelectExcludedCategories` / `t.discountMustBePositive` / `t.discountMax100` / `t.prcDateRangeRequired` / `t.prcEndDateAfterStart`; success/failure toasts → `t.promoCreated` / `t.promoCreateFailed` / `t.promoDeactivated` / `t.promoDeactivateFailed`; deactivate confirm → `t.prcDeactivateConfirm.replace("{label}", …)` with locale-aware category-name joiner (`"، "` if Arabic, `", "` otherwise, detected via `t.scopeCategory === "أقسام"`).
+   - Promotion form: header → `t.newPromotion`; scope selector → `t.applyScope` + `t.scopeProduct` / `t.scopeCategory` / `t.scopeAll` / `t.scopeAllExcept`; product selector → `t.product` + `t.selectProduct`; category multi-select → `t.includedCategories` / `t.excludedCategories` / `t.noCategories` / `t.categoriesSelected` / `t.categoriesExcluded`; all-desc → `t.applyToAllDesc`; discount-type → `t.discountType` + `t.percent` / `t.fixedAmount`; value field → `t.value` + `t.prcDiscountPlaceholderPercent` / `t.prcDiscountPlaceholderAmount`; date range → `t.fromDate2` / `t.toDate2`; note → `t.noteOptional` + `t.prcNotePlaceholder`; submit → `t.createPromotion`.
+   - Promotions list: header → `t.currentPromotions`; loading/empty → `t.prcLoadingPromos` / `t.noPromotions` + `t.createFirstPromo`; scope labels → `t.prcScopeCategoriesLabel` / `t.prcScopeAllLabel` / `t.prcScopeAllExceptLabel` (with `.replace("{names}", …)`); scope short badges → `t.scopeProductShort` / `t.scopeCategoryShort` / `t.scopeAllShort` / `t.scopeAllExceptShort`; status badges → `t.activeNow` / `t.scheduled` / `t.stopped`; discount line → `t.prcDiscountValueLabel.replace("{value}", …)`; created-by → `t.prcCreatedByLabel.replace("{name}, …)`; deactivate button → `t.deactivate`; reload button → `t.prcReload`.
+   - `AuditLogTab`: declared `const t = useT()` + `const priceTypeLabel = usePriceTypeLabels()`; search → `t.prcSearchAuditPlaceholder`; read-only badge → `t.prcAuditReadOnlyNotice`; loading/error/empty → `t.prcLoadingAuditShort` / `t.auditLoadFailed` / `t.retry` / `t.prcNoMatchingLogEntries`; table headers → `t.colDate` / `t.colItem` / `t.colType` / `t.colFrom` / `t.colTo` / `t.colChange` / `t.colBy` / `t.colNote`; type badge uses `priceTypeLabel[r.priceType]` (was `PRICE_TYPE_LABEL[r.priceType]`).
+   - `PricingEngineView`: declared `const t = useT()`; PageHeader title/desc → `t.prcPageTitle` / `t.pricingDesc`; tab labels → `t.priceManagement` / `t.promotionsAndDiscounts` / `t.changeLog`.
+
+4. `src/components/shift/shift-view.tsx` — replaced ALL hardcoded Arabic:
+   - Imported `useT`; declared `const t = useT()` in `ShiftView`, `CloseShiftForm`, and `ReconcileColumn` (added `t` prop).
+   - PageHeader title/description → `t.shiftsTitle` / `t.shfDescFull`; open-shift button → `t.shfOpenNewShift` / `t.shfOpenShift`.
+   - Loading / error / empty states → `t.loadingShifts` / `t.shfLoadFailed` / `t.retry` / `t.shfNoOpenShift` / `t.shfNoOpenShiftDesc`.
+   - History table headers → `t.shfColShiftNo` / `t.shfColPeriod` / `t.shfColCashVariance` / `t.shfColKnetVariance` / `t.shfColVisaVariance`; subtitle → `t.shfLastShiftsCount.replace("{count}", …)`.
+   - Close-shift form: title → `t.shfActiveShiftLabel.replace("{no}", …)`; opened-at hint → `t.shfOpenedAtDesc.replace("{x}", …)`; open badge → `t.shfOpen`; reconcile column labels → `t.shfCashLabel` / `t.shfKnet` / `t.shfVisaMasterShort`; expected label → `t.shfExpectedBook`; counted label → `t.shfActualFromMachine`; variance label → `t.shfVariance`.
+   - Variance warning → `t.shfElectronicPaymentVariances` / `t.shfVarianceExplanation` / `t.shfKnetVariance` / `t.shfVisaVariance`.
+   - Note → `t.noteOptional` + `t.shfNotePlaceholder` placeholder.
+   - Close button → `t.shfCloseShiftAndReconcile`.
+
+5. `src/components/spotcheck/spotcheck-view.tsx` — replaced ALL hardcoded Arabic:
+   - Imported `useT`; declared `const t = useT()` in `SpotCheckView`.
+   - PageHeader title/description → `t.spotCheckTitle` / `t.spcSpotCheckDesc`.
+   - Form: title → `t.spcBlindItemCount`; desc → `t.spcSpotCheckDesc`; search → `t.searchNameBarcodePlaceholder`; item selector → `t.spcItemToCount` / `t.spcSelectItemPlaceholder`; book-hidden hint → `t.spcBookQtyHiddenHint`; counted-qty label → `t.spcActualQtyOnShelf`; note → `t.noteOptional` + `t.spcNotePlaceholder`; submit → `t.spcApproveCountAndCalcVariance`.
+   - Result box labels → `t.spcBook` / `t.spcActual` / `t.colVariance`; shortage/surplus messages → `t.spcResultShortageLabel` / `t.spcResultSurplusLabel`.
+   - History table headers → `t.colItem` / `t.spcBook` / `t.spcActual` / `t.colVariance` / `t.colUser` / `t.colDate`; subtitle → `t.spcLastCountsCount.replace("{count}", …)`; loading/empty → `t.loading` / `t.spcNoCountsYet`.
+
+Verification:
+- `bun run lint` — **clean** (0 errors, 0 warnings).
+- `bunx tsc --noEmit --skipLibCheck` — only pre-existing TypeScript errors in unrelated files (`pricing-engine-view.tsx(149,9)` is the same `AlertDialogContent onPointerDownOutside` prop error also seen in `exchange-view.tsx`, `sale-confirm-dialog.tsx`, `sales-view.tsx` — present before this task and out of scope per the worklog). No new errors introduced by my changes.
+- `bun -e` runtime introspection of DICTS.ar / DICTS.en — 1368 keys each, 0 missing in either direction.
+- Dev server (`bun run dev`) hot-recompiled all 5 edited files (`✓ Compiled in Nms` lines in dev.log); GET /api/pricing, /api/promotions, /api/categories, /api/products all returning 200; no runtime errors in dev.log.
+- Grep audit of all 5 component files: 0 hardcoded Arabic strings remaining (the only residual Arabic chars are 2 lines in `pricing-engine-view.tsx` used as a locale-aware category-name separator `"، "` vs `", "` — intentionally conditional on `t.scopeCategory === "أقسام"`).
+
+Stage Summary:
+- All 5 component files now fully wired to `useT()`; switching locale via `switchLang` will translate every UI string in reports, performance matrix, pricing engine, shift reconciliation, and spot-check (previously only the sidebar translated).
+- 84 new module-specific i18n keys + 1 common key (`allProducts`) added to `src/lib/i18n.ts`, perfectly aligned across interface/ar/en (verified at runtime).
+- No breaking changes: all existing component behavior, props, hooks, and TypeScript types preserved — only string literals swapped for `t.<key>` lookups (with `.replace("{x}", …)` for parameterized strings like counts, dates, currency). `PRICE_TYPE_LABEL` const replaced with `usePriceTypeLabels()` hook so it reactively follows locale changes.
+- No test code written (per task rules).
+
+---
+
+Task ID: VERIFY-I18N-BILINGUAL
+Agent: subagent (general-purpose)
+Task: Verify bilingual (Arabic/English) i18n system in the Next.js ERP app at http://localhost:3000/
+
+Work Log:
+- Read worklog context (~1368 i18n keys added, ~30 component files wired to `useT()` per prior task records).
+- Used `agent-browser` (Playwright) to drive the live app at http://localhost:3000/.
+- Logged in as admin@demo.com / ***REMOVED*** (default Arabic/RTL).
+- Visited in Arabic mode: Dashboard, POS, Invoices, Inventory, Purchases, Suppliers, Pricing, Shifts, Spot-Check, Settings, Customers — verified all UI strings render in Arabic.
+- Toggled to English via the topbar "Languages" icon (button labelled "English" in Arabic mode, becomes "العربية" in English mode).
+- Re-visited every screen in English mode and inspected the accessibility tree for any leaked Arabic strings.
+- Captured 19 screenshots to `/home/z/my-project/screenshots/` (01-ar-dashboard.png … 19-ar-toggle-back.png) as evidence.
+- Triggered the POS checkout confirmation dialog in English mode and verified its contents.
+- Opened the Exchange screen in English mode and verified the invoice-lookup form.
+- Toggled back to Arabic and verified the UI returned cleanly to Arabic.
+- Checked `agent-browser errors` (empty) and `agent-browser console` (only HMR/DevTools info). `tail -200 dev.log | grep -iE "error|warn|fail|⨯|exception"` returned nothing.
+- Did NOT modify any code (per task rules).
+
+Verification Results:
+
+### Test 1 — Login screen (pre-login)
+PASS. Login card shows Arabic: title "نظام إدارة شامل لمتجرك", email label "البريد الإلكتروني", password "كلمة المرور", button "دخول", demo-account buttons in Arabic.
+
+### Test 2 — Arabic mode (default, after login)
+PASS. Sidebar (لوحة التحكم / نقاط البيع / الفواتير والتقارير / إدارة المخازن والمشتريات / الحسابات والعملاء / التكاملات / الورديات / الجرد الأعمى / التبديل / الإعدادات), topbar (الوضع الليلي, user name), and content of Dashboard, POS, Invoices, Inventory, Purchases, Reports all render in Arabic. Date filter pill "آخر 30 يوم", payment methods "نقدي/تحويل/بطاقة", checkout button "إتمام البيع", etc. all Arabic.
+
+### Test 3 — English mode (after toggle)
+PARTIAL PASS — most screens translate cleanly, but several Arabic leaks remain.
+
+**Screens that fully translated (no Arabic leaks except DB-stored data):**
+- POS (cart, search, tier selector, delivery checkbox, totals, checkout button, payment method dropdown, Promo/Out badges, Parked/Park/Clear cart) — PASS
+- Reports (filters, KPI cards "Total revenue / 31 invoices / Total cost / 243 units sold / Gross profit / Margin 35.2% / Avg invoice / Discount: …", chart titles "Daily revenue trend / Payment methods / Revenue by category / Product breakdown", payment labels "Cash/Card/Transfer") — PASS
+- Invoices list + detail panel ("New invoice / Search by invoice no. / Previous / Page 1 of 4 (31 invoices) / Next / Sales invoice / Item/Qty/Price/Total / Subtotal / Total / Thermal print 80mm / A4 print / Refund invoice") — PASS
+- Purchases ("Purchases & Purchase Orders / Fetch required items from supplier / New purchase order / Pending management approval / 1 under review / Open / Reject / All statuses") — PASS
+- Suppliers ("List of suppliers… / Add supplier / Total N products / N purchase orders") — PASS
+- Pricing ("Pricing & Promotions Engine / Price management / Promotions & discounts / Change log / Type name or scan barcode…") — PASS
+- Spot-Check ("Blind Spot-Check / Blind item count / Item to count / Select an item to count / Book quantity is hidden during blind count / Actual quantity on shelf / Note (optional) / Approve count and calculate variance / Blind count history / Last 2 counts", table headers Item/Book/Actual/Variance/User/Date) — PASS
+- Shifts (KPI labels, "Active shift: SHF-0003", "Cash / K-Net / Visa / Master", "Expected (book):", "Actual (from machine)", "Note (optional)", "Close shift & reconcile cash", "Closed shifts history", "Last 2 shifts with reconciliation variances") — PASS (modulo date format — see leaks below)
+- Exchange ("Exchange Invoice / Exchange items based on an original invoice… / New exchange / Fetch original invoice / (Mandatory) / Type or scan the invoice number… / Fetch invoice") — PASS
+
+**Arabic leaks found in English mode:**
+
+1. **Dashboard (`src/components/dashboard/dashboard-view.tsx`)** — 🚨 MAJOR. The entire dashboard component was NOT wired to `useT()` (verified: zero `useT`/`from "@/lib/i18n"` imports; lines 128/134/135/145/152/183 still contain hardcoded Arabic like "آخر 30 يوم", "تطبيق", "إعادة تعيين", "إجمالي المبيعات", "مبيعات اليوم"). Leaked Arabic strings in English mode:
+   - Date filter labels: "من تاريخ", "إلى تاريخ", "نطاق سريع"
+   - Quick-range combobox options: "آخر 7 أيام", "آخر 30 يوم", "آخر 90 يوم", "آخر سنة"
+   - Buttons: "تطبيق", "إعادة تعيين"
+   - Stat cards: "إجمالي المبيعات", "31 فاتورة", "مبيعات اليوم", "منذ بداية اليوم", "عدد المنتجات", "قيمة المخزون: …", "منتجات قريبة من النفاذ", "1 أمر شراء معلّق"
+   - Chart titles: "اتجاه المبيعات", "إجمالي المبيعات اليومية (د.ك) — آخر 30 يوم", "توزيع قيمة المخزون", "حسب الفئة", "الأكثر مبيعاً", "حسب الإيرادات", "تنبيهات المخزون", "منتجات تحتاج إعادة طلب"
+   - Chart x-axis day names: "الجمعة", "الأحد", "الثلاثاء", "الأربعاء", "السبت"
+   - Alert pill: "مراجعة المشتريات"
+   - Inventory threshold units: "الحد: 15 كيس", "الحد: 20 علبة", "الحد: 12 زجاجة", "الحد: 15 قطعة"
+   - Filter buttons "الكل" (×2)
+
+2. **Import / Export buttons (`src/components/shared/excel-buttons.tsx`)** — 🚨 Used by both Inventory and Customers screens. Default export label = "تصدير" (line 38); import button span text = "استيراد" (line 104); toast messages "تم تصدير الملف إلى Excel" / "فشل التصدير" / "تم الاستيراد بنجاح" / "فشل الاستيراد" (lines 56/57/83/87). Component does not import `useT`.
+
+3. **Date formatting locale (`src/components/currency-context.tsx` lines 47-48, `src/lib/format.ts`)** — 🚨 `useFmt()` formats dates via `formatDate(v, fmt.locale)` where `fmt.locale` is derived from the **active country** (`ar-KW-u-nu-latn` for Kuwait), NOT from the UI language. As a result, every date in the app is rendered in Arabic (`"4 يوليو 2026، 11:55 ص"`) even after toggling to English. Leaks observed on: Dashboard chart axis (already noted above), Invoices list rows ("4 يوليو 2026، 08:56 ص"), Invoices detail panel header, Shifts ("Opened at 4 يوليو 2026، 10:35 ص" and history rows), Spot-Check history Date column. The fix would be to derive the locale from the i18n language state instead of (or in addition to) the country.
+
+4. **Settings — country names in country picker** — Arabic country names "الكويت / السعودية / الإمارات / قطر / البحرين / عُمان / مصر / الأردن / المغرب / العراق / الجزائر / تونس" displayed verbatim in English mode (likely hardcoded in the countries.ts config without an English fallback). Country list is rendered inside buttons like "🇰🇼 الكويت KWD • 0%".
+
+**Note (not bugs — DB data, expected to stay Arabic in both modes):**
+- Product names ("احمد خالد", "أرز بسمتي 5كجم", etc.), category names ("أدوات منزلية", "إلكترونيات"), supplier names, customer names/addresses, units of measure ("قطعة/كيس/علبة/زجاجة/طقم/كرتون/رزمة"), and the admin user's own name "أحمد المدير" are all stored in Arabic in the database, so they appear in Arabic in both languages. This is consistent and acceptable — they are data, not UI strings.
+- Currency symbol "د.ك" appears in English mode too; this is the country's currencySymbol from `countries.ts` (Kuwait), independent of UI language. Arguably should fall back to "KWD" in English but not strictly an i18n key issue.
+
+### Test 4 — Toggle back to Arabic
+PASS. Clicked the "العربية" button in the topbar; the sidebar, topbar, invoices screen, payment labels, and dates all returned to Arabic instantly (no remount/reload required). The toggle button label became "English" again.
+
+### Test 5 — POS checkout confirmation dialog in English
+PASS. Dialog content fully English:
+- Title: "Confirm sale checkout"
+- Description: "Review the invoice details before approval — cannot be undone after confirmation."
+- "Payment method" / "Cash"
+- "Items count" / "1 items"
+- "Subtotal" / "Total amount due"
+- Buttons: "Cancel" / "Yes, complete"
+- Hint: "To complete via shortcut: press Ctrl + Enter"
+
+### Test 6 — Exchange screen in English
+PASS. All form labels English: "Exchange Invoice" (H1), "Exchange items based on an original invoice — fetch the invoice, scan return barcodes, then pick new items.", "New exchange" (disabled until invoice fetched), "Fetch original invoice" / "(Mandatory)", "Type or scan the invoice number (e.g. INV-00021)..." placeholder, "Fetch invoice" button. Footer "Made with care / For small projects" also English.
+
+### Console / runtime errors
+- `agent-browser errors`: empty (no uncaught exceptions).
+- `agent-browser console`: only `[info] React DevTools`, `[log] [HMR] connected`, `[log] [Fast Refresh] rebuilding/done in 135ms` — all benign.
+- `/home/z/my-project/dev.log` (last 200 lines): only Prisma query logs and `200` HTTP responses for `/api/shifts`, `/api/products`, `/api/spot-checks`, `/api/categories`, `/api/units`, `/api/customers`, `/api/sales?page=1&pageSize=10`. No errors, warnings, ⨯, or exceptions.
+
+Stage Summary / Overall Verdict:
+- The i18n refactor covered ~30 component files and ~1368 keys, but TWO gaps remain:
+  1. `dashboard-view.tsx` was entirely missed — every UI string on the dashboard still leaks Arabic in English mode (stat cards, chart titles, axis labels, filter bar, alert pill, threshold units). This is the single biggest remaining gap.
+  2. `shared/excel-buttons.tsx` (Import/Export buttons + their toast messages) was missed — leaks Arabic on Inventory and Customers screens.
+- A third, cross-cutting issue: the `useFmt()` hook derives its locale from the active country (always `ar-KW-*` for Kuwait) instead of the UI language, so every date/time string in the app renders in Arabic regardless of the language toggle. This affects Dashboard, Invoices list/detail, Shifts, and Spot-Check history. Fixing it requires changing `currency-context.tsx` to combine the country config with the i18n language state.
+- Settings country picker also leaks Arabic country names in English mode (countries.ts config issue).
+- All OTHER screens tested — POS, Reports, Invoices (list + detail), Purchases, Suppliers, Pricing, Shifts (UI labels), Spot-Check (UI labels), Exchange, Customers (UI labels), login — translate cleanly between Arabic and English with no Arabic leaks (other than the DB-stored data noted above).
+- Toggle is fully bidirectional and instant (Test 4 PASS).
+- POS checkout dialog fully English (Test 5 PASS).
+- Exchange screen fully English (Test 6 PASS).
+- No runtime/console/dev.log errors observed during the entire session.
+
+Recommended next actions (out of scope for this verify-only task):
+1. Wire `src/components/dashboard/dashboard-view.tsx` to `useT()` and add the missing dashboard keys to `i18n.ts`.
+2. Wire `src/components/shared/excel-buttons.tsx` to `useT()` (labels + toast messages) — affects Inventory + Customers.
+3. Refactor `src/components/currency-context.tsx` `useFmt()` so date/dateTime formatting uses the i18n language (e.g., `en-US`/`ar-KW-u-nu-latn`) instead of always using the country locale.
+4. Add English fallback names for countries in `src/lib/countries.ts` (or render via `t.<countryKey>`).
+
+
+---
+Task ID: FIX-I18N-REMAINING-GAPS
+Agent: main
+Task: Close the 4 remaining i18n gaps flagged by the previous verify pass (dashboard-view, excel-buttons, currency-context date locale, country names).
+
+Work Log:
+- Read previous verify report (worklog lines ~3700-3758) and the i18n dictionary (`src/lib/i18n.ts`, 4506 lines, 1368 keys per locale).
+- **Gap 1 — `src/components/dashboard/dashboard-view.tsx`**: Full i18n wiring. Imported `useT` + `useI18n` from `@/components/i18n-context`, added `const t = useT()` + `const { locale } = useI18n()` at the top of `DashboardView`. Replaced EVERY hardcoded Arabic string:
+  - Filter bar: `fromDate`, `toDate`, `quickRange`, `last7Days`, `last30Days`, `last90Days`, `lastYear`, `apply`, `reset`.
+  - Range badge: `dshLastXDays` with `{x}` placeholder.
+  - Loading/error: `dshLoadingStats`, `dshDataLoadFailed`, `dshDataLoadFailedDesc`, `retry`.
+  - KPI cards: `dshTotalSales`, `dshTodaySales`, `dshSinceStartOfDay`, `dshProductsCount`, `dshLowStockProducts`, `invoiceCountLabel` ({count}), `inventoryValueLabel` ({value}), `pendingPoCountLabel` ({count}).
+  - Chart titles/desc: `dshSalesTrend`, `dshDailySalesTotalDesc` (NEW: {symbol}+{range}), `dshInventoryValueDistribution`, `dshByCategory`, `dshTopSelling`, `dshByRevenue`.
+  - Sales trend tooltip: `dshSales` (NEW).
+  - Inventory alerts: `dshInventoryAlerts`, `dshProductsNeedReorder`, `dshInventoryGood`, `dshNoLowStockProducts`, `dshLimit`.
+  - Recent invoices: `dshRecentInvoices`, `dshRecentOperations`, `dshNoInvoices`, `cashCustomer` (for walk-in fallback).
+  - Empty states: `dshNoSalesYet`+`dshNoSalesYetDesc`, `dshNoCategories` (NEW), `dshNoInvoices` (NEW), `noDataDescription` (fallback for title-only EmptyState).
+  - Pending PO banner: `dshYouHavePendingPo`, `dshConfirmReceiptToUpdateStock`, `dshReviewPurchases`.
+  - "الكل" buttons: `all`.
+  - **Bonus fix**: Trend chart X-axis was rendering backend-generated Arabic day names (`labels[d.getDay()]` in `api/dashboard/route.ts`). Switched XAxis to `dataKey="date"` with a `tickFormatter` calling `Intl.DateTimeFormat` with the active UI locale (`en-GB` / `ar-KW-u-nu-latn`) — axis labels now follow the language toggle without backend changes.
+  - Removed unused `Bar`, `BarChart`, `Filter` imports.
+
+- **Gap 2 — `src/components/shared/excel-buttons.tsx`**: Full i18n wiring. Imported `useT`, added `const t = useT()` to both `ExcelExportButton` and `ExcelImportButton`:
+  - `label = "تصدير"` default → `label ?? t.export` (now optional prop; callers in inventory-view + customers-view don't pass `label`, so they pick up `t.export`).
+  - `toast.success("تم تصدير الملف إلى Excel")` → `t.exportedToExcel`; `toast.error("فشل التصدير")` → `t.exportFailed`.
+  - `toast.success("تم الاستيراد بنجاح", { description: ... })` → `t.importSucceeded` + `t.importSummary` (uses `.replace` for `{total}/{created}/{updated}/{skipped}`).
+  - `toast.error("فشل الاستيراد", ...)` → `t.importFailed` + `err?.message`.
+  - `"استيراد"` button text → `t.import`.
+  - `"رفع ملف Excel"` → `t.uploadExcelFile`; `"تنزيل قالب فارغ"` → `t.downloadEmptyTemplate`.
+  - Template sheet name `"الأصناف" / "العملاء"` → `t.products / t.customers`.
+  - Converted module-level `PRODUCT_COLUMNS` / `CUSTOMER_COLUMNS` constants (hardcoded Arabic headers) into `buildProductColumns(t)` / `buildCustomerColumns(t)` functions invoked inside `ExcelImportButton` so headers follow the active locale. Mapped headers to existing keys: `colName`, `colBarcode`, `colCategory`, `colQty`, `colReorderLevel`, `colCostPrice`, `colSalePrice`, `colUnit`, `phone`, `address`.
+
+- **Gap 3 — `src/components/currency-context.tsx` date formatting**: `useFmt()` previously bound date/dateTime to `fmt.locale` (derived from active country, e.g. `ar-KW-u-nu-latn`), so English users still saw Arabic month names. Fix:
+  - Imported `useI18n` from `@/components/i18n-context` and `type Locale` from `@/lib/i18n`.
+  - Added `dateLocaleFor(locale, country)` helper: English UI → `en-GB` (English months, Latin digits); Arabic UI → `${country.locale}-u-nu-latn` (Arabic months, Latin digits — preserves prior behaviour).
+  - `useFmt()` now consumes `useI18n()` and overrides `date` / `dateTime` to use the new date locale. `currency` / `number` stay bound to the country locale (so KWD/SAR/etc. + their 3-digit decimals still work). `useMemo` deps now include `locale` so a language toggle re-renders the format functions.
+  - `src/lib/format.ts` was NOT modified — its `formatDate` / `formatDateTime` already accept a locale arg; we just feed them the right one.
+  - Cross-cutting impact: dates on Dashboard, Invoices list/detail, Shifts, Spot-Check history now render in the UI language.
+
+- **Gap 4 — `src/lib/countries.ts` + Settings + Topbar + LoginScreen country names**:
+  - The `CountryConfig` interface + all 12 country entries already had a `nameEn` field (added by an earlier pass), but the Settings picker rendered `c.name` (Arabic) in both languages.
+  - Added a `getCountryName(c, locale)` helper to `countries.ts`: returns `c.nameEn` for `locale === "en"` (with graceful fallback to `c.name` if missing) and `c.name` for `locale === "ar"`.
+  - `src/components/settings/settings-view.tsx`: imported `useI18n` + `getCountryName`, added `const { locale } = useI18n()`, switched both the "Current country" config cell and the picker button label to use `getCountryName(..., locale)`.
+  - `src/components/app-sidebar.tsx`: tightened the `Topbar` `country` prop type from inline ad-hoc object to `CountryConfig`, imported `getCountryName`, added `const { locale } = useI18n()`, switched the country badge `title` to `getCountryName(country, locale)`.
+  - `src/components/auth/login-screen.tsx`: tightened the `country` prop type to `CountryConfig`, imported `getCountryName` + `useI18n`, added `const { locale } = useI18n()`, switched the flag's `title` to `getCountryName(country, locale)`.
+
+- **i18n dictionary additions (`src/lib/i18n.ts`)**: Added 6 new keys under the existing `// Dashboard module` section, mirrored in the `Dict` interface, the AR dict, and the EN dict:
+  - `dshSales` — "المبيعات" / "Sales"
+  - `dshDailySalesTotalDesc` — "إجمالي المبيعات اليومية ({symbol}) — {range}" / "Daily sales total ({symbol}) — {range}"
+  - `dshLoadingStats` — "جارٍ تحميل الإحصائيات..." / "Loading stats..."
+  - `dshDataLoadFailed` — "تعذّر تحميل البيانات" / "Failed to load data"
+  - `dshNoCategories` — "لا توجد فئات" / "No categories"
+  - `dshNoInvoices` — "لا توجد فواتير" / "No invoices"
+  - Verified with `bun -e` introspection: `ar` and `en` dicts each have **1374 keys**, **0 missing** in either direction (was 1368 → +6).
+
+Verification:
+- `bun run lint` — **clean** (no errors, no warnings).
+- `tail /home/z/my-project/dev.log` — only `200` responses (`/api/units`, `/api/categories`, `/api/auth/session`, `/`) and successful `✓ Compiled in Xms` lines. No `⨯`, no exceptions, no hydration warnings.
+- Re-grepped modified files for the Arabic Unicode range `[\u0600-\u06FF]` — zero matches in `dashboard-view.tsx`, `excel-buttons.tsx`, `currency-context.tsx`, `settings-view.tsx`. Only Arabic remaining in `countries.ts` is the legitimate `name` field data (English fallback provided via `nameEn`).
+- All four gaps closed without breaking existing callers:
+  - `ExcelExportButton` / `ExcelImportButton` callers in `inventory-view.tsx` (lines 124/125) and `customers-view.tsx` (lines 87/88) don't pass `label`, so they pick up `t.export` automatically.
+  - `Topbar` caller in `app-shell.tsx` (line 67) passes the full `country: CountryConfig` — matches the new tighter prop type.
+  - `LoginScreen` caller in `app/page.tsx` (line 17) passes the full `country: CountryConfig` returned by `getActiveCountry()` — matches the new tighter prop type.
+
+Files modified:
+- `src/lib/i18n.ts` — +6 keys (Dict interface + AR dict + EN dict).
+- `src/lib/countries.ts` — added `getCountryName(c, locale)` helper.
+- `src/components/dashboard/dashboard-view.tsx` — full i18n wiring + locale-aware X-axis tickFormatter.
+- `src/components/shared/excel-buttons.tsx` — full i18n wiring + dynamic column builders + translated toasts/menus/sheet names.
+- `src/components/currency-context.tsx` — `useFmt()` now derives date/time locale from UI language; currency locale stays bound to country.
+- `src/components/settings/settings-view.tsx` — country picker uses `getCountryName(c, locale)`.
+- `src/components/app-sidebar.tsx` — Topbar country badge title uses `getCountryName(c, locale)`.
+- `src/components/auth/login-screen.tsx` — login flag title uses `getCountryName(c, locale)`.
+
+Work record: `/home/z/my-project/agent-ctx/FIX-I18N-REMAINING-GAPS-main.md`.
+
+Outcome: All 4 remaining i18n gaps from the previous verify pass are closed. `bun run lint` is clean. No DB schema or API contract changes were needed (the dashboard's `label` field is still returned by the API but is no longer consumed by the client XAxis).
+
+
+---
+Task ID: FIX-TYPESCRIPT-ERRORS
+Agent: main
+Task: Fix all 22 TypeScript errors that appeared after `ignoreBuildErrors` was removed from `next.config.ts` and `noImplicitAny: true` was enabled in `tsconfig.json`. Type-only / prop-removal fixes only — no business logic, calculation, UI, or translation changes.
+
+Work Log:
+- Read the task brief (6 error patterns across 8 files), then ran `bunx tsc --noEmit --skipLibCheck` to confirm the exact 22 errors before touching anything.
+- **Pattern 1 — `onPointerDownOutside` / `onInteractOutside` on `AlertDialogContent` (3 files, 9 errors)**: Radix `AlertDialogContent` does NOT accept these props (they belong to `DialogContent`/`PopoverContent`). AlertDialog does not close on backdrop click by default, so removing them is behaviorally a no-op. Removed the two props (and their `(e) => e.preventDefault()` handlers, which also resolved the implicit-`any` `e` errors) from:
+  - `src/components/pricing/pricing-engine-view.tsx` (lines 149-150) — kept `onKeyDown={handleKeyDown}`.
+  - `src/components/sales/exchange-view.tsx` (lines 1074-1075) — kept `onKeyDown={handleDialogKeyDown}`.
+  - `src/components/sales/sale-confirm-dialog.tsx` (lines 98-99) — kept `onKeyDown={handleKeyDown}`.
+- **Pattern 2 — Implicit `any` on callback parameters (2 files, 7 errors)**: Root cause is `useReport` and `useReportMatrix` in `src/hooks/use-api.ts` returning `useQuery<any>`, so `data.products` / `data.categories` / `data.byPayment` / `data.warehouses` / `data.suppliers` are all `any`. Verified the actual API response shapes by reading `/api/reports/route.ts` (`products: [{id,name,categoryId}]`, `categories: [{id,name}]`, `byPayment: [{method,count,revenue}]`) and `/api/reports/matrix/route.ts` (`warehouses: [{id,name,code}]`, `suppliers: [{id,name}]`). Narrowed the local vars with explicit object-array types (no runtime change):
+  - `src/components/reports/performance-matrix.tsx` (lines 186-187): typed `warehouses` and `suppliers` locals → fixed `w` (253,36) and `s` (267,35).
+  - `src/components/reports/reports-view.tsx` (lines 148-153): typed `products`, `categories`, and added a new `byPayment` local; replaced the 3 later `data.byPayment` references (lines 304/310/311/317) with the new local `byPayment` so the `.map((_, i) => ...)` and `.map((p, i) => ...)` callbacks pick up the typed array → fixed `c` (200,36), `p` (210,34), `_` (308,48), `i` (308,51), `p` (314,44), `i` (314,47).
+- **Pattern 3 — `refundSummary` not on `Sale` (1 file, 2 errors)**: `src/components/sales/refund-dialog.tsx` lines 146-147 access `res.refundSummary?.creditNoteNo` and `res.refundSummary?.refundTotal`, where `res` is the `useRefundSale().mutateAsync(...)` result. The hook typed its return as `Sale`, but `/api/sales/[id]/refund/route.ts` (lines 181-190) actually returns `{ ...serializeSale(updated), refundSummary: { refundSubtotal, refundTax, refundTotal, refundCost, creditNoteNo } }`. The `Sale` interface has no `creditNoteNo`, and its `refundTotal` is the *cumulative* refund total (not this refund's amount), so swapping `res.refundSummary.X` → `res.X` would silently change the toast's displayed number — a forbidden behavior change. Fix (type-only): in `src/hooks/use-api.ts` `useRefundSale`, changed `jsend<Sale>` to `jsend<Sale & { refundSummary: { refundSubtotal: number; refundTax: number; refundTotal: number; refundCost: number; creditNoteNo: string } }>`. The optional-chaining `res.refundSummary?.X` in refund-dialog.tsx stays valid (now redundant but harmless).
+- **Pattern 4 — `string | null` not assignable to `string | undefined` (1 error)**: `src/components/sales/sales-view.tsx` line 271 — the `useParkSale` body types `label?: string`. The code passed `customerName.trim() || customerPhone.trim() || null`. Changed `|| null` to `|| undefined`. Runtime behavior is identical (both are falsy; field is optional), type now matches.
+- **Pattern 5 — `deliveryFee` / `driverName` not in create-sale body type (1 error)**: `src/components/sales/sales-view.tsx` line 498 passes `deliveryFee` + `driverName` to `useCreateSale().mutateAsync(...)`. The POST `/api/sales` route already accepts and persists both fields. Fix (type-only): in `src/hooks/use-api.ts` `useCreateSale`, added `deliveryFee?: number` and `driverName?: string` to the mutation body type.
+- **Pattern 6 — `Unit` not exported from `lib/types` (1 error)**: `src/types/index.ts` line 85 re-exported `Unit` from `@/lib/types`, but `lib/types.ts` has no `Unit` interface (only a Prisma `Unit` model exists). Grepped `src` for any consumer importing `Unit` from `@/types` — none found; the only other `Unit` references in `src` are i18n translation *string values* (e.g. `unit: "Unit"`), not type usages. Fix: removed `Unit` from the re-export list in `src/types/index.ts` (option 1 from the brief).
+
+Verification:
+- `bunx tsc --noEmit --skipLibCheck` → **exit 0**, no output (was 22 errors across 8 files).
+- `bun run lint` → **exit 0**, clean (no errors, no warnings).
+- `bun run build` → **exit 0**, `✓ Compiled successfully in 13.8s`; full route tree prerendered with no warnings.
+- `tail /home/z/my-project/dev.log` → only `200` responses (`/api/promotions`, `/api/products`, `/api/categories`, `/api/auth/session`, `/api/sales?page=1&pageSize=10`) and `✓ Compiled in Xms` lines. No `⨯`, no exceptions, no hydration warnings. Dev server still healthy.
+
+Notes / constraints honored:
+- ❌ No `any` introduced — where the source was `any` from a hook, the data was narrowed with an explicit object-array type derived from the API route's actual response shape.
+- ❌ No business logic, calculation, or UI behavior changed:
+  - Pattern 1: AlertDialog doesn't close on backdrop anyway → no behavior change.
+  - Pattern 3: hook return type widened to match what the API already returns → the refund-success toast keeps showing this-refund's `creditNoteNo` + `refundTotal` (NOT the cumulative `Sale.refundTotal`).
+  - Pattern 4: `null` ↔ `undefined` on an optional field → identical runtime behavior.
+- ❌ No translations or strings changed.
+- The broader `useQuery<any>` / `useMutation<any>` typing in `use-api.ts` was NOT touched (out of scope; would be a much larger refactor). Only the two mutation hooks whose body/return types were directly wrong (`useCreateSale`, `useRefundSale`) were tightened.
+
+Files modified (7):
+- `src/components/pricing/pricing-engine-view.tsx` — removed 2 invalid `AlertDialogContent` props.
+- `src/components/sales/exchange-view.tsx` — removed 2 invalid `AlertDialogContent` props.
+- `src/components/sales/sale-confirm-dialog.tsx` — removed 2 invalid `AlertDialogContent` props.
+- `src/components/reports/performance-matrix.tsx` — typed `warehouses` + `suppliers` locals.
+- `src/components/reports/reports-view.tsx` — typed `products` + `categories` + `byPayment` locals; swapped 3 `data.byPayment` refs to local `byPayment`.
+- `src/components/sales/sales-view.tsx` — `|| null` → `|| undefined` (line 271).
+- `src/hooks/use-api.ts` — `useRefundSale` return type now includes `refundSummary`; `useCreateSale` body type now includes `deliveryFee?` + `driverName?`.
+- `src/types/index.ts` — removed `Unit` from re-export list.
+
+Work record: `/home/z/my-project/agent-ctx/FIX-TYPESCRIPT-ERRORS-main.md`.
+
+Outcome: All 22 TypeScript errors fixed. `bunx tsc --noEmit --skipLibCheck` exit 0, `bun run lint` clean, `bun run build` succeeds. No business logic, calculations, UI behavior, or translations were changed.

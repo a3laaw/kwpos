@@ -1170,3 +1170,125 @@ export function useEffectivePrice(productId: string | null, tier: PriceTier) {
     enabled: !!productId,
   })
 }
+
+/* ----------------------- Purchase Invoices (GRN) ---------------------- */
+//
+//  GET    /api/purchase-invoices                — list (newest first)
+//  POST   /api/purchase-invoices                — create (DRAFT or POSTED)
+//  GET    /api/purchase-invoices/[id]           — single invoice
+//  PUT    /api/purchase-invoices/[id]           — update DRAFT (ADMIN only)
+//  DELETE /api/purchase-invoices/[id]           — delete DRAFT (ADMIN only)
+//  POST   /api/purchase-invoices/[id]/post      — post a DRAFT invoice
+//
+
+export interface PurchaseInvoiceItem {
+  id: string
+  purchaseInvoiceId: string
+  productId: string
+  productName: string
+  purchaseOrderItemId?: string | null
+  quantity: number
+  receivedQty: number
+  unitCost: number
+  subtotal: number
+  landedCost: number
+  note?: string | null
+}
+
+export interface PurchaseInvoice {
+  id: string
+  invoiceNo: string
+  purchaseOrderId?: string | null
+  supplierId: string
+  supplierName: string
+  warehouseId?: string | null
+  warehouseName?: string | null
+  invoiceDate: string
+  status: "DRAFT" | "POSTED" | "CANCELLED"
+  subtotal: number
+  taxRate: number
+  taxAmount: number
+  discount: number
+  shipping: number
+  customs: number
+  otherCharges: number
+  total: number
+  note?: string | null
+  createdByName?: string | null
+  createdAt: string
+  items: PurchaseInvoiceItem[]
+}
+
+export interface CreatePurchaseInvoiceBody {
+  invoiceNo?: string
+  supplierId: string
+  warehouseId?: string | null
+  purchaseOrderId?: string | null
+  invoiceDate?: string
+  taxRate?: number
+  discount?: number
+  shipping?: number
+  customs?: number
+  otherCharges?: number
+  note?: string | null
+  items: Array<{
+    productId: string
+    quantity: number
+    unitCost: number
+    purchaseOrderItemId?: string | null
+    note?: string | null
+  }>
+  post?: boolean
+}
+
+/** List all purchase invoices (newest first). */
+export function usePurchaseInvoices() {
+  return useQuery<{ items: PurchaseInvoice[] }>({
+    queryKey: ["purchase-invoices"],
+    queryFn: () => jget("/api/purchase-invoices"),
+  })
+}
+
+/** Create a purchase invoice (DRAFT or POSTED depending on `post` flag). */
+export function useCreatePurchaseInvoice() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: CreatePurchaseInvoiceBody) =>
+      jsend<PurchaseInvoice>("/api/purchase-invoices", "POST", body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["purchase-invoices"] })
+      qc.invalidateQueries({ queryKey: ["purchase-orders"] })
+      qc.invalidateQueries({ queryKey: ["products"] })
+      qc.invalidateQueries({ queryKey: ["dashboard"] })
+    },
+  })
+}
+
+/** Post a DRAFT purchase invoice (bumps stock + creates journal entry). */
+export function usePostPurchaseInvoice() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) =>
+      jsend<{ id: string; status: string; journalEntryId?: string | null }>(
+        `/api/purchase-invoices/${id}/post`,
+        "POST"
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["purchase-invoices"] })
+      qc.invalidateQueries({ queryKey: ["purchase-orders"] })
+      qc.invalidateQueries({ queryKey: ["products"] })
+      qc.invalidateQueries({ queryKey: ["dashboard"] })
+    },
+  })
+}
+
+/** Delete a DRAFT purchase invoice (ADMIN only). */
+export function useDeletePurchaseInvoice() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => jsend(`/api/purchase-invoices/${id}`, "DELETE"),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["purchase-invoices"] })
+    },
+  })
+}
