@@ -137,7 +137,7 @@ function NavLinks({
           "group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
           active
             ? "nav-active"
-            : "text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+            : "text-sidebar-foreground/90 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
         )}
       >
         <Icon
@@ -145,7 +145,7 @@ function NavLinks({
             "h-5 w-5 shrink-0",
             active
               ? "text-sidebar-primary"
-              : "text-sidebar-foreground/60 group-hover:text-sidebar-foreground"
+              : "text-sidebar-foreground/75 group-hover:text-sidebar-primary"
           )}
         />
         <span className="flex-1 text-start">{t[entry.labelKey]}</span>
@@ -178,7 +178,7 @@ function NavLinks({
               "group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
               hasActiveChild || isOpen
                 ? "text-sidebar-foreground bg-sidebar-accent/40"
-                : "text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+                : "text-sidebar-foreground/90 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
             )}
           >
             <Icon
@@ -186,7 +186,7 @@ function NavLinks({
                 "h-5 w-5 shrink-0",
                 hasActiveChild || isOpen
                   ? "text-sidebar-primary"
-                  : "text-sidebar-foreground/60 group-hover:text-sidebar-foreground"
+                  : "text-sidebar-foreground/75 group-hover:text-sidebar-primary"
               )}
             />
             <span className="flex-1 text-start">{t[entry.labelKey]}</span>
@@ -215,7 +215,7 @@ function NavLinks({
                     "group flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors",
                     childActive
                       ? "nav-active"
-                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                      : "text-sidebar-foreground/85 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                   )}
                 >
                   <ChildIcon
@@ -223,7 +223,7 @@ function NavLinks({
                       "h-4 w-4 shrink-0",
                       childActive
                         ? "text-sidebar-primary"
-                        : "text-sidebar-foreground/50 group-hover:text-sidebar-foreground"
+                        : "text-sidebar-foreground/70 group-hover:text-sidebar-primary"
                     )}
                   />
                   <span className="flex-1 text-start">{t[child.labelKey]}</span>

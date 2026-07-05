@@ -19,6 +19,7 @@ import {
   ClipboardCheck,
   ArrowLeftRight,
   Tags,
+  Cog,
 } from "lucide-react"
 import type { Dict } from "@/lib/i18n"
 
@@ -44,11 +45,13 @@ export type NavEntry =
  * Restructured sidebar — long flat lists are grouped under collapsible parents
  * (accordion) to reduce vertical height and avoid scrolling.
  *
- * Standalone items: dashboard, sales, integrations, settings
+ * Standalone items: dashboard, sales
  * Grouped parents:
  *   - الفواتير والتقارير → invoices, reports, analytics
- *   - إدارة المخازن والمشتريات → inventory, purchases, suppliers
+ *   - إدارة المخازن والمشتريات → inventory, purchases, suppliers, pricing
  *   - الحسابات والعملاء → accounting, customers
+ *   - العمليات اليومية → shifts, spotcheck, exchanges
+ *   - النظام والإعدادات → integrations, users, settings
  */
 export const NAV_ENTRIES: NavEntry[] = [
   { type: "leaf", view: "dashboard", labelKey: "navDashboard", icon: LayoutDashboard },
@@ -83,12 +86,26 @@ export const NAV_ENTRIES: NavEntry[] = [
       { view: "customers", labelKey: "navCustomers", icon: Users },
     ],
   },
-  { type: "leaf", view: "integrations", labelKey: "navIntegrations", icon: Plug },
-  { type: "leaf", view: "shifts", labelKey: "navShifts", icon: Clock },
-  { type: "leaf", view: "spotcheck", labelKey: "navSpotCheck", icon: ClipboardCheck },
-  { type: "leaf", view: "exchanges", labelKey: "navExchanges", icon: ArrowLeftRight },
-  { type: "leaf", view: "users", labelKey: "navUsers", icon: UsersIcon },
-  { type: "leaf", view: "settings", labelKey: "navSettings", icon: SettingsIcon },
+  {
+    type: "group",
+    labelKey: "navOperations",
+    icon: Clock,
+    children: [
+      { view: "shifts", labelKey: "navShifts", icon: Clock },
+      { view: "spotcheck", labelKey: "navSpotCheck", icon: ClipboardCheck },
+      { view: "exchanges", labelKey: "navExchanges", icon: ArrowLeftRight },
+    ],
+  },
+  {
+    type: "group",
+    labelKey: "navSystem",
+    icon: Cog,
+    children: [
+      { view: "integrations", labelKey: "navIntegrations", icon: Plug },
+      { view: "users", labelKey: "navUsers", icon: UsersIcon },
+      { view: "settings", labelKey: "navSettings", icon: SettingsIcon },
+    ],
+  },
 ]
 
 /**
