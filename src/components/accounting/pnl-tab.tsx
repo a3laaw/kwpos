@@ -19,10 +19,12 @@ import {
 } from "lucide-react"
 import { usePnLReport } from "@/hooks/use-api"
 import { useFmt } from "@/components/currency-context"
+import { useT } from "@/components/i18n-context"
 import { cn } from "@/lib/utils"
 
 export function PnLTab() {
   const fmt = useFmt()
+  const t = useT()
   const [from, setFrom] = React.useState("")
   const [to, setTo] = React.useState("")
   const [appliedFrom, setAppliedFrom] = React.useState<string | undefined>(undefined)
@@ -47,28 +49,28 @@ export function PnLTab() {
         <div className="flex flex-col sm:flex-row sm:items-end gap-3">
           <div className="space-y-1.5 flex-1">
             <Label htmlFor="pfrom" className="text-xs flex items-center gap-1.5">
-              <Calendar className="h-3 w-3" /> من تاريخ (اختياري)
+              <Calendar className="h-3 w-3" /> {t.accFromDateOptional}
             </Label>
             <Input id="pfrom" type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="h-9" />
           </div>
           <div className="space-y-1.5 flex-1">
             <Label htmlFor="pto" className="text-xs flex items-center gap-1.5">
-              <Calendar className="h-3 w-3" /> إلى تاريخ (اختياري)
+              <Calendar className="h-3 w-3" /> {t.accToDateOptional}
             </Label>
             <Input id="pto" type="date" value={to} onChange={(e) => setTo(e.target.value)} className="h-9" />
           </div>
           <div className="flex gap-2">
-            <Button onClick={apply} size="sm">تطبيق</Button>
-            <Button onClick={reset} size="sm" variant="outline">كل الفترات</Button>
+            <Button onClick={apply} size="sm">{t.apply}</Button>
+            <Button onClick={reset} size="sm" variant="outline">{t.accAllPeriods}</Button>
           </div>
         </div>
         <p className="text-xs text-muted-foreground mt-2">
-          تُجلب الإيرادات من جميع المبيعات (بما فيها أوامر شوبيفاي المُستوردة)، وتُخصم تكلفة البضاعة المباعة والرواتب والمصروفات الإدارية.
+          {t.accPnlExplanationFull}
         </p>
       </Card>
 
       {isLoading ? (
-        <LoadingState text="جارٍ حساب التقرير المالي..." />
+        <LoadingState text={t.calculatingFinancialReport} />
       ) : !data ? null : (
         <div className="space-y-4">
           {/* Headline net profit */}
@@ -86,7 +88,7 @@ export function PnLTab() {
                     {data.netProfit >= 0 ? <TrendingUp className="h-6 w-6" /> : <TrendingDown className="h-6 w-6" />}
                   </span>
                   <div>
-                    <p className="text-sm text-muted-foreground">صافي الربح</p>
+                    <p className="text-sm text-muted-foreground">{t.accNetProfit}</p>
                     <p className={cn(
                       "text-3xl font-bold tabular-nums",
                       data.netProfit >= 0 ? "text-emerald-600" : "text-rose-600"
@@ -95,13 +97,13 @@ export function PnLTab() {
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {appliedFrom || appliedTo
-                        ? `للفترة ${appliedFrom || "البداية"} ← ${appliedTo || "اليوم"}`
-                        : "كل الفترات"}
+                        ? `${t.accForPeriod} ${appliedFrom || t.accPeriodStart} ← ${appliedTo || t.accPeriodEnd}`
+                        : t.accAllPeriods}
                     </p>
                   </div>
                 </div>
                 <Badge variant="outline" className="hidden sm:inline-flex">
-                  {data.revenueCount} فاتورة
+                  {t.invoiceCountLabel.replace("{count}", String(data.revenueCount))}
                 </Badge>
               </div>
             </CardContent>
@@ -112,22 +114,22 @@ export function PnLTab() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <FileBarChart className="h-4 w-4 text-primary" />
-                قائمة الأرباح والخسائر
+                {t.accPnlStatementFull}
               </CardTitle>
-              <CardDescription>تفصيل الإيرادات والمصروفات</CardDescription>
+              <CardDescription>{t.accPnlBreakdown}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-1">
               {/* Revenue */}
               <PnLRow
                 icon={<DollarSign className="h-4 w-4" />}
-                label="إجمالي الإيرادات (مبيعات + شوبيفاي)"
+                label={t.accTotalRevenueFull}
                 value={data.revenue}
                 tone="positive"
                 fmt={fmt}
               />
               <PnLRow
                 icon={<Coins className="h-4 w-4" />}
-                label="تكلفة البضاعة المباعة (COGS)"
+                label={t.accCogsFull}
                 value={-data.cogs}
                 tone="negative"
                 indent
@@ -135,7 +137,7 @@ export function PnLTab() {
               />
               <Separator className="my-2" />
               <PnLRow
-                label="إجمالي الربح"
+                label={t.accGrossProfit}
                 value={data.grossProfit}
                 tone="positive"
                 bold
@@ -144,7 +146,7 @@ export function PnLTab() {
               <Separator className="my-2" />
               <PnLRow
                 icon={<TrendingDown className="h-4 w-4" />}
-                label="الرواتب"
+                label={t.accSalaries}
                 value={-data.salaries}
                 tone="negative"
                 indent
@@ -152,7 +154,7 @@ export function PnLTab() {
               />
               <PnLRow
                 icon={<TrendingDown className="h-4 w-4" />}
-                label="المصروفات الإدارية"
+                label={t.accAdminExpenses}
                 value={-data.adminExpenses}
                 tone="negative"
                 indent
@@ -160,7 +162,7 @@ export function PnLTab() {
               />
               <Separator className="my-2" />
               <PnLRow
-                label="إجمالي المصروفات التشغيلية"
+                label={t.accTotalOpex}
                 value={-data.totalOperatingExpenses}
                 tone="negative"
                 bold
@@ -168,7 +170,7 @@ export function PnLTab() {
               />
               <Separator className="my-2" />
               <PnLRow
-                label="صافي الربح"
+                label={t.accNetProfit}
                 value={data.netProfit}
                 tone={data.netProfit >= 0 ? "positive" : "negative"}
                 bold
@@ -182,7 +184,7 @@ export function PnLTab() {
           {data.expenseBreakdown.length > 0 ? (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">تفصيل المصروفات حسب الفئة</CardTitle>
+                <CardTitle className="text-base">{t.accExpenseBreakdownTitle}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
@@ -217,7 +219,7 @@ export function PnLTab() {
           ) : null}
 
           {isFetching ? (
-            <p className="text-xs text-muted-foreground text-center">جارٍ التحديث...</p>
+            <p className="text-xs text-muted-foreground text-center">{t.updating}</p>
           ) : null}
         </div>
       )}

@@ -39,10 +39,12 @@ import {
 } from "lucide-react"
 import { useCustomers, useDeleteCustomer } from "@/hooks/use-api"
 import { useFmt } from "@/components/currency-context"
+import { useT } from "@/components/i18n-context"
 import type { Customer } from "@/lib/types"
 
 export function CustomersView() {
   const fmt = useFmt()
+  const t = useT()
   const [q, setQ] = React.useState("")
   const [dialogOpen, setDialogOpen] = React.useState(false)
   const [editing, setEditing] = React.useState<Customer | null>(null)
@@ -67,18 +69,18 @@ export function CustomersView() {
     if (!deleteTarget) return
     try {
       await deleteMut.mutateAsync(deleteTarget.id)
-      toast.success("تم حذف العميل")
+      toast.success(t.cusCustomerDeleted)
       setDeleteTarget(null)
     } catch (err: any) {
-      toast.error("فشل الحذف", { description: err?.message })
+      toast.error(t.deleteFailed, { description: err?.message })
     }
   }
 
   return (
     <div className="space-y-5">
       <PageHeader
-        title="دليل العملاء"
-        description="سجل بسيط لبيانات العملاء: الاسم، رقم الهاتف، والعنوان."
+        title={t.cusPageTitle}
+        description={t.cusPageDesc}
         icon={<Users className="h-5 w-5" />}
         actions={
           <div className="flex items-center gap-2 flex-wrap">
@@ -86,7 +88,7 @@ export function CustomersView() {
             <ExcelExportButton type="customers" />
             <Button onClick={openAdd} className="gap-2">
               <Plus className="h-4 w-4" />
-              إضافة عميل
+              {t.cusAddCustomer}
             </Button>
           </div>
         }
@@ -98,7 +100,7 @@ export function CustomersView() {
           <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="ابحث بالاسم أو الهاتف أو العنوان..."
+            placeholder={t.cusSearchPlaceholder}
             className="pr-9"
           />
         </div>
@@ -109,19 +111,19 @@ export function CustomersView() {
           <div className="p-4"><TableSkeleton rows={6} /></div>
         ) : isError ? (
           <div className="p-4">
-            <EmptyState title="تعذّر تحميل العملاء" action={<Button onClick={() => refetch()}>إعادة المحاولة</Button>} />
+            <EmptyState title={t.cusLoadFailed} action={<Button onClick={() => refetch()}>{t.retry}</Button>} />
           </div>
         ) : customers.length === 0 ? (
           <div className="p-4">
             <EmptyState
               icon={<UserPlus className="h-7 w-7" />}
-              title={q ? "لا توجد نتائج مطابقة" : "لا يوجد عملاء"}
-              description={q ? "جرّب كلمة بحث أخرى." : "ابدأ بإضافة أول عميل."}
+              title={q ? t.cusNoMatching : t.cusNoCustomers}
+              description={q ? t.tryAnotherKeyword : t.cusAddFirstCustomer}
               action={
                 !q ? (
                   <Button onClick={openAdd} className="gap-2">
                     <Plus className="h-4 w-4" />
-                    إضافة عميل
+                    {t.cusAddCustomer}
                   </Button>
                 ) : null
               }
@@ -132,10 +134,10 @@ export function CustomersView() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
-                  <TableHead>اسم العميل</TableHead>
-                  <TableHead>رقم الهاتف</TableHead>
-                  <TableHead className="hidden sm:table-cell">العنوان</TableHead>
-                  <TableHead className="hidden md:table-cell">تاريخ الإضافة</TableHead>
+                  <TableHead>{t.cusCustomerName}</TableHead>
+                  <TableHead>{t.cusCustomerPhone}</TableHead>
+                  <TableHead className="hidden sm:table-cell">{t.address}</TableHead>
+                  <TableHead className="hidden md:table-cell">{t.cusDateAdded}</TableHead>
                   <TableHead className="w-12 text-center"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -175,14 +177,14 @@ export function CustomersView() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => openEdit(c)} className="gap-2">
                             <Pencil className="h-4 w-4" />
-                            تعديل
+                            {t.edit}
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => setDeleteTarget(c)}
                             className="gap-2 text-destructive focus:text-destructive"
                           >
                             <Trash2 className="h-4 w-4" />
-                            حذف
+                            {t.delete}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -197,7 +199,7 @@ export function CustomersView() {
 
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted-foreground">
-          إجمالي <Badge variant="secondary" className="tabular-nums">{customers.length}</Badge> عميل
+          {t.cusTotalCountLabel.replace("{count}", String(customers.length))}
         </p>
       </div>
 
@@ -205,14 +207,13 @@ export function CustomersView() {
       <ConfirmDialog
         open={!!deleteTarget}
         onOpenChange={(o) => !o && setDeleteTarget(null)}
-        title="حذف العميل"
+        title={t.cusDeleteTitle}
         description={
           <>
-            سيتم حذف العميل{" "}
-            <span className="font-semibold">“{deleteTarget?.name}”</span> نهائياً.
+            {t.cusDeleteConfirm.replace("{name}", deleteTarget?.name ?? "")}
           </>
         }
-        confirmText="حذف"
+        confirmText={t.delete}
         loading={deleteMut.isPending}
         onConfirm={handleDelete}
       />

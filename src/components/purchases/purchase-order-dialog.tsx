@@ -21,15 +21,22 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
-import { Plus, Trash2, Loader2, ShoppingCart } from "lucide-react"
-import { useSuppliers, useProducts, useCreatePurchaseOrder } from "@/hooks/use-api"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
+import { Plus, Trash2, Loader2, ShoppingCart, ChevronDown, Truck, Tags } from "lucide-react"
+import { useSuppliers, useProducts, useCategories, useCreatePurchaseOrder } from "@/hooks/use-api"
 import { useFmt } from "@/components/currency-context"
+import { useT } from "@/components/i18n-context"
 
 interface LineItem {
   key: string
   productId: string
   quantity: string
   unitCost: string
+  suggestedSalePrice: string
 }
 
 let keySeq = 0
@@ -43,39 +50,69 @@ export function PurchaseOrderDialog({
   onOpenChange: (open: boolean) => void
 }) {
   const fmt = useFmt()
+  const t = useT()
   const { data: sups } = useSuppliers()
   const { data: prods } = useProducts()
+  const { data: catsData } = useCategories()
   const createMut = useCreatePurchaseOrder()
+
+  // Cascading category filter — when set, the product dropdown shows ONLY
+  // products in that category. "all" (default) shows every product.
+  const [categoryFilter, setCategoryFilter] = React.useState("all")
 
   const [supplierId, setSupplierId] = React.useState("")
   const [note, setNote] = React.useState("")
   const [items, setItems] = React.useState<LineItem[]>([
-    { key: makeKey(), productId: "", quantity: "1", unitCost: "0" },
+    { key: makeKey(), productId: "", quantity: "1", unitCost: "0", suggestedSalePrice: "" },
   ])
+  // Landed cost extra charges — empty by default (sent as 0 when blank).
+  const [customs, setCustoms] = React.useState("")
+  const [shipping, setShipping] = React.useState("")
+  const [other, setOther] = React.useState("")
+  const [extraOpen, setExtraOpen] = React.useState(false)
 
   React.useEffect(() => {
     if (open) {
       setSupplierId("")
       setNote("")
-      setItems([{ key: makeKey(), productId: "", quantity: "1", unitCost: "0" }])
+      setItems([{ key: makeKey(), productId: "", quantity: "1", unitCost: "0", suggestedSalePrice: "" }])
+      setCustoms("")
+      setShipping("")
+      setOther("")
+      setExtraOpen(false)
     }
   }, [open])
 
   const products = prods?.items ?? []
   const suppliers = sups?.items ?? []
+  const categories = catsData?.items ?? []
+  // Apply the cascading category filter to the product list shown in the
+  // dropdown. Products already selected on existing rows are always visible
+  // (so the user can still see/edit them) even if they don't match the
+  // current filter.
+  const selectedProductIds = new Set(items.map((it) => it.productId).filter(Boolean))
+  const filteredProducts = products.filter(
+    (p) => categoryFilter === "all" || p.categoryId === categoryFilter || selectedProductIds.has(p.id)
+  )
 
   function updateItem(key: string, patch: Partial<LineItem>) {
     setItems((arr) =>
       arr.map((it) => (it.key === key ? { ...it, ...patch } : it))
     )
   }
-  // when product selected, prefill unitCost from its cost price
+  // when product selected, prefill unitCost from its cost price and the
+  // suggested sale price from its current salePrice (so the manager can
+  // tweak rather than re-type).
   function selectProduct(key: string, productId: string) {
     const p = products.find((x) => x.id === productId)
-    updateItem(key, { productId, unitCost: p ? String(p.costPrice) : "0" })
+    updateItem(key, {
+      productId,
+      unitCost: p ? String(p.costPrice) : "0",
+      suggestedSalePrice: p ? String(p.salePrice) : "",
+    })
   }
   function addRow() {
-    setItems((arr) => [...arr, { key: makeKey(), productId: "", quantity: "1", unitCost: "0" }])
+    setItems((arr) => [...arr, { key: makeKey(), productId: "", quantity: "1", unitCost: "0", suggestedSalePrice: "" }])
   }
   function removeRow(key: string) {
     setItems((arr) => (arr.length > 1 ? arr.filter((it) => it.key !== key) : arr))
@@ -86,16 +123,22 @@ export function PurchaseOrderDialog({
     return acc + (Number(it.quantity) || 0) * (Number(it.unitCost) || 0)
   }, 0)
 
+  const customsNum = Number(customs) || 0
+  const shippingNum = Number(shipping) || 0
+  const otherNum = Number(other) || 0
+  const extraTotal = customsNum + shippingNum + otherNum
+  const grandTotal = total + extraTotal
+
   const validItems = items.filter((it) => it.productId && Number(it.quantity) > 0)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!supplierId) {
-      toast.error("اختر المورّد أولاً")
+      toast.error(t.selectSupplierFirst)
       return
     }
     if (validItems.length === 0) {
-      toast.error("أضف منتجاً واحداً على الأقل")
+      toast.error(t.addAtLeastOneProduct)
       return
     }
     try {
@@ -106,12 +149,16 @@ export function PurchaseOrderDialog({
           productId: it.productId,
           quantity: Number(it.quantity),
           unitCost: Number(it.unitCost),
+          suggestedSalePrice: it.suggestedSalePrice ? Number(it.suggestedSalePrice) : 0,
         })),
+        customsAmount: customsNum,
+        shippingAmount: shippingNum,
+        otherCharges: otherNum,
       })
-      toast.success("تم إنشاء أمر الشراء")
+      toast.success(t.poCreated)
       onOpenChange(false)
     } catch (err: any) {
-      toast.error("فشل إنشاء أمر الشراء", { description: err?.message })
+      toast.error(t.poCreateFailed, { description: err?.message })
     }
   }
 
@@ -121,19 +168,19 @@ export function PurchaseOrderDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ShoppingCart className="h-5 w-5 text-primary" />
-            أمر شراء جديد
+            {t.newPurchaseOrder}
           </DialogTitle>
           <DialogDescription>
-            أنشئ أمر شراء لتزويد المخزن بالمنتجات. لن تتأثر الكميات حتى تأكيد الاستلام.
+            {t.newPoDescLong}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>المورّد *</Label>
+              <Label>{t.supplier} *</Label>
               <Select value={supplierId} onValueChange={setSupplierId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="اختر المورّد" />
+                  <SelectValue placeholder={t.selectSupplier} />
                 </SelectTrigger>
                 <SelectContent>
                   {suppliers.map((s) => (
@@ -145,12 +192,12 @@ export function PurchaseOrderDialog({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="po-note">ملاحظة</Label>
+              <Label htmlFor="po-note">{t.note}</Label>
               <Input
                 id="po-note"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                placeholder="اختياري"
+                placeholder={t.optional}
               />
             </div>
           </div>
@@ -158,78 +205,118 @@ export function PurchaseOrderDialog({
           <Separator />
 
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label>المنتجات</Label>
-              <Button type="button" variant="outline" size="sm" onClick={addRow} className="gap-1">
-                <Plus className="h-3.5 w-3.5" />
-                إضافة سطر
-              </Button>
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <Label>{t.poProducts}</Label>
+              <div className="flex items-center gap-2">
+                {/* Cascading category filter — restricts the product dropdown */}
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger className="h-8 w-44 text-xs">
+                    <Tags className="h-3 w-3 text-muted-foreground ms-1 me-1" />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{t.allCategories}</SelectItem>
+                    {categories.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button type="button" variant="outline" size="sm" onClick={addRow} className="gap-1">
+                  <Plus className="h-3.5 w-3.5" />
+                  {t.addLine}
+                </Button>
+              </div>
             </div>
 
-            <div className="space-y-2 max-h-[40vh] overflow-y-auto scrollbar-thin pl-1">
+            <div className="space-y-2 max-h-[44vh] overflow-y-auto scrollbar-thin pl-1">
               {items.map((it) => {
                 const subtotal = (Number(it.quantity) || 0) * (Number(it.unitCost) || 0)
                 return (
                   <div
                     key={it.key}
-                    className="grid grid-cols-12 gap-2 items-end rounded-lg border border-border/60 bg-muted/20 p-2"
+                    className="rounded-lg border border-border/60 bg-muted/20 p-2 space-y-2"
                   >
-                    <div className="col-span-12 sm:col-span-6 space-y-1">
-                      <Label className="text-xs text-muted-foreground">المنتج</Label>
-                      <Select
-                        value={it.productId}
-                        onValueChange={(v) => selectProduct(it.key, v)}
-                      >
-                        <SelectTrigger className="h-9">
-                          <SelectValue placeholder="اختر المنتج" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {products.map((p) => (
-                            <SelectItem key={p.id} value={p.id}>
-                              {p.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                    <div className="grid grid-cols-12 gap-2 items-end">
+                      <div className="col-span-12 sm:col-span-6 space-y-1">
+                        <Label className="text-xs text-muted-foreground">{t.product}</Label>
+                        <Select
+                          value={it.productId}
+                          onValueChange={(v) => selectProduct(it.key, v)}
+                        >
+                          <SelectTrigger className="h-9">
+                            <SelectValue placeholder={t.selectProduct} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {filteredProducts.map((p) => (
+                              <SelectItem key={p.id} value={p.id}>
+                                {p.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="col-span-4 sm:col-span-2 space-y-1">
+                        <Label className="text-xs text-muted-foreground">{t.qty}</Label>
+                        <Input
+                          type="number"
+                          min={1}
+                          className="h-9"
+                          value={it.quantity}
+                          onChange={(e) => updateItem(it.key, { quantity: e.target.value })}
+                        />
+                      </div>
+                      <div className="col-span-5 sm:col-span-2 space-y-1">
+                        <Label className="text-xs text-muted-foreground">{t.unitPrice}</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          step="0.001"
+                          inputMode="decimal"
+                          className="h-9"
+                          value={it.unitCost}
+                          onChange={(e) => updateItem(it.key, { unitCost: e.target.value })}
+                        />
+                      </div>
+                      <div className="col-span-2 sm:col-span-1 text-center">
+                        <p className="text-xs text-muted-foreground mb-1.5">{t.colTotal}</p>
+                        <p className="text-xs font-semibold tabular-nums">
+                          {fmt.currency(subtotal)}
+                        </p>
+                      </div>
+                      <div className="col-span-1 flex justify-center">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-9 w-9 text-destructive hover:text-destructive"
+                          onClick={() => removeRow(it.key)}
+                          disabled={items.length === 1}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="col-span-4 sm:col-span-2 space-y-1">
-                      <Label className="text-xs text-muted-foreground">الكمية</Label>
-                      <Input
-                        type="number"
-                        min={1}
-                        className="h-9"
-                        value={it.quantity}
-                        onChange={(e) => updateItem(it.key, { quantity: e.target.value })}
-                      />
-                    </div>
-                    <div className="col-span-5 sm:col-span-2 space-y-1">
-                      <Label className="text-xs text-muted-foreground">سعر الوحدة</Label>
-                      <Input
-                        type="number"
-                        min={0}
-                        step="0.01"
-                        className="h-9"
-                        value={it.unitCost}
-                        onChange={(e) => updateItem(it.key, { unitCost: e.target.value })}
-                      />
-                    </div>
-                    <div className="col-span-2 sm:col-span-1 text-center">
-                      <p className="text-xs text-muted-foreground mb-1.5">الإجمالي</p>
-                      <p className="text-xs font-semibold tabular-nums">
-                        {fmt.currency(subtotal)}
-                      </p>
-                    </div>
-                    <div className="col-span-1 flex justify-center">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-9 w-9 text-destructive hover:text-destructive"
-                        onClick={() => removeRow(it.key)}
-                        disabled={items.length === 1}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                    {/* Suggested sale price — optional. When set (> 0) and
+                        different from the product's current salePrice, the
+                        receive flow writes a PriceChange audit row + updates
+                        the product's salePrice via the pricing engine. */}
+                    <div className="grid grid-cols-12 gap-2 items-center pt-1 border-t border-border/40">
+                      <div className="col-span-12 sm:col-span-6 sm:col-start-7 space-y-1">
+                        <Label className="text-[10px] text-muted-foreground flex items-center gap-1">
+                          <Tags className="h-3 w-3" />
+                          {t.suggestedSalePriceHint.replace("{symbol}", fmt.symbol)}
+                        </Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          step="0.001"
+                          inputMode="decimal"
+                          className="h-8 text-xs"
+                          placeholder={t.emptyMeansNoChangeInput}
+                          value={it.suggestedSalePrice}
+                          onChange={(e) => updateItem(it.key, { suggestedSalePrice: e.target.value })}
+                        />
+                      </div>
                     </div>
                   </div>
                 )
@@ -237,20 +324,109 @@ export function PurchaseOrderDialog({
             </div>
           </div>
 
-          <div className="flex items-center justify-between rounded-lg bg-primary/5 px-4 py-3">
-            <span className="text-sm font-medium">إجمالي أمر الشراء</span>
-            <span className="text-lg font-bold tabular-nums text-primary">
-              {fmt.currency(total)}
-            </span>
+          <Collapsible open={extraOpen} onOpenChange={setExtraOpen} className="rounded-lg border border-border/60">
+            <CollapsibleTrigger asChild>
+              <button
+                type="button"
+                className="flex w-full items-center justify-between gap-2 px-4 py-3 text-right hover:bg-muted/40 transition-colors"
+              >
+                <span className="flex items-center gap-2 text-sm font-medium">
+                  <Truck className="h-4 w-4 text-primary" />
+                  {t.landedCostSectionTitle}
+                  {extraTotal > 0 ? (
+                    <span className="text-xs text-muted-foreground tabular-nums">
+                      (+{fmt.currency(extraTotal)})
+                    </span>
+                  ) : null}
+                </span>
+                <ChevronDown
+                  className={`h-4 w-4 text-muted-foreground transition-transform ${
+                    extraOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="border-t border-border/60 p-4">
+              <p className="mb-3 text-xs text-muted-foreground">
+                {t.landedCostPreviewLong}
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="po-customs" className="text-xs text-muted-foreground">
+                    {t.customs}
+                  </Label>
+                  <Input
+                    id="po-customs"
+                    type="number"
+                    min={0}
+                    step="0.001"
+                    inputMode="decimal"
+                    placeholder="0"
+                    value={customs}
+                    onChange={(e) => setCustoms(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="po-shipping" className="text-xs text-muted-foreground">
+                    {t.shipping}
+                  </Label>
+                  <Input
+                    id="po-shipping"
+                    type="number"
+                    min={0}
+                    step="0.001"
+                    inputMode="decimal"
+                    placeholder="0"
+                    value={shipping}
+                    onChange={(e) => setShipping(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="po-other" className="text-xs text-muted-foreground">
+                    {t.otherFees}
+                  </Label>
+                  <Input
+                    id="po-other"
+                    type="number"
+                    min={0}
+                    step="0.001"
+                    inputMode="decimal"
+                    placeholder="0"
+                    value={other}
+                    onChange={(e) => setOther(e.target.value)}
+                  />
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+
+          <div className="space-y-2 rounded-lg bg-primary/5 px-4 py-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">{t.invoiceTotal}</span>
+              <span className="font-medium tabular-nums">{fmt.currency(total)}</span>
+            </div>
+            {extraTotal > 0 ? (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">{t.additionalFeesShort}</span>
+                <span className="font-medium tabular-nums">{fmt.currency(extraTotal)}</span>
+              </div>
+            ) : null}
+            <Separator className="my-1" />
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">{t.grandTotalLong}</span>
+              <span className="text-lg font-bold tabular-nums text-primary">
+                {fmt.currency(grandTotal)}
+              </span>
+            </div>
           </div>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={createMut.isPending}>
-              إلغاء
+              {t.cancel}
             </Button>
             <Button type="submit" disabled={createMut.isPending}>
               {createMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              إنشاء الأمر
+              {t.createOrder}
             </Button>
           </DialogFooter>
         </form>

@@ -10,28 +10,30 @@ import { BookOpen, FileText, Plus, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useJournalEntries, useTrialBalance, useExportExcel } from "@/hooks/use-api"
 import { useFmt } from "@/components/currency-context"
+import { useT } from "@/components/i18n-context"
 import { ManualJournalDialog } from "@/components/accounting/manual-journal-dialog"
 import { toast } from "sonner"
 import type { JournalEntry } from "@/lib/types"
 
-const SOURCE_LABELS: Record<string, { label: string; className: string }> = {
-  SALE: { label: "مبيعات", className: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30" },
-  EXPENSE: { label: "مصروف", className: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30" },
-  PURCHASE: { label: "مشتريات", className: "bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-500/30" },
-  MANUAL: { label: "يدوي", className: "bg-muted text-muted-foreground" },
-}
-
 export function JournalTab() {
   const fmt = useFmt()
+  const t = useT()
   const { data, isLoading } = useJournalEntries()
   const items = data?.items ?? []
   const [manualOpen, setManualOpen] = React.useState(false)
   const exportMut = useExportExcel()
 
+  const SOURCE_LABELS: Record<string, { label: string; className: string }> = {
+    SALE: { label: t.accJournalSourceSale, className: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30" },
+    EXPENSE: { label: t.accJournalSourceExpense, className: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30" },
+    PURCHASE: { label: t.accJournalSourcePurchase, className: "bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-500/30" },
+    MANUAL: { label: t.accJournalSourceManual, className: "bg-muted text-muted-foreground" },
+  }
+
   function handleExport() {
     exportMut.mutate(
       { type: "journal" },
-      { onSuccess: () => toast.success("تم تصدير القيود إلى Excel"), onError: () => toast.error("فشل التصدير") }
+      { onSuccess: () => toast.success(t.exportedToExcel), onError: () => toast.error(t.exportFailed) }
     )
   }
 
@@ -43,11 +45,11 @@ export function JournalTab() {
             <div>
               <CardTitle className="flex items-center gap-2 text-base">
                 <BookOpen className="h-4 w-4 text-primary" />
-                دفتر اليومية (القيود المحاسبية)
+                {t.accJournalLedgerFull}
                 <Badge variant="secondary" className="tabular-nums">{items.length}</Badge>
               </CardTitle>
               <CardDescription className="mt-1">
-                قيود مزدوجة (مدين = دائن) — تُولّد تلقائياً عند البيع/المصروف/الاستلام، أو يدوياً
+                {t.accJournalDescFull}
               </CardDescription>
             </div>
             <div className="flex gap-2">
@@ -55,25 +57,25 @@ export function JournalTab() {
                 <Download className="h-3.5 w-3.5" /> Excel
               </Button>
               <Button size="sm" onClick={() => setManualOpen(true)} className="gap-1.5">
-                <Plus className="h-3.5 w-3.5" /> قيد يدوي
+                <Plus className="h-3.5 w-3.5" /> {t.accManualEntry}
               </Button>
             </div>
           </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <LoadingState text="جارٍ تحميل القيود..." />
+            <LoadingState text={t.accLoadingJournal} />
           ) : items.length === 0 ? (
             <EmptyState
               icon={<FileText className="h-7 w-7" />}
-              title="لا توجد قيود محاسبية"
-              description="ستظهر القيود هنا تلقائياً عند إجراء عمليات بيع أو تسجيل مصروفات."
+              title={t.accNoJournalEntries}
+              description={t.accNoJournalEntriesDesc}
             />
           ) : (
             <ScrollArea className="max-h-[70vh] pr-1 scrollbar-thin">
               <div className="space-y-3">
                 {items.map((je) => (
-                  <JournalEntryCard key={je.id} je={je} fmt={fmt} />
+                  <JournalEntryCard key={je.id} je={je} fmt={fmt} sourceLabels={SOURCE_LABELS} t={t} />
                 ))}
               </div>
             </ScrollArea>
@@ -86,8 +88,8 @@ export function JournalTab() {
   )
 }
 
-function JournalEntryCard({ je, fmt }: { je: JournalEntry; fmt: ReturnType<typeof useFmt> }) {
-  const meta = SOURCE_LABELS[je.sourceType] ?? SOURCE_LABELS.MANUAL
+function JournalEntryCard({ je, fmt, sourceLabels, t }: { je: JournalEntry; fmt: ReturnType<typeof useFmt>; sourceLabels: Record<string, { label: string; className: string }>; t: ReturnType<typeof useT> }) {
+  const meta = sourceLabels[je.sourceType] ?? sourceLabels.MANUAL
   return (
     <div className="rounded-xl border border-border/70 overflow-hidden">
       {/* Header */}
@@ -102,7 +104,7 @@ function JournalEntryCard({ je, fmt }: { je: JournalEntry; fmt: ReturnType<typeo
           </span>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <span className="text-xs text-muted-foreground">إجمالي:</span>
+          <span className="text-xs text-muted-foreground">{t.total}:</span>
           <span className="font-bold tabular-nums text-sm" dir="ltr">{fmt.currency(je.totalDebit)}</span>
         </div>
       </div>
@@ -130,7 +132,7 @@ function JournalEntryCard({ je, fmt }: { je: JournalEntry; fmt: ReturnType<typeo
 
       {/* Totals */}
       <div className="flex items-center gap-3 px-4 py-2 bg-muted/30 border-t border-border/40 text-sm font-bold">
-        <span className="flex-1">المجموع</span>
+        <span className="flex-1">{t.accSum}</span>
         <span className="w-28 text-left tabular-nums text-emerald-700" dir="ltr">{fmt.currency(je.totalDebit)}</span>
         <span className="w-28 text-left tabular-nums text-rose-700" dir="ltr">{fmt.currency(je.totalCredit)}</span>
       </div>
@@ -140,9 +142,10 @@ function JournalEntryCard({ je, fmt }: { je: JournalEntry; fmt: ReturnType<typeo
 
 export function TrialBalanceTab() {
   const fmt = useFmt()
+  const t = useT()
   const { data, isLoading } = useTrialBalance()
 
-  if (isLoading) return <LoadingState text="جارٍ حساب ميزان المراجعة..." />
+  if (isLoading) return <LoadingState text={t.accCalculatingTrialBalance} />
   if (!data) return null
 
   const balanced = Math.abs(data.totalDebit - data.totalCredit) < 0.001
@@ -152,26 +155,26 @@ export function TrialBalanceTab() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <FileText className="h-4 w-4 text-primary" />
-          ميزان المراجعة
+          {t.accTrialBalance}
           <Badge variant={balanced ? "default" : "destructive"} className="gap-1">
-            {balanced ? "متوازن ✓" : "غير متوازن"}
+            {balanced ? `${t.accBalanced} ✓` : t.accNotBalanced}
           </Badge>
         </CardTitle>
-        <CardDescription>أرصدة جميع الحسابات (مدين / دائن)</CardDescription>
+        <CardDescription>{t.accTrialBalanceDescFull}</CardDescription>
       </CardHeader>
       <CardContent>
         {data.rows.length === 0 ? (
-          <EmptyState title="لا توجد أرصدة" description="لا توجد حسابات بأرصدة غير صفرية." />
+          <EmptyState title={t.accNoBalances} description={t.accNoBalancesDesc} />
         ) : (
           <div className="overflow-x-auto scrollbar-thin">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="text-right py-2 px-2 font-medium text-muted-foreground">الرمز</th>
-                  <th className="text-right py-2 px-2 font-medium">اسم الحساب</th>
-                  <th className="text-center py-2 px-2 font-medium text-muted-foreground hidden sm:table-cell">النوع</th>
-                  <th className="text-left py-2 px-2 font-medium text-emerald-700">مدين</th>
-                  <th className="text-left py-2 px-2 font-medium text-rose-700">دائن</th>
+                  <th className="text-right py-2 px-2 font-medium text-muted-foreground">{t.accCode}</th>
+                  <th className="text-right py-2 px-2 font-medium">{t.accAccountName}</th>
+                  <th className="text-center py-2 px-2 font-medium text-muted-foreground hidden sm:table-cell">{t.colType}</th>
+                  <th className="text-left py-2 px-2 font-medium text-emerald-700">{t.accDebit}</th>
+                  <th className="text-left py-2 px-2 font-medium text-rose-700">{t.accCredit}</th>
                 </tr>
               </thead>
               <tbody>
@@ -193,7 +196,7 @@ export function TrialBalanceTab() {
               </tbody>
               <tfoot>
                 <tr className="border-t-2 border-border font-bold">
-                  <td colSpan={3} className="py-3 px-2 text-left">المجموع</td>
+                  <td colSpan={3} className="py-3 px-2 text-left">{t.accSum}</td>
                   <td className="py-3 px-2 text-left tabular-nums text-emerald-700" dir="ltr">{fmt.currency(data.totalDebit)}</td>
                   <td className="py-3 px-2 text-left tabular-nums text-rose-700" dir="ltr">{fmt.currency(data.totalCredit)}</td>
                 </tr>

@@ -1,0 +1,582 @@
+   509→      // Handle stock-insufficient errors specifically
+   510→      if (err?.message?.startsWith("stock-insufficient")) {
+   511→        const parts = err.message.split(":")
+   512→        const name = parts[2] || "منتج"
+   513→        toast.error("كمية غير كافية في المخزون", {
+   514→          description: `الرصيد المتاح من ${name} لا يكفي. تم تحديث الكميات.`,
+   515→        })
+   516→      } else {
+   517→        toast.error("فشل إتمام البيع", { description: err?.message })
+   518→      }
+   519→    } finally {
+   520→      setConfirmOpen(false)
+   521→    }
+   522→  }
+   523→
+   524→  return (
+   525→    <div className="space-y-5">
+   526→      <PageHeader
+   527→        title="نقاط البيع (POS)"
+   528→        description="أنشئ فاتورة مبيعات جديدة — ابحث عن المنتجات وأضفها للسلة، احسب الإجمالي والضريبة والخصم تلقائياً."
+   529→        icon={<Calculator className="h-5 w-5" />}
+   530→      />
+   531→
+   532→      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+   533→        {/* Product picker */}
+   534→        <div className="lg:col-span-3 space-y-4">
+   535→          <div className="relative">
+   536→            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+   537→            <Input
+   538→              value={q}
+   539→              onChange={(e) => setQ(e.target.value)}
+   540→              placeholder="ابحث عن منتج بالاسم أو الباركود..."
+   541→              className="pr-9 h-11 text-base"
+   542→              autoFocus
+   543→            />
+   544→          </div>
+   545→
+   546→          {/* Category filter cards */}
+   547→          {categories.length > 0 ? (
+   548→            <div className="flex gap-2 overflow-x-auto scrollbar-thin pb-1">
+   549→              <button
+   550→                onClick={() => setCategoryId("")}
+   551→                className={cn(
+   552→                  "shrink-0 flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-all border",
+   553→                  !categoryId
+   554→                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+   555→                    : "bg-card border-border/70 hover:border-primary/40 text-foreground"
+   556→                )}
+   557→              >
+   558→                <LayoutGrid className="h-4 w-4" />
+   559→                الكل
+   560→              </button>
+   561→              {categories.map((c) => {
+   562→                const active = categoryId === c.id
+   563→                const Icon = CATEGORY_ICONS[c.name] || Tag
+   564→                return (
+   565→                  <button
+   566→                    key={c.id}
+   567→                    onClick={() => setCategoryId(active ? "" : c.id)}
+   568→                    className={cn(
+   569→                      "shrink-0 flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-all border",
+   570→                      active
+   571→                        ? "bg-primary text-primary-foreground border-primary shadow-sm"
+   572→                        : "bg-card border-border/70 hover:border-primary/40 text-foreground"
+   573→                    )}
+   574→                  >
+   575→                    {c.imageUrl ? (
+   576→                      <img src={c.imageUrl} alt="" className="h-4 w-4 rounded object-cover" />
+   577→                    ) : (
+   578→                      <Icon className="h-4 w-4" />
+   579→                    )}
+   580→                    {c.name}
+   581→                  </button>
+   582→                )
+   583→              })}
+   584→            </div>
+   585→          ) : null}
+   586→
+   587→          {isLoading ? (
+   588→            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+   589→              {Array.from({ length: 6 }).map((_, i) => (
+   590→                <div key={i} className="h-28 rounded-xl bg-muted/50 animate-pulse" />
+   591→              ))}
+   592→            </div>
+   593→          ) : products.length === 0 ? (
+   594→            <div className="rounded-xl border border-dashed border-border bg-muted/20 px-6 py-14 text-center">
+   595→              <PackageX className="h-10 w-10 mx-auto text-muted-foreground" />
+   596→              <p className="mt-2 font-medium">لا توجد منتجات مطابقة</p>
+   597→              <p className="text-sm text-muted-foreground">جرّب كلمة بحث أخرى.</p>
+   598→            </div>
+   599→          ) : (
+   600→            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+   601→              {products.map((p) => {
+   602→                const used = inCart.get(p.id) || 0
+   603→                const available = p.quantity - used
+   604→                const out = available <= 0
+   605→                const promo = hasActivePromo(p)
+   606→                const baseP = basePriceFor(p)
+   607→                const effP = priceFor(p)
+   608→                const promoActive = promo && effP < baseP
+   609→                return (
+   610→                  <button
+   611→                    key={p.id}
+   612→                    onClick={() => addToCart(p)}
+   613→                    disabled={out}
+   614→                    className={cn(
+   615→                      "group relative flex flex-col overflow-hidden rounded-xl border border-border/70 bg-card transition-all hover:border-primary/50 hover:shadow-md",
+   616→                      out && "opacity-50 cursor-not-allowed hover:border-border",
+   617→                      promoActive && "ring-1 ring-emerald-400/60"
+   618→                    )}
+   619→                  >
+   620→                    {/* Product image */}
+   621→                    <div className="relative h-24 w-full bg-muted/40 overflow-hidden">
+   622→                      {p.imageUrl ? (
+   623→                        <img src={p.imageUrl} alt={p.name} className="h-full w-full object-cover group-hover:scale-105 transition-transform" />
+   624→                      ) : (
+   625→                        <div className="flex h-full w-full items-center justify-center">
+   626→                          <Package className="h-8 w-8 text-muted-foreground/40" />
+   627→                        </div>
+   628→                      )}
+   629→                      {out ? (
+   630→                        <span className="absolute inset-0 flex items-center justify-center bg-background/70 text-xs font-bold text-destructive">نفد</span>
+   631→                      ) : null}
+   632→                      {promoActive ? (
+   633→                        <span className="absolute top-1 right-1 inline-flex items-center gap-0.5 rounded-full bg-emerald-500 text-white text-[9px] font-bold px-1.5 py-0.5 shadow">
+   634→                          <Tag className="h-2.5 w-2.5" />
+   635→                          عرض
+   636→                        </span>
+   637→                      ) : null}
+   638→                    </div>
+   639→                    {/* Info */}
+   640→                    <div className="p-2.5 text-right flex-1 flex flex-col gap-1">
+   641→                      <p className="font-medium text-sm leading-snug line-clamp-2">{p.name}</p>
+   642→                      <div className="flex items-center justify-between gap-1 mt-auto">
+   643→                        <span className="flex flex-col items-start leading-none">
+   644→                          {promoActive ? (
+   645→                            <span className="text-[10px] text-muted-foreground line-through tabular-nums">
+   646→                              {fmt.currency(baseP)}
+   647→                            </span>
+   648→                          ) : null}
+   649→                          <span className="font-bold tabular-nums text-sm text-primary">
+   650→                            {fmt.currency(effP)}
+   651→                          </span>
+   652→                        </span>
+   653→                        {!out ? (
+   654→                          <Badge variant={available <= p.reorderLevel ? "secondary" : "outline"} className="tabular-nums text-[10px]">
+   655→                            {fmt.number(available)}
+   656→                          </Badge>
+   657→                        ) : null}
+   658→                      </div>
+   659→                    </div>
+   660→                    {used > 0 ? (
+   661→                      <span className="absolute -top-2 -left-2 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold shadow">
+   662→                        {used}
+   663→                      </span>
+   664→                    ) : null}
+   665→                  </button>
+   666→                )
+   667→              })}
+   668→            </div>
+   669→          )}
+   670→        </div>
+   671→
+   672→        {/* Cart */}
+   673→        <div className="lg:col-span-2">
+   674→          <Card className="lg:sticky lg:top-20 flex flex-col max-h-[calc(100vh-7rem)]">
+   675→            {/* Header: title + clear */}
+   676→            <CardHeader className="pb-2 shrink-0">
+   677→              <div className="flex items-center justify-between gap-2">
+   678→                <CardTitle className="flex items-center gap-2 text-base">
+   679→                  <ShoppingCart className="h-4 w-4 text-primary" />
+   680→                  السلة
+   681→                  {itemCount > 0 ? (
+   682→                    <Badge className="tabular-nums">{itemCount}</Badge>
+   683→                  ) : null}
+   684→                </CardTitle>
+   685→                <div className="flex items-center gap-1">
+   686→                  {/* Parked sales dropdown */}
+   687→                  <div className="relative">
+   688→                    <Button
+   689→                      variant="ghost"
+   690→                      size="sm"
+   691→                      onClick={() => setParkedListOpen((o) => !o)}
+   692→                      className="gap-1 text-muted-foreground h-7"
+   693→                      title="الفواتير المعلّقة"
+   694→                    >
+   695→                      <History className="h-3.5 w-3.5" />
+   696→                      معلّقة
+   697→                      {parkedItems.length > 0 ? (
+   698→                        <Badge className="tabular-nums text-[9px] h-4 px-1">{parkedItems.length}</Badge>
+   699→                      ) : null}
+   700→                    </Button>
+   701→                    {parkedListOpen ? (
+   702→                      <>
+   703→                        <div className="fixed inset-0 z-10" onClick={() => setParkedListOpen(false)} />
+   704→                        <div className="absolute end-0 mt-1 w-72 rounded-lg border border-border bg-popover shadow-lg z-20 max-h-80 overflow-y-auto scrollbar-thin">
+   705→                          <div className="px-3 py-2 border-b border-border/60 text-xs font-semibold text-muted-foreground">
+   706→                            الفواتير المعلّقة ({parkedItems.length})
+   707→                          </div>
+   708→                          {parkedItems.length === 0 ? (
+   709→                            <div className="px-3 py-6 text-center text-xs text-muted-foreground">
+   710→                              لا توجد فواتير معلّقة
+   711→                            </div>
+   712→                          ) : (
+   713→                            parkedItems.map((p) => (
+   714→                              <div key={p.id} className="px-3 py-2 border-b border-border/40 hover:bg-muted/40 flex items-center justify-between gap-2">
+   715→                                <button
+   716→                                  onClick={() => resumeParked(p.id)}
+   717→                                  className="flex-1 text-start min-w-0"
+   718→                                >
+   719→                                  <div className="flex items-center gap-2">
+   720→                                    <Badge variant="outline" className="text-[9px] font-mono">{p.holdNo}</Badge>
+   721→                                    <span className="text-xs font-medium truncate">{p.label || "بدون اسم"}</span>
+   722→                                  </div>
+   723→                                  <div className="text-[10px] text-muted-foreground mt-0.5 tabular-nums">
+   724→                                    {p.itemCount} صنف · {fmt.currency(p.total)}
+   725→                                  </div>
+   726→                                </button>
+   727→                                <div className="flex items-center gap-0.5 shrink-0">
+   728→                                  <Button
+   729→                                    variant="ghost"
+   730→                                    size="icon"
+   731→                                    className="h-6 w-6 text-emerald-600 hover:text-emerald-700"
+   732→                                    onClick={() => resumeParked(p.id)}
+   733→                                    title="استرجاع"
+   734→                                  >
+   735→                                    <Play className="h-3 w-3" />
+   736→                                  </Button>
+   737→                                  <Button
+   738→                                    variant="ghost"
+   739→                                    size="icon"
+   740→                                    className="h-6 w-6 text-destructive hover:text-destructive"
+   741→                                    onClick={() => discardParked(p.id, p.holdNo)}
+   742→                                    title="حذف"
+   743→                                  >
+   744→                                    <Trash2 className="h-3 w-3" />
+   745→                                  </Button>
+   746→                                </div>
+   747→                              </div>
+   748→                            ))
+   749→                          )}
+   750→                        </div>
+   751→                      </>
+   752→                    ) : null}
+   753→                  </div>
+   754→                  {/* Park current cart */}
+   755→                  {cart.length > 0 ? (
+   756→                    <Button
+   757→                      variant="ghost"
+   758→                      size="sm"
+   759→                      onClick={parkCurrentCart}
+   760→                      disabled={parkMut.isPending}
+   761→                      className="gap-1 text-amber-600 hover:text-amber-700 h-7"
+   762→                      title="تعليق الفاتورة الحالية"
+   763→                    >
+   764→                      {parkMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Pause className="h-3.5 w-3.5" />}
+   765→                      تعليق
+   766→                    </Button>
+   767→                  ) : null}
+   768→                  {cart.length > 0 ? (
+   769→                    <Button variant="ghost" size="sm" onClick={() => { clearCart(); setCartPage(0) }} className="gap-1 text-muted-foreground h-7">
+   770→                      <X className="h-3.5 w-3.5" />
+   771→                      تفريغ
+   772→                    </Button>
+   773→                  ) : null}
+   774→                </div>
+   775→              </div>
+   776→            </CardHeader>
+   777→
+   778→            <CardContent className="flex-1 flex flex-col min-h-0 p-0">
+   779→              {cart.length === 0 ? (
+   780→                /* Empty cart */
+   781→                <div className="flex-1 flex flex-col items-center justify-center gap-2 px-6 py-10 text-center text-muted-foreground">
+   782→                  <ShoppingCart className="h-10 w-10 opacity-40" />
+   783→                  <p className="text-sm">السلة فارغة</p>
+   784→                  <p className="text-xs">اضغط على منتج لإضافته</p>
+   785→                </div>
+   786→              ) : (
+   787→                <div className="flex-1 flex flex-col min-h-0">
+   788→                  {/* ── Customer info at the TOP ── */}
+   789→                  <div className="px-3 py-2 border-b border-border/60 bg-muted/20 space-y-2 shrink-0">
+   790→                    <div className="grid grid-cols-2 gap-2">
+   791→                      <div>
+   792→                        <Label htmlFor="cust" className="text-[10px] text-muted-foreground">العميل</Label>
+   793→                        <Input
+   794→                          id="cust"
+   795→                          className="h-7 text-xs"
+   796→                          value={customerName}
+   797→                          onChange={(e) => setCustomerName(e.target.value)}
+   798→                          placeholder="عميل نقدي"
+   799→                        />
+   800→                      </div>
+   801→                      <div>
+   802→                        <Label className="text-[10px] text-muted-foreground">الدفع</Label>
+   803→                        <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as any)}>
+   804→                          <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+   805→                          <SelectContent>
+   806→                            <SelectItem value="CASH">نقدي</SelectItem>
+   807→                            <SelectItem value="CARD">بطاقة</SelectItem>
+   808→                            <SelectItem value="TRANSFER">تحويل</SelectItem>
+   809→                          </SelectContent>
+   810→                        </Select>
+   811→                      </div>
+   812→                    </div>
+   813→                    <div>
+   814→                      <Label htmlFor="cphone" className="text-[10px] text-muted-foreground flex items-center gap-1">
+   815→                        <Phone className="h-2.5 w-2.5" /> هاتف (بحث تلقائي)
+   816→                      </Label>
+   817→                      <Input
+   818→                        id="cphone"
+   819→                        dir="ltr"
+   820→                        className={cn(
+   821→                          "h-7 text-xs text-left",
+   822→                          customerFound && "border-[#5CDE9D] bg-[#5CDE9D]/5",
+   823→                          customerPhone.trim().length >= 4 && !customerFound && "border-amber-500"
+   824→                        )}
+   825→                        value={customerPhone}
+   826→                        onChange={(e) => setCustomerPhone(e.target.value)}
+   827→                        placeholder="+965 5xxx xxxx"
+   828→                      />
+   829→                      {customerFound ? (
+   830→                        <p className="text-[9px] text-[#5CDE9D] flex items-center gap-0.5 mt-0.5">
+   831→                          <UserCheck className="h-2.5 w-2.5" />
+   832→                          عميل موجود: {customerFound.name}
+   833→                        </p>
+   834→                      ) : customerPhone.trim().length >= 4 ? (
+   835→                        <p className="text-[9px] text-amber-600 flex items-center gap-0.5 mt-0.5">
+   836→                          <UserPlus className="h-2.5 w-2.5" />
+   837→                          عميل جديد — يُسجّل تلقائياً
+   838→                        </p>
+   839→                      ) : null}
+   840→                    </div>
+   841→
+   842→                    {/* Tier selector — drives multi-tier pricing. Auto-set from
+   843→                        CRM customer type, but cashier can override. */}
+   844→                    <div className="flex items-center gap-1.5">
+   845→                      <Label className="text-[10px] text-muted-foreground whitespace-nowrap">تصنيف السعر:</Label>
+   846→                      <div className="flex gap-1 flex-1">
+   847→                        {(["RETAIL", "WHOLESALE", "CORPORATE"] as CustomerTier[]).map((tier) => (
+   848→                          <button
+   849→                            key={tier}
+   850→                            type="button"
+   851→                            onClick={() => setTierOverride(tier)}
+   852→                            className={cn(
+   853→                              "flex-1 text-[10px] font-medium rounded px-1.5 py-1 transition-colors border",
+   854→                              customerTier === tier
+   855→                                ? "bg-primary text-primary-foreground border-primary"
+   856→                                : "bg-card border-border/60 text-muted-foreground hover:text-foreground"
+   857→                            )}
+   858→                          >
+   859→                            {TIER_LABELS[tier]}
+   860→                          </button>
+   861→                        ))}
+   862→                      </div>
+   863→                    </div>
+   864→                  </div>
+   865→
+   866→                  {/* ── Paginated cart items ── */}
+   867→                  <div className="flex-1 overflow-y-auto scrollbar-thin px-3 py-2 min-h-0">
+   868→                    <div className="space-y-1.5">
+   869→                      {cartPageItems.map((it) => {
+   870→                        const promoActive = hasActivePromo(it.product) && priceFor(it.product) < basePriceFor(it.product)
+   871→                        return (
+   872→                        <div
+   873→                          key={it.product.id}
+   874→                          className={cn(
+   875→                            "flex items-center gap-2 rounded-lg border border-border/60 bg-card p-2",
+   876→                            promoActive && "border-emerald-300 bg-emerald-50/40 dark:bg-emerald-950/15"
+   877→                          )}
+   878→                        >
+   879→                          <div className="min-w-0 flex-1">
+   880→                            <p className="text-sm font-medium truncate flex items-center gap-1">
+   881→                              {it.product.name}
+   882→                              {promoActive ? (
+   883→                                <Badge variant="outline" className="text-[8px] py-0 px-1 bg-emerald-500/10 text-emerald-700 border-emerald-300">
+   884→                                  عرض
+   885→                                </Badge>
+   886→                              ) : null}
+   887→                            </p>
+   888→                            <p className="text-xs text-muted-foreground tabular-nums">
+   889→                              {promoActive ? (
+   890→                                <>
+   891→                                  <span className="line-through opacity-70">{fmt.currency(basePriceFor(it.product))}</span>
+   892→                                  {" → "}
+   893→                                  <span className="font-semibold text-emerald-600">{fmt.currency(priceFor(it.product))}</span>
+   894→                                  {" × "}
+   895→                                  {it.quantity}
+   896→                                </>
+   897→                              ) : (
+   898→                                <>{fmt.currency(priceFor(it.product))} × {it.quantity}</>
+   899→                              )}
+   900→                            </p>
+   901→                          </div>
+   902→                          <div className="flex items-center gap-1 shrink-0">
+   903→                            <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => changeQty(it.product.id, -1)}>
+   904→                              <Minus className="h-3 w-3" />
+   905→                            </Button>
+   906→                            <Input
+   907→                              dir="ltr"
+   908→                              className="h-7 w-10 text-center px-0 tabular-nums"
+   909→                              value={it.quantity}
+   910→                              onChange={(e) => {
+   911→                                const v = parseInt(e.target.value, 10)
+   912→                                if (!isNaN(v)) setQty(it.product.id, v)
+   913→                              }}
+   914→                            />
+   915→                            <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => changeQty(it.product.id, 1)} disabled={it.quantity >= it.product.quantity}>
+   916→                              <Plus className="h-3 w-3" />
+   917→                            </Button>
+   918→                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => removeItem(it.product.id)}>
+   919→                              <Trash2 className="h-3.5 w-3.5" />
+   920→                            </Button>
+   921→                          </div>
+   922→                        </div>
+   923→                        )
+   924→                      })}
+   925→                    </div>
+   926→                  </div>
+   927→
+   928→                  {/* ── Cart pagination controls ── */}
+   929→                  {cartTotalPages > 1 ? (
+   930→                    <div className="flex items-center justify-between gap-2 px-3 py-1.5 border-t border-border/40 shrink-0">
+   931→                      <Button
+   932→                        variant="outline"
+   933→                        size="sm"
+   934→                        disabled={cartPage <= 0}
+   935→                        onClick={() => setCartPage((p) => Math.max(0, p - 1))}
+   936→                        className="h-7 gap-1 text-xs"
+   937→                      >
+   938→                        <ChevronRight className="h-3.5 w-3.5" />
+   939→                        السابق
+   940→                      </Button>
+   941→                      <span className="text-[10px] text-muted-foreground tabular-nums">
+   942→                        {fmt.number(cartPage + 1)} / {fmt.number(cartTotalPages)} — {fmt.number(cart.length)} صنف
+   943→                      </span>
+   944→                      <Button
+   945→                        variant="outline"
+   946→                        size="sm"
+   947→                        disabled={cartPage >= cartTotalPages - 1}
+   948→                        onClick={() => setCartPage((p) => Math.min(cartTotalPages - 1, p + 1))}
+   949→                        className="h-7 gap-1 text-xs"
+   950→                      >
+   951→                        التالي
+   952→                        <ChevronLeft className="h-3.5 w-3.5" />
+   953→                      </Button>
+   954→                    </div>
+   955→                  ) : null}
+   956→
+   957→                  {/* ── Summary + checkout (bottom) ── */}
+   958→                  <div className="border-t border-border/60 p-3 space-y-2 shrink-0">
+   959→                    {/* Delivery service toggle + inputs */}
+   960→                    <div className="rounded-lg border border-border/70 p-2 space-y-2">
+   961→                      <label className="flex items-center justify-between cursor-pointer">
+   962→                        <span className="flex items-center gap-1.5 text-xs font-medium">
+   963→                          <Truck className="h-3.5 w-3.5 text-sky-600" />
+   964→                          طلب توصيل
+   965→                        </span>
+   966→                        <input
+   967→                          type="checkbox"
+   968→                          checked={deliveryEnabled}
+   969→                          onChange={(e) => setDeliveryEnabled(e.target.checked)}
+   970→                          className="h-4 w-4 accent-primary cursor-pointer"
+   971→                        />
+   972→                      </label>
+   973→                      {deliveryEnabled ? (
+   974→                        <div className="grid grid-cols-2 gap-2 pt-1">
+   975→                          <div>
+   976→                            <Label className="text-[10px] text-muted-foreground">اسم السائق</Label>
+   977→                            <Input
+   978→                              type="text"
+   979→                              className="h-7 text-xs"
+   980→                              placeholder="مثال: أحمد"
+   981→                              value={driverName}
+   982→                              onChange={(e) => setDriverName(e.target.value)}
+   983→                            />
+   984→                          </div>
+   985→                          <div>
+   986→                            <Label className="text-[10px] text-muted-foreground">رسوم التوصيل ({fmt.symbol})</Label>
+   987→                            <Input
+   988→                              type="number"
+   989→                              min={0}
+   990→                              step="0.250"
+   991→                              className="h-7 text-xs tabular-nums"
+   992→                              placeholder="0"
+   993→                              value={deliveryFee}
+   994→                              onChange={(e) => setDeliveryFee(e.target.value)}
+   995→                            />
+   996→                          </div>
+   997→                        </div>
+   998→                      ) : null}
+   999→                    </div>
+  1000→
+  1001→                    <div className="grid grid-cols-2 gap-2">
+  1002→                      <div>
+  1003→                        <Label htmlFor="disc" className="text-[10px] text-muted-foreground">الخصم ({fmt.symbol})</Label>
+  1004→                        <Input id="disc" type="number" min={0} className="h-7 text-xs tabular-nums" value={discount} onChange={(e) => setDiscount(e.target.value)} />
+  1005→                      </div>
+  1006→                      <div>
+  1007→                        <Label htmlFor="tax" className="text-[10px] text-muted-foreground">الضريبة %</Label>
+  1008→                        <Input id="tax" type="number" min={0} className="h-7 text-xs tabular-nums" value={taxRate} onChange={(e) => setTaxRate(e.target.value)} />
+  1009→                      </div>
+  1010→                    </div>
+  1011→
+  1012→                    <div className="space-y-1 text-xs">
+  1013→                      <div className="flex justify-between text-muted-foreground">
+  1014→                        <span>المجموع الفرعي</span>
+  1015→                        <span className="tabular-nums">{fmt.currency(subtotal)}</span>
+  1016→                      </div>
+  1017→                      {discountVal > 0 ? (
+  1018→                        <div className="flex justify-between text-rose-600">
+  1019→                          <span>الخصم</span>
+  1020→                          <span className="tabular-nums">- {fmt.currency(discountVal)}</span>
+  1021→                        </div>
+  1022→                      ) : null}
+  1023→                      {taxVal > 0 ? (
+  1024→                        <div className="flex justify-between text-muted-foreground">
+  1025→                          <span>الضريبة ({taxRate}%)</span>
+  1026→                          <span className="tabular-nums">{fmt.currency(taxVal)}</span>
+  1027→                        </div>
+  1028→                      ) : null}
+  1029→                      {deliveryFeeVal > 0 ? (
+  1030→                        <div className="flex justify-between text-sky-600">
+  1031→                          <span className="flex items-center gap-1">
+  1032→                            <Truck className="h-3 w-3" />
+  1033→                            رسوم التوصيل{driverName.trim() ? ` · ${driverName.trim()}` : ""}
+  1034→                          </span>
+  1035→                          <span className="tabular-nums">+ {fmt.currency(deliveryFeeVal)}</span>
+  1036→                        </div>
+  1037→                      ) : null}
+  1038→                      <div className="flex justify-between items-center pt-1 border-t border-border/60">
+  1039→                        <span className="font-semibold text-sm">الإجمالي</span>
+  1040→                        <span className="text-lg font-bold tabular-nums text-primary">
+  1041→                          {fmt.currency(total)}
+  1042→                        </span>
+  1043→                      </div>
+  1044→                    </div>
+  1045→
+  1046→                    <Button
+  1047→                      className="w-full h-10 gap-2 text-sm"
+  1048→                      onClick={handleCheckout}
+  1049→                      disabled={createMut.isPending}
+  1050→                    >
+  1051→                      {createMut.isPending ? (
+  1052→                        <Loader2 className="h-4 w-4 animate-spin" />
+  1053→                      ) : (
+  1054→                        <CheckCircle2 className="h-4 w-4" />
+  1055→                      )}
+  1056→                      إتمام البيع — {fmt.currency(total)}
+  1057→                    </Button>
+  1058→                  </div>
+  1059→                </div>
+  1060→              )}
+  1061→            </CardContent>
+  1062→          </Card>
+  1063→        </div>
+  1064→      </div>
+  1065→
+  1066→      {/* Receipt dialog — sticky footer + scrollable body + no backdrop/escape close */}
+  1067→      <Dialog open={!!lastSale} onOpenChange={(o) => !o && setLastSale(null)}>
+  1068→        <DialogContent
+  1069→          className="max-w-lg p-0 gap-0 flex flex-col max-h-[90vh] sm:max-h-[85vh] overflow-hidden"
+  1070→          onPointerDownOutside={(e) => e.preventDefault()}
+  1071→          onInteractOutside={(e) => e.preventDefault()}
+  1072→          onEscapeKeyDown={(e) => e.preventDefault()}
+  1073→        >
+  1074→          <DialogHeader className="px-6 pt-6 pb-4 shrink-0 border-b border-border/60">
+  1075→            <DialogTitle className="flex items-center gap-2 justify-center">
+  1076→              <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+  1077→              تمت عملية البيع
+  1078→            </DialogTitle>
+  1079→            <DialogDescription className="sr-only">
+  1080→              عرض ملخص الفاتورة المُنشأة حديثاً.
+  1081→            </DialogDescription>
+  1082→          </DialogHeader>
+  1083→          {lastSale ? (
+  1084→            <>
+  1085→              {/* Scrollable receipt body */}
+  1086→              <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4">
+  1087→                <div className="space-y-4">
+  1088→                  <div className="text-center">
+
+[showing lines 509-1088 of 1183; use offset=1089 with limit to continue reading]

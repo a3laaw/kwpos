@@ -41,6 +41,7 @@ import {
 } from "lucide-react"
 import { useAnalytics } from "@/hooks/use-api"
 import { useFmt } from "@/components/currency-context"
+import { useT } from "@/components/i18n-context"
 import type { ProductAnalytics } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
@@ -58,6 +59,7 @@ type ReportKey = "overview" | "top" | "stagnant" | "cost" | "margin"
 
 export function AnalyticsView() {
   const fmt = useFmt()
+  const t = useT()
   const [tab, setTab] = React.useState<ReportKey>("overview")
 
   const [from, setFrom] = React.useState(defaultFrom())
@@ -104,25 +106,25 @@ export function AnalyticsView() {
     tone: string
     iconBg: string
   }> = [
-    { key: "overview", label: "نظرة عامة", icon: LayoutGrid, kpi: "", hint: "ملخص شامل", tone: "text-primary", iconBg: "bg-primary/10" },
-    { key: "top", label: "الأكثر مبيعاً", icon: TrendingUp, kpi: fmt.number(topQty), hint: "وحدة مباعة", tone: "text-[#055BE5]", iconBg: "bg-[#055BE5]/10" },
-    { key: "stagnant", label: "الأصناف الراكدة", icon: PackageX, kpi: fmt.number(stagnantCount), hint: "صنف لم يُبع", tone: "text-amber-600", iconBg: "bg-amber-500/10" },
-    { key: "cost", label: "التكلفة", icon: Coins, kpi: fmt.number(costCount), hint: "صنف مُحلّل", tone: "text-rose-600", iconBg: "bg-rose-500/10" },
-    { key: "margin", label: "الربحية", icon: Percent, kpi: fmt.number(profitableCount), hint: "صنف رابح", tone: "text-[#5CDE9D]", iconBg: "bg-[#5CDE9D]/10" },
+    { key: "overview", label: t.anlOverview, icon: LayoutGrid, kpi: "", hint: t.anlComprehensiveSummary, tone: "text-primary", iconBg: "bg-primary/10" },
+    { key: "top", label: t.anlTopProducts, icon: TrendingUp, kpi: fmt.number(topQty), hint: t.anlUnitsSold, tone: "text-[#055BE5]", iconBg: "bg-[#055BE5]/10" },
+    { key: "stagnant", label: t.anlStagnantItems, icon: PackageX, kpi: fmt.number(stagnantCount), hint: t.anlItemNeverSold, tone: "text-amber-600", iconBg: "bg-amber-500/10" },
+    { key: "cost", label: t.anlCost, icon: Coins, kpi: fmt.number(costCount), hint: t.anlItemAnalyzed, tone: "text-rose-600", iconBg: "bg-rose-500/10" },
+    { key: "margin", label: t.anlProfitability, icon: Percent, kpi: fmt.number(profitableCount), hint: t.anlProfitableItem, tone: "text-[#5CDE9D]", iconBg: "bg-[#5CDE9D]/10" },
   ]
 
   return (
     <div className="space-y-5">
       <PageHeader
-        title="تحليلات المبيعات والمخزون"
-        description="تقارير ذكية مفصّلة — اختر تقريراً لعرض تفاصيله."
+        title={t.analyticsTitle}
+        description={t.analyticsDesc}
         icon={<BarChart3 className="h-5 w-5" />}
       />
 
       {isLoading ? (
-        <LoadingState text="جارٍ حساب التحليلات..." />
+        <LoadingState text={t.anlCalculating} />
       ) : isError ? (
-        <EmptyState title="تعذّر تحميل التحليلات" action={<Button onClick={() => refetch()}>إعادة المحاولة</Button>} />
+        <EmptyState title={t.dataLoadFailed} action={<Button onClick={() => refetch()}>{t.retry}</Button>} />
       ) : !data ? null : (
         <>
           {/* Clickable report cards (the new "tabs") */}
@@ -152,7 +154,7 @@ export function AnalyticsView() {
                     {c.kpi ? (
                       <p className={cn("text-lg font-bold tabular-nums leading-tight mt-0.5", c.tone)}>{c.kpi}</p>
                     ) : (
-                      <p className="text-sm font-medium mt-0.5">ملخص شامل</p>
+                      <p className="text-sm font-medium mt-0.5">{t.anlComprehensiveSummary}</p>
                     )}
                     {c.hint ? <p className="text-[10px] text-muted-foreground truncate">{c.hint}</p> : null}
                   </div>
@@ -166,21 +168,21 @@ export function AnalyticsView() {
             <Card className="border-primary/20 p-4">
               <div className="flex flex-col sm:flex-row sm:items-end gap-3">
                 <div className="space-y-1">
-                  <Label className="text-xs flex items-center gap-1"><Calendar className="h-3 w-3" /> من</Label>
+                  <Label className="text-xs flex items-center gap-1"><Calendar className="h-3 w-3" /> {t.from}</Label>
                   <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="h-9" />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs flex items-center gap-1"><Calendar className="h-3 w-3" /> إلى</Label>
+                  <Label className="text-xs flex items-center gap-1"><Calendar className="h-3 w-3" /> {t.to}</Label>
                   <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="h-9" />
                 </div>
                 <div className="flex gap-1.5 flex-wrap">
-                  <Button size="sm" variant="ghost" onClick={() => setQuickRange(7)} className="h-9">٧ أيام</Button>
-                  <Button size="sm" variant="ghost" onClick={() => setQuickRange(30)} className="h-9">٣٠ يوم</Button>
-                  <Button size="sm" variant="ghost" onClick={() => setQuickRange(90)} className="h-9">٩٠ يوم</Button>
+                  <Button size="sm" variant="ghost" onClick={() => setQuickRange(7)} className="h-9">{t.last7Days}</Button>
+                  <Button size="sm" variant="ghost" onClick={() => setQuickRange(30)} className="h-9">{t.last30Days}</Button>
+                  <Button size="sm" variant="ghost" onClick={() => setQuickRange(90)} className="h-9">{t.last90Days}</Button>
                 </div>
                 <div className="flex gap-2 mr-auto">
-                  <Button size="sm" variant="outline" onClick={resetRange} className="gap-1.5 h-9"><RotateCcw className="h-3.5 w-3.5" /> إعادة</Button>
-                  <Button size="sm" onClick={applyRange} className="gap-1.5 h-9"><Filter className="h-3.5 w-3.5" /> تطبيق</Button>
+                  <Button size="sm" variant="outline" onClick={resetRange} className="gap-1.5 h-9"><RotateCcw className="h-3.5 w-3.5" /> {t.reset}</Button>
+                  <Button size="sm" onClick={applyRange} className="gap-1.5 h-9"><Filter className="h-3.5 w-3.5" /> {t.apply}</Button>
                 </div>
                 <Badge variant="outline" className="self-end">{rangeLabel}</Badge>
               </div>
@@ -188,11 +190,11 @@ export function AnalyticsView() {
           ) : null}
 
           {/* Report content */}
-          {tab === "overview" ? <OverviewTab data={data} fmt={fmt} onNavigate={setTab} /> : null}
-          {tab === "top" ? <TopSellingTab data={data.topSelling} fmt={fmt} /> : null}
-          {tab === "stagnant" ? <StagnantTab data={data.stagnant} fmt={fmt} /> : null}
-          {tab === "cost" ? <CostTab expensive={data.mostExpensive} cheapest={data.cheapest} fmt={fmt} /> : null}
-          {tab === "margin" ? <MarginTab data={data.highestMargin} fmt={fmt} /> : null}
+          {tab === "overview" ? <OverviewTab data={data} fmt={fmt} t={t} onNavigate={setTab} /> : null}
+          {tab === "top" ? <TopSellingTab data={data.topSelling} fmt={fmt} t={t} /> : null}
+          {tab === "stagnant" ? <StagnantTab data={data.stagnant} fmt={fmt} t={t} /> : null}
+          {tab === "cost" ? <CostTab expensive={data.mostExpensive} cheapest={data.cheapest} fmt={fmt} t={t} /> : null}
+          {tab === "margin" ? <MarginTab data={data.highestMargin} fmt={fmt} t={t} /> : null}
         </>
       )}
     </div>
@@ -203,10 +205,12 @@ export function AnalyticsView() {
 function OverviewTab({
   data,
   fmt,
+  t,
   onNavigate,
 }: {
   data: any
   fmt: ReturnType<typeof useFmt>
+  t: ReturnType<typeof useT>
   onNavigate: (k: ReportKey) => void
 }) {
   const totalRevenue = data.topSelling.reduce((s: number, d: ProductAnalytics) => s + d.grossVolume, 0)
@@ -224,10 +228,10 @@ function OverviewTab({
     <div className="space-y-4">
       {/* Top KPI row */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-        <OverviewKpi label="إجمالي الكمية المباعة" value={fmt.number(totalQty)} hint="وحدة" icon={Boxes} tone="#055BE5" />
-        <OverviewKpi label="إجمالي الإيراد" value={fmt.currency(totalRevenue)} hint="في الفترة" icon={TrendingUp} tone="#5CDE9D" />
-        <OverviewKpi label="أصناف راكدة" value={fmt.number(neverSold)} hint={`قيمة ${fmt.currency(stagnantValue)}`} icon={PackageX} tone="#f59e0b" />
-        <OverviewKpi label="متوسط هامش الربح" value={`${fmt.number(avgMargin)}%`} hint="عبر الأصناف" icon={Percent} tone="#185B6B" />
+        <OverviewKpi label={t.anlTotalQtySold} value={fmt.number(totalQty)} hint={t.anlUnit} icon={Boxes} tone="#055BE5" />
+        <OverviewKpi label={t.anlTotalRevenue} value={fmt.currency(totalRevenue)} hint={t.anlInPeriod} icon={TrendingUp} tone="#5CDE9D" />
+        <OverviewKpi label={t.anlStagnantItemsCount} value={fmt.number(neverSold)} hint={`${t.anlValuePrefix} ${fmt.currency(stagnantValue)}`} icon={PackageX} tone="#f59e0b" />
+        <OverviewKpi label={t.anlAvgMargin} value={`${fmt.number(avgMargin)}%`} hint={t.anlAcrossItems} icon={Percent} tone="#185B6B" />
       </div>
 
       {/* Two charts side by side */}
@@ -236,7 +240,7 @@ function OverviewTab({
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base">
               <TrendingUp className="h-4 w-4 text-[#055BE5]" />
-              أعلى ٦ أصناف مبيعاً
+              {t.anlTop6Items}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -245,7 +249,7 @@ function OverviewTab({
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
                 <XAxis dataKey="name" tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} tickFormatter={(v) => String(v).slice(0, 10)} />
                 <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} width={40} />
-                <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))", fontSize: 12 }} formatter={(v: number) => [fmt.number(v) + " وحدة", "الكمية"]} />
+                <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))", fontSize: 12 }} formatter={(v: number) => [fmt.number(v) + " " + t.anlUnit, t.qty]} />
                 <Bar dataKey="quantitySold" fill="#055BE5" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -256,7 +260,7 @@ function OverviewTab({
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base">
               <Percent className="h-4 w-4 text-[#5CDE9D]" />
-              توزيع الربحية
+              {t.anlProfitabilityDistribution}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -275,15 +279,15 @@ function OverviewTab({
       {/* Quick navigation cards */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">تقارير مفصّلة</CardTitle>
-          <CardDescription>انتقل لتقرير محدد لعرض كل التفاصيل والرسوم</CardDescription>
+          <CardTitle className="text-base">{t.anlDetailedReports}</CardTitle>
+          <CardDescription>{t.anlDetailedReportsDesc}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <NavCard onClick={() => onNavigate("top")} icon={TrendingUp} title="الأكثر مبيعاً" desc={`${fmt.number(data.topSelling.length)} صنف`} color="#055BE5" />
-            <NavCard onClick={() => onNavigate("stagnant")} icon={PackageX} title="الأصناف الراكدة" desc={`${fmt.number(neverSold)} لم تُبع`} color="#f59e0b" />
-            <NavCard onClick={() => onNavigate("cost")} icon={Coins} title="التكلفة" desc={`${fmt.number(data.mostExpensive.length)} صنف`} color="#f43f5e" />
-            <NavCard onClick={() => onNavigate("margin")} icon={Percent} title="الربحية" desc={`${fmt.number(data.highestMargin.length)} صنف`} color="#5CDE9D" />
+            <NavCard onClick={() => onNavigate("top")} icon={TrendingUp} title={t.anlTopProducts} desc={`${fmt.number(data.topSelling.length)}`} color="#055BE5" />
+            <NavCard onClick={() => onNavigate("stagnant")} icon={PackageX} title={t.anlStagnantItems} desc={t.anlNeverSoldCount.replace("{count}", String(neverSold))} color="#f59e0b" />
+            <NavCard onClick={() => onNavigate("cost")} icon={Coins} title={t.anlCost} desc={`${fmt.number(data.mostExpensive.length)}`} color="#f43f5e" />
+            <NavCard onClick={() => onNavigate("margin")} icon={Percent} title={t.anlProfitability} desc={`${fmt.number(data.highestMargin.length)}`} color="#5CDE9D" />
           </div>
         </CardContent>
       </Card>
@@ -328,7 +332,7 @@ function NavCard({ onClick, icon: Icon, title, desc, color }: { onClick: () => v
 }
 
 /* ───────────────────────── Top Selling Tab ───────────────────────── */
-function TopSellingTab({ data, fmt }: { data: ProductAnalytics[]; fmt: ReturnType<typeof useFmt> }) {
+function TopSellingTab({ data, fmt, t }: { data: ProductAnalytics[]; fmt: ReturnType<typeof useFmt>; t: ReturnType<typeof useT> }) {
   const maxQty = data.length > 0 ? Math.max(...data.map((d) => d.quantitySold), 1) : 1
   const totalRevenue = data.reduce((s, d) => s + d.grossVolume, 0)
   const totalQty = data.reduce((s, d) => s + d.quantitySold, 0)
@@ -336,61 +340,61 @@ function TopSellingTab({ data, fmt }: { data: ProductAnalytics[]; fmt: ReturnTyp
   return (
     <div className="space-y-4">
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-3">
-        <MiniStat title="إجمالي الكمية المباعة" value={fmt.number(totalQty)} icon={Boxes} color="#055BE5" />
-        <MiniStat title="إجمالي الإيراد" value={fmt.currency(totalRevenue)} icon={TrendingUp} color="#5CDE9D" />
-        <MiniStat title="أعلى صنف مبيعاً" value={data[0]?.name ?? "—"} icon={Trophy} color="#f59e0b" small />
+        <MiniStat title={t.anlTotalQtySold} value={fmt.number(totalQty)} icon={Boxes} color="#055BE5" />
+        <MiniStat title={t.anlTotalRevenue} value={fmt.currency(totalRevenue)} icon={TrendingUp} color="#5CDE9D" />
+        <MiniStat title={t.anlTopItem} value={data[0]?.name ?? "—"} icon={Trophy} color="#f59e0b" small />
       </div>
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base"><TrendingUp className="h-4 w-4 text-primary" />ترتيب الأصناف حسب الكمية</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base"><TrendingUp className="h-4 w-4 text-primary" />{t.anlRankByQty}</CardTitle>
         </CardHeader>
         <CardContent>
-          {data.length === 0 ? <EmptyState title="لا توجد مبيعات" description="جرّب نطاقاً زمنياً أوسع." /> : (
+          {data.length === 0 ? <EmptyState title={t.anlNoSales} description={t.anlTryWiderRange} /> : (
             <ResponsiveContainer width="100%" height={320}>
               <BarChart data={data.slice(0, 10)} layout="vertical" margin={{ top: 5, right: 10, left: 80, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} horizontal={false} />
                 <XAxis type="number" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} />
                 <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} width={80} />
-                <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))", fontSize: 12 }} formatter={(v: number) => [fmt.number(v) + " وحدة", "الكمية"]} />
+                <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))", fontSize: 12 }} formatter={(v: number) => [fmt.number(v) + " " + t.anlUnit, t.qty]} />
                 <Bar dataKey="quantitySold" fill="#055BE5" radius={[0, 6, 6, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
         </CardContent>
       </Card>
-      <ProductRankTable data={data} fmt={fmt} metricLabel="الكمية" metricKey="quantitySold" metricFmt={(v) => fmt.number(v)} maxVal={maxQty} />
+      <ProductRankTable data={data} fmt={fmt} t={t} metricLabel={t.qty} metricKey="quantitySold" metricFmt={(v) => fmt.number(v)} maxVal={maxQty} />
     </div>
   )
 }
 
 /* ───────────────────────── Stagnant Tab ───────────────────────── */
-function StagnantTab({ data, fmt }: { data: ProductAnalytics[]; fmt: ReturnType<typeof useFmt> }) {
+function StagnantTab({ data, fmt, t }: { data: ProductAnalytics[]; fmt: ReturnType<typeof useFmt>; t: ReturnType<typeof useT> }) {
   const neverSold = data.filter((d) => d.quantitySold === 0)
   const totalStuckValue = data.reduce((s, d) => s + d.currentStock * d.costPrice, 0)
   return (
     <div className="space-y-4">
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-3">
-        <MiniStat title="أصناف لم تُبع" value={fmt.number(neverSold.length)} icon={PackageX} color="#f43f5e" />
-        <MiniStat title="إجمالي الأصناف الراكدة" value={fmt.number(data.length)} icon={AlertTriangle} color="#f59e0b" />
-        <MiniStat title="قيمة المخزون الراكد" value={fmt.currency(totalStuckValue)} icon={Coins} color="#185B6B" />
+        <MiniStat title={t.anlNeverSoldItems} value={fmt.number(neverSold.length)} icon={PackageX} color="#f43f5e" />
+        <MiniStat title={t.anlTotalStagnantItems} value={fmt.number(data.length)} icon={AlertTriangle} color="#f59e0b" />
+        <MiniStat title={t.anlStagnantValue} value={fmt.currency(totalStuckValue)} icon={Coins} color="#185B6B" />
       </div>
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base"><PackageX className="h-4 w-4 text-amber-500" />الأصناف الراكدة</CardTitle>
-          <CardDescription>مرتبة حسب أدنى دوران — قد تحتاج تخفيضات أو تصفية</CardDescription>
+          <CardTitle className="flex items-center gap-2 text-base"><PackageX className="h-4 w-4 text-amber-500" />{t.anlStagnantItems}</CardTitle>
+          <CardDescription>{t.anlStagnantDesc}</CardDescription>
         </CardHeader>
         <CardContent>
-          {data.length === 0 ? <EmptyState title="لا توجد أصناف راكدة" description="كل الأصناف تبيع جيداً." /> : (
+          {data.length === 0 ? <EmptyState title={t.anlNoStagnantItems} description={t.anlAllSellingWell} /> : (
             <div className="overflow-x-auto scrollbar-thin">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border text-muted-foreground">
-                    <th className="text-right py-2 px-2 font-medium">الصنف</th>
-                    <th className="text-center py-2 px-2 font-medium">المخزون</th>
-                    <th className="text-center py-2 px-2 font-medium">المبيع</th>
-                    <th className="text-center py-2 px-2 font-medium">نسبة الدوران</th>
-                    <th className="text-center py-2 px-2 font-medium">القيمة الراكدة</th>
-                    <th className="text-center py-2 px-2 font-medium">الحالة</th>
+                    <th className="text-right py-2 px-2 font-medium">{t.colItem}</th>
+                    <th className="text-center py-2 px-2 font-medium">{t.stock}</th>
+                    <th className="text-center py-2 px-2 font-medium">{t.anlSold}</th>
+                    <th className="text-center py-2 px-2 font-medium">{t.anlTurnoverRatio}</th>
+                    <th className="text-center py-2 px-2 font-medium">{t.anlStagnantValueCol}</th>
+                    <th className="text-center py-2 px-2 font-medium">{t.status}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -413,7 +417,7 @@ function StagnantTab({ data, fmt }: { data: ProductAnalytics[]; fmt: ReturnType<
                         </td>
                         <td className="py-2 px-2 text-center tabular-nums text-muted-foreground">{fmt.currency(stuckValue)}</td>
                         <td className="py-2 px-2 text-center">
-                          <Badge variant={critical ? "destructive" : ratio < 10 ? "secondary" : "outline"}>{critical ? "لم يُبع" : "بطيء"}</Badge>
+                          <Badge variant={critical ? "destructive" : ratio < 10 ? "secondary" : "outline"}>{critical ? t.anlNeverSold : t.anlSlow}</Badge>
                         </td>
                       </tr>
                     )
@@ -429,19 +433,19 @@ function StagnantTab({ data, fmt }: { data: ProductAnalytics[]; fmt: ReturnType<
 }
 
 /* ───────────────────────── Cost Tab ───────────────────────── */
-function CostTab({ expensive, cheapest, fmt }: { expensive: ProductAnalytics[]; cheapest: ProductAnalytics[]; fmt: ReturnType<typeof useFmt> }) {
+function CostTab({ expensive, cheapest, fmt, t }: { expensive: ProductAnalytics[]; cheapest: ProductAnalytics[]; fmt: ReturnType<typeof useFmt>; t: ReturnType<typeof useT> }) {
   return (
     <div className="space-y-4">
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-3">
-        <MiniStat title="أعلى تكلفة" value={expensive[0] ? fmt.currency(expensive[0].costPrice) : "—"} icon={ArrowUp} color="#f43f5e" />
-        <MiniStat title="أقل تكلفة" value={cheapest[0] ? fmt.currency(cheapest[0].costPrice) : "—"} icon={ArrowDown} color="#5CDE9D" />
-        <MiniStat title="متوسط التكلفة" value={fmt.currency(cheapest.length > 0 ? cheapest.reduce((s, d) => s + d.costPrice, 0) / cheapest.length : 0)} icon={Coins} color="#185B6B" />
+        <MiniStat title={t.anlHighestCost} value={expensive[0] ? fmt.currency(expensive[0].costPrice) : "—"} icon={ArrowUp} color="#f43f5e" />
+        <MiniStat title={t.anlLowestCost} value={cheapest[0] ? fmt.currency(cheapest[0].costPrice) : "—"} icon={ArrowDown} color="#5CDE9D" />
+        <MiniStat title={t.anlAvgCost} value={fmt.currency(cheapest.length > 0 ? cheapest.reduce((s, d) => s + d.costPrice, 0) / cheapest.length : 0)} icon={Coins} color="#185B6B" />
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2 text-base"><ArrowUp className="h-4 w-4 text-rose-500" />الأكثر تكلفة</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2 text-base"><ArrowUp className="h-4 w-4 text-rose-500" />{t.anlMostExpensive}</CardTitle></CardHeader>
           <CardContent>
-            {expensive.length === 0 ? <EmptyState title="لا توجد بيانات" /> : (
+            {expensive.length === 0 ? <EmptyState title={t.anlNoData} /> : (
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={expensive.slice(0, 8)} layout="vertical" margin={{ top: 5, right: 10, left: 80, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} horizontal={false} />
@@ -455,9 +459,9 @@ function CostTab({ expensive, cheapest, fmt }: { expensive: ProductAnalytics[]; 
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2 text-base"><ArrowDown className="h-4 w-4 text-[#5CDE9D]" />الأقل تكلفة</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2 text-base"><ArrowDown className="h-4 w-4 text-[#5CDE9D]" />{t.anlCheapest}</CardTitle></CardHeader>
           <CardContent>
-            {cheapest.length === 0 ? <EmptyState title="لا توجد بيانات" /> : (
+            {cheapest.length === 0 ? <EmptyState title={t.anlNoData} /> : (
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={cheapest.slice(0, 8)} layout="vertical" margin={{ top: 5, right: 10, left: 80, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} horizontal={false} />
@@ -476,20 +480,20 @@ function CostTab({ expensive, cheapest, fmt }: { expensive: ProductAnalytics[]; 
 }
 
 /* ───────────────────────── Margin Tab ───────────────────────── */
-function MarginTab({ data, fmt }: { data: ProductAnalytics[]; fmt: ReturnType<typeof useFmt> }) {
+function MarginTab({ data, fmt, t }: { data: ProductAnalytics[]; fmt: ReturnType<typeof useFmt>; t: ReturnType<typeof useT> }) {
   const avgMarginPct = data.length > 0 ? data.reduce((s, d) => s + d.marginPct, 0) / data.length : 0
   const maxMargin = data.length > 0 ? Math.max(...data.map((d) => d.margin), 1) : 1
   return (
     <div className="space-y-4">
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-3">
-        <MiniStat title="أعلى ربحية" value={data[0] ? fmt.currency(data[0].margin) : "—"} icon={Percent} color="#5CDE9D" />
-        <MiniStat title="متوسط هامش الربح" value={`${fmt.number(avgMarginPct)}%`} icon={TrendingUp} color="#055BE5" />
-        <MiniStat title="أصناف رابحة" value={fmt.number(data.filter((d) => d.margin > 0).length)} icon={Trophy} color="#f59e0b" />
+        <MiniStat title={t.anlHighestProfitability} value={data[0] ? fmt.currency(data[0].margin) : "—"} icon={Percent} color="#5CDE9D" />
+        <MiniStat title={t.anlAvgMargin} value={`${fmt.number(avgMarginPct)}%`} icon={TrendingUp} color="#055BE5" />
+        <MiniStat title={t.anlProfitableItems} value={fmt.number(data.filter((d) => d.margin > 0).length)} icon={Trophy} color="#f59e0b" />
       </div>
       <Card>
-        <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Percent className="h-4 w-4 text-[#5CDE9D]" />توزيع الربحية</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Percent className="h-4 w-4 text-[#5CDE9D]" />{t.anlProfitabilityDistribution}</CardTitle></CardHeader>
         <CardContent>
-          {data.length === 0 ? <EmptyState title="لا توجد بيانات" /> : (
+          {data.length === 0 ? <EmptyState title={t.anlNoData} /> : (
             <div className="grid sm:grid-cols-2 gap-4 items-start">
               <ResponsiveContainer width="100%" height={260}>
                 <PieChart>
@@ -514,11 +518,11 @@ function MarginTab({ data, fmt }: { data: ProductAnalytics[]; fmt: ReturnType<ty
           )}
         </CardContent>
       </Card>
-      <ProductRankTable data={data} fmt={fmt} metricLabel="هامش الربح" metricKey="margin" metricFmt={(v) => fmt.currency(v)} maxVal={maxMargin} extraColumn={(r) => (
+      <ProductRankTable data={data} fmt={fmt} t={t} metricLabel={t.anlProfitMargin} metricKey="margin" metricFmt={(v) => fmt.currency(v)} maxVal={maxMargin} extraColumn={(r) => (
         <td className="py-2 px-2 text-center tabular-nums">
           <Badge variant="outline" className={r.marginPct >= 50 ? "text-[#5CDE9D] border-[#5CDE9D]/30 bg-[#5CDE9D]/10" : ""}>{fmt.number(r.marginPct)}%</Badge>
         </td>
-      )} extraHeader={<th className="text-center py-2 px-2 font-medium">الهامش %</th>} />
+      )} extraHeader={<th className="text-center py-2 px-2 font-medium">{t.anlMarginPct}</th>} />
     </div>
   )
 }
@@ -545,6 +549,7 @@ function MiniStat({ title, value, icon: Icon, color, small }: { title: string; v
 function ProductRankTable({
   data,
   fmt,
+  t,
   metricLabel,
   metricKey,
   metricFmt,
@@ -554,6 +559,7 @@ function ProductRankTable({
 }: {
   data: ProductAnalytics[]
   fmt: ReturnType<typeof useFmt>
+  t: ReturnType<typeof useT>
   metricLabel: string
   metricKey: keyof ProductAnalytics
   metricFmt: (v: number) => string
@@ -563,18 +569,18 @@ function ProductRankTable({
 }) {
   return (
     <Card>
-      <CardHeader><CardTitle className="text-base">تفصيل {metricLabel} حسب الصنف</CardTitle></CardHeader>
+      <CardHeader><CardTitle className="text-base">{t.anlBreakdownByItem.replace("{metric}", metricLabel)}</CardTitle></CardHeader>
       <CardContent>
-        {data.length === 0 ? <EmptyState title="لا توجد بيانات" /> : (
+        {data.length === 0 ? <EmptyState title={t.anlNoData} /> : (
           <div className="overflow-x-auto scrollbar-thin">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-muted-foreground">
                   <th className="text-right py-2 px-2 font-medium w-8">#</th>
-                  <th className="text-right py-2 px-2 font-medium">الصنف</th>
+                  <th className="text-right py-2 px-2 font-medium">{t.colItem}</th>
                   {extraHeader}
                   <th className="text-center py-2 px-2 font-medium">{metricLabel}</th>
-                  <th className="text-center py-2 px-2 font-medium hidden sm:table-cell">النسبة</th>
+                  <th className="text-center py-2 px-2 font-medium hidden sm:table-cell">{t.percent}</th>
                 </tr>
               </thead>
               <tbody>

@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
 
   const body = await req.json()
-  const { name, phone, address } = body || {}
+  const { name, phone, address, type } = body || {}
   if (!name?.trim()) {
     return NextResponse.json({ error: "name-required" }, { status: 400 })
   }
@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
       name: String(name).trim(),
       phone: String(phone || "").trim(),
       address: String(address || "").trim(),
+      type: (["RETAIL", "WHOLESALE", "CORPORATE"].includes(type) ? type : "RETAIL") as "RETAIL" | "WHOLESALE" | "CORPORATE",
     },
   })
 

@@ -35,9 +35,10 @@ import {
   useAccounts,
 } from "@/hooks/use-api"
 import { useFmt } from "@/components/currency-context"
+import { useT } from "@/components/i18n-context"
 import type { ExpenseTransaction } from "@/lib/types"
 
-const CATEGORIES = ["إيجار", "مرافق", "اشتراكات", "تسويق", "أخرى"] as const
+type CategoryKey = "rent" | "utilities" | "subscriptions" | "marketing" | "other"
 
 export function ExpensesTab() {
   return (
@@ -54,6 +55,7 @@ export function ExpensesTab() {
 
 function ExpenseForm() {
   const fmt = useFmt()
+  const t = useT()
   const { data: accountsData } = useAccounts()
   const createMut = useCreateExpense()
   const qc = useQueryClient()
@@ -67,7 +69,7 @@ function ExpenseForm() {
 
   // ADMIN fields
   const [title, setTitle] = React.useState("")
-  const [category, setCategory] = React.useState<string>("إيجار")
+  const [category, setCategory] = React.useState<CategoryKey>("rent")
   const [adminAmount, setAdminAmount] = React.useState("")
   const [adminDate, setAdminDate] = React.useState(new Date().toISOString().slice(0, 10))
 
@@ -75,17 +77,26 @@ function ExpenseForm() {
   const [paymentAccountId, setPaymentAccountId] = React.useState("")
   const [note, setNote] = React.useState("")
 
+  // Categories (built from i18n)
+  const CATEGORIES: Array<{ key: CategoryKey; label: string; code: string }> = [
+    { key: "rent", label: t.accCatRent, code: "5020" },
+    { key: "utilities", label: t.accCatUtilities, code: "5030" },
+    { key: "subscriptions", label: t.accCatSubscriptions, code: "5040" },
+    { key: "marketing", label: t.accCatMarketing, code: "5050" },
+    { key: "other", label: t.accCatOther, code: "5090" },
+  ]
+
   // Asset accounts (Cash/Bank) for payment
   const flat = accountsData?.flat ?? []
   const assetAccounts = flat.filter((a) => a.type === "ASSET" && a.code !== "1000")
   // Salaries expense account + admin expense accounts
   const salaryAcc = flat.find((a) => a.code === "5010")
-  const adminAccByCat: Record<string, typeof flat[number] | undefined> = {
-    "إيجار": flat.find((a) => a.code === "5020"),
-    "مرافق": flat.find((a) => a.code === "5030"),
-    "اشتراكات": flat.find((a) => a.code === "5040"),
-    "تسويق": flat.find((a) => a.code === "5050"),
-    "أخرى": flat.find((a) => a.code === "5090"),
+  const adminAccByCatKey: Record<CategoryKey, typeof flat[number] | undefined> = {
+    rent: flat.find((a) => a.code === "5020"),
+    utilities: flat.find((a) => a.code === "5030"),
+    subscriptions: flat.find((a) => a.code === "5040"),
+    marketing: flat.find((a) => a.code === "5050"),
+    other: flat.find((a) => a.code === "5090"),
   }
 
   React.useEffect(() => {
@@ -100,25 +111,26 @@ function ExpenseForm() {
     const amount = isSalary ? salaryAmount : adminAmount
     const amt = Number(amount)
     if (!amt || amt <= 0) {
-      toast.error("أدخل مبلغاً صحيحاً")
+      toast.error(t.accEnterValidAmount)
       return
     }
     if (isSalary && !empName.trim()) {
-      toast.error("اسم الموظف مطلوب")
+      toast.error(t.accEmployeeNameRequired)
       return
     }
     if (!isSalary && !title.trim()) {
-      toast.error("عنوان المصروف مطلوب")
+      toast.error(t.accExpenseTitleRequired)
       return
     }
     if (!paymentAccountId) {
-      toast.error("اختر حساب الدفع")
+      toast.error(t.accSelectPaymentAccount)
       return
     }
 
-    const accountId = isSalary ? salaryAcc?.id : adminAccByCat[category]?.id
+    const catLabel = CATEGORIES.find((c) => c.key === category)?.label ?? category
+    const accountId = isSalary ? salaryAcc?.id : adminAccByCatKey[category]?.id
     if (!accountId) {
-      toast.error("حساب المصروف غير مُعرّف — أعِد تشغيل التهيئة")
+      toast.error(t.accExpenseAccountUndefined)
       return
     }
 
@@ -135,7 +147,7 @@ function ExpenseForm() {
       : {
           type: "ADMIN" as const,
           title: title.trim(),
-          category,
+          category: catLabel,
           amount: amt,
           date: adminDate,
           accountId,
@@ -157,7 +169,7 @@ function ExpenseForm() {
         date: payload.type === "ADMIN" ? new Date(payload.date).toISOString() : null,
         amount: amt,
         accountId,
-        accountName: isSalary ? salaryAcc?.name : adminAccByCat[category]?.name ?? null,
+        accountName: isSalary ? salaryAcc?.name : adminAccByCatKey[category]?.name ?? null,
         paymentAccountId,
         paymentAccountName: assetAccounts.find((a) => a.id === paymentAccountId)?.name ?? null,
         note: payload.note ?? null,
@@ -168,7 +180,7 @@ function ExpenseForm() {
 
     try {
       await createMut.mutateAsync(payload)
-      toast.success(isSalary ? "تم تسجيل الراتب" : "تم تسجيل المصروف")
+      toast.success(isSalary ? t.accSalaryRecorded : t.accExpenseRecorded)
       // reset fields
       if (isSalary) {
         setEmpName("")
@@ -179,7 +191,7 @@ function ExpenseForm() {
       }
       setNote("")
     } catch (err: any) {
-      toast.error("فشل التسجيل", { description: err?.message })
+      toast.error(t.recordFailed, { description: err?.message })
       // optimistic rollback happens via invalidate on error
       qc.invalidateQueries({ queryKey: ["expenses"] })
     }
@@ -194,36 +206,36 @@ function ExpenseForm() {
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
           <Plus className="h-4 w-4 text-primary" />
-          تسجيل مصروف
+          {t.accRecordExpense}
         </CardTitle>
-        <CardDescription>يُحدّث أرصدة الحسابات فوراً عند الحفظ</CardDescription>
+        <CardDescription>{t.accUpdatesBalancesImmediately2}</CardDescription>
       </CardHeader>
       <CardContent>
         <Tabs value={tab} onValueChange={(v) => setTab(v as "SALARY" | "ADMIN")}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="SALARY" className="gap-1.5">
               <UserCheck className="h-3.5 w-3.5" />
-              راتب
+              {t.accSalary}
             </TabsTrigger>
             <TabsTrigger value="ADMIN" className="gap-1.5">
               <Receipt className="h-3.5 w-3.5" />
-              مصروف إداري
+              {t.accAdminExpense}
             </TabsTrigger>
           </TabsList>
 
           <form onSubmit={handleSubmit} className="space-y-3 mt-4">
             <TabsContent value="SALARY" className="space-y-3 mt-0">
               <div className="space-y-1.5">
-                <Label htmlFor="emp" className="text-xs">اسم الموظف *</Label>
-                <Input id="emp" value={empName} onChange={(e) => setEmpName(e.target.value)} placeholder="مثال: أحمد محمد" />
+                <Label htmlFor="emp" className="text-xs">{t.accEmployeeName} *</Label>
+                <Input id="emp" value={empName} onChange={(e) => setEmpName(e.target.value)} placeholder={t.accEmployeeNamePlaceholder} />
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1.5">
-                  <Label htmlFor="samt" className="text-xs">المبلغ (د.ك) *</Label>
+                  <Label htmlFor="samt" className="text-xs">{t.accAmount} ({fmt.symbol}) *</Label>
                   <Input id="samt" type="number" min={0} step="0.001" value={salaryAmount} onChange={(e) => setSalaryAmount(e.target.value)} className="tabular-nums" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="sdate" className="text-xs">تاريخ الدفع</Label>
+                  <Label htmlFor="sdate" className="text-xs">{t.accPaymentDate}</Label>
                   <Input id="sdate" type="date" value={payDate} onChange={(e) => setPayDate(e.target.value)} />
                 </div>
               </div>
@@ -231,26 +243,26 @@ function ExpenseForm() {
 
             <TabsContent value="ADMIN" className="space-y-3 mt-0">
               <div className="space-y-1.5">
-                <Label htmlFor="ttl" className="text-xs">عنوان المصروف *</Label>
-                <Input id="ttl" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="مثال: إيجار المحل" />
+                <Label htmlFor="ttl" className="text-xs">{t.accExpenseTitle} *</Label>
+                <Input id="ttl" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t.accExpenseTitlePlaceholder2} />
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1.5">
-                  <Label className="text-xs">الفئة</Label>
-                  <Select value={category} onValueChange={setCategory}>
+                  <Label className="text-xs">{t.category}</Label>
+                  <Select value={category} onValueChange={(v) => setCategory(v as CategoryKey)}>
                     <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      {CATEGORIES.map((c) => <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="aamt" className="text-xs">المبلغ (د.ك) *</Label>
+                  <Label htmlFor="aamt" className="text-xs">{t.accAmount} ({fmt.symbol}) *</Label>
                   <Input id="aamt" type="number" min={0} step="0.001" value={adminAmount} onChange={(e) => setAdminAmount(e.target.value)} className="tabular-nums" />
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="adate" className="text-xs">التاريخ</Label>
+                <Label htmlFor="adate" className="text-xs">{t.date}</Label>
                 <Input id="adate" type="date" value={adminDate} onChange={(e) => setAdminDate(e.target.value)} />
               </div>
             </TabsContent>
@@ -259,9 +271,9 @@ function ExpenseForm() {
 
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1.5">
-                <Label className="text-xs">حساب الدفع</Label>
+                <Label className="text-xs">{t.accPaymentAccount}</Label>
                 <Select value={paymentAccountId} onValueChange={setPaymentAccountId}>
-                  <SelectTrigger className="h-9"><SelectValue placeholder="اختر" /></SelectTrigger>
+                  <SelectTrigger className="h-9"><SelectValue placeholder={t.selectPlaceholder} /></SelectTrigger>
                   <SelectContent>
                     {assetAccounts.map((a) => (
                       <SelectItem key={a.id} value={a.id}>
@@ -275,19 +287,19 @@ function ExpenseForm() {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="note" className="text-xs">ملاحظة</Label>
-                <Input id="note" value={note} onChange={(e) => setNote(e.target.value)} placeholder="اختياري" />
+                <Label htmlFor="note" className="text-xs">{t.note}</Label>
+                <Input id="note" value={note} onChange={(e) => setNote(e.target.value)} placeholder={t.optional} />
               </div>
             </div>
 
             <div className="flex items-center justify-between rounded-lg bg-primary/5 px-3 py-2">
-              <span className="text-xs text-muted-foreground">المبلغ الإجمالي</span>
+              <span className="text-xs text-muted-foreground">{t.accTotalAmount}</span>
               <span className="font-bold tabular-nums text-primary">{fmt.currency(amt)}</span>
             </div>
 
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-              تسجيل {tab === "SALARY" ? "الراتب" : "المصروف"}
+              {tab === "SALARY" ? t.accRecordSalary : t.accRecordExpense}
             </Button>
           </form>
         </Tabs>
@@ -298,6 +310,7 @@ function ExpenseForm() {
 
 function ExpensesList() {
   const fmt = useFmt()
+  const t = useT()
   const { data, isLoading } = useExpenses()
   const deleteMut = useDeleteExpense()
   const qc = useQueryClient()
@@ -305,7 +318,7 @@ function ExpensesList() {
 
   async function handleDelete(id: string, isOpt: boolean) {
     if (isOpt) {
-      toast.error("لا يمكن حذف عنصر قيد الحفظ")
+      toast.error(t.accCannotDeleteWhileSaving)
       return
     }
     // optimistic remove
@@ -316,9 +329,9 @@ function ExpensesList() {
     })
     try {
       await deleteMut.mutateAsync(id)
-      toast.success("تم حذف المصروف وعكس أثره على الحسابات")
+      toast.success(t.accExpenseDeletedReversed)
     } catch (err: any) {
-      toast.error("فشل الحذف", { description: err?.message })
+      toast.error(t.deleteFailed, { description: err?.message })
       qc.invalidateQueries({ queryKey: ["expenses"] })
     }
   }
@@ -328,7 +341,7 @@ function ExpensesList() {
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
           <Receipt className="h-4 w-4 text-primary" />
-          سجل المصروفات
+          {t.accExpensesHistory}
           <Badge variant="secondary" className="tabular-nums">{items.length}</Badge>
         </CardTitle>
       </CardHeader>
@@ -342,7 +355,7 @@ function ExpensesList() {
         ) : items.length === 0 ? (
           <div className="text-center py-10 text-muted-foreground">
             <Wallet className="h-10 w-10 mx-auto opacity-40 mb-2" />
-            <p className="text-sm">لا توجد مصروفات مسجّلة</p>
+            <p className="text-sm">{t.accNoExpensesRecorded}</p>
           </div>
         ) : (
           <ScrollArea className="max-h-[60vh] pr-1 scrollbar-thin">
@@ -369,10 +382,10 @@ function ExpensesList() {
                       </p>
                       <p className="text-xs text-muted-foreground flex items-center gap-1.5 flex-wrap">
                         <Badge variant="outline" className="text-[10px]">
-                          {e.type === "SALARY" ? "راتب" : e.category}
+                          {e.type === "SALARY" ? t.accSalary : e.category}
                         </Badge>
                         {e.accountName ? <span>• {e.accountName}</span> : null}
-                        {e.paymentAccountName ? <span>• دفع: {e.paymentAccountName}</span> : null}
+                        {e.paymentAccountName ? <span>• {t.accPaidLabel}: {e.paymentAccountName}</span> : null}
                         <span>• {fmt.date(e.type === "SALARY" ? e.payDate! : e.date!)}</span>
                       </p>
                     </div>

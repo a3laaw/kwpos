@@ -28,6 +28,7 @@ import { useRefundSale } from "@/hooks/use-api"
 import { useFmt } from "@/components/currency-context"
 import type { Sale } from "@/lib/types"
 import { cn } from "@/lib/utils"
+import { useT } from "@/components/i18n-context"
 
 const MAX_DAYS = 14
 
@@ -51,6 +52,7 @@ export function RefundDialog({
   sale: Sale | null
 }) {
   const fmt = useFmt()
+  const t = useT()
   const refundMut = useRefundSale()
   const [lines, setLines] = React.useState<RefundLine[]>([])
   const [barcodeSearch, setBarcodeSearch] = React.useState("")
@@ -113,9 +115,9 @@ export function RefundDialog({
     )
     if (match && match.returnableQty > 0) {
       setReturnQty(match.saleItemId, "1")
-      toast.info(`تم تحديد: ${match.productName}`)
+      toast.info(t.refundItemSelected.replace("{name}", match.productName))
     } else {
-      toast.error("لم يتم العثور على الصنف")
+      toast.error(t.refundItemNotFound)
     }
     setBarcodeSearch("")
   }
@@ -127,28 +129,30 @@ export function RefundDialog({
       .map((l) => ({ saleItemId: l.saleItemId, returnedQty: Number(l.returnQty) }))
 
     if (items.length === 0) {
-      toast.error("حدد كمية مرتجعة لصنف واحد على الأقل")
+      toast.error(t.refundSelectAtLeastOne)
       return
     }
 
     try {
       const res = await refundMut.mutateAsync({
         id: sale.id,
-        reason: "مرتجع جزئي",
+        reason: t.partialRefund,
         items,
         override14Days: past14 && override14,
       })
       setResult(res)
-      toast.success("تم اعتماد المرتجع", {
-        description: `إشعار دائن: ${res.refundSummary?.creditNoteNo} — ${fmt.currency(res.refundSummary?.refundTotal || 0)}`,
+      toast.success(t.refundApprovedToast, {
+        description: t.refundApprovedToastDesc
+          .replace("{creditNoteNo}", res.refundSummary?.creditNoteNo || "")
+          .replace("{total}", fmt.currency(res.refundSummary?.refundTotal || 0)),
       })
     } catch (err: any) {
       if (err?.message === "past-14-days") {
-        toast.error("تجاوز ١٤ يوماً", {
-          description: "فعّل خيار تجاوز شرط الـ١٤ يوماً (للمدير فقط)",
+        toast.error(t.refund14DaysExceededToast, {
+          description: t.refund14DaysExceededDesc,
         })
       } else {
-        toast.error("فشل المرتجع", { description: err?.message })
+        toast.error(t.refundFailedToast, { description: err?.message })
       }
     }
   }
@@ -159,10 +163,10 @@ export function RefundDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <RotateCcw className="h-5 w-5 text-primary" />
-            مرتجع فاتورة {sale?.invoiceNo}
+            {t.refundDialogTitle.replace("{invoiceNo}", sale?.invoiceNo || "")}
           </DialogTitle>
           <DialogDescription>
-            حدد الكميات المرتجعة لكل صنف. يتم إنشاء إشعار دائن تلقائياً.
+            {t.refundPartialDialogDesc}
           </DialogDescription>
         </DialogHeader>
 
@@ -173,18 +177,18 @@ export function RefundDialog({
               <CheckCircle2 className="h-8 w-8" />
             </div>
             <div>
-              <p className="font-bold text-lg">تم اعتماد المرتجع بنجاح</p>
+              <p className="font-bold text-lg">{t.refundSuccessTitle}</p>
               <p className="text-sm text-muted-foreground mt-1">
-                إشعار دائن: <span className="font-mono font-bold" dir="ltr">{result.refundSummary?.creditNoteNo}</span>
+                {t.creditNote}: <span className="font-mono font-bold" dir="ltr">{result.refundSummary?.creditNoteNo}</span>
               </p>
             </div>
             <div className="rounded-lg bg-muted/40 p-4 text-sm space-y-1 max-w-xs mx-auto">
-              <div className="flex justify-between"><span>مردودات</span><span className="tabular-nums">{fmt.currency(result.refundSummary?.refundSubtotal || 0)}</span></div>
-              <div className="flex justify-between"><span>ضريبة</span><span className="tabular-nums">{fmt.currency(result.refundSummary?.refundTax || 0)}</span></div>
+              <div className="flex justify-between"><span>{t.refundReturnsLabel}</span><span className="tabular-nums">{fmt.currency(result.refundSummary?.refundSubtotal || 0)}</span></div>
+              <div className="flex justify-between"><span>{t.refundTaxLabel}</span><span className="tabular-nums">{fmt.currency(result.refundSummary?.refundTax || 0)}</span></div>
               <Separator className="my-1" />
-              <div className="flex justify-between font-bold"><span>إجمالي المرتجع</span><span className="tabular-nums text-primary">{fmt.currency(result.refundSummary?.refundTotal || 0)}</span></div>
+              <div className="flex justify-between font-bold"><span>{t.refundTotalLabel}</span><span className="tabular-nums text-primary">{fmt.currency(result.refundSummary?.refundTotal || 0)}</span></div>
             </div>
-            <Button onClick={() => onOpenChange(false)}>إغلاق</Button>
+            <Button onClick={() => onOpenChange(false)}>{t.close}</Button>
           </div>
         ) : (
           <>
@@ -194,14 +198,16 @@ export function RefundDialog({
                 <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
-                    هذه الفاتورة تجاوزت {fmt.number(MAX_DAYS)} يوماً (مرّت {fmt.number(daysSince)} يوماً)
+                    {t.refund14DaysWarning
+                      .replace("{maxDays}", String(MAX_DAYS))
+                      .replace("{daysSince}", String(daysSince))}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    المرتجع محظور بعد ١٤ يوماً. المدير فقط يمكنه تجاوز هذا الشرط.
+                    {t.refund14DaysWarningDesc}
                   </p>
                   <label className="flex items-center gap-2 mt-2 cursor-pointer">
                     <Checkbox checked={override14} onCheckedChange={(v) => setOverride14(!!v)} />
-                    <span className="text-xs font-medium">تجاوز شرط الـ١٤ يوماً (صلاحية مدير)</span>
+                    <span className="text-xs font-medium">{t.refundOverrideAdminLabel}</span>
                   </label>
                 </div>
               </div>
@@ -214,7 +220,7 @@ export function RefundDialog({
                 value={barcodeSearch}
                 onChange={(e) => setBarcodeSearch(e.target.value)}
                 onKeyDown={handleBarcodeSearch}
-                placeholder="امسح باركود الصنف أو اكتب اسمه للبحث السريع..."
+                placeholder={t.refundSearchPlaceholder}
                 className="pr-9"
                 dir="ltr"
               />
@@ -240,21 +246,21 @@ export function RefundDialog({
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium truncate">{l.productName}</p>
                         <p className="text-xs text-muted-foreground tabular-nums">
-                          {fmt.currency(l.unitPrice)} / وحدة
+                          {fmt.currency(l.unitPrice)} / {t.refundUnitSuffix}
                         </p>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         {fullyReturned ? (
-                          <Badge variant="secondary" className="text-[10px]">مرتجع بالكامل</Badge>
+                          <Badge variant="secondary" className="text-[10px]">{t.fullyReturned}</Badge>
                         ) : null}
                         <div className="text-xs text-muted-foreground text-center">
-                          <p>الأصلي: <span className="font-medium tabular-nums">{fmt.number(l.originalQty)}</span></p>
-                          <p>المرتجع: <span className="font-medium tabular-nums">{fmt.number(l.returnedQty)}</span></p>
-                          <p>المتاح: <span className="font-bold tabular-nums text-primary">{fmt.number(l.returnableQty)}</span></p>
+                          <p>{t.refundOriginalLabel} <span className="font-medium tabular-nums">{fmt.number(l.originalQty)}</span></p>
+                          <p>{t.refundReturnedLabel} <span className="font-medium tabular-nums">{fmt.number(l.returnedQty)}</span></p>
+                          <p>{t.refundAvailableLabel} <span className="font-bold tabular-nums text-primary">{fmt.number(l.returnableQty)}</span></p>
                         </div>
                         {!fullyReturned ? (
                           <div className="flex flex-col items-center gap-0.5">
-                            <Label className="text-[10px] text-muted-foreground">كمية المرتجع</Label>
+                            <Label className="text-[10px] text-muted-foreground">{t.returnQty}</Label>
                             <Input
                               type="number"
                               min={0}
@@ -269,7 +275,7 @@ export function RefundDialog({
                     </div>
                     {retQty > 0 ? (
                       <div className="mt-1.5 text-xs text-primary font-medium tabular-nums">
-                        قيمة المرتجع: {fmt.currency(lineRefund)}
+                        {t.refundLineValueLabel} {fmt.currency(lineRefund)}
                       </div>
                     ) : null}
                   </div>
@@ -281,12 +287,12 @@ export function RefundDialog({
             {hasReturns ? (
               <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 space-y-1.5 text-sm">
                 <div className="flex justify-between text-muted-foreground">
-                  <span>إجمالي المردودات</span>
+                  <span>{t.refundReturnsTotalLabel}</span>
                   <span className="tabular-nums">{fmt.currency(refundSubtotal)}</span>
                 </div>
                 {refundTax > 0 ? (
                   <div className="flex justify-between text-muted-foreground">
-                    <span>ضريبة ({fmt.number(sale?.taxRate || 0)}%)</span>
+                    <span>{t.refundTaxWithRateLabel.replace("{rate}", String(sale?.taxRate || 0))}</span>
                     <span className="tabular-nums">{fmt.currency(refundTax)}</span>
                   </div>
                 ) : null}
@@ -294,7 +300,7 @@ export function RefundDialog({
                 <div className="flex justify-between font-bold">
                   <span className="flex items-center gap-1">
                     <FileText className="h-4 w-4 text-primary" />
-                    إجمالي الإشعار الدائن
+                    {t.creditNoteTotal}
                   </span>
                   <span className="tabular-nums text-primary text-lg">{fmt.currency(refundTotal)}</span>
                 </div>
@@ -302,14 +308,14 @@ export function RefundDialog({
             ) : null}
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => onOpenChange(false)}>إلغاء</Button>
+              <Button variant="outline" onClick={() => onOpenChange(false)}>{t.cancel}</Button>
               <Button
                 onClick={handleRefund}
                 disabled={!hasReturns || (past14 && !override14) || refundMut.isPending}
                 className="gap-2"
               >
                 {refundMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
-                اعتماد المرتجع
+                {t.refundApproveBtn}
               </Button>
             </DialogFooter>
           </>

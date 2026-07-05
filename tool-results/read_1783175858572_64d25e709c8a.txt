@@ -1,0 +1,1185 @@
+     1→"use client"
+     2→
+     3→import * as React from "react"
+     4→import { toast } from "sonner"
+     5→import { signOut } from "next-auth/react"
+     6→import { PageHeader } from "@/components/shared/page-header"
+     7→import { Button } from "@/components/ui/button"
+     8→import { Input } from "@/components/ui/input"
+     9→import { Label } from "@/components/ui/label"
+    10→import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+    11→import { Badge } from "@/components/ui/badge"
+    12→import { Separator } from "@/components/ui/separator"
+    13→import {
+    14→  Select,
+    15→  SelectContent,
+    16→  SelectItem,
+    17→  SelectTrigger,
+    18→  SelectValue,
+    19→} from "@/components/ui/select"
+    20→import {
+    21→  AlertDialog,
+    22→  AlertDialogContent,
+    23→  AlertDialogHeader,
+    24→  AlertDialogTitle,
+    25→  AlertDialogDescription,
+    26→} from "@/components/ui/alert-dialog"
+    27→import {
+    28→  Dialog,
+    29→  DialogContent,
+    30→  DialogDescription,
+    31→  DialogHeader,
+    32→  DialogTitle,
+    33→} from "@/components/ui/dialog"
+    34→import {
+    35→  ArrowLeftRight,
+    36→  Search,
+    37→  Plus,
+    38→  Minus,
+    39→  Trash2,
+    40→  X,
+    41→  CheckCircle2,
+    42→  Printer,
+    43→  Loader2,
+    44→  PackageX,
+    45→  Package,
+    46→  ArrowDownToLine,
+    47→  ArrowUpFromLine,
+    48→  AlertTriangle,
+    49→  ScanLine,
+    50→  FileSearch,
+    51→  CalendarClock,
+    52→} from "lucide-react"
+    53→import {
+    54→  useProducts,
+    55→  useCreateExchange,
+    56→  useSaleForExchange,
+    57→  type ExchangeSale,
+    58→  type SaleForExchangeItem,
+    59→} from "@/hooks/use-api"
+    60→import { useFmt } from "@/components/currency-context"
+    61→import { printExchangeReceipt } from "@/lib/print"
+    62→import type { Product } from "@/lib/types"
+    63→import { cn } from "@/lib/utils"
+    64→
+    65→const PAYMENT_LABELS: Record<string, string> = {
+    66→  CASH: "نقدي",
+    67→  CARD: "بطاقة",
+    68→  TRANSFER: "تحويل",
+    69→}
+    70→
+    71→/** A return line — quantity is ALWAYS set via barcode scan (auto-increment).
+    72→ *  The cashier cannot type the quantity; only the "−1" undo button can
+    73→ *  decrement it. */
+    74→interface ReturnItem {
+    75→  saleItemId: string
+    76→  item: SaleForExchangeItem
+    77→  quantity: number
+    78→}
+    79→
+    80→/** A new-item line — quantity is always positive (typed via the +/− controls). */
+    81→interface NewItem {
+    82→  product: Product
+    83→  quantity: number
+    84→  unitPrice: number
+    85→}
+    86→
+    87→export function ExchangeView() {
+    88→  const fmt = useFmt()
+    89→
+    90→  // ── Step 1: Invoice lookup ──
+    91→  const [invoiceInput, setInvoiceInput] = React.useState("")
+    92→  const [activeInvoiceNo, setActiveInvoiceNo] = React.useState<string | null>(null)
+    93→  const saleQuery = useSaleForExchange(activeInvoiceNo)
+    94→
+    95→  // ── Step 2: Return items (scan-driven) ──
+    96→  const [scanInput, setScanInput] = React.useState("")
+    97→  const [returnItems, setReturnItems] = React.useState<ReturnItem[]>([])
+    98→
+    99→  // ── Step 3: New items ──
+   100→  const [newSearch, setNewSearch] = React.useState("")
+   101→  const [newItems, setNewItems] = React.useState<NewItem[]>([])
+   102→
+   103→  // ── Step 4: Settlement ──
+   104→  const [note, setNote] = React.useState("")
+   105→  const [paymentMethod, setPaymentMethod] = React.useState<"CASH" | "CARD" | "TRANSFER">("CASH")
+   106→  const [confirmOpen, setConfirmOpen] = React.useState(false)
+   107→  const [lastExchange, setLastExchange] = React.useState<ExchangeSale | null>(null)
+   108→
+   109→  const debouncedNewQ = React.useDeferredValue(newSearch)
+   110→  const { data: newData } = useProducts({ q: debouncedNewQ || undefined })
+   111→
+   112→  const createMut = useCreateExchange()
+   113→  const newProducts = (newData?.items ?? []).slice(0, 8)
+   114→
+   115→  const sale = saleQuery.data
+   116→  const saleLoading = saleQuery.isFetching && !!activeInvoiceNo
+   117→  const saleNotFound = !!activeInvoiceNo && saleQuery.isError && !saleLoading
+   118→
+   119→  // ── Invoice lookup ──
+   120→  function handleLookup() {
+   121→    const v = invoiceInput.trim()
+   122→    if (!v) {
+   123→      toast.error("أدخل رقم الفاتورة أولاً")
+   124→      return
+   125→    }
+   126→    // Reset return cart (we're loading a new invoice).
+   127→    setReturnItems([])
+   128→    setActiveInvoiceNo(v)
+   129→  }
+   130→
+   131→  function handleInvoiceKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+   132→    if (e.key === "Enter") {
+   133→      e.preventDefault()
+   134→      handleLookup()
+   135→    }
+   136→  }
+   137→
+   138→  function resetInvoice() {
+   139→    setActiveInvoiceNo(null)
+   140→    setInvoiceInput("")
+   141→    setReturnItems([])
+   142→    setNewItems([])
+   143→    setNote("")
+   144→    setNewSearch("")
+   145→    setScanInput("")
+   146→    setPaymentMethod("CASH")
+   147→  }
+   148→
+   149→  // ── Step 2: barcode scan handler ──
+   150→  function handleScan(e: React.KeyboardEvent<HTMLInputElement>) {
+   151→    if (e.key !== "Enter") return
+   152→    e.preventDefault()
+   153→    const code = scanInput.trim()
+   154→    if (!code || !sale) return
+   155→    setScanInput("")
+   156→
+   157→    // Find the matching sale item by barcode (exact match) OR by product
+   158→    // name (case-insensitive contains). Barcode scanners emit the barcode +
+   159→    // Enter; manual entry can use either.
+   160→    const target = sale.items.find(
+   161→      (it) =>
+   162→        (it.barcode && it.barcode.toLowerCase() === code.toLowerCase()) ||
+   163→        it.productName.trim().toLowerCase() === code.toLowerCase()
+   164→    )
+   165→    if (!target) {
+   166→      // Fallback: partial name match (for manual typing).
+   167→      const partial = sale.items.find((it) =>
+   168→        it.productName.toLowerCase().includes(code.toLowerCase())
+   169→      )
+   170→      if (!partial) {
+   171→        toast.error("عذراً، هذا الصنف غير موجود في الفاتورة الأصلية!")
+   172→        return
+   173→      }
+   174→      addToReturn(partial)
+   175→      return
+   176→    }
+   177→    addToReturn(target)
+   178→  }
+   179→
+   180→  function addToReturn(item: SaleForExchangeItem) {
+   181→    if (item.remainingQty <= 0) {
+   182→      toast.error(
+   183→        "عذراً، هذا الصنف تم استبداله أو إرجاعه بالكامل سابقاً من هذه الفاتورة!"
+   184→      )
+   185→      return
+   186→    }
+   187→    setReturnItems((arr) => {
+   188→      const ex = arr.find((it) => it.saleItemId === item.saleItemId)
+   189→      if (ex) {
+   190→        // Don't exceed remainingQty — cap at the original remaining.
+   191→        const currentReturnInCart = ex.quantity
+   192→        if (currentReturnInCart >= item.remainingQty) {
+   193→          toast.error(
+   194→            `الكمية الممسوحة تجاوزت الكمية القابلة للإرجاع (${fmt.number(item.remainingQty)})`
+   195→          )
+   196→          return arr
+   197→        }
+   198→        return arr.map((it) =>
+   199→          it.saleItemId === item.saleItemId
+   200→            ? { ...it, quantity: it.quantity + 1 }
+   201→            : it
+   202→        )
+   203→      }
+   204→      return [...arr, { saleItemId: item.saleItemId, item, quantity: 1 }]
+   205→    })
+   206→    toast.success(`+1 ${item.productName}`)
+   207→  }
+   208→
+   209→  function undoReturnScan(saleItemId: string) {
+   210→    setReturnItems((arr) =>
+   211→      arr
+   212→        .map((it) =>
+   213→          it.saleItemId === saleItemId ? { ...it, quantity: it.quantity - 1 } : it
+   214→        )
+   215→        .filter((it) => it.quantity > 0)
+   216→    )
+   217→  }
+   218→
+   219→  function removeReturn(saleItemId: string) {
+   220→    setReturnItems((arr) => arr.filter((it) => it.saleItemId !== saleItemId))
+   221→  }
+   222→
+   223→  // ── Step 3: new items ──
+   224→  function addNew(p: Product) {
+   225→    const existing = newItems.find((it) => it.product.id === p.id)
+   226→    const nextQty = (existing?.quantity ?? 0) + 1
+   227→    if (nextQty > p.quantity) {
+   228→      toast.error("الكمية غير متوفرة", {
+   229→        description: `المتاح من ${p.name}: ${fmt.number(p.quantity)} ${p.unit}`,
+   230→      })
+   231→      return
+   232→    }
+   233→    setNewItems((arr) => {
+   234→      const ex = arr.find((it) => it.product.id === p.id)
+   235→      if (ex) {
+   236→        return arr.map((it) =>
+   237→          it.product.id === p.id ? { ...it, quantity: it.quantity + 1 } : it
+   238→        )
+   239→      }
+   240→      return [...arr, { product: p, quantity: 1, unitPrice: p.salePrice }]
+   241→    })
+   242→  }
+   243→
+   244→  function changeNewQty(id: string, delta: number) {
+   245→    const it = newItems.find((x) => x.product.id === id)
+   246→    if (!it) return
+   247→    const next = it.quantity + delta
+   248→    if (delta > 0 && next > it.product.quantity) {
+   249→      toast.error("الكمية تجاوزت المخزون المتاح")
+   250→      return
+   251→    }
+   252→    setNewItems((arr) =>
+   253→      arr
+   254→        .map((x) => (x.product.id === id ? { ...x, quantity: next } : x))
+   255→        .filter((x) => x.quantity > 0)
+   256→    )
+   257→  }
+   258→
+   259→  function setNewQty(id: string, qty: number) {
+   260→    const it = newItems.find((x) => x.product.id === id)
+   261→    if (!it) return
+   262→    if (qty > it.product.quantity) {
+   263→      toast.error("الكمية تجاوزت المخزون المتاح")
+   264→      return
+   265→    }
+   266→    setNewItems((arr) =>
+   267→      qty <= 0
+   268→        ? arr.filter((x) => x.product.id !== id)
+   269→        : arr.map((x) => (x.product.id === id ? { ...x, quantity: qty } : x))
+   270→    )
+   271→  }
+   272→
+   273→  function setNewPrice(id: string, price: number) {
+   274→    setNewItems((arr) => arr.map((it) => (it.product.id === id ? { ...it, unitPrice: price } : it)))
+   275→  }
+   276→
+   277→  function removeNew(id: string) {
+   278→    setNewItems((arr) => arr.filter((it) => it.product.id !== id))
+   279→  }
+   280→
+   281→  // ── Totals (signed) ──
+   282→  const returnTotal = returnItems.reduce(
+   283→    (s, it) => s - it.quantity * it.item.unitPrice,
+   284→    0
+   285→  )
+   286→  const newTotal = newItems.reduce((s, it) => s + it.quantity * it.unitPrice, 0)
+   287→  const netAmount = +(returnTotal + newTotal).toFixed(3)
+   288→  const itemCount =
+   289→    returnItems.reduce((s, it) => s + it.quantity, 0) +
+   290→    newItems.reduce((s, it) => s + it.quantity, 0)
+   291→
+   292→  const isCollect = netAmount > 0
+   293→  const isRefund = netAmount < 0
+   294→  const isEven = !isCollect && !isRefund
+   295→
+   296→  const hasItems = returnItems.length > 0 || newItems.length > 0
+   297→
+   298→  function handleCheckout() {
+   299→    if (!sale) return
+   300→    if (!hasItems) {
+   301→      toast.error("أضف أصنافاً للمرتجع أو الجديد أولاً")
+   302→      return
+   303→    }
+   304→    setConfirmOpen(true)
+   305→  }
+   306→
+   307→  async function doConfirmExchange() {
+   308→    if (!sale || !hasItems) return
+   309→    const lines = [
+   310→      ...returnItems.map((it) => ({
+   311→        productId: it.item.productId,
+   312→        quantity: -it.quantity, // negative for returns
+   313→        unitPrice: it.item.unitPrice,
+   314→        isReturn: true,
+   315→      })),
+   316→      ...newItems.map((it) => ({
+   317→        productId: it.product.id,
+   318→        quantity: it.quantity, // positive for new items
+   319→        unitPrice: it.unitPrice,
+   320→        isReturn: false,
+   321→      })),
+   322→    ]
+   323→    try {
+   324→      const ex = await createMut.mutateAsync({
+   325→        originalSaleId: sale.id,
+   326→        customerName: sale.customerName || undefined,
+   327→        customerPhone: sale.customerPhone || undefined,
+   328→        paymentMethod,
+   329→        note: note.trim() || undefined,
+   330→        lines,
+   331→      })
+   332→      toast.success("تم اعتماد التبديل بنجاح", {
+   333→        description: `رقم التبديل: ${ex.exchangeNo}`,
+   334→      })
+   335→      setLastExchange(ex)
+   336→      // Reset to Step 1 for the next customer.
+   337→      resetInvoice()
+   338→      setConfirmOpen(false)
+   339→    } catch (err: any) {
+   340→      if (err?.message === "session-expired") {
+   341→        toast.error("انتهت الجلسة", { description: "يرجى تسجيل الدخول مرة أخرى." })
+   342→        setTimeout(() => {
+   343→          signOut({ redirect: false }).then(() => window.location.reload())
+   344→        }, 1500)
+   345→        return
+   346→      }
+   347→      const msg = err?.message || ""
+   348→      if (msg.startsWith("stock-insufficient")) {
+   349→        const parts = msg.split(":")
+   350→        const name = parts[2] || "منتج"
+   351→        toast.error("كمية غير كافية في المخزون", {
+   352→          description: `الرصيد المتاح من ${name} لا يكفي.`,
+   353→        })
+   354→      } else if (msg === "original-invoice-required") {
+   355→        toast.error("الفاتورة الأصلية مطلوبة", {
+   356→          description: "يجب استدعاء فاتورة أصلية قبل الاعتماد.",
+   357→        })
+   358→      } else if (msg === "original-not-found") {
+   359→        toast.error("الفاتورة الأصلية غير موجودة")
+   360→      } else if (msg === "invoice-too-old") {
+   361→        toast.error("انقضت أكثر من 14 يوماً على الفاتورة — لا يمكن التبديل")
+   362→      } else if (msg.startsWith("product-not-in-invoice")) {
+   363→        toast.error("عذراً، هذا الصنف غير موجود في الفاتورة الأصلية!")
+   364→      } else if (msg.startsWith("return-exceeds-remaining")) {
+   365→        toast.error("عذراً، الكمية المطلوب إرجاعها تتجاوز الكمية المتبقية في الفاتورة!")
+   366→      } else {
+   367→        toast.error("فشل اعتماد التبديل", { description: msg })
+   368→      }
+   369→    } finally {
+   370→      setConfirmOpen(false)
+   371→    }
+   372→  }
+   373→
+   374→  // Confirmation dialog keyboard handler.
+   375→  // Ctrl+Enter confirms; a lone Enter is blocked (no accidental confirm).
+   376→  const handleDialogKeyDown = (e: React.KeyboardEvent) => {
+   377→    if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && !createMut.isPending) {
+   378→      e.preventDefault()
+   379→      doConfirmExchange()
+   380→    }
+   381→    if (e.key === "Enter" && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) {
+   382→      const target = e.target as HTMLElement
+   383→      if (target.tagName !== "INPUT" && target.tagName !== "TEXTAREA") {
+   384→        e.preventDefault()
+   385→      }
+   386→    }
+   387→  }
+   388→
+   389→  const invoiceBlocked = !!sale && !sale.isEligible
+   390→
+   391→  return (
+   392→    <div className="space-y-5">
+   393→      <PageHeader
+   394→        title="فاتورة تبديل"
+   395→        description="تبديل الأصناف بناءً على فاتورة أصلية — استدعِ الفاتورة، امسح باركود المرتجع، ثم اختر الأصناف الجديدة."
+   396→        icon={<ArrowLeftRight className="h-5 w-5" />}
+   397→        actions={
+   398→          <Button
+   399→            variant="outline"
+   400→            size="sm"
+   401→            onClick={resetInvoice}
+   402→            disabled={!activeInvoiceNo && returnItems.length === 0 && newItems.length === 0}
+   403→          >
+   404→            <X className="h-4 w-4" />
+   405→            تبديل جديد
+   406→          </Button>
+   407→        }
+   408→      />
+   409→
+   410→      {/* ── Step 1: Invoice lookup card ── */}
+   411→      <Card className="border-primary/30">
+   412→        <CardHeader className="pb-3">
+   413→          <CardTitle className="flex items-center gap-2 text-base">
+   414→            <FileSearch className="h-4 w-4 text-primary" />
+   415→            استدعاء الفاتورة الأصلية
+   416→            <span className="text-[10px] font-normal text-muted-foreground mr-1">
+   417→              (إلزامي)
+   418→            </span>
+   419→          </CardTitle>
+   420→        </CardHeader>
+   421→        <CardContent className="space-y-3">
+   422→          <div className="flex flex-col sm:flex-row gap-2">
+   423→            <div className="relative flex-1">
+   424→              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+   425→              <Input
+   426→                value={invoiceInput}
+   427→                onChange={(e) => setInvoiceInput(e.target.value)}
+   428→                onKeyDown={handleInvoiceKeyDown}
+   429→                placeholder="اكتب أو امسح رقم الفاتورة (مثال: INV-00021)..."
+   430→                className="pr-9 h-10 font-mono"
+   431→                dir="ltr"
+   432→                disabled={!!activeInvoiceNo && saleLoading}
+   433→              />
+   434→            </div>
+   435→            <Button
+   436→              className="h-10 gap-2"
+   437→              onClick={handleLookup}
+   438→              disabled={!invoiceInput.trim() || saleLoading}
+   439→            >
+   440→              {saleLoading ? (
+   441→                <Loader2 className="h-4 w-4 animate-spin" />
+   442→              ) : (
+   443→                <Search className="h-4 w-4" />
+   444→              )}
+   445→              استدعاء الفاتورة
+   446→            </Button>
+   447→          </div>
+   448→
+   449→          {/* Lookup error / not-found */}
+   450→          {saleNotFound ? (
+   451→            <div className="rounded-lg border border-rose-200 dark:border-rose-900/40 bg-rose-50 dark:bg-rose-950/20 px-4 py-3 text-sm text-rose-700 dark:text-rose-300 flex items-center gap-2">
+   452→              <AlertTriangle className="h-4 w-4 shrink-0" />
+   453→              <span>الفاتورة غير موجودة — تأكد من رقم الفاتورة وحاول مجدداً.</span>
+   454→            </div>
+   455→          ) : null}
+   456→
+   457→          {/* Loaded invoice summary */}
+   458→          {sale ? (
+   459→            <div className="space-y-3">
+   460→              <div
+   461→                className={cn(
+   462→                  "rounded-lg border px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2",
+   463→                  sale.isEligible
+   464→                    ? "border-emerald-200 dark:border-emerald-900/40 bg-emerald-50/50 dark:bg-emerald-950/10"
+   465→                    : "border-rose-200 dark:border-rose-900/40 bg-rose-50/50 dark:bg-rose-950/10"
+   466→                )}
+   467→              >
+   468→                <div className="flex items-center gap-3 flex-wrap">
+   469→                  <Badge
+   470→                    className={cn(
+   471→                      "tabular-nums",
+   472→                      sale.isEligible
+   473→                        ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-transparent"
+   474→                        : "bg-rose-500/15 text-rose-700 dark:text-rose-300 border-transparent"
+   475→                    )}
+   476→                  >
+   477→                    <FileSearch className="h-3 w-3 mr-1" />
+   478→                    {sale.invoiceNo}
+   479→                  </Badge>
+   480→                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+   481→                    <CalendarClock className="h-3.5 w-3.5" />
+   482→                    {fmt.dateTime(sale.createdAt)}
+   483→                  </span>
+   484→                  {sale.customerName ? (
+   485→                    <span className="text-xs text-muted-foreground">
+   486→                      العميل: <span className="font-medium text-foreground">{sale.customerName}</span>
+   487→                    </span>
+   488→                  ) : null}
+   489→                  {sale.customerPhone ? (
+   490→                    <span className="text-xs text-muted-foreground" dir="ltr">
+   491→                      {sale.customerPhone}
+   492→                    </span>
+   493→                  ) : null}
+   494→                </div>
+   495→                <Badge
+   496→                  variant="outline"
+   497→                  className={cn(
+   498→                    "tabular-nums",
+   499→                    sale.isEligible
+   500→                      ? "border-emerald-300 text-emerald-700 dark:text-emerald-300"
+   501→                      : "border-rose-300 text-rose-700 dark:text-rose-300"
+   502→                  )}
+   503→                >
+   504→                  {sale.isEligible
+   505→                    ? `صالحة للتبديل · ${fmt.number(sale.daysOld)} يوم`
+   506→                    : `انقضت ${fmt.number(sale.daysOld)} يوماً`}
+   507→                </Badge>
+   508→              </div>
+   509→
+   510→              {/* 14-day warning */}
+   511→              {invoiceBlocked ? (
+   512→                <div className="rounded-lg border border-rose-300 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/30 px-4 py-3 text-sm text-rose-700 dark:text-rose-300 flex items-start gap-2">
+   513→                  <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+   514→                  <div>
+   515→                    <p className="font-semibold">
+   516→                      عذراً، انقضت أكثر من 14 يوماً على هذه الفاتورة — لا يمكن التبديل
+   517→                    </p>
+   518→                    <p className="text-xs mt-1">
+   519→                      تاريخ الفاتورة: {fmt.dateTime(sale.createdAt)} ({fmt.number(sale.daysOld)} يوماً)
+   520→                    </p>
+   521→                  </div>
+   522→                </div>
+   523→              ) : null}
+   524→
+   525→              {/* Original invoice items table (with remainingQty) */}
+   526→              <div className="rounded-lg border border-border/60 overflow-hidden">
+   527→                <div className="bg-muted/40 px-3 py-2 text-xs font-semibold flex items-center justify-between">
+   528→                  <span>أصناف الفاتورة الأصلية</span>
+   529→                  <span className="text-muted-foreground">
+   530→                    الكمية القابلة للإرجاع موضحة لكل صنف
+   531→                  </span>
+   532→                </div>
+   533→                <div className="max-h-72 overflow-y-auto scrollbar-thin">
+   534→                  <table className="w-full text-sm">
+   535→                    <thead className="bg-muted/30 sticky top-0">
+   536→                      <tr>
+   537→                        <th className="text-right p-2 font-medium text-xs">الصنف</th>
+   538→                        <th className="text-center p-2 font-medium text-xs">الكمية</th>
+   539→                        <th className="text-center p-2 font-medium text-xs">مُرجَع</th>
+   540→                        <th className="text-center p-2 font-medium text-xs">قابل للإرجاع</th>
+   541→                        <th className="text-center p-2 font-medium text-xs">السعر</th>
+   542→                      </tr>
+   543→                    </thead>
+   544→                    <tbody>
+   545→                      {sale.items.map((it) => (
+   546→                        <tr
+   547→                          key={it.saleItemId}
+   548→                          className="border-t border-border/40"
+   549→                        >
+   550→                          <td className="p-2">
+   551→                            <div className="font-medium truncate max-w-[200px]">
+   552→                              {it.productName}
+   553→                            </div>
+   554→                            {it.barcode ? (
+   555→                              <div className="text-[10px] text-muted-foreground font-mono" dir="ltr">
+   556→                                {it.barcode}
+   557→                              </div>
+   558→                            ) : null}
+   559→                          </td>
+   560→                          <td className="p-2 text-center tabular-nums">{fmt.number(it.quantity)}</td>
+   561→                          <td className="p-2 text-center tabular-nums text-muted-foreground">
+   562→                            {fmt.number(it.returnedQty)}
+   563→                          </td>
+   564→                          <td className="p-2 text-center tabular-nums">
+   565→                            <Badge
+   566→                              variant="outline"
+   567→                              className={cn(
+   568→                                "tabular-nums",
+   569→                                it.remainingQty > 0
+   570→                                  ? "border-emerald-300 text-emerald-700 dark:text-emerald-300"
+   571→                                  : "border-muted-foreground/30 text-muted-foreground"
+   572→                              )}
+   573→                            >
+   574→                              {fmt.number(it.remainingQty)}
+   575→                            </Badge>
+   576→                          </td>
+   577→                          <td className="p-2 text-center tabular-nums">{fmt.currency(it.unitPrice)}</td>
+   578→                        </tr>
+   579→                      ))}
+   580→                    </tbody>
+   581→                  </table>
+   582→                </div>
+   583→              </div>
+   584→            </div>
+   585→          ) : null}
+   586→        </CardContent>
+   587→      </Card>
+   588→
+   589→      {/* ── Step 2 + 3: returns + new items (only after eligible invoice loaded) ── */}
+   590→      {sale && sale.isEligible ? (
+   591→        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+   592→          {/* ── Return items section (rose / red) ── */}
+   593→          <Card className="border-rose-200 dark:border-rose-900/50">
+   594→            <CardHeader className="pb-3">
+   595→              <CardTitle className="flex items-center justify-between gap-2 text-base">
+   596→                <span className="flex items-center gap-2 text-rose-700 dark:text-rose-400">
+   597→                  <ArrowDownToLine className="h-4 w-4" />
+   598→                  المرتجع — بالمسح
+   599→                </span>
+   600→                {returnItems.length > 0 ? (
+   601→                  <Badge variant="outline" className="text-rose-700 border-rose-300 tabular-nums">
+   602→                    {returnItems.length} صنف
+   603→                  </Badge>
+   604→                ) : null}
+   605→              </CardTitle>
+   606→            </CardHeader>
+   607→            <CardContent className="space-y-3">
+   608→              {/* Barcode scan input — auto-increment on Enter */}
+   609→              <div className="relative">
+   610→                <ScanLine className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-rose-500" />
+   611→                <Input
+   612→                  value={scanInput}
+   613→                  onChange={(e) => setScanInput(e.target.value)}
+   614→                  onKeyDown={handleScan}
+   615→                  placeholder="امسح باركود الصنف المرجع (أو اكتب الاسم)..."
+   616→                  className="pr-9 h-10 font-mono"
+   617→                  dir="ltr"
+   618→                  autoFocus
+   619→                />
+   620→              </div>
+   621→              <p className="text-[11px] text-muted-foreground -mt-1">
+   622→                كل مسح يضيف وحدة واحدة. لا يمكن إدخال الكمية يدوياً — فقط بالمسح وزر الإلغاء.
+   623→              </p>
+   624→
+   625→              {/* Return items list — quantity is NOT a typed input */}
+   626→              {returnItems.length === 0 ? (
+   627→                <div className="rounded-lg border border-dashed border-rose-200 dark:border-rose-900/40 bg-rose-50/30 dark:bg-rose-950/10 px-4 py-8 text-center text-xs text-muted-foreground">
+   628→                  <ScanLine className="h-7 w-7 mx-auto text-rose-400 opacity-60" />
+   629→                  <p className="mt-1.5">امسح باركود الصنف لإضافته للمرتجع</p>
+   630→                </div>
+   631→              ) : (
+   632→                <div className="space-y-1.5 max-h-80 overflow-y-auto scrollbar-thin">
+   633→                  {returnItems.map((it) => {
+   634→                    const lineTotal = -it.quantity * it.item.unitPrice
+   635→                    const remainingAfter = it.item.remainingQty - it.quantity
+   636→                    return (
+   637→                      <div
+   638→                        key={it.saleItemId}
+   639→                        className="flex items-center gap-2 rounded-lg border border-rose-200/70 dark:border-rose-900/40 bg-rose-50/30 dark:bg-rose-950/10 p-2"
+   640→                      >
+   641→                        <div className="min-w-0 flex-1">
+   642→                          <p className="text-sm font-medium truncate">{it.item.productName}</p>
+   643→                          <p className="text-[10px] text-muted-foreground tabular-nums mt-0.5">
+   644→                            السعر: {fmt.currency(it.item.unitPrice)} · متبقٍ بعد الإرجاع:{" "}
+   645→                            <span
+   646→                              className={cn(
+   647→                                "font-medium",
+   648→                                remainingAfter < 0 ? "text-rose-600" : "text-emerald-600"
+   649→                              )}
+   650→                            >
+   651→                              {fmt.number(Math.max(0, remainingAfter))}
+   652→                            </span>
+   653→                          </p>
+   654→                        </div>
+   655→                        <div className="flex flex-col items-end gap-1 shrink-0">
+   656→                          {/* Auto-incremented quantity (read-only) + undo button */}
+   657→                          <div className="flex items-center gap-1">
+   658→                            <Button
+   659→                              variant="outline"
+   660→                              size="icon"
+   661→                              className="h-7 w-7"
+   662→                              onClick={() => undoReturnScan(it.saleItemId)}
+   663→                              title="تراجع عن آخر مسح (−1)"
+   664→                            >
+   665→                              <Minus className="h-3 w-3" />
+   666→                            </Button>
+   667→                            <div
+   668→                              className="h-7 w-10 flex items-center justify-center rounded-md border border-input bg-background text-sm font-bold tabular-nums"
+   669→                              title="الكمية تُضاف بالمسح فقط — لا يمكن تعديلها يدوياً"
+   670→                            >
+   671→                              {it.quantity}
+   672→                            </div>
+   673→                            <Button
+   674→                              variant="outline"
+   675→                              size="icon"
+   676→                              className="h-7 w-7"
+   677→                              onClick={() => addToReturn(it.item)}
+   678→                              disabled={it.quantity >= it.item.remainingQty}
+   679→                              title="إضافة مسح آخر (+1)"
+   680→                            >
+   681→                              <Plus className="h-3 w-3" />
+   682→                            </Button>
+   683→                            <Button
+   684→                              variant="ghost"
+   685→                              size="icon"
+   686→                              className="h-7 w-7 text-destructive hover:text-destructive"
+   687→                              onClick={() => removeReturn(it.saleItemId)}
+   688→                              title="حذف الصنف من المرتجع"
+   689→                            >
+   690→                              <Trash2 className="h-3.5 w-3.5" />
+   691→                            </Button>
+   692→                          </div>
+   693→                          <p className="text-xs font-bold text-rose-600 tabular-nums">
+   694→                            - {fmt.currency(Math.abs(lineTotal))}
+   695→                          </p>
+   696→                        </div>
+   697→                      </div>
+   698→                    )
+   699→                  })}
+   700→                </div>
+   701→              )}
+   702→            </CardContent>
+   703→          </Card>
+   704→
+   705→          {/* ── New items section (emerald / green) ── */}
+   706→          <Card className="border-emerald-200 dark:border-emerald-900/50">
+   707→            <CardHeader className="pb-3">
+   708→              <CardTitle className="flex items-center justify-between gap-2 text-base">
+   709→                <span className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
+   710→                  <ArrowUpFromLine className="h-4 w-4" />
+   711→                  الجديد
+   712→                </span>
+   713→                {newItems.length > 0 ? (
+   714→                  <Badge variant="outline" className="text-emerald-700 border-emerald-300 tabular-nums">
+   715→                    {newItems.length} صنف
+   716→                  </Badge>
+   717→                ) : null}
+   718→              </CardTitle>
+   719→            </CardHeader>
+   720→            <CardContent className="space-y-3">
+   721→              <div className="relative">
+   722→                <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+   723→                <Input
+   724→                  value={newSearch}
+   725→                  onChange={(e) => setNewSearch(e.target.value)}
+   726→                  placeholder="ابحث بالاسم أو الباركود لإضافة صنف جديد..."
+   727→                  className="pr-9 h-10"
+   728→                />
+   729→              </div>
+   730→              {newSearch.trim() ? (
+   731→                <div className="rounded-lg border border-border/60 bg-card overflow-hidden max-h-60 overflow-y-auto scrollbar-thin">
+   732→                  {newProducts.length === 0 ? (
+   733→                    <div className="px-3 py-6 text-center text-xs text-muted-foreground">
+   734→                      <PackageX className="h-6 w-6 mx-auto opacity-50" />
+   735→                      <p className="mt-1">لا توجد منتجات مطابقة</p>
+   736→                    </div>
+   737→                  ) : (
+   738→                    newProducts.map((p) => (
+   739→                      <button
+   740→                        key={p.id}
+   741→                        onClick={() => {
+   742→                          addNew(p)
+   743→                          setNewSearch("")
+   744→                        }}
+   745→                        disabled={p.quantity < 1}
+   746→                        className={cn(
+   747→                          "w-full flex items-center gap-2 px-3 py-2 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 border-b border-border/40 last:border-0 text-right",
+   748→                          p.quantity < 1 && "opacity-50 cursor-not-allowed"
+   749→                        )}
+   750→                      >
+   751→                        <Package className="h-4 w-4 text-muted-foreground shrink-0" />
+   752→                        <div className="flex-1 min-w-0">
+   753→                          <p className="text-sm font-medium truncate">{p.name}</p>
+   754→                          <p className="text-[10px] text-muted-foreground tabular-nums">
+   755→                            {fmt.currency(p.salePrice)} · رصيد {fmt.number(p.quantity)}
+   756→                          </p>
+   757→                        </div>
+   758→                        <Plus className="h-4 w-4 text-emerald-600" />
+   759→                      </button>
+   760→                    ))
+   761→                  )}
+   762→                </div>
+   763→              ) : null}
+   764→
+   765→              {newItems.length === 0 ? (
+   766→                <div className="rounded-lg border border-dashed border-emerald-200 dark:border-emerald-900/40 bg-emerald-50/30 dark:bg-emerald-950/10 px-4 py-8 text-center text-xs text-muted-foreground">
+   767→                  <ArrowUpFromLine className="h-7 w-7 mx-auto text-emerald-400 opacity-60" />
+   768→                  <p className="mt-1.5">لا توجد أصناف جديدة — ابحث لإضافة صنف</p>
+   769→                </div>
+   770→              ) : (
+   771→                <div className="space-y-1.5 max-h-80 overflow-y-auto scrollbar-thin">
+   772→                  {newItems.map((it) => {
+   773→                    const lineTotal = it.quantity * it.unitPrice
+   774→                    return (
+   775→                      <div
+   776→                        key={it.product.id}
+   777→                        className="flex items-center gap-2 rounded-lg border border-emerald-200/70 dark:border-emerald-900/40 bg-emerald-50/30 dark:bg-emerald-950/10 p-2"
+   778→                      >
+   779→                        <div className="min-w-0 flex-1">
+   780→                          <p className="text-sm font-medium truncate">{it.product.name}</p>
+   781→                          <div className="flex items-center gap-1 mt-1">
+   782→                            <Input
+   783→                              type="number"
+   784→                              min={0}
+   785→                              step="0.250"
+   786→                              dir="ltr"
+   787→                              className="h-6 w-20 text-xs tabular-nums px-1"
+   788→                              value={it.unitPrice}
+   789→                              onChange={(e) => setNewPrice(it.product.id, Number(e.target.value) || 0)}
+   790→                            />
+   791→                            <span className="text-[10px] text-muted-foreground">/ {it.product.unit}</span>
+   792→                          </div>
+   793→                        </div>
+   794→                        <div className="flex flex-col items-end gap-1 shrink-0">
+   795→                          <div className="flex items-center gap-1">
+   796→                            <Button
+   797→                              variant="outline"
+   798→                              size="icon"
+   799→                              className="h-7 w-7"
+   800→                              onClick={() => changeNewQty(it.product.id, -1)}
+   801→                            >
+   802→                              <Minus className="h-3 w-3" />
+   803→                            </Button>
+   804→                            <Input
+   805→                              dir="ltr"
+   806→                              type="number"
+   807→                              className="h-7 w-10 text-center px-0 tabular-nums"
+   808→                              value={it.quantity}
+   809→                              onChange={(e) => {
+   810→                                const v = parseInt(e.target.value, 10)
+   811→                                if (!isNaN(v)) setNewQty(it.product.id, v)
+   812→                              }}
+   813→                            />
+   814→                            <Button
+   815→                              variant="outline"
+   816→                              size="icon"
+   817→                              className="h-7 w-7"
+   818→                              onClick={() => changeNewQty(it.product.id, 1)}
+   819→                              disabled={it.quantity >= it.product.quantity}
+   820→                            >
+   821→                              <Plus className="h-3 w-3" />
+   822→                            </Button>
+   823→                            <Button
+   824→                              variant="ghost"
+   825→                              size="icon"
+   826→                              className="h-7 w-7 text-destructive hover:text-destructive"
+   827→                              onClick={() => removeNew(it.product.id)}
+   828→                            >
+   829→                              <Trash2 className="h-3.5 w-3.5" />
+   830→                            </Button>
+   831→                          </div>
+   832→                          <p className="text-xs font-bold text-emerald-600 tabular-nums">
+   833→                            + {fmt.currency(lineTotal)}
+   834→                          </p>
+   835→                        </div>
+   836→                      </div>
+   837→                    )
+   838→                  })}
+   839→                </div>
+   840→              )}
+   841→            </CardContent>
+   842→          </Card>
+   843→        </div>
+   844→      ) : null}
+   845→
+   846→      {/* ── Settlement card (only after eligible invoice loaded) ── */}
+   847→      {sale && sale.isEligible ? (
+   848→        <Card>
+   849→          <CardContent className="p-5 space-y-4">
+   850→            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+   851→              <div>
+   852→                <Label htmlFor="pm" className="text-xs text-muted-foreground">
+   853→                  طريقة تسوية الفرق
+   854→                </Label>
+   855→                <Select
+   856→                  value={paymentMethod}
+   857→                  onValueChange={(v) => setPaymentMethod(v as "CASH" | "CARD" | "TRANSFER")}
+   858→                >
+   859→                  <SelectTrigger id="pm" className="h-9 text-sm">
+   860→                    <SelectValue />
+   861→                  </SelectTrigger>
+   862→                  <SelectContent>
+   863→                    <SelectItem value="CASH">نقدي</SelectItem>
+   864→                    <SelectItem value="CARD">بطاقة</SelectItem>
+   865→                    <SelectItem value="TRANSFER">تحويل</SelectItem>
+   866→                  </SelectContent>
+   867→                </Select>
+   868→              </div>
+   869→              <div>
+   870→                <Label htmlFor="note" className="text-xs text-muted-foreground">
+   871→                  ملاحظة (اختياري)
+   872→                </Label>
+   873→                <Input
+   874→                  id="note"
+   875→                  className="h-9 text-sm"
+   876→                  value={note}
+   877→                  onChange={(e) => setNote(e.target.value)}
+   878→                  placeholder="سبب التبديل أو ملاحظة إدارية..."
+   879→                />
+   880→              </div>
+   881→            </div>
+   882→
+   883→            <Separator />
+   884→
+   885→            {/* Net settlement display — 3 columns */}
+   886→            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
+   887→              <div className="rounded-lg bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/40 p-3">
+   888→                <p className="text-[10px] text-muted-foreground">إجمالي المرتجع</p>
+   889→                <p className="text-base font-bold text-rose-600 tabular-nums mt-1">
+   890→                  - {fmt.currency(Math.abs(returnTotal))}
+   891→                </p>
+   892→              </div>
+   893→              <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/40 p-3">
+   894→                <p className="text-[10px] text-muted-foreground">إجمالي الجديد</p>
+   895→                <p className="text-base font-bold text-emerald-600 tabular-nums mt-1">
+   896→                  + {fmt.currency(newTotal)}
+   897→                </p>
+   898→              </div>
+   899→              <div
+   900→                className={cn(
+   901→                  "rounded-lg p-3 border",
+   902→                  isCollect && "bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/40",
+   903→                  isRefund && "bg-sky-50 dark:bg-sky-950/20 border-sky-200 dark:border-sky-900/40",
+   904→                  isEven && "bg-muted/40 border-border"
+   905→                )}
+   906→              >
+   907→                <p className="text-[10px] text-muted-foreground">
+   908→                  {isCollect ? "يُتحصّل من العميل" : isRefund ? "يُرد للعميل" : "التبديل"}
+   909→                </p>
+   910→                <p
+   911→                  className={cn(
+   912→                    "text-base font-bold tabular-nums mt-1",
+   913→                    isCollect && "text-amber-700 dark:text-amber-400",
+   914→                    isRefund && "text-sky-700 dark:text-sky-400",
+   915→                    isEven && "text-muted-foreground"
+   916→                  )}
+   917→                >
+   918→                  {isEven ? "متعادل" : fmt.currency(Math.abs(netAmount))}
+   919→                </p>
+   920→              </div>
+   921→            </div>
+   922→
+   923→            <Button
+   924→              className="w-full h-11 gap-2 text-sm"
+   925→              onClick={handleCheckout}
+   926→              disabled={createMut.isPending || !hasItems}
+   927→            >
+   928→              {createMut.isPending ? (
+   929→                <Loader2 className="h-4 w-4 animate-spin" />
+   930→              ) : (
+   931→                <CheckCircle2 className="h-4 w-4" />
+   932→              )}
+   933→              اعتماد التبديل — {itemCount} صنف
+   934→            </Button>
+   935→          </CardContent>
+   936→        </Card>
+   937→      ) : null}
+   938→
+   939→      {/* ── Success modal with print button ── */}
+   940→      <Dialog open={!!lastExchange} onOpenChange={(o) => !o && setLastExchange(null)}>
+   941→        <DialogContent
+   942→          className="max-w-lg p-0 gap-0 flex flex-col max-h-[90vh] sm:max-h-[85vh] overflow-hidden"
+   943→          onPointerDownOutside={(e) => e.preventDefault()}
+   944→          onInteractOutside={(e) => e.preventDefault()}
+   945→          onEscapeKeyDown={(e) => e.preventDefault()}
+   946→        >
+   947→          <DialogHeader className="px-6 pt-6 pb-4 shrink-0 border-b border-border/60">
+   948→            <DialogTitle className="flex items-center gap-2 justify-center">
+   949→              <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+   950→              تم اعتماد التبديل
+   951→            </DialogTitle>
+   952→            <DialogDescription className="sr-only">
+   953→              عرض ملخص فاتورة التبديل المُنشأة حديثاً.
+   954→            </DialogDescription>
+   955→          </DialogHeader>
+   956→          {lastExchange ? (
+   957→            <>
+   958→              <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4">
+   959→                <div className="space-y-4">
+   960→                  <div className="text-center">
+   961→                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600">
+   962→                      <ArrowLeftRight className="h-8 w-8" />
+   963→                    </div>
+   964→                    <p className="mt-3 font-mono font-bold text-lg" dir="ltr">
+   965→                      {lastExchange.exchangeNo}
+   966→                    </p>
+   967→                    <p className="text-xs text-muted-foreground">{fmt.dateTime(lastExchange.createdAt)}</p>
+   968→                    {lastExchange.customerName ? (
+   969→                      <p className="text-xs text-muted-foreground mt-1">العميل: {lastExchange.customerName}</p>
+   970→                    ) : null}
+   971→                  </div>
+   972→
+   973→                  <div className="rounded-lg border border-border/60 overflow-hidden">
+   974→                    <table className="w-full text-sm">
+   975→                      <thead className="bg-muted/40">
+   976→                        <tr>
+   977→                          <th className="text-right p-2 font-medium">الصنف</th>
+   978→                          <th className="text-center p-2 font-medium">كمية</th>
+   979→                          <th className="text-center p-2 font-medium">إجمالي</th>
+   980→                        </tr>
+   981→                      </thead>
+   982→                      <tbody>
+   983→                        {lastExchange.lines.map((ln) => (
+   984→                          <tr key={ln.id} className="border-t border-border/40">
+   985→                            <td className="p-2">{ln.productName}</td>
+   986→                            <td
+   987→                              className={cn(
+   988→                                "p-2 text-center tabular-nums font-medium",
+   989→                                ln.quantity < 0 ? "text-rose-600" : "text-emerald-600"
+   990→                              )}
+   991→                            >
+   992→                              {ln.quantity > 0 ? `+${ln.quantity}` : ln.quantity}
+   993→                            </td>
+   994→                            <td
+   995→                              className={cn(
+   996→                                "p-2 text-center tabular-nums font-medium",
+   997→                                ln.lineTotal < 0 ? "text-rose-600" : "text-emerald-600"
+   998→                              )}
+   999→                            >
+  1000→                              {ln.lineTotal > 0
+  1001→                                ? `+ ${fmt.currency(Math.abs(ln.lineTotal))}`
+  1002→                                : `- ${fmt.currency(Math.abs(ln.lineTotal))}`}
+  1003→                            </td>
+  1004→                          </tr>
+  1005→                        ))}
+  1006→                      </tbody>
+  1007→                    </table>
+  1008→                  </div>
+  1009→
+  1010→                  <div className="space-y-1.5 text-sm">
+  1011→                    <Separator />
+  1012→                    <div className="flex justify-between items-center pt-1">
+  1013→                      <span className="font-semibold">
+  1014→                        {lastExchange.netAmount > 0
+  1015→                          ? "يُتحصّل من العميل"
+  1016→                          : lastExchange.netAmount < 0
+  1017→                          ? "يُرد للعميل"
+  1018→                          : "تبديل متعادل"}
+  1019→                      </span>
+  1020→                      <span
+  1021→                        className={cn(
+  1022→                          "text-xl font-bold tabular-nums",
+  1023→                          lastExchange.netAmount > 0
+  1024→                            ? "text-amber-700 dark:text-amber-400"
+  1025→                            : lastExchange.netAmount < 0
+  1026→                            ? "text-sky-700 dark:text-sky-400"
+  1027→                            : "text-muted-foreground"
+  1028→                        )}
+  1029→                      >
+  1030→                        {lastExchange.netAmount === 0
+  1031→                          ? "0"
+  1032→                          : fmt.currency(Math.abs(lastExchange.netAmount))}
+  1033→                      </span>
+  1034→                    </div>
+  1035→                    <p className="text-xs text-muted-foreground text-center pt-1">
+  1036→                      طريقة التسوية: {PAYMENT_LABELS[lastExchange.paymentMethod]}
+  1037→                    </p>
+  1038→                  </div>
+  1039→                </div>
+  1040→              </div>
+  1041→
+  1042→              <div className="shrink-0 border-t border-border/60 bg-background px-6 py-4">
+  1043→                <div className="flex gap-2">
+  1044→                  <Button
+  1045→                    variant="outline"
+  1046→                    className="flex-1 gap-2"
+  1047→                    onClick={() => printExchangeReceipt(lastExchange)}
+  1048→                  >
+  1049→                    <Printer className="h-4 w-4" />
+  1050→                    طباعة الإيصال
+  1051→                  </Button>
+  1052→                  <Button className="flex-1" onClick={() => setLastExchange(null)}>
+  1053→                    تبديل جديد
+  1054→                  </Button>
+  1055→                </div>
+  1056→              </div>
+  1057→            </>
+  1058→          ) : null}
+  1059→        </DialogContent>
+  1060→      </Dialog>
+  1061→
+  1062→      {/* ── Confirmation dialog (Ctrl+Enter to confirm; lone Enter blocked) ── */}
+  1063→      <AlertDialog
+  1064→        open={confirmOpen}
+  1065→        onOpenChange={(o) => {
+  1066→          if (!o && createMut.isPending) return
+  1067→          setConfirmOpen(o)
+  1068→        }}
+  1069→      >
+  1070→        <AlertDialogContent
+  1071→          className="max-w-md p-0 gap-0 overflow-hidden"
+  1072→          onPointerDownOutside={(e) => e.preventDefault()}
+  1073→          onInteractOutside={(e) => e.preventDefault()}
+  1074→          onKeyDown={handleDialogKeyDown}
+  1075→        >
+  1076→          <div className="px-6 pt-6 pb-4 shrink-0 border-b border-border/60 text-center">
+  1077→            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-amber-500/10 text-amber-600">
+  1078→              <AlertTriangle className="h-7 w-7" />
+  1079→            </div>
+  1080→            <AlertDialogTitle className="mt-3 text-lg font-bold">
+  1081→              تأكيد اعتماد التبديل
+  1082→            </AlertDialogTitle>
+  1083→            <AlertDialogDescription className="text-xs mt-1">
+  1084→              راجع تفاصيل التبديل قبل الاعتماد — لا يمكن التراجع بعد التأكيد.
+  1085→            </AlertDialogDescription>
+  1086→          </div>
+  1087→
+  1088→          <div className="px-6 py-4 space-y-3">
+  1089→            {sale ? (
+  1090→              <div className="flex items-center justify-between gap-2">
+  1091→                <span className="text-xs text-muted-foreground">الفاتورة الأصلية</span>
+  1092→                <Badge className="tabular-nums bg-primary/10 text-primary border-transparent font-mono">
+  1093→                  {sale.invoiceNo}
+  1094→                </Badge>
+  1095→              </div>
+  1096→            ) : null}
+  1097→            <div className="flex items-center justify-between gap-2">
+  1098→              <span className="text-xs text-muted-foreground">طريقة التسوية</span>
+  1099→              <Badge className="tabular-nums bg-primary/10 text-primary border-transparent">
+  1100→                {PAYMENT_LABELS[paymentMethod]}
+  1101→              </Badge>
+  1102→            </div>
+  1103→            {sale?.customerName ? (
+  1104→              <div className="flex items-center justify-between gap-2">
+  1105→                <span className="text-xs text-muted-foreground">العميل</span>
+  1106→                <span className="text-xs font-medium truncate max-w-[60%]">{sale.customerName}</span>
+  1107→              </div>
+  1108→            ) : null}
+  1109→            <div className="flex items-center justify-between gap-2">
+  1110→              <span className="text-xs text-muted-foreground">عدد الأصناف</span>
+  1111→              <span className="text-xs font-medium tabular-nums">{itemCount} صنف</span>
+  1112→            </div>
+  1113→
+  1114→            <Separator />
+  1115→
+  1116→            <div className="space-y-1.5 text-sm">
+  1117→              <div className="flex justify-between text-rose-600">
+  1118→                <span>إجمالي المرتجع</span>
+  1119→                <span className="tabular-nums">- {fmt.currency(Math.abs(returnTotal))}</span>
+  1120→              </div>
+  1121→              <div className="flex justify-between text-emerald-600">
+  1122→                <span>إجمالي الجديد</span>
+  1123→                <span className="tabular-nums">+ {fmt.currency(newTotal)}</span>
+  1124→              </div>
+  1125→            </div>
+  1126→
+  1127→            <Separator />
+  1128→
+  1129→            <div className="flex justify-between items-center pt-1">
+  1130→              <span className="font-bold">
+  1131→                {isCollect ? "يُتحصّل من العميل" : isRefund ? "يُرد للعميل" : "التبديل"}
+  1132→              </span>
+  1133→              <span
+  1134→                className={cn(
+  1135→                  "text-2xl font-bold tabular-nums",
+  1136→                  isCollect
+  1137→                    ? "text-amber-700 dark:text-amber-400"
+  1138→                    : isRefund
+  1139→                    ? "text-sky-700 dark:text-sky-400"
+  1140→                    : "text-muted-foreground"
+  1141→                )}
+  1142→              >
+  1143→                {isEven ? "متعادل" : fmt.currency(Math.abs(netAmount))}
+  1144→              </span>
+  1145→            </div>
+  1146→          </div>
+  1147→
+  1148→          <div className="shrink-0 border-t border-border/60 bg-muted/20 px-6 py-4">
+  1149→            <div className="flex gap-2">
+  1150→              <Button
+  1151→                variant="outline"
+  1152→                className="flex-1 gap-1.5 border-rose-300 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+  1153→                onClick={() => setConfirmOpen(false)}
+  1154→                disabled={createMut.isPending}
+  1155→              >
+  1156→                <X className="h-4 w-4" />
+  1157→                تراجع
+  1158→              </Button>
+  1159→              <Button
+  1160→                className="flex-1 gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700"
+  1161→                onClick={doConfirmExchange}
+  1162→                disabled={createMut.isPending}
+  1163→                title="اضغط هنا أو استخدم Ctrl+Enter"
+  1164→              >
+  1165→                {createMut.isPending ? (
+  1166→                  <Loader2 className="h-4 w-4 animate-spin" />
+  1167→                ) : (
+  1168→                  <CheckCircle2 className="h-4 w-4" />
+  1169→                )}
+  1170→                {createMut.isPending ? "جارٍ الاعتماد..." : "نعم، اعتماد التبديل"}
+  1171→              </Button>
+  1172→            </div>
+  1173→            <p className="text-[10px] text-muted-foreground text-center mt-2">
+  1174→              للاعتماد بالاختصار: اضغط{" "}
+  1175→              <kbd className="px-1 py-0.5 rounded bg-muted border border-border text-[9px] font-mono">Ctrl</kbd>{" "}
+  1176→              +{" "}
+  1177→              <kbd className="px-1 py-0.5 rounded bg-muted border border-border text-[9px] font-mono">Enter</kbd>
+  1178→            </p>
+  1179→          </div>
+  1180→        </AlertDialogContent>
+  1181→      </AlertDialog>
+  1182→    </div>
+  1183→  )
+  1184→}
+  1185→

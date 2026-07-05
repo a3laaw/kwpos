@@ -5,6 +5,7 @@ import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { ImagePlus, Loader2, X } from "lucide-react"
 import { useUploadImage } from "@/hooks/use-api"
+import { useT } from "@/components/i18n-context"
 
 interface ImageUploadProps {
   value?: string | null
@@ -21,6 +22,7 @@ interface ImageUploadProps {
  * returned public URL. Shows the current image with a remove button.
  */
 export function ImageUpload({ value, onChange, label, className, shape = "square" }: ImageUploadProps) {
+  const t = useT()
   const uploadMut = useUploadImage()
   const fileRef = React.useRef<HTMLInputElement>(null)
 
@@ -30,9 +32,9 @@ export function ImageUpload({ value, onChange, label, className, shape = "square
     try {
       const res = await uploadMut.mutateAsync(file)
       onChange(res.url)
-      toast.success("تم رفع الصورة")
+      toast.success(t.imageUploaded)
     } catch (err: any) {
-      toast.error("فشل رفع الصورة", { description: err?.message })
+      toast.error(t.imageUploadFailed, { description: err?.message })
     }
     if (fileRef.current) fileRef.current.value = ""
   }
@@ -76,9 +78,9 @@ export function ImageUpload({ value, onChange, label, className, shape = "square
           className="text-xs text-primary hover:underline"
           disabled={uploadMut.isPending}
         >
-          {value ? "تغيير الصورة" : "رفع صورة"}
+          {value ? t.changeImage : t.uploadImage}
         </button>
-        <p className="text-[10px] text-muted-foreground">PNG, JPG, WebP — حتى ٥ ميجا</p>
+        <p className="text-[10px] text-muted-foreground">{t.imageFormatsHint}</p>
       </div>
 
       <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />

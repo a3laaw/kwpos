@@ -21,6 +21,10 @@ import { CustomersView } from "@/components/customers/customers-view"
 import { AnalyticsView } from "@/components/analytics/analytics-view"
 import { ReportsView } from "@/components/reports/reports-view"
 import { SettingsView } from "@/components/settings/settings-view"
+import { ShiftView } from "@/components/shift/shift-view"
+import { SpotCheckView } from "@/components/spotcheck/spotcheck-view"
+import { ExchangeView } from "@/components/sales/exchange-view"
+import { PricingEngineView } from "@/components/pricing/pricing-engine-view"
 
 export type { SessionUser }
 
@@ -73,6 +77,10 @@ export function AppShell({
               {view === "reports" && <ReportsView />}
               {view === "accounting" && <AccountingView />}
               {view === "integrations" && <IntegrationsView />}
+              {view === "shifts" && <ShiftView />}
+              {view === "spotcheck" && <SpotCheckView />}
+              {view === "exchanges" && <ExchangeView />}
+              {view === "pricing" && <PricingEngineView />}
               {view === "settings" && <SettingsView />}
             </main>
             <footer className="mt-auto border-t border-border/70 bg-muted/30">
@@ -81,13 +89,13 @@ export function AppShell({
                   <span className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-primary">
                     <Boxes className="h-3.5 w-3.5" />
                   </span>
-                  <span>نظام المتجر — إدارة المبيعات والمخازن والمشتريات</span>
+                  <span>{t.appName} — {t.appTagline}</span>
                   <span className="text-base leading-none">{country.flag}</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <span>صُنع بـ</span>
+                  <span>{t.appMadeWith}</span>
                   <Heart className="h-3 w-3 fill-rose-500 text-rose-500" />
-                  <span>للمشاريع الصغيرة</span>
+                  <span>{t.appForSmallProjects}</span>
                 </div>
               </div>
             </footer>

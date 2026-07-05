@@ -1,0 +1,1016 @@
+     1→# Worklog — نظام إدارة المبيعات والمخازن والمشتريات
+     2→
+     3→This file tracks work done by the main agent and subagents on the Small Business ERP.
+     4→
+     5→---
+     6→Task ID: 0
+     7→Agent: main
+     8→Task: Project foundation (DB schema, auth, layout, types, seed, all API routes)
+     9→
+    10→Work Log:
+    11→- Installed `bcryptjs` + types.
+    12→- Wrote Prisma schema (User, Category, Supplier, Product, PurchaseOrder, PurchaseOrderItem, Sale, SaleItem) and ran `bun run db:push`.
+    13→- Configured NextAuth (credentials provider, JWT strategy, role on session/token) in `src/lib/auth.ts` + `[...nextauth]/route.ts`.
+    14→- Added `types/next-auth.d.ts` to augment session with `role`.
+    15→- Root layout: RTL (`dir="rtl"`, `lang="ar"`), Tajawal Arabic font, ThemeProvider (next-themes) + React Query provider.
+    16→- `globals.css`: emerald-based theme (light/dark), RTL scrollbar utilities, sidebar active nav styling.
+    17→- Shared libs: `src/lib/types.ts` (all API types), `src/lib/format.ts` (currency/date/invoice formatters), `src/lib/session.ts` (getCurrentUser, hasRole, ROLE_PERMISSIONS), `src/lib/serialize.ts` (Prisma→API mappers), `src/lib/store.ts` (Zustand: user + current view + sidebar).
+    18→- Seed route `POST /api/seed` (reset=true): 3 demo users (admin/sales/warehouse), 6 categories, 4 suppliers, 22 products, 2 purchase orders (1 received, 1 pending), 14 sales across last 7 days.
+    19→- API routes implemented (all under `src/app/api`):
+    20→  - `products` (GET list w/ search+filter, POST), `products/[id]` (GET, PUT, DELETE) — ADMIN/WAREHOUSE only for mutations.
+    21→  - `categories` (GET, POST).
+    22→  - `suppliers` (GET, POST), `suppliers/[id]` (PUT, DELETE w/ linked-guard).
+    23→  - `purchase-orders` (GET, POST), `purchase-orders/[id]` (GET, PUT, DELETE), `purchase-orders/[id]/receive` (POST → transactionally bumps inventory + sets RECEIVED).
+    24→  - `sales` (GET list, POST → transactional stock decrement + invoice no), `sales/[id]` (GET).
+    25→  - `dashboard` (GET → aggregated stats: total/today sales, counts, low-stock, inventory value, 7-day trend, top products, category distribution, recent sales).
+    26→- Demo credentials: admin@demo.com/***REMOVED***, sales@demo.com/***REMOVED***, warehouse@demo.com/***REMOVED***.
+    27→- Dev server started via `.zscripts/dev.sh` (PID persisted). Seed executed successfully (3 users, 22 products, 14 sales).
+    28→
+    29→Stage Summary:
+    30→- All backend APIs are ready and tested via curl. Database seeded.
+    31→- Frontend (login, app shell, sidebar, 4 feature views, dashboard) NOT yet built — to be done next.
+    32→- Conventions for subagents: use shadcn/ui from `src/components/ui/*`, import types from `@/lib/types`, format money with `formatCurrency` from `@/lib/format`, use TanStack Query for server state, `useAppStore` (Zustand) for view switching, toast via `sonner` (`toast(...)` from `@/components/ui/sonner`). Arabic RTL UI. Emerald theme already set. Single visible route is `/`.
+    33→
+    34→---
+    35→Task ID: FINAL
+    36→Agent: main
+    37→Task: Frontend views + end-to-end verification
+    38→
+    39→Work Log:
+    40→- Built all 6 view components:
+    41→  - DashboardView: KPI stat cards (total/today sales, products, low-stock), 7-day sales area chart (recharts), category distribution pie chart, top products w/ progress bars, low-stock alerts list, recent sales list, pending-purchases banner.
+    42→  - InventoryView: search + category filter + low-stock toggle, responsive table, CRUD via ProductFormDialog (margin calc), delete confirm, loading skeleton + empty states.
+    43→  - SuppliersView: card grid w/ contact info + counts, CRUD via SupplierFormDialog, delete w/ linked-guard handling.
+    44→  - PurchasesView: status filter, table, create PO dialog (dynamic line items w/ auto unit-cost prefill), receive action (transactional inventory bump), cancel, delete, detail dialog.
+    45→  - SalesView (POS): product grid w/ optimistic availability badges, cart w/ qty controls, customer/payment/discount/tax inputs, auto subtotal+tax+total, transactional checkout w/ stock validation, receipt dialog w/ print.
+    46→  - InvoicesView: searchable list, payment-method badges, detail dialog w/ full breakdown + print.
+    47→- Shared components: PageHeader, EmptyState, LoadingState/TableSkeleton, ConfirmDialog, StatCard.
+    48→- TanStack Query hooks (`src/hooks/use-api.ts`) for all entities + mutations w/ cache invalidation.
+    49→- page.tsx: server-side session gate → LoginScreen or AppShell.
+    50→
+    51→End-to-end verification (Agent Browser):
+    52→- Login (admin) → dashboard renders with charts + KPIs. ✓
+    53→- Inventory: table with Arabic numerals/currency, 22 seeded products. ✓
+    54→- POS: added 2 products → cart auto-calc 48 + 15% tax = 55.20 SAR → checkout → receipt INV-00015. ✓
+    55→- Inventory decrement verified: أرز 80→79, سكر 8→7. ✓
+    56→- Purchases: confirmed receipt of pending PO → status→مستلم, toast, inventory bumped. ✓
+    57→- Role-based access: warehouse user sees only Dashboard/Inventory/Purchases/Suppliers (no POS/Invoices). ✓
+    58→- Responsive: mobile drawer sidebar, adaptive table columns. ✓
+    59→- Sticky footer: short page footer at viewport bottom (844=844); long page footer pushed down (1739>844). ✓
+    60→- Dark mode toggle works. ✓
+    61→- No console/runtime errors; ESLint clean. ✓
+    62→- Fixed a11y warnings (added DialogDescription to 3 detail dialogs).
+    63→
+    64→Stage Summary:
+    65→- App fully functional and verified end-to-end. All requirements met.
+    66→- Demo credentials: admin@demo.com/***REMOVED***, sales@demo.com/***REMOVED***, warehouse@demo.com/***REMOVED***.
+    67→
+    68→---
+    69→Task ID: KUWAIT+SHOPIFY
+    70→Agent: main
+    71→Task: Adapt app to Kuwait + build Shopify integration module
+    72→
+    73→Work Log:
+    74→Kuwait adaptation:
+    75→- `src/lib/format.ts`: switched currency to KWD (3 decimals — fils), locale to ar-KW for currency/number/date. Added `DEFAULT_TAX_RATE = 0`.
+    76→- `src/app/api/seed/route.ts`: rewrote suppliers (4 Kuwaiti: شركة المركز للأغذية/حولي، مؤسسة الإمداد/الشويخ الصناعية، شركة التقنية الحديثة/الفروانية، بيت القرطاسية/السالمية) with +965 phones and .kw emails; repriced all 22 products in KWD (3-decimal); PO unit costs in KWD; sales tax = 0% (Kuwait has no VAT); discounts scaled to KWD.
+    77→- `src/components/sales/sales-view.tsx`: default tax rate 0 (was 15).
+    78→- `src/components/dashboard/dashboard-view.tsx`: chart subtitle → "دينار كويتي".
+    79→- Re-seeded (reset=true): 3 users, 22 products, 14 sales, total 306.955 KWD.
+    80→- Verified via browser: KWD formatting (٣٫١٠٠د.ك), tax=0 in POS, Kuwaiti suppliers render.
+    81→
+    82→Shopify integration (optional, admin-only):
+    83→- `src/lib/shopify.ts`: Shopify Admin REST helper (config check, fetch products, fetch orders). Reads SHOPIFY_STORE_DOMAIN + SHOPIFY_ACCESS_TOKEN from env.
+    84→- `.env`: added SHOPIFY_STORE_DOMAIN / SHOPIFY_ACCESS_TOKEN placeholders (empty by default).
+    85→- API routes (all admin-only):
+    86→  - `GET /api/shopify/status` — configured? + domain.
+    87→  - `POST /api/shopify/sync-products` — pulls Shopify products, upserts local inventory by barcode/SKU or name, auto-creates "Shopify" category.
+    88→  - `POST /api/shopify/import-orders` — pulls last 50 Shopify orders, creates local sales (invoiceNo = SHP-<id>, idempotent), matches line items to local products.
+    89→- New `AppView "integrations"` added to types + ADMIN permissions + nav item "التكاملات" (Plug icon).
+    90→- `src/components/integrations/integrations-view.tsx`: status badge, sync/import buttons with result summaries + error lists, and a 4-step setup guide (with link to Shopify dev apps) shown when not configured.
+    91→- AppShell routes `integrations` view.
+    92→
+    93→Verification:
+    94→- ESLint clean. Dev log clean (no errors). Browser: Integrations page renders "غير مُعد" + setup guide; dashboard shows KWD; POS tax=0; suppliers show +965 Kuwait phones.
+    95→
+    96→Stage Summary:
+    97→- DB stays as SQLite file at /home/z/my-project/db/custom.db (file-based, runs instantly). For multi-user production, switch DATABASE_URL to PostgreSQL/MySQL.
+    98→- Kuwait fully applied (KWD/ar-KW, no VAT, Kuwaiti seed data).
+    99→- Shopify integration ready — activates the moment the user adds their store domain + access token to .env and restarts.
+   100→
+   101→---
+   102→Task ID: HYDRATION-FIX
+   103→Agent: main
+   104→Task: Fix Radix useId hydration mismatch on reload
+   105→
+   106→Root cause:
+   107→- Zustand `persist` middleware hydrated the saved `view` (e.g. "inventory") from
+   108→  localStorage SYNCHRONOUSLY during store creation on the client.
+   109→- Server render used the default `view` ("dashboard") since localStorage is
+   110→  unavailable server-side.
+   111→- => client first render rendered a different component tree than the server
+   112→  HTML, which shifted every subsequent Radix `useId` identifier
+   113→  (radix-_R_27atplb_ vs radix-_R_8uatplb_) → React hydration mismatch error
+   114→  on the Topbar DropdownMenu trigger.
+   115→
+   116→Fix:
+   117→1. `src/lib/store.ts`: added `skipHydration: true` to the persist config so the
+   118→   store starts with the default `view` on both server and client (matching
+   119→   first render). Removed `user`/`setUser` from the store entirely.
+   120→2. `src/components/app-shell.tsx`: call `useAppStore.persist.rehydrate()` inside
+   121→   a `useEffect` so the persisted `view` is applied AFTER hydration completes
+   122→   (safe post-hydration update, no mismatch).
+   123→3. `src/components/user-context.tsx` (new): `UserProvider` + `useUser()` React
+   124→   context populated from the server-rendered `user` prop. This gives views
+   125→   synchronous access to the authenticated user (no `useEffect`/flash) and
+   126→   removes the need to mirror the user in Zustand.
+   127→4. Updated `inventory-view`, `purchases-view`, `suppliers-view` to use
+   128→   `useUser()` instead of `useAppStore((s) => s.user)`; `user.role` is now
+   129→   always defined (no more `?.`).
+   130→
+   131→Verification (Agent Browser):
+   132→- Logged in, navigated to Inventory (persists view), reloaded → no hydration
+   133→  error, page rendered correctly, persisted view re-applied after mount.
+   134→- Same for POS and Dashboard.
+   135→- `agent-browser errors` and `console` clean (no hydration/mismatch warnings).
+   136→- ESLint clean.
+   137→
+   138→Stage Summary:
+   139→- Hydration mismatch fully resolved. Persisted last-view navigation still works
+   140→  (applied safely post-hydration). User role available synchronously in views.
+   141→
+   142→---
+   143→Task ID: ACCOUNTING+CRM+ANALYTICS
+   144→Agent: main
+   145→Task: Build Module 1 (Accounting) + Module 2 (CRM & Analytics) with Shopify revenue ingestion
+   146→
+   147→DB schema additions (prisma/schema.prisma):
+   148→- Account: code (unique), name, type (ASSET|LIABILITY|EQUITY|REVENUE|EXPENSE), parentId (self-ref "AccountTree"), balance, isSystem
+   149→- ExpenseTransaction: type (SALARY|ADMIN), employeeName/payDate (salary), title/category/date (admin), amount, accountId (expense), paymentAccountId (asset credited), note
+   150→- Customer: name, phone, address, timestamps
+   151→
+   152→Seed additions (POST /api/seed reset=true):
+   153→- 6 simulated Shopify orders (tagged SHP-1001..1006, with Kuwaiti customer names) — feed P&L revenue + analytics.
+   154→- Chart of Accounts hierarchy: 5 root types + 12 child accounts (Cash 1850, Bank 4200, Accounts Payable 320, Capital 5000, Sales Revenue, Shopify Revenue, Salaries/Rent/Utilities/Subscriptions/Marketing/Other Expense).
+   155→- 8 expense transactions (3 salaries: 450+320+280; 5 admin: rent 250, utilities 65, shopify sub 18, marketing 40, office 12) — each transactionally updates account balances.
+   156→- 8 CRM customers (Kuwaiti names + +965 phones + addresses).
+   157→- Final counts: 20 sales, 17 accounts, 8 expenses, 8 customers.
+   158→
+   159→API routes (all new):
+   160→- GET/POST /api/accounts (tree builder w/ recursive subtree totals; create with parent-type inheritance)
+   161→- PUT/DELETE /api/accounts/[id] (system accounts + accounts w/ children/transactions protected)
+   162→- GET/POST /api/expenses (POST runs in a transaction: create entry + debit expense account + credit payment asset)
+   163→- DELETE /api/expenses/[id] (transactional reversal of balances)
+   164→- GET/POST /api/customers (CRUD), PUT/DELETE /api/customers/[id]
+   165→- GET /api/financial-reports (P&L: revenue from all sales incl SHP-, COGS from saleItems×costPrice, salaries+admin expenses, gross/net profit; date-range filter)
+   166→- GET /api/analytics (5 widgets: top-selling by qty+volume, stagnant by turnover ratio, most-expensive/cheapest by cost, highest-margin by abs(sale-cost); date range for sales-based)
+   167→
+   168→Frontend views:
+   169→- AccountingView (3 tabs): Chart of Accounts (collapsible tree w/ live balances, add root/child accounts), Expenses (Salary/Admin tabs form w/ OPTIMISTIC updates via qc.setQueryData + transactional list), P&L (headline net profit + full breakdown + expense-by-category bars).
+   170→- CustomersView: search + CRUD table + modal forms.
+   171→- AnalyticsView: date-range filter + 5 cards (top selling, stagnant, most/least expensive, highest margin) w/ progress bars & badges.
+   172→- New nav items (العملاء، تحليلات المبيعات، المحاسبة) + role permissions (accounting admin-only; customers+analytics for admin+sales).
+   173→
+   174→Verification (Agent Browser):
+   175→- Accounting → Chart of Accounts: 17 accounts render as tree with live balances (Assets 4615 KWD = Cash 1243 + Bank 3372 after expense deductions). ✓
+   176→- Expenses: recorded a new salary "محمد التجريبي 200 KWD" — list updated INSTANTLY (optimistic) + toast success + no errors. ✓
+   177→- P&L: Revenue 395.750 (incl Shopify), COGS 247.870, Gross 147.880, Salaries 1250 (incl new), Net -1487.120 — math correct. ✓
+   178→- Customers: 8 seeded customers w/ names/phones/addresses render in table. ✓
+   179→- Analytics: all 5 widgets render (top-selling: دفتر A4, أرز بسمتي; most expensive: مكنسة, طقم أواني). ✓
+   180→- Mobile (iPhone 14): accounting tabs collapse to compact labels, layout responsive. ✓
+   181→- Reload: NO hydration errors, sticky footer pushed below content (top 1753 > vh 577). ✓
+   182→- ESLint clean, dev log clean.
+   183→
+   184→Stage Summary:
+   185→- Both new modules fully functional and verified end-to-end.
+   186→- Shopify revenue ingestion via simulated SHP- tagged sales (real Shopify sync already exists in /api/shopify/import-orders which creates SHP-<id> sales — same mechanism).
+   187→- P&L pulls revenue from all sales (POS + Shopify), subtracts COGS + salaries + admin expenses → true net profit.
+   188→
+   189→---
+   190→Task ID: PRINT+UNITS+CATEGORIES
+   191→Agent: main
+   192→Task: Print system (thermal/A4/barcode) + Units & Categories settings + fix stale-session POS
+   193→
+   194→Fixes:
+   195→- Removed debug console.log from sales route.
+   196→- Fixed POS 500 error (was caused by stale session after re-seed; logout+login resolves).
+   197→- Verified fresh session: sale INV-00021 → POST 201 + journal entry JE-00002 auto-created. Trial balance stays balanced.
+   198→
+   199→Print system (src/lib/print.ts):
+   200→- `printThermalReceipt(sale)` — 80mm thermal receipt (store header, invoice #, items table, totals, barcode of invoice #, footer). @page size: 80mm auto.
+   201→- `printA4Invoice(sale)` — full A4 invoice (branded header with store info + VAT#, customer/seller parties block, items table with #/name/qty/price/total, totals box with grand total, footer). Professional emerald design.
+   202→- `printBarcodeLabels(products, copies)` — A4 sheet of 3-column barcode labels (Code 39 font) with store name, product name, price, and scannable barcode.
+   203→- All three open a dedicated print window with proper @page CSS and auto-trigger window.print().
+   204→- Store info (name/address/phone/vat#) stored in localStorage key "erp-store-info" (configurable later).
+   205→
+   206→Print buttons wired:
+   207→- POS receipt dialog → "طباعة حرارية" (thermal 80mm).
+   208→- Invoices detail dialog → "طباعة الفاتورة (A4)".
+   209→- Inventory header → "طباعة باركود" (prints barcode labels for all visible products).
+   210→
+   211→Units of measure (DB + API + UI):
+   212→- New `Unit` model (id, name unique, createdAt). db:push'd.
+   213→- API: GET/POST /api/units (admin-only POST), DELETE /api/units/[id] (admin-only).
+   214→- Seed: 11 default units (قطعة، كيلو، جرام، علبة، كيس، زجاجة، كرتون، رزمة، طقم، لتر، متر).
+   215→- Hooks: useUnits, useCreateUnit, useDeleteUnit.
+   216→- Product form: unit field changed from free-text Input to a Select dropdown populated from units (with fallback warning if the product's existing unit isn't in the list).
+   217→- Settings page: "وحدات القياس" card with add (pill input) + delete (X on each pill) — verified adding "صندوق" works.
+   218→
+   219→Categories management:
+   220→- Settings page: "التصنيفات" card showing all categories as pills + add form. Uses existing useCategories/useCreateCategory hooks.
+   221→
+   222→Verification (Agent Browser):
+   223→- Settings: 11 units render as pills + 6 categories render. Added "صندوق" unit successfully (toast + appeared). ✓
+   224→- Product form: unit field is now a dropdown showing "قطعة" by default. ✓
+   225→- Inventory: "طباعة باركود" button opens print window titled "ملصقات باركود" with all product names. ✓
+   226→- POS: checkout → receipt dialog → "طباعة حرارية" opens window titled "إيصال INV-00021" with store/items/barcode. ✓
+   227→- Invoices: detail → "طباعة الفاتورة (A4)" opens window titled "فاتورة INV-00021" with full A4 layout. ✓
+   228→- No errors, no hydration mismatch, ESLint clean. ✓
+   229→
+   230→Stage Summary:
+   231→- 3 print formats working (thermal 80mm, A4 invoice, barcode labels A4).
+   232→- Units & categories fully manageable from Settings (admin-only mutations).
+   233→- POS customer auto-registration by phone confirmed working (INV-00021).
+   234→- Journal entries auto-generated on every sale (double-entry balanced).
+   235→
+   236→---
+   237→Task ID: STALE-SESSION-FIX
+   238→Agent: main
+   239→Task: Root-cause fix for FK constraint error on tx.sale.create() after re-seed
+   240→
+   241→Root cause:
+   242→- Every `POST /api/sales` with a stale session cookie failed with
+   243→  "Foreign key constraint violated on the foreign key" (Prisma P2003) on
+   244→  `tx.sale.create()`. The session JWT held the user id from BEFORE a re-seed,
+   245→  but re-seeding deleted + recreated users with NEW cuid() ids — so the sale's
+   246→  `userId` FK pointed at a non-existent user.
+   247→
+   248→Fix (two layers):
+   249→1. **Stable user IDs in seed** (`src/app/api/seed/route.ts`): demo users now use
+   250→   fixed ids (`user-admin-demo`, `user-sales-demo`, `user-warehouse-demo`) instead
+   251→   of random cuids. After a re-seed, the existing session JWT still references a
+   252→   valid user id → sales work without re-login.
+   253→2. **Defensive session check in sales route** (`src/app/api/sales/route.ts`):
+   254→   before the transaction, `db.user.findUnique({ where: { id: user.id } })`.
+   255→   If the user no longer exists (truly stale session), return
+   256→   `{ error: "session-expired" }` (401) instead of a cryptic FK error.
+   257→3. **Frontend auto-logout on session-expired** (`src/components/sales/sales-view.tsx`):
+   258→   the checkout catch block detects `session-expired`, shows a toast, and calls
+   259→   `signOut()` + reload after 1.5s — so the user is gracefully sent back to
+   260→   login instead of seeing a raw error.
+   261→
+   262→Verification (Agent Browser):
+   263→- Logged in → re-seeded (reset=true) → went straight to POS → added product →
+   264→  checked out → **sale succeeded (INV-00021, POST 201) WITHOUT logging out**.
+   265→  Previously this exact flow threw the FK error. ✓
+   266→- No errors, no hydration mismatch, ESLint clean. ✓
+   267→
+   268→Stage Summary:
+   269→- The FK error is permanently resolved. Re-seeding no longer breaks the POS.
+   270→- Two safety nets: stable IDs (primary) + defensive check + auto-logout (fallback).
+   271→
+   272→---
+   273→Task ID: PRINT-FIX-THERMAL
+   274→Agent: main
+   275→Task: Fix thermal receipt printing (barcode not rendering + garbled date + width)
+   276→
+   277→Root cause (from user-uploaded screenshot of actual print):
+   278→1. Barcode showed as plain text "*INV-00023*" instead of vertical lines — the
+   279→   "Libre Barcode 39" font was referenced in CSS but never LOADED (no <link>
+   280→   to Google Fonts in the print window), so it fell back to monospace text.
+   281→2. Date was garbled ("2026/7/3" / "10/42:43") — used `toLocaleString("ar")`
+   282→   which is locale-dependent and produces inconsistent output across browsers.
+   283→3. Receipt was slightly too wide and had a duplicated/empty "العميل" field.
+   284→
+   285→Fix (src/lib/print.ts):
+   286→1. **Font loading**: added <link> tags for Google Fonts (Libre Barcode 39 +
+   287→   Tajawal) in ALL three print templates (thermal, A4, barcode labels).
+   288→2. **Font-ready printing**: `openPrintWindow` now waits for `document.fonts.ready`
+   289→   before triggering `window.print()` — guarantees the barcode font is loaded
+   290→   so it renders as actual vertical bars, not text.
+   291→3. **Date formatting**: replaced `toLocaleString("ar")` with explicit
+   292→   `Intl.DateTimeFormat("ar-EG", {...})` producing "٣ يوليو ٢٠٢٦ في ٠٧:٤٨ ص".
+   293→4. **Width**: set `html, body { width: 80mm; max-width: 80mm; }` + tighter
+   294→   padding (3mm 2mm) + smaller font sizes for a true 80mm thermal fit.
+   295→5. **Layout**: fixed duplicated field, cleaner info section, added barcode
+   296→   code text under the bars.
+   297→
+   298→Verification (Agent Browser + VLM):
+   299→- Printed thermal receipt INV-00024 → screenshot analyzed by vision model:
+   300→  "الباركود يظهر كخطوط عمودية حقيقية (قابل للمسح)" ✓
+   301→  "العرض مناسب لطابعة حرارية 80mm (ضيق)" ✓
+   302→- DOM snapshot confirms date = "٣ يوليو ٢٠٢٦ في ٠٧:٤٨ ص" (no longer garbled) ✓
+   303→- ESLint clean.
+   304→
+   305→Stage Summary:
+   306→- Thermal receipt now prints with real scannable barcode, correct Arabic
+   307→  date, and proper 80mm width. A4 invoice + barcode labels also load fonts.
+   308→
+   309→---
+   310→Task ID: LATIN-NUMBERS+FILTERS
+   311→Agent: main
+   312→Task: Latin digits (0123) everywhere + date-range filters on reports
+   313→
+   314→Latin numbers fix:
+   315→- `src/lib/format.ts`: all formatters now use locale `ar-KW-u-nu-latn` (Arabic
+   316→  text/months + Latin 0123 digits). `toFormatLocale` appends `-u-nu-latn` to
+   317→  the country's base locale.
+   318→- `src/components/currency-context.tsx`: `useFmt().number/date/dateTime` now
+   319→  pass the latinized locale (was passing raw `country.locale` → Arabic digits).
+   320→- `src/lib/print.ts`: `fmtNum` + all date formatters switched to `ar-KW-u-nu-latn`.
+   321→- `src/components/analytics/analytics-view.tsx`: `toLocaleDateString("ar-KW")` →
+   322→  `ar-KW-u-nu-latn`.
+   323→- Verified across dashboard, inventory, trial balance: 408.050, 77 كيس,
+   324→  648.300, 2,544.000 — all Latin digits. ✓
+   325→
+   326→Dashboard date-range filter:
+   327→- `GET /api/dashboard` now accepts `?from=&to=&range=` query params. Total
+   328→  sales, sales count, sales trend, and top products are all scoped to the
+   329→  selected period. Quick ranges: 7/30/90/365 days. Explicit from/to override.
+   330→  Trend chart fills missing days with 0 for a continuous line.
+   331→- `useDashboard(from, to, range)` hook updated.
+   332→- `DashboardView` now renders a filter bar (date inputs + quick-range select +
+   333→  apply/reset buttons + active-range badge). Trend chart subtitle shows range.
+   334→- Verified: switched from "آخر 30 يوم" → "آخر 7 أيام" → numbers + badge +
+   335→  chart subtitle updated correctly.
+   336→
+   337→Verification (Agent Browser):
+   338→- Dashboard: 408.050 KWD (Latin) + filter bar works + badge updates. ✓
+   339→- Inventory: "77 كيس" (Latin 77). ✓
+   340→- Trial balance: 648.300 / 2,544.000 (Latin) + "متوازن ✓". ✓
+   341→- No errors, no hydration mismatch, ESLint clean. ✓
+   342→
+   343→Stage Summary:
+   344→- All numbers across the app now use Latin digits (0123) while keeping Arabic
+   345→  text, month names, and currency symbols.
+   346→- Dashboard + analytics + P&L + trial balance all support date-range filtering.
+   347→
+   348→---
+   349→Task ID: COLOR-PALETTE-APPLY
+   350→Agent: main
+   351→Task: Apply user-uploaded color palette to the entire system
+   352→
+   353→Palette (from /home/z/my-project/upload/color-palette.jpg, analyzed via VLM):
+   354→- Primary blue: #055BE5
+   355→- Aqua green accent: #5CDE9D
+   356→- Dark teal (sidebar): #185B6B
+   357→- White background: #FFFFFF
+   358→
+   359→Changes (src/app/globals.css):
+   360→- `:root` light theme: primary = oklch(0.54 0.22 264) [#055BE5], accent =
+   361→  oklch(0.84 0.14 162) [#5CDE9D], sidebar = oklch(0.38 0.06 220) [#185B6B],
+   362→  background = oklch(0.99 0.004 240) [white]. All chart colors, ring, border,
+   363→  sidebar-primary/accent updated to match.
+   364→- `.dark` theme: primary lightened to oklch(0.65 0.2 264), accent stays aqua,
+   365→  sidebar very dark teal.
+   366→- Dashboard PIE_COLORS array → [#055BE5, #5CDE9D, #185B6B, ...].
+   367→- Dashboard area chart gradient + stroke → #055BE5 (was emerald #10b981).
+   368→- Login screen branding glow → bg-[#5CDE9D] (was emerald-400); demo-account
+   369→  tone → text-[#055BE5]/[#5CDE9D].
+   370→
+   371→Kept semantic emerald usages (success/positive indicators: POS receipt success
+   372→icon, positive net profit color, received PO status, cash payment badge) —
+   373→green = good is a universal convention; only the BRAND identity changed.
+   374→
+   375→Verification (Agent Browser + VLM):
+   376→- Login screen: "اللون الأساسي هو الأزرق، الشريط الجانبي أزرق غامق" ✓
+   377→- Dashboard: "الشريط الجانبي أزرق غامق/تيركواز داكن، الأزرار أزرق #055BE5،
+   378→  الرسم البياني أزرق #055BE5" ✓
+   379→- Aqua accent: "عناصر باللون الأخضر المائي #5CDE9D في الأيقونات النشطة" ✓
+   380→- No errors, ESLint clean. ✓
+   381→
+   382→Stage Summary:
+   383→- Full brand color migration from emerald to the user's blue/aqua/teal palette.
+   384→
+   385→---
+   386→Task ID: REPORTS-REDESIGN+SETTINGS-MODERN
+   387→Agent: main
+   388→Task: Redesigned reports page with modern filters + modernized settings (units/categories)
+   389→
+   390→New Reports module:
+   391→- `GET /api/reports` — unified filterable report endpoint. Accepts: from, to,
+   392→  productId, categoryId, paymentMethod, source (POS|SHOPIFY). Returns summary
+   393→  KPIs (revenue, cost, gross profit, margin, discount, tax, count, items, avg)
+   394→  + breakdowns by day, by product, by category, by payment method + catalog
+   395→  (products/categories) for filter dropdowns.
+   396→- `useReport(filters)` hook.
+   397→- `ReportsView` (`src/components/reports/reports-view.tsx`) — modern dashboard:
+   398→  - Filter bar (card with border-primary/20): date from/to, quick-range buttons
+   399→    (7/30/90 days), category select, product select, payment-method select,
+   400→    source select (POS/Shopify), apply + reset buttons, active-filter count badge.
+   401→  - 4 summary KPI StatCards (revenue, cost, profit, avg sale).
+   402→  - Revenue trend area chart (blue gradient) + payment-method pie chart with legend.
+   403→  - Category breakdown bar chart (revenue + profit bars).
+   404→  - Product breakdown table (name, category, qty, revenue, cost, profit).
+   405→  - Print/export button.
+   406→- Added "reports" to AppView, nav-config (FileBarChart icon), role permissions
+   407→  (admin + sales), AppShell routing.
+   408→
+   409→Settings redesign (`src/components/settings/settings-view.tsx`):
+   410→- Units manager: modern grid layout (3-4 cols) with icon chips, delete-on-hover
+   411→  (X button appears top-left on hover), search when > 4 units, add form.
+   412→- Categories manager: pill badges with primary border, search when > 4, add form.
+   413→- Current-config card: gradient background (from-primary/5), 4 config cells.
+   414→
+   415→Verification (Agent Browser):
+   416→- Reports: filter bar with 6 filters + quick ranges; applied "نقدي" payment
+   417→  filter → revenue dropped 408.050 → 47.250 KWD (9 cash invoices), "1 مفعّل"
+   418→  badge appeared. ✓
+   419→- KPIs: 408.050 revenue, 256.270 cost, 151.780 profit — math correct. ✓
+   420→- Settings: units grid (قطعة، كيلو، جرام...) + categories pills + search. ✓
+   421→- No errors, no hydration mismatch, ESLint clean. ✓
+   422→
+   423→Stage Summary:
+   424→- New modern Reports page with 6 filter dimensions + 4 KPIs + 3 charts + table.
+   425→- Settings redesigned (units grid + categories pills + search).
+   426→- Note: existing modules (inventory, purchases, suppliers, accounting) remain
+   427→  intact. Awaiting user clarification on "لا أريد إدخال الأصناف في المخازن".
+   428→
+   429→---
+   430→Task ID: MULTI-WAREHOUSE+PRODUCT-ENTRY
+   431→Agent: main
+   432→Task: Upgrade inventory to multi-warehouse + enhanced product entry panel
+   433→
+   434→DB schema changes (prisma/schema.prisma):
+   435→- New `Warehouse` model (id, name, code, location, isActive) with relations to
+   436→  StockItem + PurchaseOrder ("POWarehouse").
+   437→- New `StockItem` join model (productId, warehouseId, quantity) with
+   438→  @@unique([productId, warehouseId]) — a product can live in many warehouses.
+   439→- `Product` gained `unitId` (FK to Unit) + `stockItems` relation.
+   440→- `PurchaseOrder` gained optional `warehouseId` (destination warehouse).
+   441→- `Unit` gained back-relation `products`.
+   442→- db:push'd; client regenerated; server restarted.
+   443→
+   444→API:
+   445→- `GET/POST /api/warehouses`, `PUT/DELETE /api/warehouses/[id]` (admin/warehouse
+   446→  for mutations; delete guarded against non-empty stock).
+   447→- `GET /api/products` now includes `stockItems { include warehouse }` + accepts
+   448→  `?warehouseId=` filter.
+   449→- `POST /api/products` accepts `warehouseStock: [{warehouseId, quantity}]` and
+   450→  creates StockItem rows; total quantity auto-computed.
+   451→- `PUT /api/products/[id]` includes stockItems in response.
+   452→- `serializeProduct` now returns `stockByWarehouse[]`; new `serializeWarehouse`.
+   453→
+   454→Hooks: useWarehouses, useCreateWarehouse, useUpdateWarehouse, useDeleteWarehouse.
+   455→
+   456→UI:
+   457→- `WarehouseFormDialog` — add/edit warehouse (name, code, location).
+   458→- `WarehouseManager` — card grid showing each warehouse (icon, code, location,
+   459→  productsCount badge, totalStock badge, isActive) + add/edit/delete actions.
+   460→- `InventoryView` now has 2 tabs: "الأصناف" (existing products table) + "المخازن"
+   461→  (WarehouseManager).
+   462→- `ProductFormDialog` enhanced: renamed quantity → "الكمية الإجمالية" + added
+   463→  "توزيع الكمية على المخازن" section — a grid of inputs (one per warehouse)
+   464→  with live running total; shows warning if warehouse sum ≠ total. Edit mode
+   465→  pre-fills from product.stockByWarehouse.
+   466→
+   467→Seed: 3 warehouses created (WH-01 الرئيسي, WH-02 الفرع السالمية, WH-03 الإلكترونيات).
+   468→Food/drink products split across WH-01+WH-02; electronics in WH-01; rest in WH-01.
+   469→
+   470→Verification (Agent Browser):
+   471→- Inventory shows 2 tabs (الأصناف + المخازن). ✓
+   472→- Warehouses tab: 3 warehouse cards with codes (WH-01/02/03) + counts. ✓
+   473→- Product form: "توزيع الكمية على المخازن" section with 3 warehouse inputs +
+   474→  live total. ✓
+   475→- No errors, no hydration mismatch, ESLint clean. ✓
+   476→
+   477→Stage Summary:
+   478→- Inventory upgraded to multi-warehouse with per-warehouse stock distribution.
+   479→- Enhanced product entry panel with warehouse allocation.
+   480→- Shopify sync can optionally push to a specific warehouse (future enhancement).
+   481→
+   482→---
+   483→Task ID: ANALYTICS-TABS-REDESIGN
+   484→Agent: main
+   485→Task: Redesign analytics into separate tabs with richer charts
+   486→
+   487→AnalyticsView rewritten (src/components/analytics/analytics-view.tsx):
+   488→- 4 separate tabs (was one page with 5 cards):
+   489→  1. **الأكثر مبيعاً** — 3 KPIs (total qty sold, total revenue, top product) +
+   490→     horizontal bar chart (ranked by quantity) + ranked product table with
+   491→     progress bars.
+   492→  2. **الأصناف الراكدة** — 3 KPIs (never-sold count, slow-turnover count,
+   493→     stuck stock value) + table with turnover-ratio bars + status badges
+   494→     (لم يُبع / بطيء) + stuck-value column.
+   495→  3. **التكلفة** — 3 KPIs (highest, lowest, average cost) + 2 side-by-side
+   496→     horizontal bar charts (most expensive rose / cheapest aqua).
+   497→  4. **الربحية** — 3 KPIs (highest margin, avg margin %, profitable count) +
+   498→     donut pie chart of margin distribution with legend + ranked table with
+   499→     margin-% badges (green ≥50%).
+   500→- Shared date-range filter bar appears only for sales-based tabs (top +
+   501→  stagnant) with quick-range buttons (7/30/90 days) + apply/reset.
+   502→- Reusable `ProductRankTable` component (rank badges, metric column, optional
+   503→  extra column, progress bars).
+   504→- All charts use the brand palette (#055BE5 blue, #5CDE9D aqua, #185B6B teal).
+   505→
+   506→Verification (Agent Browser):
+   507→- 4 tabs render: الأكثر مبيعاً / الأصناف الراكدة / التكلفة / الربحية. ✓
+   508→- Top-selling: KPIs + bar chart + table (دفتر A4, أرز بسمتي). ✓
+   509→- Stagnant: KPIs + table with "لم يُبع"/"بطيء" badges + turnover bars. ✓
+   510→- Cost: KPIs + 2 charts (most/least expensive). ✓
+   511→- Margin: KPIs + pie chart + table with margin-% badges. ✓
+   512→- No errors, no hydration mismatch, ESLint clean. ✓
+   513→
+   514→Stage Summary:
+   515→- Analytics upgraded from a single dense page to 4 focused, filterable tabs
+   516→  with richer visualizations (bar charts, donut, ranked tables, progress bars).
+   517→
+   518→---
+   519→Task ID: ANALYTICS-CARD-SELECTOR+OVERVIEW
+   520→Agent: main
+   521→Task: Redesign analytics with clickable colored cards + overview tab (proposal ②④)
+   522→
+   523→AnalyticsView rebuilt (src/components/analytics/analytics-view.tsx):
+   524→- Replaced horizontal TabsList with a row of 5 clickable colored "report cards"
+   525→  (the new navigation):
+   526→  1. نظرة عامة (LayoutGrid icon, primary)
+   527→  2. الأكثر مبيعاً (TrendingUp, blue #055BE5) — shows "81 وحدة مباعة"
+   528→  3. الأصناف الراكدة (PackageX, amber) — shows "1 صنف لم يُبع"
+   529→  4. التكلفة (Coins, rose) — shows "8 صنف مُحلّل"
+   530→  5. الربحية (Percent, aqua #5CDE9D) — shows "8 صنف رابح"
+   531→  Each card shows a mini KPI + hint + colored icon badge. Active card gets
+   532→  ring-2 ring-primary + filled dot.
+   533→- New "Overview" tab: 4 KPIs (total qty, revenue, stagnant count, avg margin) +
+   534→  2 side-by-side mini charts (top-6 bar chart + margin donut) + 4 navigation
+   535→  cards linking to the detailed reports.
+   536→- Reusable MiniStat + NavCard + OverviewKpi components.
+   537→- Date-range filter bar shows for overview + sales tabs.
+   538→- Each detailed tab keeps its rich charts/tables (unchanged content).
+   539→
+   540→Verification (Agent Browser + VLM):
+   541→- 5 clickable cards render with KPIs (81 وحدة, 1 راكد, 8 صنف...). ✓
+   542→- Overview tab: 4 KPIs + 2 charts + 4 nav cards. ✓
+   543→- Clicking a card switches the report content. ✓
+   544→- VLM confirmed: "5 بطاقات نقرية ملوّنة، KPIs مختصرة، نظرة عامة برسوم،
+   545→  ألوان متناسقة". ✓
+   546→- No errors, no hydration mismatch, ESLint clean. ✓
+   547→
+   548→Stage Summary:
+   549→- Analytics upgraded from horizontal tabs to modern clickable card selector +
+   550→  overview dashboard. More scalable, more visual, mobile-friendly.
+   551→
+   552→---
+   553→Task ID: ACCOUNTING+EXCEL+MANUAL-JE+PURCHASE-JE
+   554→Agent: main
+   555→Task: Comprehensive accounting + Excel import/export + manual journals + purchase-receive journal
+   556→
+   557→Audit findings (honest assessment):
+   558→- ✅ Sale journal: created automatically on POS checkout (debit Cash/Bank, credit Revenue + Tax).
+   559→- ✅ Expense journal: created on salary/admin expense entry (debit Expense, credit Cash/Bank).
+   560→- ✅ Financial reports: P&L, Trial Balance, Journal entries — all present.
+   561→- ✅ Manual journal: label existed in UI but NO creation form — GAP (now fixed).
+   562→- ❌ Purchase receive: only bumped inventory, NO journal entry — GAP (now fixed).
+   563→- ❌ Excel export/import: not present — GAP (now added).
+   564→
+   565→Fixes implemented:
+   566→
+   567→1. **Purchase-receive journal** (`src/app/api/purchase-orders/[id]/receive/route.ts`):
+   568→   On receiving a PO, now generates a double-entry journal:
+   569→   - Debit Inventory (1010) for the PO total
+   570→   - Credit Accounts Payable (2010) for the PO total
+   571→   So stock receipts now hit the books automatically.
+   572→
+   573→2. **Manual journal entry** (new):
+   574→   - `POST /api/journal-entries/manual` — admin-only, validates balanced lines.
+   575→   - `ManualJournalDialog` component — multi-line entry with account dropdown,
+   576→     debit/credit inputs, live running totals, balance check (green/red),
+   577→     date + description. Added "قيد يدوي" button to the journal tab.
+   578→
+   579→3. **Excel export** (new, server-side with `xlsx`):
+   580→   - `GET /api/excel/export?type=sales|products|journal|customers|suppliers`
+   581→     with optional `from`/`to` date filter for sales/journal.
+   582→   - Generates proper .xlsx with Arabic headers, downloads as attachment.
+   583→   - `ExcelExportButton` component — added to invoices (sales), inventory
+   584→     (products), customers, and journal tab.
+   585→
+   586→4. **Excel import** (new):
+   587→   - `POST /api/excel/import-products` — parses .xlsx, matches by barcode
+   588→     then name (existing → update, new → create), category matched by name.
+   589→   - `POST /api/excel/import-customers` — matches by phone then name.
+   590→   - `ExcelImportButton` component — dropdown with "رفع ملف Excel" + "تنزيل
+   591→     قالب فارغ" (downloads a template with the right column headers).
+   592→     Added to inventory (products) and customers.
+   593→
+   594→5. **`src/lib/excel.ts`** helper: `exportToExcel`, `parseExcelFile`,
+   595→   `downloadTemplate` utilities.
+   596→
+   597→Product entry clarification: new products can be added via (a) the product
+   598→form (with warehouse stock distribution), (b) Excel import, or (c) a purchase
+   599→order (existing products only — a PO line references an existing productId).
+   600→For truly new products, the merchant adds them once via the form or import,
+   601→then reorders them via POs.
+   602→
+   603→Verification (Agent Browser):
+   604→- Accounting → القيود tab: "قيد يدوي" button + "Excel" export button visible. ✓
+   605→- Manual journal dialog opens with multi-line entry + balance check. ✓
+   606→- Inventory: "استيراد" (dropdown: رفع ملف/تنزيل قالب) + "تصدير" buttons. ✓
+   607→- Invoices: "تصدير" Excel button. ✓
+   608→- Customers: "استيراد" + "تصدير" buttons. ✓
+   609→- Existing journal entries render (JE-00001 sale). ✓
+   610→- No errors, no hydration mismatch, ESLint clean. ✓
+   611→
+   612→Stage Summary:
+   613→- All accounting flows now generate journals (sale + expense + purchase receive + manual).
+   614→- Full Excel support: export (sales/products/journal/customers/suppliers) + import (products/customers) + template download.
+   615→- Manual journal entry form for ad-hoc adjustments.
+   616→
+   617→---
+   618→Task ID: I18N+ACCOUNTING-CARDS
+   619→Agent: main
+   620→Task: Bilingual AR/EN with RTL/LTR switch + accounting card selector (same style as analytics)
+   621→
+   622→i18n system (new):
+   623→- `src/lib/i18n.ts` — Dict interface + full AR/EN dictionaries (nav labels,
+   624→  page titles, roles, common actions, login screen, theme/lang toggles).
+   625→- `src/components/i18n-context.tsx` — I18nProvider (locale persisted in
+   626→  localStorage "erp-locale"), `useI18n()` + `useT()` hooks, keeps
+   627→  `<html dir/lang>` in sync with active locale. Starts with AR (matches
+   628→  server-rendered dir/lang) to avoid hydration mismatch.
+   629→- `Providers` wraps app in I18nProvider.
+   630→
+   631→Language toggle + RTL/LTR:
+   632→- New `LangToggle` button (Languages icon) in Topbar — toggles AR↔EN.
+   633→- Button label shows the TARGET language ("English" when in AR, "العربية"
+   634→  when in EN).
+   635→- `document.documentElement.dir` switches rtl↔ltr; `lang` switches ar↔en.
+   636→- Sidebar border switched from `border-l` to `border-s` (logical property,
+   637→  auto-flips with dir).
+   638→- Nav active chevron uses `rtl:rotate-0 ltr:rotate-180` to point correctly
+   639→  in both directions.
+   640→- Nav text alignment uses `text-start` (logical) instead of `text-right`.
+   641→
+   642→nav-config refactor:
+   643→- Replaced `label: string` with `labelKey: keyof Dict`.
+   644→- Added `VIEW_META` map (view → titleKey/descKey) for Topbar title.
+   645→- NavLinks, Brand, UserCard, Topbar, user menu now use `useT()` for all
+   646→  labels (nav items, app name/tagline, role labels, logout).
+   647→
+   648→Accounting card selector (same style as analytics):
+   649→- `AccountingView` rewritten: replaced horizontal TabsList with 5 clickable
+   650→  colored cards (شجرة الحسابات/المصروفات/القيود/الأرباح/الميزان) — each with
+   651→  icon badge, KPI/hint, active ring. "شجرة الحسابات" shows "17 حساب" as KPI.
+   652→- Same visual language as the Analytics card selector.
+   653→
+   654→Verification (Agent Browser):
+   655→- Lang toggle: clicked "English" → dir=ltr, lang=en, nav=Dashboard/Inventory/
+   656→  Customers/Settings, title="Dashboard". ✓
+   657→- Clicked "العربية" → dir=rtl, lang=ar restored. ✓
+   658→- Accounting: 5 clickable cards (شجرة الحسابات 17 حساب، المصروفات، القيود،
+   659→  الأرباح والخسائر، ميزان المراجعة). ✓
+   660→- No errors, no hydration mismatch, ESLint clean. ✓
+   661→
+   662→Stage Summary:
+   663→- Full bilingual AR/EN with instant RTL/LTR layout switching.
+   664→- Accounting now uses the same modern card-selector style as Analytics.
+   665→
+   666→---
+   667→Task ID: RTL-FIX+THERMAL-WINDOW-SIZE
+   668→Agent: main
+   669→Task: Fix Arabic direction (sidebar on right) + thermal print window size
+   670→
+   671→Direction fixes (src/components/app-sidebar.tsx):
+   672→- Audited: in Arabic (dir=rtl), sidebar is on the RIGHT (left=1024, right=1280
+   673→  on a 1280px viewport) — confirmed correct via getBoundingClientRect + VLM.
+   674→- In English (dir=ltr), sidebar is on the LEFT — confirmed correct.
+   675→- Fixed `SheetHeader className="text-right"` → `text-start` (logical).
+   676→- Mobile sidebar `side="right"` was hardcoded → now dynamic: `side = locale
+   677→  === "ar" ? "right" : "left"` so it slides from the correct edge in both
+   678→  languages.
+   679→- Sidebar border already uses `border-s` (logical, auto-flips).
+   680→
+   681→Thermal print window size (src/lib/print.ts):
+   682→- `openPrintWindow` now accepts width/height params (default 900×700).
+   683→- Thermal receipt window opens at 360×640 (narrow, fits 80mm receipt) instead
+   684→  of the full 900×700.
+   685→- A4 invoice + barcode labels keep the default 900×700.
+   686→- Verified: receipt content is ~300-350px wide (correct 80mm), window no
+   687→  longer fills the whole screen. (Browser may enforce a min window width,
+   688→  but the receipt content itself is properly narrow.)
+   689→
+   690→Verification (Agent Browser + VLM):
+   691→- Arabic: dir=rtl, lang=ar, sidebar on RIGHT, menu in Arabic. ✓
+   692→- English: dir=ltr, lang=en, sidebar on LEFT, menu in English. ✓
+   693→- Thermal print: window opened, content narrow (80mm), not full-screen. ✓
+   694→- No errors, no hydration mismatch, ESLint clean. ✓
+   695→
+   696→---
+   697→Task ID: RTL-SIDEBAR-POSITION-FIX
+   698→Agent: main
+   699→Task: Fix sidebar position — must be RIGHT in Arabic, LEFT in English
+   700→
+   701→Root cause of user's screenshot (Arabic menu with sidebar on LEFT):
+   702→- The I18nProvider initialized locale to "ar" synchronously, then read
+   703→  localStorage in a useEffect AFTER first paint. If localStorage held "en"
+   704→  (from a previous session), the dir would momentarily be rtl (server
+   705→  default) then flip to ltr — but the visible menu was Arabic while dir
+   706→  was ltr, producing the wrong layout the user saw.
+   707→
+   708→Fix (src/components/i18n-context.tsx):
+   709→- New `getInitialLocale()` reads localStorage SYNCHRONOUSLY during
+   710→  useState initialization (not in an effect). So the very first client
+   711→  render uses the correct locale → correct dir from the start, no flash,
+   712→  no mismatch.
+   713→- The dir-sync effect still runs to keep <html dir/lang> updated on toggle.
+   714→- `suppressHydrationWarning` on <html> already present to tolerate the
+   715→  server (ar/rtl) vs client (saved locale) difference.
+   716→
+   717→Also fixed earlier in this session:
+   718→- Mobile sidebar `side` is now dynamic (right in AR, left in EN).
+   719→- SheetHeader text-right → text-start.
+   720→- Sidebar border uses border-s (logical).
+   721→
+   722→Verification (Agent Browser + VLM):
+   723→- AR (localStorage=ar, reload): dir=rtl/ar, aside_left=1024, aside_right=1280
+   724→  → sidebar on RIGHT. VLM: "الشريط الجانبي على اليمين، القائمة بالعربية". ✓
+   725→- EN (localStorage=en, reload): dir=ltr/en, aside_left=0
+   726→  → sidebar on LEFT. VLM: "الشريط الجانبي على اليسار". ✓
+   727→- No errors, no hydration mismatch, ESLint clean. ✓
+   728→
+   729→---
+   730→Task ID: INVENTORY-TABLE-RTL-FIX
+   731→Agent: main
+   732→Task: Fix inventory table columns direction in Arabic (was LTR inside RTL page)
+   733→
+   734→Root cause:
+   735→- Radix UI's Tabs component defaults to dir="ltr" on its TabsPrimitive.Root,
+   736→  which overrides the document's rtl direction. This made the inventory table
+   737→  (rendered inside a TabsContent) display columns left-to-right even when the
+   738→  app was in Arabic — the "Product" column appeared on the LEFT instead of the
+   739→  right.
+   740→
+   741→Fix (src/components/ui/tabs.tsx):
+   742→- The Tabs component now tracks document.documentElement.dir reactively using
+   743→  a MutationObserver (watches the `dir` attribute on <html>). When the
+   744→  I18nProvider updates dir (on language toggle), the Tabs re-renders with the
+   745→  correct dir. Initial state is "rtl" (matches SSR).
+   746→- This fixes ALL tables rendered inside Tabs (inventory products, journal
+   747→  entries, trial balance, etc.) — they now follow the document direction.
+   748→
+   749→Verification (Agent Browser):
+   750→- Arabic (rtl): tabsDir=rtl, first th "المنتج" right=999 (on RIGHT),
+   751→  last th (actions) left=25 (on LEFT). ✓
+   752→- English (ltr): tabsDir=ltr, first th left=281 (on LEFT),
+   753→  last th right=1255 (on RIGHT). ✓
+   754→- No errors, no hydration mismatch, ESLint clean. ✓
+   755→
+   756→---
+   757→Task ID: PRODUCT+CATEGORY-IMAGES+POS-REDESIGN
+   758→Agent: main
+   759→Task: Add images for products & categories + redesign POS product cards with images (per user's reference screenshot)
+   760→
+   761→DB schema:
+   762→- `Category.imageUrl String?` (category icon/photo)
+   763→- `Product.imageUrl String?` (product photo)
+   764→- db:push'd.
+   765→
+   766→Image upload infrastructure:
+   767→- `POST /api/upload` — accepts multipart file (jpg/png/webp/gif, ≤5MB),
+   768→  saves to /public/uploads, returns { url: "/uploads/..." }.
+   769→- `useUploadImage()` hook.
+   770→- `ImageUpload` component (`src/components/shared/image-upload.tsx`) —
+   771→  preview thumbnail + "رفع صورة" button + remove (X) button + file picker.
+   772→  Supports square/circle shapes.
+   773→
+   774→APIs updated to accept imageUrl:
+   775→- POST/PUT /api/products (create/update pass imageUrl)
+   776→- POST /api/categories (create with imageUrl)
+   777→- serializers return imageUrl for Product + Category.
+   778→
+   779→Product form:
+   780→- Added ImageUpload field at the top of ProductFormDialog ("صورة المنتج")
+   781→  with live preview + upload + remove.
+   782→
+   783→POS redesign (src/components/sales/sales-view.tsx):
+   784→- Product cards now match the user's reference POS screenshot:
+   785→  - Image at top (h-24, object-cover) with hover zoom
+   786→  - Placeholder Package icon when no image
+   787→  - "نفد" overlay when out of stock
+   788→  - Product name (line-clamp-2) + price + stock badge below
+   789→- Verified via VLM: "المنتجات تظهر كبطاقات بصور في الأعلى، تصميم مشابه لنقاط
+   790→  البيع الحديثة، واجهة أنيقة". ✓
+   791→
+   792→Verification:
+   793→- Product form: "صورة المنتج" + "رفع صورة" button present. ✓
+   794→- POS: cards with image area (Package placeholder for seed products). ✓
+   795→- No errors, no hydration mismatch, ESLint clean. ✓
+   796→
+   797→Stage Summary:
+   798→- Products & categories now support images (upload via form).
+   799→- POS redesigned to match modern reference design (image cards).
+   800→- Image storage is local (/public/uploads); for production, switch to S3/Cloudinary.
+   801→
+   802→---
+   803→Task ID: POS-CATEGORY-CARDS+CUSTOMER-AUTOLOOKUP
+   804→Agent: main
+   805→Task: POS category filter cards + customer phone auto-lookup (user's 2 proposals)
+   806→
+   807→Proposal 1 — Customer phone auto-lookup:
+   808→- When the cashier types a phone number (debounced), the POS searches
+   809→  /api/customers?q=phone. If an exact phone match is found:
+   810→  - Auto-fills the customer name (prevents duplicates).
+   811→  - Shows "عميل موجود: {name} — {address}" in green with UserCheck icon.
+   812→  - Phone field gets green border.
+   813→- If no match (≥4 digits typed):
+   814→  - Shows "عميل جديد — سيُسجّل تلقائياً..." in amber with UserPlus icon.
+   815→  - Phone field gets amber border.
+   816→- On checkout, the backend already upserts by phone (existing → link, new →
+   817→  create customer in CRM). No duplicates possible.
+   818→
+   819→Proposal 2 — Category filter cards above products:
+   820→- Horizontal scrollable row of category buttons between search bar and product
+   821→  grid. Each button shows a category-appropriate icon + name.
+   822→- "الكل" button (LayoutGrid icon) shows all products.
+   823→- Clicking a category filters the product grid instantly.
+   824→- Active category gets primary background + shadow.
+   825→- Icons mapped: مواد غذائية→Apple, مشروبات→Coffee, منظفات→Sparkles,
+   826→  إلكترونيات→Smartphone, قرطاسية→Tag, أدوات منزلية→Home.
+   827→- If category has imageUrl, shows the image instead of the icon.
+   828→
+   829→Verification (Agent Browser + VLM):
+   830→- Category cards: 7 buttons render (الكل + 6 categories). ✓
+   831→- Filtering: clicked "مواد غذائية" → only food products shown (أرز، زيت،
+   832→  سكر، معكرونة). ✓
+   833→- Existing customer: typed "+965 5511 2233" → name auto-filled "نور الصباح"
+   834→  + green "عميل موجود" message. ✓
+   835→- New customer: typed "+965 9999 8888" → amber "عميل جديد" message. ✓
+   836→- VLM: "الواجهة تحتوي على كروت فئات فوق شبكة المنتجات، تصميم احترافي". ✓
+   837→- No errors, no hydration mismatch, ESLint clean. ✓
+   838→
+   839→---
+   840→Task ID: CART-SCROLL+SALE-REFUND+THERMAL-REPRINT
+   841→Agent: main
+   842→Task: Fix cart overflow + sale refund (admin) + thermal reprint from invoices
+   843→
+   844→1. Cart scroll fix (src/components/sales/sales-view.tsx):
+   845→- ScrollArea max-h changed from `lg:max-h-none` (infinite growth) to
+   846→  `lg:max-h-[calc(100vh-22rem)]` — cart items scroll internally, cart card
+   847→  never exceeds viewport. Mobile keeps `max-h-[40vh]`.
+   848→- Verified: 8 items in cart → card bottom=577px = viewport height (no overflow).
+   849→
+   850→2. Sale refund API (POST /api/sales/[id]/refund):
+   851→- Admin-only. Reverses a sale: restores inventory quantities, marks sale as
+   852→  refunded (paid=0 + note "مرتجع"), creates a reversing journal entry
+   853→  (debit Revenue 4010, credit Cash/Bank). Sale is NOT deleted (audit trail).
+   854→- Guards: 403 for non-admin, 409 if already refunded.
+   855→- `useRefundSale()` hook added.
+   856→
+   857→3. Invoice detail — refund + thermal reprint (invoices-view.tsx):
+   858→- Print buttons: now 2 buttons side-by-side — "حراري 80mm" (thermal) + "A4".
+   859→- Refund button (admin only): "مرتجع الفاتورة" with RotateCcw icon, destructive
+   860→  styling. Shows "تم مرتجعها" (disabled) if already refunded. ConfirmDialog
+   861→  with warning about irreversibility.
+   862→- Fixed duplicate `Printer` import (was causing Ecmascript parse error).
+   863→
+   864→Verification (Agent Browser):
+   865→- Cart: 8 items, card bottom=577=viewport height (no overflow). ✓
+   866→- Invoice detail: "حراري 80mm" + "A4" + "مرتجع الفاتورة" buttons present. ✓
+   867→- Refund: clicked → AlertDialog "مرتجع الفاتورة" with warning + "تأكيد المرتجع". ✓
+   868→- Server responds 200, ESLint clean. ✓
+   869→
+   870→---
+   871→Task ID: INVOICES-MASTER-DETAIL+PAGINATION
+   872→Agent: main
+   873→Task: Redesign invoices as master-detail layout + pagination (per user request)
+   874→
+   875→Changes:
+   876→1. **API pagination** (`GET /api/sales`): accepts `?page=&pageSize=` (default
+   877→   10 per page). Returns `{ items, pagination: { page, pageSize, total, totalPages } }`.
+   878→
+   879→2. **useSales hook**: now accepts `(q, page, pageSize)`.
+   880→
+   881→3. **InvoicesView rewritten** — master-detail layout:
+   882→   - **Left panel (5/12 cols)**: scrollable list of invoice cards. Each card
+   883→     shows invoice number, customer name + phone, date, total, payment badge.
+   884→     Active invoice highlighted with primary ring. Refunded invoices show
+   885→     "مرتجع" badge + strikethrough total.
+   886→   - **Right panel (7/12 cols)**: InvoiceDetail component — larger format with
+   887→     header (invoice no + date + refunded badge), customer/payment info cards,
+   888→     items table (bigger), totals (الإجمالي in text-2xl bold), action buttons
+   889→     (thermal 80mm + A4 + refund). Sticky positioning.
+   890→   - Empty state: "اختر فاتورة من القائمة لعرض تفاصيلها".
+   891→
+   892→4. **Pagination controls**: "السابق" / "التالي" buttons + "صفحة X من Y
+   893→   (Z فاتورة)" label. Auto-resets to page 1 on search. Auto-goes back if
+   894→   current page becomes empty.
+   895→
+   896→Verification (Agent Browser + VLM):
+   897→- Master-detail layout: invoice list on one side, detail panel on other. ✓
+   898→- Pagination: clicked "التالي" → page 2 loaded with different invoices. ✓
+   899→- Detail panel: shows items table, totals (text-2xl), print + refund buttons. ✓
+   900→- VLM: "الصفحة مقسمة إلى قسمين: تفاصيل على جانب وقائمة على الجانب الآخر". ✓
+   901→- No errors, ESLint clean. ✓
+   902→
+   903→---
+   904→Task ID: POS-CART-PAGINATION+CUSTOMER-ON-TOP
+   905→Agent: main
+   906→Task: POS cart redesign — customer info at top + paginated cart items + auto-advance
+   907→
+   908→Changes (src/components/sales/sales-view.tsx):
+   909→1. **Customer info moved to TOP of cart** — name, payment method, and phone
+   910→   (with auto-lookup) are now in a compact section at the top of the cart card,
+   911→   above the items list. Previously they were at the bottom mixed with totals.
+   912→
+   913→2. **Cart pagination** (5 items per page):
+   914→   - `ITEMS_PER_CART_PAGE = 5` — only 5 cart items shown per page.
+   915→   - `cartPageItems = cart.slice(page*5, (page+1)*5)` — paginated slice.
+   916→   - **Auto-advance**: when a NEW item is added (not existing qty increase),
+   917→     `cartPage` jumps to the page the new item will appear on. The cashier
+   918→     sees the newly added item immediately without scrolling.
+   919→   - **Manual navigation**: "السابق" (previous) and "التالي" (next) buttons
+   920→     below the items list. "صفحة X / Y — Z صنف" indicator.
+   921→   - **Clamp**: if cart shrinks (remove/clear), cartPage auto-clamps to
+   922→     the last valid page.
+   923→
+   924→3. **Cart layout restructured**:
+   925→   - Header (title + clear) → shrink-0
+   926→   - Customer info → shrink-0, top
+   927→   - Paginated items → flex-1, scrollable if needed
+   928→   - Pagination controls → shrink-0 (only when >1 page)
+   929→   - Summary (discount, tax, totals) → shrink-0
+   930→   - Checkout button → shrink-0, bottom
+   931→   All sections use `shrink-0` except items which is `flex-1 min-h-0` —
+   932→   cart never exceeds viewport, all controls always visible.
+   933→
+   934→4. Removed `ScrollArea` component (no longer needed — pagination handles
+   935→   overflow). Items area uses `overflow-y-auto scrollbar-thin`.
+   936→
+   937→Verification (Agent Browser + VLM):
+   938→- Added 7 unique products → cart showed 5 on page 1, 2 on page 2. ✓
+   939→- Pagination controls: "السابق" (disabled on page 1) + "التالي" + indicator. ✓
+   940→- Customer info (name, phone) at TOP of cart. ✓
+   941→- Total + checkout button always visible at BOTTOM. ✓
+   942→- VLM: "بيانات العميل في أعلى السلة، الإجمالي وزر البيع في الأسفل". ✓
+   943→- No errors, ESLint clean. ✓
+   944→
+   945→---
+   946→Task ID: POS-RECEIPT-LARGER+INVOICE-DETAIL-FIX
+   947→Agent: main
+   948→Task: Fix POS receipt dialog size + invoice detail panel visibility + refund button
+   949→
+   950→1. POS receipt dialog (sales-view.tsx):
+   951→- Changed `DialogContent` from `max-w-md` (448px) to `max-w-lg` (512px) — larger
+   952→  receipt dialog that shows all content comfortably.
+   953→
+   954→2. Invoice detail panel (invoices-view.tsx) — full rewrite of InvoiceDetail:
+   955→- Removed `ScrollArea` wrapper that was hiding content behind a scrollbar.
+   956→- Card now uses `flex flex-col max-h-[calc(100vh-10rem)] overflow-hidden`.
+   957→- Three sections, all with `shrink-0` except the scrollable content:
+   958→  a) **Header** (invoice no + date + refunded badge) — fixed top.
+   959→  b) **Scrollable content** (customer info, items table, totals) — flex-1,
+   960→     `overflow-y-auto` — scrolls only if content is long.
+   961→  c) **Action buttons** (thermal print + A4 print + refund) — fixed bottom,
+   962→     ALWAYS visible regardless of content length.
+   963→- The refund button is no longer hidden inside the scroll area — it's in a
+   964→  separate fixed section at the bottom of the card.
+   965→
+   966→Verification (Agent Browser):
+   967→- Invoice detail: shows all content (header, customer, items, totals, buttons). ✓
+   968→- "طباعة حرارية 80mm" + "طباعة A4" + "مرتجع الفاتورة" all visible. ✓
+   969→- POS receipt dialog: width=512px (max-w-lg), larger than before. ✓
+   970→- No errors, ESLint clean. ✓
+   971→
+   972→---
+   973→Task ID: PARTIAL-REFUND-WORKFLOW
+   974→Agent: main
+   975→Task: Full partial refund workflow with credit notes + 14-day rule + journal entries
+   976→
+   977→DB schema:
+   978→- `SaleItem.returnedQty Int @default(0)` — tracks returned units per line.
+   979→- `Sale.refundTotal Float @default(0)` — cumulative refunded amount.
+   980→- `Sale.refundStatus String @default("NONE")` — NONE | PARTIAL | FULL.
+   981→
+   982→API (POST /api/sales/[id]/refund):
+   983→- Accepts: `{ items: [{ saleItemId, returnedQty }], override14Days?: boolean }`
+   984→- 14-day validation: blocks refunds >14 days unless admin override.
+   985→- Per-line validation: returnedQty ≤ (original − alreadyReturned).
+   986→- Restores inventory (only returned quantities).
+   987→- Updates SaleItem.returnedQty + Sale.refundTotal + refundStatus.
+   988→- Creates journal entries:
+   989→  1. Financial: Debit 4030 (Sales Returns) + Debit 2010 (VAT) → Credit payment account.
+   990→  2. Inventory: Debit 1010 (Inventory at cost) → Credit 5060 (COGS).
+   991→- Auto-creates accounts 4030 (مردودات المبيعات) + 5060 (تكلفة البضاعة المباعة) if missing.
+   992→- Returns credit note number (CN-INV-XXXXX).
+   993→
+   994→RefundDialog (src/components/sales/refund-dialog.tsx):
+   995→- Lists all invoice items with: original qty, already-returned qty, returnable qty,
+   996→  and an input for "كمية المرتجع".
+   997→- Barcode/name search field to quickly find items.
+   998→- 14-day warning banner with admin override checkbox.
+   999→- Live refund summary: subtotal + tax → total credit note.
+  1000→- Success screen with credit note number + refund breakdown.
+  1001→- Prevents returning more than returnable qty.
+  1002→
+  1003→Invoices view updates:
+  1004→- Invoice list: badges "مرتجع كامل" / "مرتجع جزئي" based on refundStatus.
+  1005→- Detail panel: shows refund status + refundTotal.
+  1006→- Refund button: "مرتجع الفاتورة" → "مرتجع إضافي" (if partial) → "مرتجعة بالكامل" (disabled if full).
+  1007→- Replaced old ConfirmDialog with new RefundDialog.
+  1008→
+  1009→Verification (Agent Browser):
+  1010→- Refund dialog opens with per-item return inputs. ✓
+  1011→- Barcode search field present. ✓
+  1012→- Shows original/returned/returnable quantities per line. ✓
+  1013→- Setting return qty=2 → shows "قيمة المرتجع: ١.١٦٠د.ك." + "إجمالي المردودات". ✓
+  1014→- 14-day warning + admin override checkbox (for old invoices). ✓
+  1015→- No errors, ESLint clean. ✓
+  1016→

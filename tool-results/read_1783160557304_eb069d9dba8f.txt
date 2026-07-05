@@ -1,0 +1,803 @@
+     1→     1→"use client"
+     2→     2→
+     3→     3→import * as React from "react"
+     4→     4→import {
+     5→     5→  useQuery,
+     6→     6→  useMutation,
+     7→     7→  useQueryClient,
+     8→     8→} from "@tanstack/react-query"
+     9→     9→import type {
+    10→    10→  Product,
+    11→    11→  Category,
+    12→    12→  Supplier,
+    13→    13→  PurchaseOrder,
+    14→    14→  Sale,
+    15→    15→  DashboardStats,
+    16→    16→  Account,
+    17→    17→  ExpenseTransaction,
+    18→    18→  Customer,
+    19→    19→  PnLReport,
+    20→    20→  AnalyticsReport,
+    21→    21→  JournalEntry,
+    22→    22→  TrialBalance,
+    23→    23→  Warehouse,
+    24→    24→} from "@/lib/types"
+    25→    25→import type { CountryConfig } from "@/lib/countries"
+    26→    26→
+    27→    27→async function jget<T>(url: string): Promise<T> {
+    28→    28→  const res = await fetch(url, { headers: { Accept: "application/json" } })
+    29→    29→  if (!res.ok) {
+    30→    30→    const e = await res.json().catch(() => ({}))
+    31→    31→    throw new Error((e as any)?.error || `request-failed:${res.status}`)
+    32→    32→  }
+    33→    33→  return res.json() as Promise<T>
+    34→    34→}
+    35→    35→
+    36→    36→async function jsend<T>(url: string, method: string, body?: unknown): Promise<T> {
+    37→    37→  const res = await fetch(url, {
+    38→    38→    method,
+    39→    39→    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    40→    40→    body: body ? JSON.stringify(body) : undefined,
+    41→    41→  })
+    42→    42→  const data = await res.json().catch(() => ({}))
+    43→    43→  if (!res.ok) {
+    44→    44→    throw new Error((data as any)?.error || `request-failed:${res.status}`)
+    45→    45→  }
+    46→    46→  return data as T
+    47→    47→}
+    48→    48→
+    49→    49→/* ----------------------------- Products ----------------------------- */
+    50→    50→export function useProducts(params?: { q?: string; categoryId?: string; supplierId?: string; lowStock?: boolean }) {
+    51→    51→  const qs = new URLSearchParams()
+    52→    52→  if (params?.q) qs.set("q", params.q)
+    53→    53→  if (params?.categoryId) qs.set("categoryId", params.categoryId)
+    54→    54→  if (params?.supplierId) qs.set("supplierId", params.supplierId)
+    55→    55→  if (params?.lowStock) qs.set("lowStock", "true")
+    56→    56→  const key = ["products", qs.toString()]
+    57→    57→  return useQuery<{ items: Product[] }>({
+    58→    58→    queryKey: key,
+    59→    59→    queryFn: () => jget(`/api/products?${qs.toString()}`),
+    60→    60→  })
+    61→    61→}
+    62→    62→
+    63→    63→export function useCategories() {
+    64→    64→  return useQuery<{ items: Category[] }>({
+    65→    65→    queryKey: ["categories"],
+    66→    66→    queryFn: () => jget("/api/categories"),
+    67→    67→  })
+    68→    68→}
+    69→    69→
+    70→    70→export function useCreateCategory() {
+    71→    71→  const qc = useQueryClient()
+    72→    72→  return useMutation({
+    73→    73→    mutationFn: (body: { name: string }) => jsend("/api/categories", "POST", body),
+    74→    74→    onSuccess: () => qc.invalidateQueries({ queryKey: ["categories"] }),
+    75→    75→  })
+    76→    76→}
+    77→    77→
+    78→    78→export function useCreateProduct() {
+    79→    79→  const qc = useQueryClient()
+    80→    80→  return useMutation({
+    81→    81→    mutationFn: (body: Partial<Product>) => jsend<Product>("/api/products", "POST", body),
+    82→    82→    onSuccess: () => {
+    83→    83→      qc.invalidateQueries({ queryKey: ["products"] })
+    84→    84→      qc.invalidateQueries({ queryKey: ["dashboard"] })
+    85→    85→    },
+    86→    86→  })
+    87→    87→}
+    88→    88→
+    89→    89→export function useUpdateProduct(id: string) {
+    90→    90→  const qc = useQueryClient()
+    91→    91→  return useMutation({
+    92→    92→    mutationFn: (body: Partial<Product>) => jsend<Product>(`/api/products/${id}`, "PUT", body),
+    93→    93→    onSuccess: () => {
+    94→    94→      qc.invalidateQueries({ queryKey: ["products"] })
+    95→    95→      qc.invalidateQueries({ queryKey: ["dashboard"] })
+    96→    96→    },
+    97→    97→  })
+    98→    98→}
+    99→    99→
+   100→   100→export function useDeleteProduct() {
+   101→   101→  const qc = useQueryClient()
+   102→   102→  return useMutation({
+   103→   103→    mutationFn: (id: string) => jsend(`/api/products/${id}`, "DELETE"),
+   104→   104→    onSuccess: () => {
+   105→   105→      qc.invalidateQueries({ queryKey: ["products"] })
+   106→   106→      qc.invalidateQueries({ queryKey: ["dashboard"] })
+   107→   107→    },
+   108→   108→  })
+   109→   109→}
+   110→   110→
+   111→   111→/* ----------------------------- Suppliers ----------------------------- */
+   112→   112→export function useSuppliers() {
+   113→   113→  return useQuery<{ items: (Supplier & { productsCount?: number; ordersCount?: number })[] }>({
+   114→   114→    queryKey: ["suppliers"],
+   115→   115→    queryFn: () => jget("/api/suppliers"),
+   116→   116→  })
+   117→   117→}
+   118→   118→
+   119→   119→export function useCreateSupplier() {
+   120→   120→  const qc = useQueryClient()
+   121→   121→  return useMutation({
+   122→   122→    mutationFn: (body: Partial<Supplier>) => jsend("/api/suppliers", "POST", body),
+   123→   123→    onSuccess: () => qc.invalidateQueries({ queryKey: ["suppliers"] }),
+   124→   124→  })
+   125→   125→}
+   126→   126→
+   127→   127→export function useUpdateSupplier(id: string) {
+   128→   128→  const qc = useQueryClient()
+   129→   129→  return useMutation({
+   130→   130→    mutationFn: (body: Partial<Supplier>) => jsend(`/api/suppliers/${id}`, "PUT", body),
+   131→   131→    onSuccess: () => qc.invalidateQueries({ queryKey: ["suppliers"] }),
+   132→   132→  })
+   133→   133→}
+   134→   134→
+   135→   135→export function useDeleteSupplier() {
+   136→   136→  const qc = useQueryClient()
+   137→   137→  return useMutation({
+   138→   138→    mutationFn: (id: string) => jsend(`/api/suppliers/${id}`, "DELETE"),
+   139→   139→    onSuccess: () => qc.invalidateQueries({ queryKey: ["suppliers"] }),
+   140→   140→  })
+   141→   141→}
+   142→   142→
+   143→   143→/* ----------------------------- Purchase Orders ----------------------------- */
+   144→   144→export function usePurchaseOrders(status?: string) {
+   145→   145→  const qs = status ? `?status=${status}` : ""
+   146→   146→  return useQuery<{ items: PurchaseOrder[] }>({
+   147→   147→    queryKey: ["purchase-orders", status ?? "all"],
+   148→   148→    queryFn: () => jget(`/api/purchase-orders${qs}`),
+   149→   149→  })
+   150→   150→}
+   151→   151→
+   152→   152→export function useCreatePurchaseOrder() {
+   153→   153→  const qc = useQueryClient()
+   154→   154→  return useMutation({
+   155→   155→    mutationFn: (body: {
+   156→   156→      supplierId: string
+   157→   157→      note?: string
+   158→   158→      items: { productId: string; quantity: number; unitCost: number }[]
+   159→   159→      customsAmount?: number
+   160→   160→      shippingAmount?: number
+   161→   161→      otherCharges?: number
+   162→   162→    }) => jsend("/api/purchase-orders", "POST", body),
+   163→   163→    onSuccess: () => {
+   164→   164→      qc.invalidateQueries({ queryKey: ["purchase-orders"] })
+   165→   165→      qc.invalidateQueries({ queryKey: ["products"] })
+   166→   166→      qc.invalidateQueries({ queryKey: ["dashboard"] })
+   167→   167→    },
+   168→   168→  })
+   169→   169→}
+   170→   170→
+   171→   171→export function useReceivePurchaseOrder() {
+   172→   172→  const qc = useQueryClient()
+   173→   173→  return useMutation({
+   174→   174→    mutationFn: (
+   175→   175→      args:
+   176→   176→        | string
+   177→   177→        | {
+   178→   178→            id: string
+   179→   179→            customsAmount?: number
+   180→   180→            shippingAmount?: number
+   181→   181→            otherCharges?: number
+   182→   182→          }
+   183→   183→    ) => {
+   184→   184→      const isObj = typeof args !== "string"
+   185→   185→      const id = isObj ? args.id : args
+   186→   186→      const body = isObj
+   187→   187→        ? {
+   188→   188→            ...(args.customsAmount !== undefined ? { customsAmount: args.customsAmount } : {}),
+   189→   189→            ...(args.shippingAmount !== undefined ? { shippingAmount: args.shippingAmount } : {}),
+   190→   190→            ...(args.otherCharges !== undefined ? { otherCharges: args.otherCharges } : {}),
+   191→   191→          }
+   192→   192→        : undefined
+   193→   193→      return jsend(`/api/purchase-orders/${id}/receive`, "POST", body)
+   194→   194→    },
+   195→   195→    onSuccess: () => {
+   196→   196→      qc.invalidateQueries({ queryKey: ["purchase-orders"] })
+   197→   197→      qc.invalidateQueries({ queryKey: ["products"] })
+   198→   198→      qc.invalidateQueries({ queryKey: ["dashboard"] })
+   199→   199→    },
+   200→   200→  })
+   201→   201→}
+   202→   202→
+   203→   203→export function useCancelPurchaseOrder() {
+   204→   204→  const qc = useQueryClient()
+   205→   205→  return useMutation({
+   206→   206→    mutationFn: (id: string) => jsend(`/api/purchase-orders/${id}`, "PUT", { status: "CANCELLED" }),
+   207→   207→    onSuccess: () => qc.invalidateQueries({ queryKey: ["purchase-orders"] }),
+   208→   208→  })
+   209→   209→}
+   210→   210→
+   211→   211→export function useDeletePurchaseOrder() {
+   212→   212→  const qc = useQueryClient()
+   213→   213→  return useMutation({
+   214→   214→    mutationFn: (id: string) => jsend(`/api/purchase-orders/${id}`, "DELETE"),
+   215→   215→    onSuccess: () => qc.invalidateQueries({ queryKey: ["purchase-orders"] }),
+   216→   216→  })
+   217→   217→}
+   218→   218→
+   219→   219→/* ----------------------------- Sales ----------------------------- */
+   220→   220→export function useSales(q?: string, page?: number, pageSize?: number) {
+   221→   221→  const qs = new URLSearchParams()
+   222→   222→  if (q) qs.set("q", q)
+   223→   223→  if (page) qs.set("page", String(page))
+   224→   224→  if (pageSize) qs.set("pageSize", String(pageSize))
+   225→   225→  const s = qs.toString()
+   226→   226→  return useQuery<{ items: Sale[]; pagination?: { page: number; pageSize: number; total: number; totalPages: number } }>({
+   227→   227→    queryKey: ["sales", q ?? "all", page ?? 1, pageSize ?? 10],
+   228→   228→    queryFn: () => jget(`/api/sales${s ? `?${s}` : ""}`),
+   229→   229→  })
+   230→   230→}
+   231→   231→
+   232→   232→export function useCreateSale() {
+   233→   233→  const qc = useQueryClient()
+   234→   234→  return useMutation({
+   235→   235→    mutationFn: (body: {
+   236→   236→      customerName?: string
+   237→   237→      customerPhone?: string
+   238→   238→      items: { productId: string; quantity: number; unitPrice: number }[]
+   239→   239→      taxRate: number
+   240→   240→      discount: number
+   241→   241→      paymentMethod: "CASH" | "CARD" | "TRANSFER"
+   242→   242→    }) => jsend<Sale>("/api/sales", "POST", body),
+   243→   243→    onSuccess: () => {
+   244→   244→      qc.invalidateQueries({ queryKey: ["sales"] })
+   245→   245→      qc.invalidateQueries({ queryKey: ["products"] })
+   246→   246→      qc.invalidateQueries({ queryKey: ["dashboard"] })
+   247→   247→    },
+   248→   248→  })
+   249→   249→}
+   250→   250→
+   251→   251→export function useRefundSale() {
+   252→   252→  const qc = useQueryClient()
+   253→   253→  return useMutation({
+   254→   254→    mutationFn: ({ id, reason, items, override14Days }: { id: string; reason?: string; items?: { saleItemId: string; returnedQty: number }[]; override14Days?: boolean }) =>
+   255→   255→      jsend<Sale>(`/api/sales/${id}/refund`, "POST", { reason, items, override14Days }),
+   256→   256→    onSuccess: () => {
+   257→   257→      qc.invalidateQueries({ queryKey: ["sales"] })
+   258→   258→      qc.invalidateQueries({ queryKey: ["products"] })
+   259→   259→      qc.invalidateQueries({ queryKey: ["dashboard"] })
+   260→   260→    },
+   261→   261→  })
+   262→   262→}
+   263→   263→
+   264→   264→/* ----------------------------- Dashboard ----------------------------- */
+   265→   265→export function useDashboard(from?: string, to?: string, range?: string) {
+   266→   266→  const qs = new URLSearchParams()
+   267→   267→  if (from) qs.set("from", from)
+   268→   268→  if (to) qs.set("to", to)
+   269→   269→  if (range && !from) qs.set("range", range)
+   270→   270→  const s = qs.toString()
+   271→   271→  return useQuery<DashboardStats>({
+   272→   272→    queryKey: ["dashboard", from ?? "", to ?? "", range ?? ""],
+   273→   273→    queryFn: () => jget(`/api/dashboard${s ? `?${s}` : ""}`),
+   274→   274→  })
+   275→   275→}
+   276→   276→
+   277→   277→/* ----------------------------- Accounts (Chart of Accounts) -------- */
+   278→   278→export function useAccounts() {
+   279→   279→  return useQuery<{ items: Account[]; flat: Account[] }>({
+   280→   280→    queryKey: ["accounts"],
+   281→   281→    queryFn: () => jget("/api/accounts"),
+   282→   282→  })
+   283→   283→}
+   284→   284→
+   285→   285→export function useCreateAccount() {
+   286→   286→  const qc = useQueryClient()
+   287→   287→  return useMutation({
+   288→   288→    mutationFn: (body: { code: string; name: string; type: Account["type"]; parentId?: string }) =>
+   289→   289→      jsend<Account>("/api/accounts", "POST", body),
+   290→   290→    onSuccess: () => qc.invalidateQueries({ queryKey: ["accounts"] }),
+   291→   291→  })
+   292→   292→}
+   293→   293→
+   294→   294→export function useUpdateAccount(id: string) {
+   295→   295→  const qc = useQueryClient()
+   296→   296→  return useMutation({
+   297→   297→    mutationFn: (body: Partial<Account>) => jsend<Account>(`/api/accounts/${id}`, "PUT", body),
+   298→   298→    onSuccess: () => qc.invalidateQueries({ queryKey: ["accounts"] }),
+   299→   299→  })
+   300→   300→}
+   301→   301→
+   302→   302→export function useDeleteAccount() {
+   303→   303→  const qc = useQueryClient()
+   304→   304→  return useMutation({
+   305→   305→    mutationFn: (id: string) => jsend(`/api/accounts/${id}`, "DELETE"),
+   306→   306→    onSuccess: () => qc.invalidateQueries({ queryKey: ["accounts"] }),
+   307→   307→  })
+   308→   308→}
+   309→   309→
+   310→   310→/* ----------------------------- Expenses ---------------------------- */
+   311→   311→export function useExpenses(type?: "SALARY" | "ADMIN") {
+   312→   312→  const qs = type ? `?type=${type}` : ""
+   313→   313→  return useQuery<{ items: ExpenseTransaction[] }>({
+   314→   314→    queryKey: ["expenses", type ?? "all"],
+   315→   315→    queryFn: () => jget(`/api/expenses${qs}`),
+   316→   316→  })
+   317→   317→}
+   318→   318→
+   319→   319→export function useCreateExpense() {
+   320→   320→  const qc = useQueryClient()
+   321→   321→  return useMutation({
+   322→   322→    mutationFn: (body: any) => jsend<ExpenseTransaction>("/api/expenses", "POST", body),
+   323→   323→    onSuccess: () => {
+   324→   324→      qc.invalidateQueries({ queryKey: ["expenses"] })
+   325→   325→      qc.invalidateQueries({ queryKey: ["accounts"] })
+   326→   326→      qc.invalidateQueries({ queryKey: ["pnl"] })
+   327→   327→    },
+   328→   328→  })
+   329→   329→}
+   330→   330→
+   331→   331→export function useDeleteExpense() {
+   332→   332→  const qc = useQueryClient()
+   333→   333→  return useMutation({
+   334→   334→    mutationFn: (id: string) => jsend(`/api/expenses/${id}`, "DELETE"),
+   335→   335→    onSuccess: () => {
+   336→   336→      qc.invalidateQueries({ queryKey: ["expenses"] })
+   337→   337→      qc.invalidateQueries({ queryKey: ["accounts"] })
+   338→   338→      qc.invalidateQueries({ queryKey: ["pnl"] })
+   339→   339→    },
+   340→   340→  })
+   341→   341→}
+   342→   342→
+   343→   343→/* ----------------------------- Customers --------------------------- */
+   344→   344→export function useCustomers(q?: string) {
+   345→   345→  const qs = q ? `?q=${encodeURIComponent(q)}` : ""
+   346→   346→  return useQuery<{ items: Customer[] }>({
+   347→   347→    queryKey: ["customers", q ?? "all"],
+   348→   348→    queryFn: () => jget(`/api/customers${qs}`),
+   349→   349→  })
+   350→   350→}
+   351→   351→
+   352→   352→/* ----------------------------- Units ------------------------------- */
+   353→   353→export function useUnits() {
+   354→   354→  return useQuery<{ items: { id: string; name: string }[] }>({
+   355→   355→    queryKey: ["units"],
+   356→   356→    queryFn: () => jget("/api/units"),
+   357→   357→  })
+   358→   358→}
+   359→   359→
+   360→   360→export function useCreateUnit() {
+   361→   361→  const qc = useQueryClient()
+   362→   362→  return useMutation({
+   363→   363→    mutationFn: (body: { name: string }) => jsend("/api/units", "POST", body),
+   364→   364→    onSuccess: () => qc.invalidateQueries({ queryKey: ["units"] }),
+   365→   365→  })
+   366→   366→}
+   367→   367→
+   368→   368→export function useDeleteUnit() {
+   369→   369→  const qc = useQueryClient()
+   370→   370→  return useMutation({
+   371→   371→    mutationFn: (id: string) => jsend(`/api/units/${id}`, "DELETE"),
+   372→   372→    onSuccess: () => qc.invalidateQueries({ queryKey: ["units"] }),
+   373→   373→  })
+   374→   374→}
+   375→   375→
+   376→   376→/* ----------------------------- Warehouses -------------------------- */
+   377→   377→export function useWarehouses() {
+   378→   378→  return useQuery<{ items: Warehouse[] }>({
+   379→   379→    queryKey: ["warehouses"],
+   380→   380→    queryFn: () => jget("/api/warehouses"),
+   381→   381→  })
+   382→   382→}
+   383→   383→export function useCreateWarehouse() {
+   384→   384→  const qc = useQueryClient()
+   385→   385→  return useMutation({
+   386→   386→    mutationFn: (body: { name: string; code?: string; location?: string }) =>
+   387→   387→      jsend<Warehouse>("/api/warehouses", "POST", body),
+   388→   388→    onSuccess: () => qc.invalidateQueries({ queryKey: ["warehouses"] }),
+   389→   389→  })
+   390→   390→}
+   391→   391→export function useUpdateWarehouse(id: string) {
+   392→   392→  const qc = useQueryClient()
+   393→   393→  return useMutation({
+   394→   394→    mutationFn: (body: Partial<Warehouse>) => jsend<Warehouse>(`/api/warehouses/${id}`, "PUT", body),
+   395→   395→    onSuccess: () => qc.invalidateQueries({ queryKey: ["warehouses"] }),
+   396→   396→  })
+   397→   397→}
+   398→   398→export function useDeleteWarehouse() {
+   399→   399→  const qc = useQueryClient()
+   400→   400→  return useMutation({
+   401→   401→    mutationFn: (id: string) => jsend(`/api/warehouses/${id}`, "DELETE"),
+   402→   402→    onSuccess: () => qc.invalidateQueries({ queryKey: ["warehouses"] }),
+   403→   403→  })
+   404→   404→}
+   405→   405→
+   406→   406→export function useCreateCustomer() {
+   407→   407→  const qc = useQueryClient()
+   408→   408→  return useMutation({
+   409→   409→    mutationFn: (body: { name: string; phone?: string; address?: string }) =>
+   410→   410→      jsend<Customer>("/api/customers", "POST", body),
+   411→   411→    onSuccess: () => qc.invalidateQueries({ queryKey: ["customers"] }),
+   412→   412→  })
+   413→   413→}
+   414→   414→
+   415→   415→export function useUpdateCustomer(id: string) {
+   416→   416→  const qc = useQueryClient()
+   417→   417→  return useMutation({
+   418→   418→    mutationFn: (body: Partial<Customer>) => jsend<Customer>(`/api/customers/${id}`, "PUT", body),
+   419→   419→    onSuccess: () => qc.invalidateQueries({ queryKey: ["customers"] }),
+   420→   420→  })
+   421→   421→}
+   422→   422→
+   423→   423→export function useDeleteCustomer() {
+   424→   424→  const qc = useQueryClient()
+   425→   425→  return useMutation({
+   426→   426→    mutationFn: (id: string) => jsend(`/api/customers/${id}`, "DELETE"),
+   427→   427→    onSuccess: () => qc.invalidateQueries({ queryKey: ["customers"] }),
+   428→   428→  })
+   429→   429→}
+   430→   430→
+   431→   431→/* ----------------------------- Financial Reports (P&L) ------------- */
+   432→   432→export function usePnLReport(from?: string, to?: string) {
+   433→   433→  const qs = new URLSearchParams()
+   434→   434→  if (from) qs.set("from", from)
+   435→   435→  if (to) qs.set("to", to)
+   436→   436→  const s = qs.toString()
+   437→   437→  return useQuery<PnLReport>({
+   438→   438→    queryKey: ["pnl", from ?? "", to ?? ""],
+   439→   439→    queryFn: () => jget(`/api/financial-reports${s ? `?${s}` : ""}`),
+   440→   440→  })
+   441→   441→}
+   442→   442→
+   443→   443→/* ----------------------------- Analytics --------------------------- */
+   444→   444→export function useAnalytics(from?: string, to?: string) {
+   445→   445→  const qs = new URLSearchParams()
+   446→   446→  if (from) qs.set("from", from)
+   447→   447→  if (to) qs.set("to", to)
+   448→   448→  const s = qs.toString()
+   449→   449→  return useQuery<AnalyticsReport>({
+   450→   450→    queryKey: ["analytics", from ?? "", to ?? ""],
+   451→   451→    queryFn: () => jget(`/api/analytics${s ? `?${s}` : ""}`),
+   452→   452→  })
+   453→   453→}
+   454→   454→
+   455→   455→/* ----------------------------- Unified Reports --------------------- */
+   456→   456→export interface ReportFilters {
+   457→   457→  from?: string
+   458→   458→  to?: string
+   459→   459→  productId?: string
+   460→   460→  categoryId?: string
+   461→   461→  paymentMethod?: string
+   462→   462→  source?: string
+   463→   463→}
+   464→   464→
+   465→   465→export function useReport(filters: ReportFilters) {
+   466→   466→  const qs = new URLSearchParams()
+   467→   467→  if (filters.from) qs.set("from", filters.from)
+   468→   468→  if (filters.to) qs.set("to", filters.to)
+   469→   469→  if (filters.productId) qs.set("productId", filters.productId)
+   470→   470→  if (filters.categoryId) qs.set("categoryId", filters.categoryId)
+   471→   471→  if (filters.paymentMethod) qs.set("paymentMethod", filters.paymentMethod)
+   472→   472→  if (filters.source) qs.set("source", filters.source)
+   473→   473→  const s = qs.toString()
+   474→   474→  return useQuery<any>({
+   475→   475→    queryKey: ["report", s],
+   476→   476→    queryFn: () => jget(`/api/reports${s ? `?${s}` : ""}`),
+   477→   477→  })
+   478→   478→}
+   479→   479→
+   480→   480→/* ----------------------- Performance Matrix Report ------------------ */
+   481→   481→export interface MatrixFilters {
+   482→   482→  from?: string
+   483→   483→  to?: string
+   484→   484→  warehouseId?: string
+   485→   485→  supplierId?: string
+   486→   486→}
+   487→   487→
+   488→   488→export function useReportMatrix(filters: MatrixFilters) {
+   489→   489→  const qs = new URLSearchParams()
+   490→   490→  if (filters.from) qs.set("from", filters.from)
+   491→   491→  if (filters.to) qs.set("to", filters.to)
+   492→   492→  if (filters.warehouseId) qs.set("warehouseId", filters.warehouseId)
+   493→   493→  if (filters.supplierId) qs.set("supplierId", filters.supplierId)
+   494→   494→  const s = qs.toString()
+   495→   495→  return useQuery<any>({
+   496→   496→    queryKey: ["report-matrix", s],
+   497→   497→    queryFn: () => jget(`/api/reports/matrix${s ? `?${s}` : ""}`),
+   498→   498→  })
+   499→   499→}
+   500→   500→
+   501→   501→/* ----------------------------- Journal Entries --------------------- */
+   502→   502→export function useJournalEntries(sourceType?: string) {
+   503→   503→  const qs = sourceType ? `?sourceType=${sourceType}` : ""
+   504→   504→  return useQuery<{ items: JournalEntry[] }>({
+   505→   505→    queryKey: ["journal-entries", sourceType ?? "all"],
+   506→   506→    queryFn: () => jget(`/api/journal-entries${qs}`),
+   507→   507→  })
+   508→   508→}
+   509→   509→
+   510→   510→/* ----------------------------- Trial Balance ------------------------ */
+   511→   511→export function useTrialBalance() {
+   512→   512→  return useQuery<TrialBalance>({
+   513→   513→    queryKey: ["trial-balance"],
+   514→   514→    queryFn: () => jget("/api/trial-balance"),
+   515→   515→  })
+   516→   516→}
+   517→   517→
+   518→   518→/* ----------------------------- Manual Journal Entry ---------------- */
+   519→   519→export function useCreateManualJournal() {
+   520→   520→  const qc = useQueryClient()
+   521→   521→  return useMutation({
+   522→   522→    mutationFn: (body: { description: string; date?: string; lines: { accountCode: string; debit?: number; credit?: number; description?: string }[] }) =>
+   523→   523→      jsend("/api/journal-entries/manual", "POST", body),
+   524→   524→    onSuccess: () => {
+   525→   525→      qc.invalidateQueries({ queryKey: ["journal-entries"] })
+   526→   526→      qc.invalidateQueries({ queryKey: ["accounts"] })
+   527→   527→      qc.invalidateQueries({ queryKey: ["trial-balance"] })
+   528→   528→    },
+   529→   529→  })
+   530→   530→}
+   531→   531→
+   532→   532→/* ----------------------------- Excel ------------------------------- */
+   533→   533→export function useExportExcel() {
+   534→   534→  return useMutation({
+   535→   535→    mutationFn: async ({ type, from, to }: { type: string; from?: string; to?: string }) => {
+   536→   536→      const qs = new URLSearchParams({ type })
+   537→   537→      if (from) qs.set("from", from)
+   538→   538→      if (to) qs.set("to", to)
+   539→   539→      const res = await fetch(`/api/excel/export?${qs.toString()}`)
+   540→   540→      if (!res.ok) throw new Error("export-failed")
+   541→   541→      const blob = await res.blob()
+   542→   542→      const url = URL.createObjectURL(blob)
+   543→   543→      const a = document.createElement("a")
+   544→   544→      a.href = url
+   545→   545→      a.download = `${type}.xlsx`
+   546→   546→      a.click()
+   547→   547→      URL.revokeObjectURL(url)
+   548→   548→    },
+   549→   549→  })
+   550→   550→}
+   551→   551→
+   552→   552→export function useImportProducts() {
+   553→   553→  const qc = useQueryClient()
+   554→   554→  return useMutation({
+   555→   555→    mutationFn: async (file: File) => {
+   556→   556→      const fd = new FormData()
+   557→   557→      fd.append("file", file)
+   558→   558→      const res = await fetch("/api/excel/import-products", { method: "POST", body: fd })
+   559→   559→      const data = await res.json()
+   560→   560→      if (!res.ok) throw new Error(data?.error || "import-failed")
+   561→   561→      return data
+   562→   562→    },
+   563→   563→    onSuccess: () => qc.invalidateQueries({ queryKey: ["products"] }),
+   564→   564→  })
+   565→   565→}
+   566→   566→
+   567→   567→export function useImportCustomers() {
+   568→   568→  const qc = useQueryClient()
+   569→   569→  return useMutation({
+   570→   570→    mutationFn: async (file: File) => {
+   571→   571→      const fd = new FormData()
+   572→   572→      fd.append("file", file)
+   573→   573→      const res = await fetch("/api/excel/import-customers", { method: "POST", body: fd })
+   574→   574→      const data = await res.json()
+   575→   575→      if (!res.ok) throw new Error(data?.error || "import-failed")
+   576→   576→      return data
+   577→   577→    },
+   578→   578→    onSuccess: () => qc.invalidateQueries({ queryKey: ["customers"] }),
+   579→   579→  })
+   580→   580→}
+   581→   581→
+   582→   582→/* ----------------------------- Image Upload ------------------------ */
+   583→   583→export function useUploadImage() {
+   584→   584→  return useMutation({
+   585→   585→    mutationFn: async (file: File) => {
+   586→   586→      const fd = new FormData()
+   587→   587→      fd.append("file", file)
+   588→   588→      const res = await fetch("/api/upload", { method: "POST", body: fd })
+   589→   589→      const data = await res.json()
+   590→   590→      if (!res.ok) throw new Error(data?.error || "upload-failed")
+   591→   591→      return data as { url: string }
+   592→   592→    },
+   593→   593→  })
+   594→   594→}
+   595→   595→
+   596→   596→/* ----------------------------- Settings (country) ------------------ */
+   597→   597→export function useSettings() {
+   598→   598→  return useQuery<CountryConfig>({
+   599→   599→    queryKey: ["settings"],
+   600→   600→    queryFn: () => jget("/api/settings"),
+   601→   601→    staleTime: 5 * 60 * 1000,
+   602→   602→  })
+   603→   603→}
+   604→   604→
+   605→   605→export function useUpdateSettings() {
+   606→   606→  const qc = useQueryClient()
+   607→   607→  return useMutation({
+   608→   608→    mutationFn: (body: { code: string }) => jsend<CountryConfig>("/api/settings", "PUT", body),
+   609→   609→    onSuccess: () => qc.invalidateQueries({ queryKey: ["settings"] }),
+   610→   610→  })
+   611→   611→}
+   612→   612→
+   613→   613→/* ----------------------- Suspended / Parked Sales ------------------ */
+   614→   614→export interface SuspendedSaleItem {
+   615→   615→  id: string
+   616→   616→  holdNo: string
+   617→   617→  label: string | null
+   618→   618→  itemCount: number
+   619→   619→  total: number
+   620→   620→  userName: string | null
+   621→   621→  createdAt: string
+   622→   622→}
+   623→   623→
+   624→   624→export function useSuspendedSales() {
+   625→   625→  return useQuery<{ items: SuspendedSaleItem[] }>({
+   626→   626→    queryKey: ["suspended-sales"],
+   627→   627→    queryFn: () => jget("/api/suspended-sales"),
+   628→   628→  })
+   629→   629→}
+   630→   630→
+   631→   631→export function useParkSale() {
+   632→   632→  const qc = useQueryClient()
+   633→   633→  return useMutation({
+   634→   634→    mutationFn: (body: { label?: string; cartJson: string; itemCount: number; total: number }) =>
+   635→   635→      jsend<{ id: string; holdNo: string }>("/api/suspended-sales", "POST", body),
+   636→   636→    onSuccess: () => qc.invalidateQueries({ queryKey: ["suspended-sales"] }),
+   637→   637→  })
+   638→   638→}
+   639→   639→
+   640→   640→export function useResumeSuspendedSale() {
+   641→   641→  const qc = useQueryClient()
+   642→   642→  return useMutation({
+   643→   643→    mutationFn: (id: string) => jsend(`/api/suspended-sales/${id}`, "PATCH"),
+   644→   644→    onSuccess: () => qc.invalidateQueries({ queryKey: ["suspended-sales"] }),
+   645→   645→  })
+   646→   646→}
+   647→   647→
+   648→   648→export function useDiscardSuspendedSale() {
+   649→   649→  const qc = useQueryClient()
+   650→   650→  return useMutation({
+   651→   651→    mutationFn: (id: string) => jsend(`/api/suspended-sales/${id}`, "DELETE"),
+   652→   652→    onSuccess: () => qc.invalidateQueries({ queryKey: ["suspended-sales"] }),
+   653→   653→  })
+   654→   654→}
+   655→   655→
+   656→   656→export function useFetchSuspendedSale(id: string | null) {
+   657→   657→  return useQuery<any>({
+   658→   658→    queryKey: ["suspended-sale", id],
+   659→   659→    queryFn: () => jget(`/api/suspended-sales/${id}`),
+   660→   660→    enabled: !!id,
+   661→   661→  })
+   662→   662→}
+   663→   663→
+   664→   664→/* ----------------------------- Shifts ------------------------------ */
+   665→   665→export interface ShiftItem {
+   666→   666→  id: string
+   667→   667→  shiftNo: string
+   668→   668→  userId: string | null
+   669→   669→  userName: string | null
+   670→   670→  openedAt: string
+   671→   671→  closedAt: string | null
+   672→   672→  status: "OPEN" | "CLOSED"
+   673→   673→  expectedCash: number
+   674→   674→  expectedKnet: number
+   675→   675→  expectedVisa: number
+   676→   676→  countedCash: number
+   677→   677→  countedKnet: number
+   678→   678→  countedVisa: number
+   679→   679→  cashVariance: number
+   680→   680→  knetVariance: number
+   681→   681→  visaVariance: number
+   682→   682→  note: string | null
+   683→   683→}
+   684→   684→
+   685→   685→export function useShifts(status?: "OPEN" | "CLOSED") {
+   686→   686→  const qs = status ? `?status=${status}` : ""
+   687→   687→  return useQuery<{ items: ShiftItem[] }>({
+   688→   688→    queryKey: ["shifts", status ?? "all"],
+   689→   689→    queryFn: () => jget(`/api/shifts${qs}`),
+   690→   690→  })
+   691→   691→}
+   692→   692→
+   693→   693→export function useOpenShift() {
+   694→   694→  const qc = useQueryClient()
+   695→   695→  return useMutation({
+   696→   696→    mutationFn: () => jsend("/api/shifts", "POST"),
+   697→   697→    onSuccess: () => qc.invalidateQueries({ queryKey: ["shifts"] }),
+   698→   698→  })
+   699→   699→}
+   700→   700→
+   701→   701→export function useCloseShift() {
+   702→   702→  const qc = useQueryClient()
+   703→   703→  return useMutation({
+   704→   704→    mutationFn: (body: { id: string; countedCash: number; countedKnet: number; countedVisa: number; note?: string }) =>
+   705→   705→      jsend("/api/shifts", "PATCH", body),
+   706→   706→    onSuccess: () => qc.invalidateQueries({ queryKey: ["shifts"] }),
+   707→   707→  })
+   708→   708→}
+   709→   709→
+   710→   710→/* ----------------------------- Spot-Checks ------------------------- */
+   711→   711→export interface SpotCheckItem {
+   712→   712→  id: string
+   713→   713→  productId: string
+   714→   714→  productName: string
+   715→   715→  barcode: string | null
+   716→   716→  bookQty: number
+   717→   717→  countedQty: number
+   718→   718→  variance: number
+   719→   719→  note: string | null
+   720→   720→  userName: string | null
+   721→   721→  createdAt: string
+   722→   722→}
+   723→   723→
+   724→   724→export function useSpotChecks() {
+   725→   725→  return useQuery<{ items: SpotCheckItem[] }>({
+   726→   726→    queryKey: ["spot-checks"],
+   727→   727→    queryFn: () => jget("/api/spot-checks"),
+   728→   728→  })
+   729→   729→}
+   730→   730→
+   731→   731→export function useCreateSpotCheck() {
+   732→   732→  const qc = useQueryClient()
+   733→   733→  return useMutation({
+   734→   734→    mutationFn: (body: { productId: string; countedQty: number; note?: string }) =>
+   735→   735→      jsend<any>("/api/spot-checks", "POST", body),
+   736→   736→    onSuccess: () => qc.invalidateQueries({ queryKey: ["spot-checks"] }),
+   737→   737→  })
+   738→   738→}
+   739→   739→
+   740→   740→/* ----------------------------- Exchanges --------------------------- */
+   741→   741→/** A single line in an exchange — signed quantity (negative=returned, positive=new). */
+   742→   742→export interface ExchangeLine {
+   743→   743→  id: string
+   744→   744→  exchangeId: string
+   745→   745→  productId: string
+   746→   746→  productName: string
+   747→   747→  quantity: number
+   748→   748→  unitPrice: number
+   749→   749→  lineTotal: number
+   750→   750→  isReturn: boolean
+   751→   751→}
+   752→   752→
+   753→   753→/** A complete exchange transaction (returned items + new items in one invoice). */
+   754→   754→export interface ExchangeSale {
+   755→   755→  id: string
+   756→   756→  exchangeNo: string
+   757→   757→  originalSaleId: string | null
+   758→   758→  customerName: string | null
+   759→   759→  customerPhone: string | null
+   760→   760→  netAmount: number
+   761→   761→  paymentMethod: "CASH" | "CARD" | "TRANSFER"
+   762→   762→  itemCount: number
+   763→   763→  note: string | null
+   764→   764→  userId: string | null
+   765→   765→  userName: string | null
+   766→   766→  lines: ExchangeLine[]
+   767→   767→  createdAt: string
+   768→   768→}
+   769→   769→
+   770→   770→export function useExchanges() {
+   771→   771→  return useQuery<{ items: ExchangeSale[] }>({
+   772→   772→    queryKey: ["exchanges"],
+   773→   773→    queryFn: () => jget("/api/exchanges"),
+   774→   774→  })
+   775→   775→}
+   776→   776→
+   777→   777→export function useCreateExchange() {
+   778→   778→  const qc = useQueryClient()
+   779→   779→  return useMutation({
+   780→   780→    mutationFn: (body: {
+   781→   781→      originalSaleId?: string
+   782→   782→      customerName?: string
+   783→   783→      customerPhone?: string
+   784→   784→      paymentMethod: "CASH" | "CARD" | "TRANSFER"
+   785→   785→      note?: string
+   786→   786→      lines: { productId: string; quantity: number; unitPrice: number; isReturn: boolean }[]
+   787→   787→    }) => jsend<ExchangeSale>("/api/exchanges", "POST", body),
+   788→   788→    onSuccess: () => {
+   789→   789→      qc.invalidateQueries({ queryKey: ["exchanges"] })
+   790→   790→      qc.invalidateQueries({ queryKey: ["products"] })
+   791→   791→      qc.invalidateQueries({ queryKey: ["dashboard"] })
+   792→   792→    },
+   793→   793→  })
+   794→   794→}
+   795→   795→
+   796→   796→export function useFetchExchange(id: string | null) {
+   797→   797→  return useQuery<ExchangeSale>({
+   798→   798→    queryKey: ["exchange", id],
+   799→   799→    queryFn: () => jget(`/api/exchanges/${id}`),
+   800→   800→    enabled: !!id,
+   801→   801→  })
+   802→   802→}
+   803→   803→

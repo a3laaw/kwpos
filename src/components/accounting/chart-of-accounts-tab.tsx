@@ -37,23 +37,32 @@ import {
 } from "lucide-react"
 import { useAccounts, useCreateAccount, useDeleteAccount } from "@/hooks/use-api"
 import { useFmt } from "@/components/currency-context"
+import { useT } from "@/components/i18n-context"
 import type { Account, AccountType } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
-const TYPE_META: Record<AccountType, { label: string; icon: any; tone: string }> = {
-  ASSET: { label: "الأصول", icon: Wallet, tone: "text-emerald-600 bg-emerald-500/10" },
-  LIABILITY: { label: "الخصوم", icon: Landmark, tone: "text-rose-600 bg-rose-500/10" },
-  EQUITY: { label: "حقوق الملكية", icon: Scale, tone: "text-violet-600 bg-violet-500/10" },
-  REVENUE: { label: "الإيرادات", icon: TrendingUp, tone: "text-sky-600 bg-sky-500/10" },
-  EXPENSE: { label: "المصروفات", icon: TrendingDown, tone: "text-amber-600 bg-amber-500/10" },
+const TYPE_META: Record<AccountType, { labelKey: keyof import("@/lib/i18n").Dict; icon: any; tone: string }> = {
+  ASSET: { labelKey: "accTypeAsset", icon: Wallet, tone: "text-emerald-600 bg-emerald-500/10" },
+  LIABILITY: { labelKey: "accTypeLiability", icon: Landmark, tone: "text-rose-600 bg-rose-500/10" },
+  EQUITY: { labelKey: "accTypeEquity", icon: Scale, tone: "text-violet-600 bg-violet-500/10" },
+  REVENUE: { labelKey: "accTypeRevenue", icon: TrendingUp, tone: "text-sky-600 bg-sky-500/10" },
+  EXPENSE: { labelKey: "accTypeExpense", icon: TrendingDown, tone: "text-amber-600 bg-amber-500/10" },
 }
 
 export function ChartOfAccountsTab() {
+  const t = useT()
   const { data, isLoading } = useAccounts()
   const [addOpen, setAddOpen] = React.useState(false)
   const [addParent, setAddParent] = React.useState<Account | null>(null)
 
   const tree = data?.items ?? []
+  const TYPE_LABELS: Record<AccountType, string> = {
+    ASSET: t.accTypeAsset,
+    LIABILITY: t.accTypeLiability,
+    EQUITY: t.accTypeEquity,
+    REVENUE: t.accTypeRevenue,
+    EXPENSE: t.accTypeExpense,
+  }
 
   return (
     <div className="space-y-4">
@@ -62,13 +71,13 @@ export function ChartOfAccountsTab() {
           <div>
             <CardTitle className="flex items-center gap-2 text-base">
               <Wallet className="h-4 w-4 text-primary" />
-              شجرة الحسابات
+              {t.accChartOfAccounts}
             </CardTitle>
-            <CardDescription>هيكل الحسابات الهرمي مع الأرصدة الحية</CardDescription>
+            <CardDescription>{t.accChartOfAccountsDesc}</CardDescription>
           </div>
           <Button size="sm" onClick={() => { setAddParent(null); setAddOpen(true) }} className="gap-1.5">
             <Plus className="h-3.5 w-3.5" />
-            حساب رئيسي
+            {t.accMainAccount}
           </Button>
         </CardHeader>
         <CardContent>
@@ -79,18 +88,18 @@ export function ChartOfAccountsTab() {
               ))}
             </div>
           ) : tree.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">لا توجد حسابات بعد</p>
+            <p className="text-sm text-muted-foreground text-center py-8">{t.accNoAccountsYet}</p>
           ) : (
             <div className="space-y-1">
               {tree.map((acc) => (
-                <AccountNode key={acc.id} account={acc} depth={0} onAddChild={(a) => { setAddParent(a); setAddOpen(true) }} />
+                <AccountNode key={acc.id} account={acc} depth={0} onAddChild={(a) => { setAddParent(a); setAddOpen(true) }} typeLabels={TYPE_LABELS} />
               ))}
             </div>
           )}
         </CardContent>
       </Card>
 
-      <AccountFormDialog open={addOpen} onOpenChange={setAddOpen} parent={addParent} />
+      <AccountFormDialog open={addOpen} onOpenChange={setAddOpen} parent={addParent} typeLabels={TYPE_LABELS} />
     </div>
   )
 }
@@ -99,12 +108,15 @@ function AccountNode({
   account,
   depth,
   onAddChild,
+  typeLabels,
 }: {
   account: Account
   depth: number
   onAddChild: (a: Account) => void
+  typeLabels: Record<AccountType, string>
 }) {
   const fmt = useFmt()
+  const t = useT()
   const [expanded, setExpanded] = React.useState(true)
   const hasChildren = (account.children?.length ?? 0) > 0
   const meta = TYPE_META[account.type]
@@ -132,7 +144,7 @@ function AccountNode({
         </span>
         <span className="font-mono text-xs text-muted-foreground tabular-nums" dir="ltr">{account.code}</span>
         <span className="font-medium text-sm flex-1 truncate">{account.name}</span>
-        <Badge variant="outline" className="text-[10px] hidden sm:inline-flex">{meta.label}</Badge>
+        <Badge variant="outline" className="text-[10px] hidden sm:inline-flex">{typeLabels[account.type]}</Badge>
         <span className="font-semibold tabular-nums text-sm w-28 text-left" dir="ltr">
           {fmt.currency(account.balance)}
         </span>
@@ -141,7 +153,7 @@ function AccountNode({
           size="icon"
           className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
           onClick={() => onAddChild(account)}
-          title="إضافة حساب فرعي"
+          title={t.accAddSubaccountTitle}
         >
           <Plus className="h-3.5 w-3.5" />
         </Button>
@@ -149,7 +161,7 @@ function AccountNode({
       {hasChildren && expanded ? (
         <div>
           {account.children!.map((c) => (
-            <AccountNode key={c.id} account={c} depth={depth + 1} onAddChild={onAddChild} />
+            <AccountNode key={c.id} account={c} depth={depth + 1} onAddChild={onAddChild} typeLabels={typeLabels} />
           ))}
         </div>
       ) : null}
@@ -162,11 +174,14 @@ function AccountFormDialog({
   open,
   onOpenChange,
   parent,
+  typeLabels,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   parent: Account | null
+  typeLabels: Record<AccountType, string>
 }) {
+  const t = useT()
   const { data } = useAccounts()
   const createMut = useCreateAccount()
   const [code, setCode] = React.useState("")
@@ -186,7 +201,7 @@ function AccountFormDialog({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!code.trim() || !name.trim()) {
-      toast.error("الرمز والاسم مطلوبان")
+      toast.error(t.accCodeAndNameRequired)
       return
     }
     try {
@@ -196,32 +211,34 @@ function AccountFormDialog({
         type,
         parentId: parentId || undefined,
       })
-      toast.success(parent ? "تمت إضافة الحساب الفرعي" : "تمت إضافة الحساب")
+      toast.success(parent ? t.accSubaccountAdded : t.accAccountAdded)
       onOpenChange(false)
     } catch (err: any) {
-      const msg = err?.message === "code-exists" ? "الرمز مستخدم بالفعل" : err?.message
-      toast.error("فشل الإضافة", { description: msg })
+      const msg = err?.message === "code-exists" ? t.accCodeAlreadyUsed : err?.message
+      toast.error(t.accAddFailed, { description: msg })
     }
   }
+
+  const TYPE_LABELS_LOCAL = typeLabels
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {parent ? `إضافة حساب فرعي تحت «${parent.name}»` : "إضافة حساب رئيسي"}
+            {parent ? `${t.accAddSubaccountUnder} «${parent.name}»` : t.accAddMainAccount}
           </DialogTitle>
-          <DialogDescription>أدخل بيانات الحساب الجديد.</DialogDescription>
+          <DialogDescription>{t.accEnterNewAccountData}</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           {!parent ? (
             <div className="space-y-2">
-              <Label>نوع الحساب</Label>
+              <Label>{t.accAccountType}</Label>
               <Select value={type} onValueChange={(v) => setType(v as AccountType)} disabled={!!parent}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {(Object.keys(TYPE_META) as AccountType[]).map((t) => (
-                    <SelectItem key={t} value={t}>{TYPE_META[t].label}</SelectItem>
+                  {(Object.keys(TYPE_META) as AccountType[]).map((ty) => (
+                    <SelectItem key={ty} value={ty}>{TYPE_LABELS_LOCAL[ty]}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -229,24 +246,24 @@ function AccountFormDialog({
           ) : null}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="a-code">الرمز</Label>
+              <Label htmlFor="a-code">{t.accCode}</Label>
               <Input id="a-code" dir="ltr" value={code} onChange={(e) => setCode(e.target.value)} placeholder="1001" className="text-left" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="a-name">الاسم</Label>
+              <Label htmlFor="a-name">{t.name}</Label>
               <Input id="a-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="النقدية" />
             </div>
           </div>
           {parent ? (
             <div className="rounded-lg bg-muted/40 p-2.5 text-xs text-muted-foreground">
-              النوع موروث من الحساب الأب: <Badge variant="outline">{TYPE_META[parent.type].label}</Badge>
+              {t.accTypeInheritedFromParent}: <Badge variant="outline">{TYPE_LABELS_LOCAL[parent.type]}</Badge>
             </div>
           ) : null}
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={createMut.isPending}>إلغاء</Button>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={createMut.isPending}>{t.cancel}</Button>
             <Button type="submit" disabled={createMut.isPending}>
               {createMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              إضافة
+              {t.accAdd2}
             </Button>
           </DialogFooter>
         </form>

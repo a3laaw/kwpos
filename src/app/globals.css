@@ -178,3 +178,48 @@
 html[dir="rtl"] .nav-active {
   box-shadow: inset -3px 0 0 0 var(--sidebar-primary);
 }
+
+/* Accordion slide-down/up animation for nested sidebar groups.
+   Uses Radix Collapsible data-state attributes. */
+@keyframes nav-slide-down {
+  from {
+    height: 0;
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    height: var(--radix-collapsible-content-height);
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes nav-slide-up {
+  from {
+    height: var(--radix-collapsible-content-height);
+    opacity: 1;
+  }
+  to {
+    height: 0;
+    opacity: 0;
+  }
+}
+.nav-collapsible[data-state="open"] .nav-collapsible-content {
+  animation: nav-slide-down 0.22s ease-out;
+  overflow: hidden;
+}
+.nav-collapsible[data-state="closed"] .nav-collapsible-content {
+  animation: nav-slide-up 0.18s ease-in;
+  overflow: hidden;
+}
+
+/* Hide number input spinners (up/down arrows) globally — prevents accidental
+   value changes when scrolling. Users type values explicitly via keyboard. */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}

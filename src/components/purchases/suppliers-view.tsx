@@ -29,10 +29,12 @@ import {
   ShoppingCart,
 } from "lucide-react"
 import { useUser } from "@/components/user-context"
+import { useT } from "@/components/i18n-context"
 import { useSuppliers, useDeleteSupplier } from "@/hooks/use-api"
 import type { Supplier } from "@/lib/types"
 
 export function SuppliersView() {
+  const t = useT()
   const user = useUser()
   const [dialogOpen, setDialogOpen] = React.useState(false)
   const [editing, setEditing] = React.useState<Supplier | null>(null)
@@ -56,13 +58,13 @@ export function SuppliersView() {
     if (!deleteTarget) return
     try {
       await deleteMut.mutateAsync(deleteTarget.id)
-      toast.success("تم حذف المورّد")
+      toast.success(t.supplierDeleted)
       setDeleteTarget(null)
     } catch (err: any) {
       const msg = err?.message === "cannot-delete-linked"
-        ? "لا يمكن حذف مورّد مرتبط بمنتجات أو أوامر شراء"
+        ? t.cannotDeleteLinkedSupplier
         : err?.message
-      toast.error("فشل الحذف", { description: msg })
+      toast.error(t.deleteFailed, { description: msg })
     }
   }
 
@@ -71,14 +73,14 @@ export function SuppliersView() {
   return (
     <div className="space-y-5">
       <PageHeader
-        title="المورّدون"
-        description="قائمة الموردين وبيانات الاتصال بهم."
+        title={t.suppliersTitle}
+        description={t.suppliersDescLong}
         icon={<Truck className="h-5 w-5" />}
         actions={
           canManage ? (
             <Button onClick={openAdd} className="gap-2">
               <Plus className="h-4 w-4" />
-              إضافة مورّد
+              {t.addSupplier}
             </Button>
           ) : null
         }
@@ -86,8 +88,8 @@ export function SuppliersView() {
 
       {isError ? (
         <EmptyState
-          title="تعذّر تحميل الموردين"
-          action={<Button onClick={() => refetch()}>إعادة المحاولة</Button>}
+          title={t.suppliersLoadFailedShort}
+          action={<Button onClick={() => refetch()}>{t.retry}</Button>}
         />
       ) : isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -98,13 +100,13 @@ export function SuppliersView() {
       ) : suppliers.length === 0 ? (
         <EmptyState
           icon={<Truck className="h-7 w-7" />}
-          title="لا يوجد مورّدون"
-          description="ابدأ بإضافة أول مورّد لإدارة المشتريات."
+          title={t.noSuppliers}
+          description={t.noSuppliersDesc}
           action={
             canManage ? (
               <Button onClick={openAdd} className="gap-2">
                 <Plus className="h-4 w-4" />
-                إضافة مورّد
+                {t.addSupplier}
               </Button>
             ) : null
           }
@@ -138,14 +140,14 @@ export function SuppliersView() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => openEdit(s)} className="gap-2">
                           <Pencil className="h-4 w-4" />
-                          تعديل
+                          {t.edit}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => setDeleteTarget(s)}
                           className="gap-2 text-destructive focus:text-destructive"
                         >
                           <Trash2 className="h-4 w-4" />
-                          حذف
+                          {t.delete}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -174,7 +176,7 @@ export function SuppliersView() {
                   {!s.phone && !s.email && !s.address ? (
                     <div className="flex items-center gap-2 text-muted-foreground/60">
                       <User className="h-4 w-4" />
-                      <span className="text-xs">لا توجد بيانات اتصال</span>
+                      <span className="text-xs">{t.noContactData}</span>
                     </div>
                   ) : null}
                 </div>
@@ -182,11 +184,11 @@ export function SuppliersView() {
                 <div className="mt-4 flex items-center gap-2 pt-3 border-t border-border/60">
                   <Badge variant="secondary" className="gap-1">
                     <Package className="h-3 w-3" />
-                    {s.productsCount ?? 0} منتج
+                    {t.productsCountLabel.replace("{count}", String(s.productsCount ?? 0))}
                   </Badge>
                   <Badge variant="outline" className="gap-1">
                     <ShoppingCart className="h-3 w-3" />
-                    {s.ordersCount ?? 0} أمر شراء
+                    {t.ordersCountLabel.replace("{count}", String(s.ordersCount ?? 0))}
                   </Badge>
                 </div>
               </CardContent>
@@ -199,14 +201,13 @@ export function SuppliersView() {
       <ConfirmDialog
         open={!!deleteTarget}
         onOpenChange={(o) => !o && setDeleteTarget(null)}
-        title="حذف المورّد"
+        title={t.deleteSupplierTitle}
         description={
           <>
-            سيتم حذف المورّد{" "}
-            <span className="font-semibold">“{deleteTarget?.name}”</span>.
+            {t.deleteSupplierConfirmLong.replace("{name}", deleteTarget?.name ?? "")}
           </>
         }
-        confirmText="حذف"
+        confirmText={t.delete}
         loading={deleteMut.isPending}
         onConfirm={handleDelete}
       />

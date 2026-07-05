@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json()
-  const { supplierId, note, items } = body || {}
+  const { supplierId, note, items, customsAmount, shippingAmount, otherCharges } = body || {}
   if (!supplierId) return NextResponse.json({ error: "supplier-required" }, { status: 400 })
   if (!Array.isArray(items) || items.length === 0) {
     return NextResponse.json({ error: "items-required" }, { status: 400 })
@@ -51,9 +51,18 @@ export async function POST(req: NextRequest) {
       quantity: qty,
       unitCost,
       subtotal: +(qty * unitCost).toFixed(2),
+      // Optional manager-suggested retail sale price (0 = not set). The
+      // receive flow applies this via the pricing engine.
+      suggestedSalePrice: Math.max(0, Number(i.suggestedSalePrice) || 0),
     }
   })
   const total = itemsData.reduce((a: number, b: any) => a + b.subtotal, 0)
+
+  // Landed cost — extra charges saved on the PO. They are optional and
+  // default to 0; the weighted-average allocation runs only on receipt.
+  const customs = Math.max(0, Number(customsAmount) || 0)
+  const shipping = Math.max(0, Number(shippingAmount) || 0)
+  const other = Math.max(0, Number(otherCharges) || 0)
 
   const created = await db.purchaseOrder.create({
     data: {
@@ -61,6 +70,9 @@ export async function POST(req: NextRequest) {
       status: "PENDING",
       total: +total.toFixed(2),
       note: note?.trim() || null,
+      customsAmount: customs,
+      shippingAmount: shipping,
+      otherCharges: other,
       items: { create: itemsData },
     },
     include: { supplier: true, items: { include: { product: true } } },

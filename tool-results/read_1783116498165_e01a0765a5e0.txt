@@ -1,0 +1,803 @@
+     1→"use client"
+     2→
+     3→import * as React from "react"
+     4→import {
+     5→  Bar,
+     6→  BarChart,
+     7→  Cell,
+     8→  Pie,
+     9→  PieChart,
+    10→  ResponsiveContainer,
+    11→  Tooltip,
+    12→  XAxis,
+    13→  YAxis,
+    14→} from "recharts"
+    15→import { PageHeader } from "@/components/shared/page-header"
+    16→import { EmptyState } from "@/components/shared/empty-state"
+    17→import { LoadingState } from "@/components/shared/loading-state"
+    18→import { Button } from "@/components/ui/button"
+    19→import { Input } from "@/components/ui/input"
+    20→import { Label } from "@/components/ui/label"
+    21→import {
+    22→  Card,
+    23→  CardContent,
+    24→  CardDescription,
+    25→  CardHeader,
+    26→  CardTitle,
+    27→} from "@/components/ui/card"
+    28→import { Badge } from "@/components/ui/badge"
+    29→import { ScrollArea } from "@/components/ui/scroll-area"
+    30→import { Progress } from "@/components/ui/progress"
+    31→import {
+    32→  ArrowDown,
+    33→  ArrowLeft,
+    34→  ArrowUp,
+    35→  BarChart3,
+    36→  Calendar,
+    37→  Coins,
+    38→  LayoutGrid,
+    39→  PackageX,
+    40→  Percent,
+    41→  TrendingUp,
+    42→} from "lucide-react"
+    43→import { useAnalytics } from "@/hooks/use-api"
+    44→import { useFmt } from "@/components/currency-context"
+    45→import type { AnalyticsReport, ProductAnalytics } from "@/lib/types"
+    46→import { cn } from "@/lib/utils"
+    47→
+    48→const PIE_COLORS = [
+    49→  "#055BE5",
+    50→  "#5CDE9D",
+    51→  "#185B6B",
+    52→  "#f59e0b",
+    53→  "#8b5cf6",
+    54→  "#ec4899",
+    55→  "#0ea5e9",
+    56→]
+    57→
+    58→type ReportKey = "overview" | "top" | "stagnant" | "cost" | "margin"
+    59→
+    60→interface ReportCardDef {
+    61→  key: ReportKey
+    62→  label: string
+    63→  icon: React.ReactNode
+    64→  /** Either "primary" (uses Tailwind primary token) or a hex color string. */
+    65→  color: "primary" | string
+    66→  description: string
+    67→  count?: (d: AnalyticsReport) => number
+    68→}
+    69→
+    70→const REPORTS: ReportCardDef[] = [
+    71→  {
+    72→    key: "overview",
+    73→    label: "نظرة عامة",
+    74→    icon: <LayoutGrid className="h-4 w-4" />,
+    75→    color: "primary",
+    76→    description: "ملخص شامل",
+    77→  },
+    78→  {
+    79→    key: "top",
+    80→    label: "الأكثر مبيعاً",
+    81→    icon: <TrendingUp className="h-4 w-4" />,
+    82→    color: "#055BE5",
+    83→    description: "حسب الكمية المباعة",
+    84→    count: (d) => d.topSelling.length,
+    85→  },
+    86→  {
+    87→    key: "stagnant",
+    88→    label: "الأصناف الراكدة",
+    89→    icon: <PackageX className="h-4 w-4" />,
+    90→    color: "#f59e0b",
+    91→    description: "منخفضة المبيع",
+    92→    count: (d) => d.stagnant.length,
+    93→  },
+    94→  {
+    95→    key: "cost",
+    96→    label: "التكلفة",
+    97→    icon: <Coins className="h-4 w-4" />,
+    98→    color: "#f43f5e",
+    99→    description: "الأعلى والأقل",
+   100→    count: (d) => d.mostExpensive.length + d.cheapest.length,
+   101→  },
+   102→  {
+   103→    key: "margin",
+   104→    label: "الربحية",
+   105→    icon: <Percent className="h-4 w-4" />,
+   106→    color: "#5CDE9D",
+   107→    description: "هامش الربح",
+   108→    count: (d) => d.highestMargin.length,
+   109→  },
+   110→]
+   111→
+   112→function defaultFrom(): string {
+   113→  const d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+   114→  return d.toISOString().slice(0, 10)
+   115→}
+   116→function defaultTo(): string {
+   117→  return new Date().toISOString().slice(0, 10)
+   118→}
+   119→
+   120→export function AnalyticsView() {
+   121→  const fmt = useFmt()
+   122→  const [from, setFrom] = React.useState(defaultFrom())
+   123→  const [to, setTo] = React.useState(defaultTo())
+   124→  const [appliedFrom, setAppliedFrom] = React.useState(from)
+   125→  const [appliedTo, setAppliedTo] = React.useState(to)
+   126→  const [activeReport, setActiveReport] = React.useState<ReportKey>("overview")
+   127→
+   128→  const { data, isLoading, isError, refetch } = useAnalytics(appliedFrom, appliedTo)
+   129→
+   130→  function applyRange() {
+   131→    setAppliedFrom(from)
+   132→    setAppliedTo(to)
+   133→  }
+   134→
+   135→  function resetRange() {
+   136→    const f = defaultFrom()
+   137→    const t = defaultTo()
+   138→    setFrom(f)
+   139→    setTo(t)
+   140→    setAppliedFrom(f)
+   141→    setAppliedTo(t)
+   142→  }
+   143→
+   144→  // Date range applies to overview + sales-based reports (top, stagnant).
+   145→  // Cost & margin reports are based on current product data only.
+   146→  const showDateRange =
+   147→    activeReport === "overview" ||
+   148→    activeReport === "top" ||
+   149→    activeReport === "stagnant"
+   150→
+   151→  return (
+   152→    <div className="space-y-5">
+   153→      <PageHeader
+   154→        title="تحليلات المبيعات والمخزون"
+   155→        description="تحليلات ذكية للأصناف: الأكثر مبيعاً، الراكد، الأعلى/الأقل تكلفة، والأكثر ربحية."
+   156→        icon={<BarChart3 className="h-5 w-5" />}
+   157→      />
+   158→
+   159→      {/* Clickable colored report cards selector */}
+   160→      <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+   161→        {REPORTS.map((r) => {
+   162→          const isActive = activeReport === r.key
+   163→          const isPrimary = r.color === "primary"
+   164→          const count = r.count && data ? r.count(data) : null
+   165→          return (
+   166→            <button
+   167→              key={r.key}
+   168→              type="button"
+   169→              onClick={() => setActiveReport(r.key)}
+   170→              aria-pressed={isActive}
+   171→              className={cn(
+   172→                "group relative p-4 rounded-xl border bg-card text-card-foreground text-right transition-all hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+   173→                isActive
+   174→                  ? "ring-2 ring-primary border-primary/40 shadow-sm"
+   175→                  : "border-border/60 hover:border-primary/40"
+   176→              )}
+   177→            >
+   178→              <div className="flex items-center justify-between gap-2">
+   179→                {isPrimary ? (
+   180→                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/15 text-primary">
+   181→                    {r.icon}
+   182→                  </span>
+   183→                ) : (
+   184→                  <span
+   185→                    className="flex h-9 w-9 items-center justify-center rounded-lg"
+   186→                    style={{ backgroundColor: `${r.color}22`, color: r.color }}
+   187→                  >
+   188→                    {r.icon}
+   189→                  </span>
+   190→                )}
+   191→                {isPrimary ? (
+   192→                  <span
+   193→                    className={cn(
+   194→                      "h-2.5 w-2.5 rounded-full transition-all bg-primary",
+   195→                      isActive ? "scale-100 opacity-100" : "scale-0 opacity-0"
+   196→                    )}
+   197→                  />
+   198→                ) : (
+   199→                  <span
+   200→                    className={cn(
+   201→                      "h-2.5 w-2.5 rounded-full transition-all",
+   202→                      isActive ? "scale-100 opacity-100" : "scale-0 opacity-0"
+   203→                    )}
+   204→                    style={{ backgroundColor: r.color }}
+   205→                  />
+   206→                )}
+   207→              </div>
+   208→              <p className="mt-3 text-sm font-semibold leading-tight">{r.label}</p>
+   209→              <p className="text-xs text-muted-foreground mt-0.5">{r.description}</p>
+   210→              {count !== null ? (
+   211→                isPrimary ? (
+   212→                  <p className="mt-2 text-2xl font-bold tabular-nums text-primary">
+   213→                    {fmt.number(count)}
+   214→                  </p>
+   215→                ) : (
+   216→                  <p
+   217→                    className="mt-2 text-2xl font-bold tabular-nums"
+   218→                    style={{ color: r.color }}
+   219→                  >
+   220→                    {fmt.number(count)}
+   221→                  </p>
+   222→                )
+   223→              ) : null}
+   224→            </button>
+   225→          )
+   226→        })}
+   227→      </div>
+   228→
+   229→      {/* Date range filter — overview + sales-based reports only */}
+   230→      {showDateRange ? (
+   231→        <Card className="p-4">
+   232→          <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+   233→            <div className="space-y-1.5 flex-1">
+   234→              <Label htmlFor="from" className="text-xs flex items-center gap-1.5">
+   235→                <Calendar className="h-3 w-3" /> من تاريخ
+   236→              </Label>
+   237→              <Input id="from" type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="h-9" />
+   238→            </div>
+   239→            <div className="space-y-1.5 flex-1">
+   240→              <Label htmlFor="to" className="text-xs flex items-center gap-1.5">
+   241→                <Calendar className="h-3 w-3" /> إلى تاريخ
+   242→              </Label>
+   243→              <Input id="to" type="date" value={to} onChange={(e) => setTo(e.target.value)} className="h-9" />
+   244→            </div>
+   245→            <div className="flex gap-2">
+   246→              <Button onClick={applyRange} size="sm">تطبيق</Button>
+   247→              <Button onClick={resetRange} size="sm" variant="outline">آخر ٣٠ يوم</Button>
+   248→            </div>
+   249→          </div>
+   250→          <p className="text-xs text-muted-foreground mt-2">
+   251→            النطاق الزمني يطبّق على تحليلات "الأكثر مبيعاً" و"الأصناف الراكدة". تحليلات التكلفة والربحية تستند لبيانات المنتجات الحالية.
+   252→          </p>
+   253→        </Card>
+   254→      ) : null}
+   255→
+   256→      {isLoading ? (
+   257→        <LoadingState text="جارٍ حساب التحليلات..." />
+   258→      ) : isError ? (
+   259→        <EmptyState
+   260→          title="تعذّر تحميل التحليلات"
+   261→          action={<Button onClick={() => refetch()}>إعادة المحاولة</Button>}
+   262→        />
+   263→      ) : !data ? null : activeReport === "overview" ? (
+   264→        <OverviewContent
+   265→          data={data}
+   266→          fmt={fmt}
+   267→          onNavigate={setActiveReport}
+   268→        />
+   269→      ) : (
+   270→        <div className="grid gap-4 lg:grid-cols-2">
+   271→          {activeReport === "top" ? (
+   272→            <div className="lg:col-span-2">
+   273→              <AnalyticsCard
+   274→                title="الأكثر مبيعاً"
+   275→                description="ترتيب حسب الكمية المباعة وحجم الإيراد"
+   276→                icon={<TrendingUp className="h-4 w-4" />}
+   277→                tone="info"
+   278→                empty={data.topSelling.length === 0}
+   279→                emptyText="لا توجد مبيعات في النطاق المحدد"
+   280→              >
+   281→                <RankList
+   282→                  items={data.topSelling}
+   283→                  primary={(r) => fmt.number(r.quantitySold)}
+   284→                  primaryLabel="قطعة"
+   285→                  secondary={(r) => fmt.currency(r.grossVolume)}
+   286→                />
+   287→              </AnalyticsCard>
+   288→            </div>
+   289→          ) : null}
+   290→
+   291→          {activeReport === "stagnant" ? (
+   292→            <div className="lg:col-span-2">
+   293→              <AnalyticsCard
+   294→                title="الأصناف الراكدة"
+   295→                description="منخفضة أو صفرية المبيع (قد تحتاج تخفيضات)"
+   296→                icon={<PackageX className="h-4 w-4" />}
+   297→                tone="warning"
+   298→                empty={data.stagnant.length === 0}
+   299→                emptyText="لا توجد أصناف راكدة"
+   300→              >
+   301→                <StagnantList items={data.stagnant} fmt={fmt} />
+   302→              </AnalyticsCard>
+   303→            </div>
+   304→          ) : null}
+   305→
+   306→          {activeReport === "cost" ? (
+   307→            <>
+   308→              <AnalyticsCard
+   309→                title="الأصناف الأكثر تكلفة"
+   310→                description="حسب سعر التكلفة الأساسي"
+   311→                icon={<ArrowUp className="h-4 w-4" />}
+   312→                tone="danger"
+   313→                empty={data.mostExpensive.length === 0}
+   314→                emptyText="لا توجد بيانات"
+   315→              >
+   316→                <CostList items={data.mostExpensive} fmt={fmt} />
+   317→              </AnalyticsCard>
+   318→
+   319→              <AnalyticsCard
+   320→                title="الأصناف الأقل تكلفة"
+   321→                description="حسب سعر التكلفة الأساسي"
+   322→                icon={<ArrowDown className="h-4 w-4" />}
+   323→                tone="default"
+   324→                empty={data.cheapest.length === 0}
+   325→                emptyText="لا توجد بيانات"
+   326→              >
+   327→                <CostList items={data.cheapest} fmt={fmt} />
+   328→              </AnalyticsCard>
+   329→            </>
+   330→          ) : null}
+   331→
+   332→          {activeReport === "margin" ? (
+   333→            <div className="lg:col-span-2">
+   334→              <AnalyticsCard
+   335→                title="الأصناف الأكثر ربحية"
+   336→                description="حسب الفرق المطلق بين سعر البيع والتكلفة"
+   337→                icon={<Percent className="h-4 w-4" />}
+   338→                tone="success"
+   339→                empty={data.highestMargin.length === 0}
+   340→                emptyText="لا توجد بيانات"
+   341→              >
+   342→                <RankList
+   343→                  items={data.highestMargin}
+   344→                  primary={(r) => fmt.currency(r.margin)}
+   345→                  primaryLabel="ربح/وحدة"
+   346→                  secondary={(r) => `${fmt.number(r.marginPct)}%`}
+   347→                />
+   348→              </AnalyticsCard>
+   349→            </div>
+   350→          ) : null}
+   351→        </div>
+   352→      )}
+   353→    </div>
+   354→  )
+   355→}
+   356→
+   357→/* ----------------------------- Overview tab ----------------------------- */
+   358→function OverviewContent({
+   359→  data,
+   360→  fmt,
+   361→  onNavigate,
+   362→}: {
+   363→  data: AnalyticsReport
+   364→  fmt: ReturnType<typeof useFmt>
+   365→  onNavigate: (k: ReportKey) => void
+   366→}) {
+   367→  // 4 KPI cards
+   368→  const kpis = [
+   369→    {
+   370→      label: "الأكثر مبيعاً",
+   371→      value: fmt.number(data.topSelling.length),
+   372→      hint: "صنف في النطاق المحدد",
+   373→      color: "#055BE5",
+   374→      icon: <TrendingUp className="h-5 w-5" />,
+   375→    },
+   376→    {
+   377→      label: "أصناف راكدة",
+   378→      value: fmt.number(data.stagnant.length),
+   379→      hint: "تحتاج اهتماماً",
+   380→      color: "#f59e0b",
+   381→      icon: <PackageX className="h-5 w-5" />,
+   382→    },
+   383→    {
+   384→      label: "أعلى تكلفة",
+   385→      value: data.mostExpensive[0] ? fmt.currency(data.mostExpensive[0].costPrice) : "—",
+   386→      hint: data.mostExpensive[0]?.name ?? "لا يوجد",
+   387→      color: "#f43f5e",
+   388→      icon: <Coins className="h-5 w-5" />,
+   389→    },
+   390→    {
+   391→      label: "أعلى ربحية",
+   392→      value: data.highestMargin[0] ? fmt.currency(data.highestMargin[0].margin) : "—",
+   393→      hint: data.highestMargin[0]?.name ?? "لا يوجد",
+   394→      color: "#5CDE9D",
+   395→      icon: <Percent className="h-5 w-5" />,
+   396→    },
+   397→  ]
+   398→
+   399→  // Top 5 selling — bar chart data (truncate long names for the axis)
+   400→  const topBarData = data.topSelling.slice(0, 5).map((p) => ({
+   401→    name: p.name.length > 14 ? p.name.slice(0, 14) + "…" : p.name,
+   402→    fullName: p.name,
+   403→    value: p.grossVolume,
+   404→  }))
+   405→
+   406→  // Category distribution — pie data (from top selling)
+   407→  const catMap = new Map<string, number>()
+   408→  for (const p of data.topSelling) {
+   409→    const c = p.categoryName || "أخرى"
+   410→    catMap.set(c, (catMap.get(c) || 0) + p.grossVolume)
+   411→  }
+   412→  const catPieData = Array.from(catMap.entries())
+   413→    .map(([name, value]) => ({ name, value }))
+   414→    .sort((a, b) => b.value - a.value)
+   415→    .slice(0, 7)
+   416→
+   417→  // 4 navigation cards
+   418→  const navCards: {
+   419→    key: ReportKey
+   420→    label: string
+   421→    desc: string
+   422→    icon: React.ReactNode
+   423→    color: string
+   424→  }[] = [
+   425→    {
+   426→      key: "top",
+   427→      label: "الأكثر مبيعاً",
+   428→      desc: "ترتيب الأصناف حسب الكمية وحجم الإيراد",
+   429→      icon: <TrendingUp className="h-5 w-5" />,
+   430→      color: "#055BE5",
+   431→    },
+   432→    {
+   433→      key: "stagnant",
+   434→      label: "الأصناف الراكدة",
+   435→      desc: "الأصناف منخفضة أو صفرية المبيع",
+   436→      icon: <PackageX className="h-5 w-5" />,
+   437→      color: "#f59e0b",
+   438→    },
+   439→    {
+   440→      key: "cost",
+   441→      label: "تحليل التكلفة",
+   442→      desc: "الأصناف الأعلى والأقل تكلفة",
+   443→      icon: <Coins className="h-5 w-5" />,
+   444→      color: "#f43f5e",
+   445→    },
+   446→    {
+   447→      key: "margin",
+   448→      label: "تحليل الربحية",
+   449→      desc: "الأصناف الأكثر ربحية",
+   450→      icon: <Percent className="h-5 w-5" />,
+   451→      color: "#5CDE9D",
+   452→    },
+   453→  ]
+   454→
+   455→  const tooltipStyle = {
+   456→    borderRadius: 12,
+   457→    border: "1px solid hsl(var(--border))",
+   458→    background: "hsl(var(--popover))",
+   459→    color: "hsl(var(--popover-foreground))",
+   460→    fontSize: 13,
+   461→  }
+   462→
+   463→  return (
+   464→    <div className="space-y-5">
+   465→      {/* KPI cards (4) */}
+   466→      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+   467→        {kpis.map((k) => (
+   468→          <Card key={k.label} className="overflow-hidden">
+   469→            <CardContent className="p-4 sm:p-5">
+   470→              <div className="flex items-start justify-between gap-3">
+   471→                <div className="min-w-0">
+   472→                  <p className="text-sm text-muted-foreground truncate">{k.label}</p>
+   473→                  <p className="text-2xl font-bold mt-1 tracking-tight tabular-nums">{k.value}</p>
+   474→                  <p className="text-xs text-muted-foreground mt-1.5 truncate">{k.hint}</p>
+   475→                </div>
+   476→                <span
+   477→                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+   478→                  style={{ backgroundColor: `${k.color}1A`, color: k.color }}
+   479→                >
+   480→                  {k.icon}
+   481→                </span>
+   482→              </div>
+   483→            </CardContent>
+   484→          </Card>
+   485→        ))}
+   486→      </div>
+   487→
+   488→      {/* Mini charts (2) */}
+   489→      <div className="grid gap-4 lg:grid-cols-2">
+   490→        <Card>
+   491→          <CardHeader>
+   492→            <CardTitle className="flex items-center gap-2 text-base">
+   493→              <TrendingUp className="h-4 w-4" style={{ color: "#055BE5" }} />
+   494→              أعلى ٥ منتجات مبيعاً
+   495→            </CardTitle>
+   496→            <CardDescription>حسب حجم الإيراد ({fmt.symbol})</CardDescription>
+   497→          </CardHeader>
+   498→          <CardContent>
+   499→            {topBarData.length === 0 ? (
+   500→              <EmptyState title="لا توجد مبيعات" description="لا توجد بيانات في النطاق المحدد." />
+   501→            ) : (
+   502→              <ResponsiveContainer width="100%" height={240}>
+   503→                <BarChart
+   504→                  data={topBarData}
+   505→                  layout="vertical"
+   506→                  margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
+   507→                >
+   508→                  <XAxis type="number" hide />
+   509→                  <YAxis
+   510→                    type="category"
+   511→                    dataKey="name"
+   512→                    width={110}
+   513→                    tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+   514→                    tickLine={false}
+   515→                    axisLine={false}
+   516→                  />
+   517→                  <Tooltip
+   518→                    cursor={{ fill: "hsl(var(--muted))", opacity: 0.4 }}
+   519→                    contentStyle={tooltipStyle}
+   520→                    formatter={(v: number) => [fmt.currency(v), "الإيراد"]}
+   521→                    labelFormatter={(_label, payload) =>
+   522→                      (payload?.[0]?.payload?.fullName as string | undefined) ?? _label
+   523→                    }
+   524→                  />
+   525→                  <Bar dataKey="value" radius={[0, 6, 6, 0]}>
+   526→                    {topBarData.map((_, i) => (
+   527→                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+   528→                    ))}
+   529→                  </Bar>
+   530→                </BarChart>
+   531→              </ResponsiveContainer>
+   532→            )}
+   533→          </CardContent>
+   534→        </Card>
+   535→
+   536→        <Card>
+   537→          <CardHeader>
+   538→            <CardTitle className="flex items-center gap-2 text-base">
+   539→              <LayoutGrid className="h-4 w-4 text-primary" />
+   540→              توزيع المبيعات حسب الفئة
+   541→            </CardTitle>
+   542→            <CardDescription>حسب الإيراد</CardDescription>
+   543→          </CardHeader>
+   544→          <CardContent>
+   545→            {catPieData.length === 0 ? (
+   546→              <EmptyState title="لا توجد بيانات" />
+   547→            ) : (
+   548→              <ResponsiveContainer width="100%" height={240}>
+   549→                <PieChart>
+   550→                  <Pie
+   551→                    data={catPieData}
+   552→                    dataKey="value"
+   553→                    nameKey="name"
+   554→                    cx="50%"
+   555→                    cy="50%"
+   556→                    innerRadius={50}
+   557→                    outerRadius={85}
+   558→                    paddingAngle={2}
+   559→                  >
+   560→                    {catPieData.map((_, i) => (
+   561→                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+   562→                    ))}
+   563→                  </Pie>
+   564→                  <Tooltip
+   565→                    contentStyle={tooltipStyle}
+   566→                    formatter={(v: number) => fmt.currency(v)}
+   567→                  />
+   568→                </PieChart>
+   569→              </ResponsiveContainer>
+   570→            )}
+   571→          </CardContent>
+   572→        </Card>
+   573→      </div>
+   574→
+   575→      {/* Navigation cards (4) */}
+   576→      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+   577→        {navCards.map((n) => (
+   578→          <button
+   579→            key={n.key}
+   580→            type="button"
+   581→            onClick={() => onNavigate(n.key)}
+   582→            className="group text-right focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl"
+   583→          >
+   584→            <Card className="h-full transition-all group-hover:shadow-md group-hover:border-primary/40 cursor-pointer">
+   585→              <CardContent className="p-4 flex items-start gap-3">
+   586→                <span
+   587→                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+   588→                  style={{ backgroundColor: `${n.color}1A`, color: n.color }}
+   589→                >
+   590→                  {n.icon}
+   591→                </span>
+   592→                <div className="min-w-0 flex-1">
+   593→                  <p className="text-sm font-semibold truncate">{n.label}</p>
+   594→                  <p className="text-xs text-muted-foreground mt-0.5">{n.desc}</p>
+   595→                </div>
+   596→                <ArrowLeft className="h-4 w-4 text-muted-foreground transition-transform group-hover:-translate-x-1 shrink-0" />
+   597→              </CardContent>
+   598→            </Card>
+   599→          </button>
+   600→        ))}
+   601→      </div>
+   602→    </div>
+   603→  )
+   604→}
+   605→
+   606→/* --------------------------- Detailed cards --------------------------- */
+   607→const toneStyles: Record<string, string> = {
+   608→  success: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+   609→  warning: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+   610→  info: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
+   611→  danger: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
+   612→  default: "bg-primary/10 text-primary",
+   613→}
+   614→
+   615→function AnalyticsCard({
+   616→  title,
+   617→  description,
+   618→  icon,
+   619→  tone = "default",
+   620→  empty,
+   621→  emptyText,
+   622→  children,
+   623→}: {
+   624→  title: string
+   625→  description: string
+   626→  icon: React.ReactNode
+   627→  tone?: "success" | "warning" | "info" | "danger" | "default"
+   628→  empty?: boolean
+   629→  emptyText?: string
+   630→  children: React.ReactNode
+   631→}) {
+   632→  return (
+   633→    <Card>
+   634→      <CardHeader className="pb-3">
+   635→        <div className="flex items-center gap-3">
+   636→          <span className={cn("flex h-9 w-9 items-center justify-center rounded-lg", toneStyles[tone])}>
+   637→            {icon}
+   638→          </span>
+   639→          <div>
+   640→            <CardTitle className="text-base">{title}</CardTitle>
+   641→            <CardDescription className="text-xs">{description}</CardDescription>
+   642→          </div>
+   643→        </div>
+   644→      </CardHeader>
+   645→      <CardContent>
+   646→        {empty ? (
+   647→          <p className="text-sm text-muted-foreground text-center py-6">{emptyText}</p>
+   648→        ) : (
+   649→          children
+   650→        )}
+   651→      </CardContent>
+   652→    </Card>
+   653→  )
+   654→}
+   655→
+   656→function RankList({
+   657→  items,
+   658→  primary,
+   659→  primaryLabel,
+   660→  secondary,
+   661→}: {
+   662→  items: ProductAnalytics[]
+   663→  primary: (r: ProductAnalytics) => string
+   664→  primaryLabel: string
+   665→  secondary: (r: ProductAnalytics) => string
+   666→}) {
+   667→  const max = items.length > 0 ? Math.max(...items.map((i) => i.quantitySold || i.margin || 0), 1) : 1
+   668→  return (
+   669→    <ScrollArea className="max-h-80 pr-1 scrollbar-thin">
+   670→      <div className="space-y-2.5">
+   671→        {items.map((r, i) => {
+   672→          const val = r.quantitySold || r.margin || 0
+   673→          const pct = Math.round((val / max) * 100)
+   674→          return (
+   675→            <div key={r.id} className="space-y-1">
+   676→              <div className="flex items-center justify-between gap-2 text-sm">
+   677→                <span className="flex items-center gap-2 min-w-0">
+   678→                  <span
+   679→                    className={cn(
+   680→                      "flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-xs font-bold",
+   681→                      i === 0
+   682→                        ? "bg-amber-500/15 text-amber-600"
+   683→                        : i === 1
+   684→                        ? "bg-slate-400/15 text-slate-500"
+   685→                        : i === 2
+   686→                        ? "bg-orange-500/15 text-orange-600"
+   687→                        : "bg-muted text-muted-foreground"
+   688→                    )}
+   689→                  >
+   690→                    {i + 1}
+   691→                  </span>
+   692→                  <span className="truncate">{r.name}</span>
+   693→                  {r.categoryName ? (
+   694→                    <Badge variant="outline" className="text-[10px] shrink-0">{r.categoryName}</Badge>
+   695→                  ) : null}
+   696→                </span>
+   697→                <span className="flex items-center gap-2 shrink-0">
+   698→                  <span className="font-semibold tabular-nums">{primary(r)}</span>
+   699→                  <span className="text-[10px] text-muted-foreground">{primaryLabel}</span>
+   700→                </span>
+   701→              </div>
+   702→              <div className="flex items-center gap-2">
+   703→                <Progress value={pct} className="h-1.5 flex-1" />
+   704→                <span className="text-xs text-muted-foreground tabular-nums w-20 text-left">{secondary(r)}</span>
+   705→              </div>
+   706→            </div>
+   707→          )
+   708→        })}
+   709→      </div>
+   710→    </ScrollArea>
+   711→  )
+   712→}
+   713→
+   714→function StagnantList({
+   715→  items,
+   716→  fmt,
+   717→}: {
+   718→  items: ProductAnalytics[]
+   719→  fmt: ReturnType<typeof useFmt>
+   720→}) {
+   721→  return (
+   722→    <ScrollArea className="max-h-80 pr-1 scrollbar-thin">
+   723→      <div className="space-y-2">
+   724→        {items.map((r) => {
+   725→          const ratio =
+   726→            r.currentStock + r.quantitySold > 0
+   727→              ? (r.quantitySold / (r.currentStock + r.quantitySold)) * 100
+   728→              : 0
+   729→          const critical = r.quantitySold === 0
+   730→          return (
+   731→            <div
+   732→              key={r.id}
+   733→              className="flex items-center justify-between gap-2 rounded-lg border border-border/60 bg-muted/20 px-3 py-2"
+   734→            >
+   735→              <div className="min-w-0">
+   736→                <p className="truncate text-sm font-medium">{r.name}</p>
+   737→                <p className="text-xs text-muted-foreground flex items-center gap-2">
+   738→                  <span>المخزون: {fmt.number(r.currentStock)}</span>
+   739→                  <span>•</span>
+   740→                  <span>المبيع: {fmt.number(r.quantitySold)}</span>
+   741→                </p>
+   742→              </div>
+   743→              <div className="text-left shrink-0">
+   744→                <Badge
+   745→                  variant={critical ? "destructive" : ratio < 20 ? "secondary" : "outline"}
+   746→                  className="tabular-nums"
+   747→                >
+   748→                  {critical ? "لم يُبع" : `${fmt.number(ratio)}% دوران`}
+   749→                </Badge>
+   750→                {r.lastSoldAt ? (
+   751→                  <p className="text-[10px] text-muted-foreground mt-1">
+   752→                    آخر بيع: {new Date(r.lastSoldAt).toLocaleDateString("ar-KW")}
+   753→                  </p>
+   754→                ) : (
+   755→                  <p className="text-[10px] text-muted-foreground mt-1">لا يوجد بيع</p>
+   756→                )}
+   757→              </div>
+   758→            </div>
+   759→          )
+   760→        })}
+   761→      </div>
+   762→    </ScrollArea>
+   763→  )
+   764→}
+   765→
+   766→function CostList({
+   767→  items,
+   768→  fmt,
+   769→}: {
+   770→  items: ProductAnalytics[]
+   771→  fmt: ReturnType<typeof useFmt>
+   772→}) {
+   773→  return (
+   774→    <ScrollArea className="max-h-80 pr-1 scrollbar-thin">
+   775→      <div className="space-y-2">
+   776→        {items.map((r) => (
+   777→          <div
+   778→            key={r.id}
+   779→            className="flex items-center justify-between gap-2 rounded-lg border border-border/60 bg-muted/20 px-3 py-2"
+   780→          >
+   781→            <div className="min-w-0">
+   782→              <p className="truncate text-sm font-medium">{r.name}</p>
+   783→              <p className="text-xs text-muted-foreground flex items-center gap-2">
+   784→                {r.categoryName ? (
+   785→                  <Badge variant="outline" className="text-[10px]">{r.categoryName}</Badge>
+   786→                ) : null}
+   787→                <span className="flex items-center gap-1">
+   788→                  <Coins className="h-3 w-3" />
+   789→                  تكلفة: {fmt.currency(r.costPrice)}
+   790→                </span>
+   791→              </p>
+   792→            </div>
+   793→            <div className="text-left shrink-0">
+   794→              <p className="font-semibold tabular-nums">{fmt.currency(r.salePrice)}</p>
+   795→              <p className="text-[10px] text-muted-foreground">سعر البيع</p>
+   796→            </div>
+   797→          </div>
+   798→        ))}
+   799→      </div>
+   800→    </ScrollArea>
+   801→  )
+   802→}
+   803→

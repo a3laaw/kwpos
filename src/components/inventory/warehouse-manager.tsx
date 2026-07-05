@@ -25,10 +25,12 @@ import {
   Boxes,
 } from "lucide-react"
 import { useUser } from "@/components/user-context"
+import { useT } from "@/components/i18n-context"
 import { useWarehouses, useDeleteWarehouse } from "@/hooks/use-api"
 import type { Warehouse } from "@/lib/types"
 
 export function WarehouseManager() {
+  const t = useT()
   const user = useUser()
   const { data, isLoading } = useWarehouses()
   const deleteMut = useDeleteWarehouse()
@@ -52,10 +54,10 @@ export function WarehouseManager() {
     if (!deleteTarget) return
     try {
       await deleteMut.mutateAsync(deleteTarget.id)
-      toast.success("تم حذف المخزن")
+      toast.success(t.warehouseDeleted)
       setDeleteTarget(null)
     } catch (err: any) {
-      toast.error("فشل الحذف", { description: err?.message === "has-stock" ? "لا يمكن حذف مخزن به كميات" : err?.message })
+      toast.error(t.deleteFailed, { description: err?.message === "has-stock" ? t.warehouseHasStock : err?.message })
     }
   }
 
@@ -63,12 +65,12 @@ export function WarehouseManager() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          إدارة مخازن متعددة — كل مخزن له كود وموقع وكمياته الخاصة.
+          {t.warehouseManagerDesc}
         </p>
         {canManage ? (
           <Button onClick={openAdd} size="sm" className="gap-2">
             <Plus className="h-4 w-4" />
-            إضافة مخزن
+            {t.addWarehouse}
           </Button>
         ) : null}
       </div>
@@ -80,9 +82,9 @@ export function WarehouseManager() {
       ) : warehouses.length === 0 ? (
         <EmptyState
           icon={<WarehouseIcon className="h-7 w-7" />}
-          title="لا توجد مخازن"
-          description="أضف مخزناً أول لتنظيم الأصناف."
-          action={canManage ? <Button onClick={openAdd} className="gap-2"><Plus className="h-4 w-4" />إضافة مخزن</Button> : null}
+          title={t.noWarehouses}
+          description={t.noWarehousesDesc}
+          action={canManage ? <Button onClick={openAdd} className="gap-2"><Plus className="h-4 w-4" />{t.addWarehouse}</Button> : null}
         />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -108,13 +110,13 @@ export function WarehouseManager() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => openEdit(w)} className="gap-2">
-                          <Pencil className="h-4 w-4" /> تعديل
+                          <Pencil className="h-4 w-4" /> {t.edit}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => setDeleteTarget(w)}
                           className="gap-2 text-destructive focus:text-destructive"
                         >
-                          <Trash2 className="h-4 w-4" /> حذف
+                          <Trash2 className="h-4 w-4" /> {t.delete}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -131,14 +133,14 @@ export function WarehouseManager() {
                 <div className="mt-4 flex items-center gap-2 pt-3 border-t border-border/60">
                   <Badge variant="secondary" className="gap-1">
                     <Package className="h-3 w-3" />
-                    {w.productsCount ?? 0} صنف
+                    {t.itemsCountLabel.replace("{count}", String(w.productsCount ?? 0))}
                   </Badge>
                   <Badge variant="outline" className="gap-1">
                     <Boxes className="h-3 w-3" />
-                    {w.totalStock ?? 0} وحدة
+                    {t.warehouseUnitsCount.replace("{count}", String(w.totalStock ?? 0))}
                   </Badge>
                   {w.isActive ? null : (
-                    <Badge variant="outline" className="text-muted-foreground">غير مفعّل</Badge>
+                    <Badge variant="outline" className="text-muted-foreground">{t.warehouseInactive}</Badge>
                   )}
                 </div>
               </CardContent>
@@ -151,9 +153,9 @@ export function WarehouseManager() {
       <ConfirmDialog
         open={!!deleteTarget}
         onOpenChange={(o) => !o && setDeleteTarget(null)}
-        title="حذف المخزن"
-        description={<>سيتم حذف المخزن <span className="font-semibold">“{deleteTarget?.name}”</span>.</>}
-        confirmText="حذف"
+        title={t.deleteWarehouseTitle}
+        description={<>{t.deleteWarehouseConfirmLong.replace("{name}", deleteTarget?.name ?? "")}</>}
+        confirmText={t.delete}
         loading={deleteMut.isPending}
         onConfirm={handleDelete}
       />

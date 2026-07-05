@@ -8,6 +8,28 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
     maxAge: 60 * 60 * 24 * 7, // 7 days
   },
+  logger: {
+    error(code: string, metadata: unknown) {
+      // Suppress noisy JWEDecryptionFailed errors that occur when a stale
+      // session cookie (from a previous secret/server) is presented.
+      // NextAuth already handles this gracefully by returning null session,
+      // so the user simply sees the login screen. No action needed.
+      const msg =
+        typeof metadata === "object" && metadata && "message" in metadata
+          ? String((metadata as { message: unknown }).message)
+          : String(metadata)
+      if (
+        code === "JWT_SESSION_ERROR" &&
+        (msg.includes("decryption operation failed") ||
+          msg.includes("JWEDecryptionFailed"))
+      ) {
+        return
+      }
+      console.error(`[next-auth][error][${code}]`, metadata)
+    },
+    warn() {},
+    debug() {},
+  },
   pages: {
     signIn: "/",
   },

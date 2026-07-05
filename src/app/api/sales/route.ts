@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json()
-  const { customerName, customerPhone, items, taxRate, discount, paymentMethod } = body || {}
+  const { customerName, customerPhone, items, taxRate, discount, paymentMethod, deliveryFee, driverName } = body || {}
 
   if (!Array.isArray(items) || items.length === 0) {
     return NextResponse.json({ error: "items-required" }, { status: 400 })
@@ -68,6 +68,9 @@ export async function POST(req: NextRequest) {
 
   const TAX = Number(taxRate) || 0
   const DISCOUNT = Math.max(0, Number(discount) || 0)
+  // Delivery fee (>= 0). A fee > 0 marks the sale as a delivery order.
+  const DELIVERY_FEE = Math.max(0, Number(deliveryFee) || 0)
+  const DRIVER_NAME = driverName?.trim() || null
 
   // ── Link/register customer by phone (POS cash customer) ──
   // If a phone number is provided, look up an existing customer by phone;
@@ -129,7 +132,8 @@ export async function POST(req: NextRequest) {
 
     const afterDiscount = Math.max(0, subtotal - DISCOUNT)
     const taxAmount = +(afterDiscount * (TAX / 100)).toFixed(3)
-    const total = +(afterDiscount + taxAmount).toFixed(3)
+    // Delivery fee is added AFTER tax (it's a service charge, not taxable).
+    const total = +(afterDiscount + taxAmount + DELIVERY_FEE).toFixed(3)
 
     // Decrement inventory for each item
     for (const it of itemsData) {
@@ -149,6 +153,8 @@ export async function POST(req: NextRequest) {
         taxRate: TAX,
         taxAmount,
         discount: DISCOUNT,
+        deliveryFee: DELIVERY_FEE,
+        driverName: DRIVER_NAME,
         total,
         paid: total,
         paymentMethod: (["CASH", "CARD", "TRANSFER"].includes(paymentMethod)
