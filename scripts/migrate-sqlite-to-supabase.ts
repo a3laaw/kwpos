@@ -1,141 +1,126 @@
 /**
- * SQLite → Supabase (PostgreSQL) data migration script.
+ * SQLite → Supabase (PostgreSQL) data migration script (v3).
+ *
+ * Handles all SQLite→PostgreSQL type conversions:
+ * - DateTime: epoch-ms integer → ISO string
+ * - Boolean: 0/1 integer → true/false
+ * - Float: stays as number
  *
  * Usage:
- *   1. Ensure schema.prisma provider is "postgresql" + DATABASE_URL points to Supabase pooled URL
- *   2. Run: bun scripts/migrate-sqlite-to-supabase.ts
- *
- * This script reads all data from the local SQLite backup using a read-only
- * Prisma client, then writes it to the Supabase PostgreSQL database using
- * the active Prisma client (configured via DATABASE_URL env var).
- *
- * It preserves all IDs, relationships, and data integrity.
+ *   DATABASE_URL=... DIRECT_DATABASE_URL=... bun scripts/migrate-sqlite-to-supabase.ts
  */
 
 import { PrismaClient } from "@prisma/client"
-import { createClient } from "@libsql/client"
-import { PrismaLibSql } from "@prisma/adapter-libsql"
+import { Database } from "bun:sqlite"
 import * as path from "path"
 
-// ─── Source: SQLite (read-only) ────────────────────────────────────
 const SQLITE_PATH = path.resolve(process.cwd(), "db/custom-backup-2026-07-05.db")
+const sqlite = new Database(SQLITE_PATH, { readonly: true })
+const dest = new PrismaClient({ log: ["error"] })
 
-const sqliteLibsql = createClient({
-  url: `file:${SQLITE_PATH}`,
-})
-const sqliteAdapter = new PrismaLibSql({ url: `file:${SQLITE_PATH}` })
-const source = new PrismaClient({
-  adapter: sqliteAdapter,
-  log: ["error"],
-})
+const DATE_FIELDS = new Set([
+  "createdAt", "updatedAt", "openedAt", "closedAt", "startAt", "endAt",
+  "date", "payDate", "resumedAt", "changedAt",
+])
 
-// ─── Destination: Supabase PostgreSQL (active DATABASE_URL) ────────
-const dest = new PrismaClient({
-  log: ["error", "warn"],
-})
+const BOOL_FIELDS: Record<string, Set<string>> = {
+  Warehouse: new Set(["isActive"]),
+  Account: new Set(["isSystem"]),
+  Promotion: new Set(["isActive"]),
+  ExchangeLine: new Set(["isReturn"]),
+  PurchaseOrder: new Set(["landedCostApplied"]),
+}
 
-// ─── Migration order (respects FK constraints) ─────────────────────
-const TABLES: Array<{ name: string; model: string }> = [
-  { name: "User", model: "user" },
-  { name: "Category", model: "category" },
-  { name: "Unit", model: "unit" },
-  { name: "Supplier", model: "supplier" },
-  { name: "Customer", model: "customer" },
-  { name: "Warehouse", model: "warehouse" },
-  { name: "Product", model: "product" },
-  { name: "StockItem", model: "stockItem" },
-  { name: "Account", model: "account" },
-  { name: "PurchaseOrder", model: "purchaseOrder" },
-  { name: "PurchaseOrderItem", model: "purchaseOrderItem" },
-  { name: "Sale", model: "sale" },
-  { name: "SaleItem", model: "saleItem" },
-  { name: "JournalEntry", model: "journalEntry" },
-  { name: "JournalLine", model: "journalLine" },
-  { name: "ExpenseTransaction", model: "expenseTransaction" },
-  { name: "Shift", model: "shift" },
-  { name: "SpotCheck", model: "spotCheck" },
-  { name: "SuspendedSale", model: "suspendedSale" },
-  { name: "ExchangeSale", model: "exchangeSale" },
-  { name: "ExchangeLine", model: "exchangeLine" },
-  { name: "Promotion", model: "promotion" },
-  { name: "PriceChange", model: "priceChange" },
-  { name: "Setting", model: "setting" },
+function convertRow(row: any, table: string): any {
+  const out: any = {}
+  const bools = BOOL_FIELDS[table] || new Set()
+  for (const [key, val] of Object.entries(row)) {
+    if (DATE_FIELDS.has(key) && typeof val === "number") {
+      out[key] = new Date(val).toISOString()
+    } else if (bools.has(key) && typeof val === "number") {
+      out[key] = val !== 0
+    } else {
+      out[key] = val
+    }
+  }
+  return out
+}
+
+const TABLES: Array<{ model: string; table: string }> = [
+  { model: "user", table: "User" },
+  { model: "category", table: "Category" },
+  { model: "unit", table: "Unit" },
+  { model: "supplier", table: "Supplier" },
+  { model: "customer", table: "Customer" },
+  { model: "warehouse", table: "Warehouse" },
+  { model: "product", table: "Product" },
+  { model: "stockItem", table: "StockItem" },
+  { model: "account", table: "Account" },
+  { model: "purchaseOrder", table: "PurchaseOrder" },
+  { model: "purchaseOrderItem", table: "PurchaseOrderItem" },
+  { model: "sale", table: "Sale" },
+  { model: "saleItem", table: "SaleItem" },
+  { model: "journalEntry", table: "JournalEntry" },
+  { model: "journalLine", table: "JournalLine" },
+  { model: "expenseTransaction", table: "ExpenseTransaction" },
+  { model: "shift", table: "Shift" },
+  { model: "spotCheck", table: "SpotCheck" },
+  { model: "suspendedSale", table: "SuspendedSale" },
+  { model: "exchangeSale", table: "ExchangeSale" },
+  { model: "exchangeLine", table: "ExchangeLine" },
+  { model: "promotion", table: "Promotion" },
+  { model: "priceChange", table: "PriceChange" },
+  { model: "setting", table: "Setting" },
 ]
 
 async function migrate() {
   console.log("═══════════════════════════════════════════════════════")
-  console.log("  SQLite → Supabase PostgreSQL Migration")
-  console.log("═══════════════════════════════════════════════════════")
-  console.log(`  Source: ${SQLITE_PATH}`)
-  console.log(`  Destination: ${process.env.DATABASE_URL?.slice(0, 50)}...`)
+  console.log("  SQLite → Supabase PostgreSQL Migration (v3)")
   console.log("═══════════════════════════════════════════════════════\n")
 
   let totalMigrated = 0
   let totalErrors = 0
 
-  for (const { name, model } of TABLES) {
-    try {
-      // Read all rows from SQLite
-      const rows = await (source as any)[model].findMany()
-      console.log(`  ${name}: ${rows.length} rows found`)
+  for (const { model, table } of TABLES) {
+    const rawRows = sqlite.prepare(`SELECT * FROM "${table}"`).all()
+    console.log(`  ${table}: ${rawRows.length} rows`)
 
-      if (rows.length === 0) {
-        console.log(`    → skipped (empty)\n`)
-        continue
-      }
+    if (rawRows.length === 0) {
+      console.log(`    → skipped\n`)
+      continue
+    }
 
-      // Write to PostgreSQL in batches of 50
-      const BATCH_SIZE = 50
-      let migrated = 0
-      let errors = 0
+    let migrated = 0
+    let errors = 0
 
-      for (let i = 0; i < rows.length; i += BATCH_SIZE) {
-        const batch = rows.slice(i, i + BATCH_SIZE)
-        try {
-          // Use createMany for bulk insert (PostgreSQL supports it)
-          await (dest as any)[model].createMany({
-            data: batch,
-            skipDuplicates: true,
-          })
-          migrated += batch.length
-        } catch (batchErr: any) {
-          // If createMany fails, try one by one
-          for (const row of batch) {
-            try {
-              await (dest as any)[model].create({ data: row })
-              migrated++
-            } catch (rowErr: any) {
-              errors++
-              if (errors <= 3) {
-                console.log(`    ⚠ Row error: ${rowErr.message?.slice(0, 100)}`)
-              }
-            }
-          }
+    for (const rawRow of rawRows) {
+      try {
+        const row = convertRow(rawRow, table)
+        await (dest as any)[model].create({ data: row })
+        migrated++
+      } catch (err: any) {
+        errors++
+        if (errors <= 1) {
+          console.log(`    ⚠ ${err.message?.slice(0, 200)}`)
         }
       }
-
-      totalMigrated += migrated
-      totalErrors += errors
-      console.log(`    → migrated: ${migrated}, errors: ${errors}\n`)
-    } catch (err: any) {
-      console.log(`  ${name}: FAILED — ${err.message?.slice(0, 100)}\n`)
-      totalErrors++
     }
+
+    totalMigrated += migrated
+    totalErrors += errors
+    console.log(`    → ${migrated}/${rawRows.length} OK, ${errors} errors\n`)
   }
 
   console.log("═══════════════════════════════════════════════════════")
-  console.log(`  MIGRATION COMPLETE`)
-  console.log(`  Total rows migrated: ${totalMigrated}`)
-  console.log(`  Total errors: ${totalErrors}`)
+  console.log(`  COMPLETE: ${totalMigrated} migrated, ${totalErrors} errors`)
   console.log("═══════════════════════════════════════════════════════")
+
+  sqlite.close()
+  await dest.$disconnect()
 }
 
-migrate()
-  .catch((e) => {
-    console.error("Migration failed:", e)
-    process.exit(1)
-  })
-  .finally(async () => {
-    await source.$disconnect()
-    await dest.$disconnect()
-  })
+migrate().catch((e) => {
+  console.error("FATAL:", e)
+  sqlite.close()
+  process.exit(1)
+})
