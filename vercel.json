@@ -3,8 +3,8 @@
   "framework": "nextjs",
   "installCommand": "bun install",
   "env": {
-    "DATABASE_URL": "postgresql://postgres:***REMOVED***@db.***REMOVED***.supabase.co:5432/postgres",
-    "DIRECT_DATABASE_URL": "postgresql://postgres:***REMOVED***@db.***REMOVED***.supabase.co:5432/postgres",
+    "DATABASE_URL": "***REMOVED***:***REMOVED***@***REMOVED***:6543/postgres?pgbouncer=true",
+    "DIRECT_DATABASE_URL": "***REMOVED***:***REMOVED***@***REMOVED***:5432/postgres",
     "NEXTAUTH_SECRET": "***REMOVED***",
     "NEXTAUTH_URL": "https://kwpos.vercel.app"
   }
