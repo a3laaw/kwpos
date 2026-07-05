@@ -8,8 +8,8 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DATABASE_URL")
+  url       = "***REMOVED***:***REMOVED***@***REMOVED***:5432/postgres"
+  directUrl = "***REMOVED***:***REMOVED***@***REMOVED***:5432/postgres"
 }
 
 model User {
