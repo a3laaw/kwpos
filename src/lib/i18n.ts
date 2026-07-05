@@ -25,6 +25,7 @@ export interface Dict {
   navSpotCheck: string
   navExchanges: string
   navPricing: string
+  navUsers: string
   // Parent (grouped) nav labels
   navInvoicesReports: string
   navInventoryPurchases: string
@@ -385,6 +386,18 @@ export interface Dict {
   exchangesDesc: string
   pricingTitle: string
   pricingDesc: string
+  usersTitle: string
+  usersDesc: string
+  newUser: string
+  editUser: string
+  newUserDesc: string
+  editUserDesc: string
+  userDeleted: string
+  emailExists: string
+  userDeleteConfirm: string
+  noUsers: string
+  role: string
+  you: string
 
   // Theme + language
   darkMode: string
@@ -1566,6 +1579,7 @@ export const DICTS: Record<Locale, Dict> = {
     navSpotCheck: "الجرد الأعمى",
     navExchanges: "التبديل",
     navPricing: "إدارة الأسعار",
+    navUsers: "المستخدمون",
     navInvoicesReports: "الفواتير والتقارير",
     navInventoryPurchases: "إدارة المخازن والمشتريات",
     navAccountingCustomers: "الحسابات والعملاء",
@@ -1921,6 +1935,18 @@ export const DICTS: Record<Locale, Dict> = {
     exchangesDesc: "تبديل الأصناف وإشعارات الدائن",
     pricingTitle: "شاشة إدارة الأسعار والعروض الذكية",
     pricingDesc: "تعديل أسعار البيع وإدارة الخصومات المؤقتة وسجل التغييرات",
+    usersTitle: "إدارة المستخدمين",
+    usersDesc: "إدارة حسابات المستخدمين والأدوار والصلاحيات",
+    newUser: "مستخدم جديد",
+    editUser: "تعديل مستخدم",
+    newUserDesc: "إنشاء حساب مستخدم جديد",
+    editUserDesc: "تحديث بيانات المستخدم والدور",
+    userDeleted: "تم حذف المستخدم",
+    emailExists: "البريد الإلكتروني مستخدم بالفعل",
+    userDeleteConfirm: "حذف المستخدم \'{name}\'؟",
+    noUsers: "لا يوجد مستخدمون",
+    role: "الدور",
+    you: "أنت",
 
     // Theme + language
     darkMode: "الوضع الليلي",
@@ -3100,6 +3126,7 @@ export const DICTS: Record<Locale, Dict> = {
     navSpotCheck: "Spot-Check",
     navExchanges: "Exchange",
     navPricing: "Pricing",
+    navUsers: "Users",
     navInvoicesReports: "Invoices & Reports",
     navInventoryPurchases: "Inventory & Purchases",
     navAccountingCustomers: "Accounting & Customers",
@@ -3455,6 +3482,18 @@ export const DICTS: Record<Locale, Dict> = {
     exchangesDesc: "Item swaps with credit notes",
     pricingTitle: "Pricing & Promotions Engine",
     pricingDesc: "Manage sale prices, temporary promotions, and price-change audit log",
+    usersTitle: "User Management",
+    usersDesc: "Manage user accounts, roles, and permissions",
+    newUser: "New User",
+    editUser: "Edit User",
+    newUserDesc: "Create a new user account",
+    editUserDesc: "Update user details and role",
+    userDeleted: "User deleted",
+    emailExists: "Email already exists",
+    userDeleteConfirm: "Delete user \'{name}\'?",
+    noUsers: "No users",
+    role: "Role",
+    you: "You",
 
     // Theme + language
     darkMode: "Dark mode",

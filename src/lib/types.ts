@@ -161,6 +161,7 @@ export type AppView =
   | "spotcheck"
   | "exchanges"
   | "pricing"
+  | "users"
 
 // ─── Accounting types ───────────────────────────────────────────────
 export type AccountType = "ASSET" | "LIABILITY" | "EQUITY" | "REVENUE" | "EXPENSE"
