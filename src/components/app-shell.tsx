@@ -21,6 +21,7 @@ import { CustomersView } from "@/components/customers/customers-view"
 import { AnalyticsView } from "@/components/analytics/analytics-view"
 import { ReportsView } from "@/components/reports/reports-view"
 import { SettingsView } from "@/components/settings/settings-view"
+import { UsersView } from "@/components/settings/users-view"
 import { ShiftView } from "@/components/shift/shift-view"
 import { SpotCheckView } from "@/components/spotcheck/spotcheck-view"
 import { ExchangeView } from "@/components/sales/exchange-view"
@@ -81,6 +82,7 @@ export function AppShell({
               {view === "spotcheck" && <SpotCheckView />}
               {view === "exchanges" && <ExchangeView />}
               {view === "pricing" && <PricingEngineView />}
+              {view === "users" && <UsersView />}
               {view === "settings" && <SettingsView />}
             </main>
             <footer className="mt-auto border-t border-border/70 bg-muted/30">

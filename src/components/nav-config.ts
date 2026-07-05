@@ -9,6 +9,7 @@ import {
   Plug,
   BookOpen,
   Users,
+  Users as UsersIcon,
   BarChart3,
   Settings as SettingsIcon,
   FileBarChart,
@@ -86,6 +87,7 @@ export const NAV_ENTRIES: NavEntry[] = [
   { type: "leaf", view: "shifts", labelKey: "navShifts", icon: Clock },
   { type: "leaf", view: "spotcheck", labelKey: "navSpotCheck", icon: ClipboardCheck },
   { type: "leaf", view: "exchanges", labelKey: "navExchanges", icon: ArrowLeftRight },
+  { type: "leaf", view: "users", labelKey: "navUsers", icon: UsersIcon },
   { type: "leaf", view: "settings", labelKey: "navSettings", icon: SettingsIcon },
 ]
 
@@ -115,4 +117,5 @@ export const VIEW_META: Record<AppView, { titleKey: keyof Dict; descKey: keyof D
   spotcheck: { titleKey: "spotCheckTitle", descKey: "spotCheckDesc" },
   exchanges: { titleKey: "exchangesTitle", descKey: "exchangesDesc" },
   pricing: { titleKey: "pricingTitle", descKey: "pricingDesc" },
+  users: { titleKey: "usersTitle", descKey: "usersDesc" },
 }

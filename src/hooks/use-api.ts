@@ -1292,3 +1292,46 @@ export function useDeletePurchaseInvoice() {
     },
   })
 }
+
+/* ----------------------------- User Management --------------------- */
+export interface UserItem {
+  id: string
+  email: string
+  name: string
+  role: "ADMIN" | "SALES" | "WAREHOUSE"
+  createdAt: string
+  updatedAt: string
+}
+
+export function useUsers() {
+  return useQuery<{ items: UserItem[] }>({
+    queryKey: ["users"],
+    queryFn: () => jget("/api/users"),
+  })
+}
+
+export function useCreateUser() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { email: string; name: string; password: string; role: string }) =>
+      jsend<UserItem>("/api/users", "POST", body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] }),
+  })
+}
+
+export function useUpdateUser(id: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { email?: string; name?: string; password?: string; role?: string }) =>
+      jsend<UserItem>(`/api/users/${id}`, "PUT", body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] }),
+  })
+}
+
+export function useDeleteUser() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => jsend(`/api/users/${id}`, "DELETE"),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] }),
+  })
+}
