@@ -5,8 +5,9 @@ const globalForPrisma = globalThis as unknown as {
 }
 
 // Hardcoded Supabase connection — always used, ignores env vars.
-// This fixes the Vercel deployment where env vars were stuck with wrong password.
-const SUPABASE_URL = "postgresql://postgres.qwicxgoslxmypksytklo:71ty0CaZdTfX46dB@aws-1-ap-southeast-2.pooler.supabase.com:5432/postgres"
+// Use pooler (port 6543) with connection_limit=1 to prevent pool exhaustion
+// on Vercel serverless (each function invocation = 1 connection max).
+const SUPABASE_URL = "postgresql://postgres.qwicxgoslxmypksytklo:71ty0CaZdTfX46dB@aws-1-ap-southeast-2.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1"
 
 if (globalForPrisma.prisma) {
   const hasPI = typeof (globalForPrisma.prisma as any).purchaseInvoice !== "undefined"
