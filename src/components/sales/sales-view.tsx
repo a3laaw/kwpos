@@ -306,7 +306,7 @@ export function SalesView() {
   // Show a fixed number of items per "page" in the cart. Auto-advance to the
   // next page when a new item is added beyond the current page's capacity.
   // Manual "previous" button lets the cashier review earlier items.
-  const ITEMS_PER_CART_PAGE = 5
+  const ITEMS_PER_CART_PAGE = 10
   const [cartPage, setCartPage] = React.useState(0)
   const cartTotalPages = Math.max(1, Math.ceil(cart.length / ITEMS_PER_CART_PAGE))
 
@@ -537,9 +537,9 @@ export function SalesView() {
         icon={<Calculator className="h-5 w-5" />}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* Product picker */}
-        <div className="lg:col-span-3 space-y-4">
+        <div className="lg:col-span-7 space-y-4">
           <div className="relative">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -593,9 +593,9 @@ export function SalesView() {
           ) : null}
 
           {isLoading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="h-28 rounded-xl bg-muted/50 animate-pulse" />
+            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-2">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="h-20 rounded-lg bg-muted/50 animate-pulse" />
               ))}
             </div>
           ) : products.length === 0 ? (
@@ -605,7 +605,7 @@ export function SalesView() {
               <p className="text-sm text-muted-foreground">{t.tryAnotherKeyword}</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-2">
               {products.map((p) => {
                 const used = inCart.get(p.id) || 0
                 const available = p.quantity - used
@@ -620,53 +620,53 @@ export function SalesView() {
                     onClick={() => addToCart(p)}
                     disabled={out}
                     className={cn(
-                      "group relative flex flex-col overflow-hidden rounded-xl border border-border/70 bg-card transition-all hover:border-primary/50 hover:shadow-md",
+                      "group relative flex flex-col overflow-hidden rounded-lg border border-border/70 bg-card transition-all hover:border-primary/50 hover:shadow-sm",
                       out && "opacity-50 cursor-not-allowed hover:border-border",
                       promoActive && "ring-1 ring-emerald-400/60"
                     )}
                   >
-                    {/* Product image */}
-                    <div className="relative h-24 w-full bg-muted/40 overflow-hidden">
+                    {/* Product image — compact */}
+                    <div className="relative h-14 w-full bg-muted/40 overflow-hidden">
                       {p.imageUrl ? (
                         <img src={p.imageUrl} alt={p.name} className="h-full w-full object-cover group-hover:scale-105 transition-transform" />
                       ) : (
                         <div className="flex h-full w-full items-center justify-center">
-                          <Package className="h-8 w-8 text-muted-foreground/40" />
+                          <Package className="h-5 w-5 text-muted-foreground/40" />
                         </div>
                       )}
                       {out ? (
-                        <span className="absolute inset-0 flex items-center justify-center bg-background/70 text-xs font-bold text-destructive">{t.outOfStockShort}</span>
+                        <span className="absolute inset-0 flex items-center justify-center bg-background/70 text-[10px] font-bold text-destructive">{t.outOfStockShort}</span>
                       ) : null}
                       {promoActive ? (
-                        <span className="absolute top-1 right-1 inline-flex items-center gap-0.5 rounded-full bg-emerald-500 text-white text-[9px] font-bold px-1.5 py-0.5 shadow">
-                          <Tag className="h-2.5 w-2.5" />
+                        <span className="absolute top-0.5 right-0.5 inline-flex items-center gap-0.5 rounded-full bg-emerald-500 text-white text-[8px] font-bold px-1 py-0.5">
+                          <Tag className="h-2 w-2" />
                           {t.promo}
                         </span>
                       ) : null}
                     </div>
-                    {/* Info */}
-                    <div className="p-2.5 text-right flex-1 flex flex-col gap-1">
-                      <p className="font-medium text-sm leading-snug line-clamp-2">{p.name}</p>
-                      <div className="flex items-center justify-between gap-1 mt-auto">
+                    {/* Info — compact single layout */}
+                    <div className="p-1.5 text-right flex-1 flex flex-col gap-0.5">
+                      <p className="font-medium text-xs leading-tight truncate" title={p.name}>{p.name}</p>
+                      <div className="flex items-center justify-between gap-0.5 mt-auto">
                         <span className="flex flex-col items-start leading-none">
                           {promoActive ? (
-                            <span className="text-[10px] text-muted-foreground line-through tabular-nums">
+                            <span className="text-[9px] text-muted-foreground line-through tabular-nums">
                               {fmt.currency(baseP)}
                             </span>
                           ) : null}
-                          <span className="font-bold tabular-nums text-sm text-primary">
+                          <span className="font-bold tabular-nums text-xs text-primary">
                             {fmt.currency(effP)}
                           </span>
                         </span>
                         {!out ? (
-                          <Badge variant={available <= p.reorderLevel ? "secondary" : "outline"} className="tabular-nums text-[10px]">
+                          <Badge variant={available <= p.reorderLevel ? "secondary" : "outline"} className="tabular-nums text-[9px] h-4 px-1">
                             {fmt.number(available)}
                           </Badge>
                         ) : null}
                       </div>
                     </div>
                     {used > 0 ? (
-                      <span className="absolute -top-2 -left-2 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold shadow">
+                      <span className="absolute -top-1.5 -left-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-bold shadow">
                         {used}
                       </span>
                     ) : null}
@@ -678,7 +678,7 @@ export function SalesView() {
         </div>
 
         {/* Cart */}
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-5">
           <Card className="lg:sticky lg:top-20 flex flex-col max-h-[calc(100vh-7rem)]">
             {/* Header: title + clear */}
             <CardHeader className="pb-2 shrink-0">
@@ -871,62 +871,71 @@ export function SalesView() {
                     </div>
                   </div>
 
-                  {/* ── Paginated cart items ── */}
-                  <div className="flex-1 overflow-y-auto scrollbar-thin px-3 py-2 min-h-0">
-                    <div className="space-y-1.5">
+                  {/* ── Dense cart items (no cards, single-row layout) ── */}
+                  <div className="flex-1 overflow-y-auto scrollbar-thin px-2 py-1 min-h-0">
+                    <div className="space-y-0">
                       {cartPageItems.map((it) => {
                         const promoActive = hasActivePromo(it.product) && priceFor(it.product) < basePriceFor(it.product)
+                        const lineTotal = priceFor(it.product) * it.quantity
                         return (
                         <div
                           key={it.product.id}
                           className={cn(
-                            "flex items-center gap-2 rounded-lg border border-border/60 bg-card p-2",
-                            promoActive && "border-emerald-300 bg-emerald-50/40 dark:bg-emerald-950/15"
+                            "flex items-center gap-1.5 h-11 px-1 border-b border-border/30 hover:bg-muted/30 transition-colors group",
+                            promoActive && "bg-emerald-50/30 dark:bg-emerald-950/10"
                           )}
                         >
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium truncate flex items-center gap-1">
-                              {it.product.name}
-                              {promoActive ? (
-                                <Badge variant="outline" className="text-[8px] py-0 px-1 bg-emerald-500/10 text-emerald-700 border-emerald-300">
-                                  {t.promo}
-                                </Badge>
-                              ) : null}
-                            </p>
-                            <p className="text-xs text-muted-foreground tabular-nums">
-                              {promoActive ? (
-                                <>
-                                  <span className="line-through opacity-70">{fmt.currency(basePriceFor(it.product))}</span>
-                                  {" → "}
-                                  <span className="font-semibold text-emerald-600">{fmt.currency(priceFor(it.product))}</span>
-                                  {" × "}
-                                  {it.quantity}
-                                </>
-                              ) : (
-                                <>{fmt.currency(priceFor(it.product))} × {it.quantity}</>
-                              )}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-1 shrink-0">
-                            <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => changeQty(it.product.id, -1)}>
+                          {/* Delete — small icon */}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 shrink-0 text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => removeItem(it.product.id)}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+
+                          {/* Name — truncate + tooltip */}
+                          <p
+                            className="flex-1 min-w-0 text-xs font-medium truncate"
+                            title={it.product.name}
+                          >
+                            {it.product.name}
+                            {promoActive ? (
+                              <Badge variant="outline" className="text-[8px] py-0 px-1 ml-1 bg-emerald-500/10 text-emerald-700 border-emerald-300">
+                                {t.promo}
+                              </Badge>
+                            ) : null}
+                          </p>
+
+                          {/* Qty controls — inline, minimal */}
+                          <div className="flex items-center gap-0.5 shrink-0">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 hover:bg-primary/10"
+                              onClick={() => changeQty(it.product.id, -1)}
+                            >
                               <Minus className="h-3 w-3" />
                             </Button>
-                            <Input
-                              dir="ltr"
-                              className="h-7 w-10 text-center px-0 tabular-nums"
-                              value={it.quantity}
-                              onChange={(e) => {
-                                const v = parseInt(e.target.value, 10)
-                                if (!isNaN(v)) setQty(it.product.id, v)
-                              }}
-                            />
-                            <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => changeQty(it.product.id, 1)} disabled={it.quantity >= it.product.quantity}>
+                            <span className="w-6 text-center text-xs font-semibold tabular-nums">
+                              {it.quantity}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 hover:bg-primary/10"
+                              onClick={() => changeQty(it.product.id, 1)}
+                              disabled={it.quantity >= it.product.quantity}
+                            >
                               <Plus className="h-3 w-3" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => removeItem(it.product.id)}>
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
                           </div>
+
+                          {/* Line total — right aligned, bold */}
+                          <span className="w-20 text-left text-xs font-bold tabular-nums text-primary shrink-0">
+                            {fmt.currency(lineTotal)}
+                          </span>
                         </div>
                         )
                       })}
@@ -1048,14 +1057,14 @@ export function SalesView() {
                       ) : null}
                       <div className="flex justify-between items-center pt-1 border-t border-border/60">
                         <span className="font-semibold text-sm">{t.total}</span>
-                        <span className="text-lg font-bold tabular-nums text-primary">
+                        <span className="text-2xl font-bold tabular-nums text-primary">
                           {fmt.currency(total)}
                         </span>
                       </div>
                     </div>
 
                     <Button
-                      className="w-full h-10 gap-2 text-sm"
+                      className="w-full h-9 gap-2 text-sm"
                       onClick={handleCheckout}
                       disabled={createMut.isPending}
                     >
