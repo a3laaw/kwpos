@@ -8,7 +8,7 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  url       = "***REMOVED***:***REMOVED***@***REMOVED***:5432/postgres"
+  url       = "***REMOVED***:***REMOVED***@***REMOVED***:6543/postgres?pgbouncer=true&connection_limit=1"
   directUrl = "***REMOVED***:***REMOVED***@***REMOVED***:5432/postgres"
 }
 
