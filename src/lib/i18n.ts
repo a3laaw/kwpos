@@ -30,6 +30,8 @@ export interface Dict {
   navInvoicesReports: string
   navInventoryPurchases: string
   navAccountingCustomers: string
+  navSystem: string
+  navOperations: string
 
   // Roles
   roleAdmin: string
@@ -1583,6 +1585,8 @@ export const DICTS: Record<Locale, Dict> = {
     navInvoicesReports: "الفواتير والتقارير",
     navInventoryPurchases: "إدارة المخازن والمشتريات",
     navAccountingCustomers: "الحسابات والعملاء",
+    navSystem: "النظام والإعدادات",
+    navOperations: "العمليات اليومية",
     roleAdmin: "مدير النظام",
     roleSales: "موظف مبيعات",
     roleWarehouse: "أمين مخزن",
@@ -3130,6 +3134,8 @@ export const DICTS: Record<Locale, Dict> = {
     navInvoicesReports: "Invoices & Reports",
     navInventoryPurchases: "Inventory & Purchases",
     navAccountingCustomers: "Accounting & Customers",
+    navSystem: "System & Settings",
+    navOperations: "Daily Operations",
     roleAdmin: "Administrator",
     roleSales: "Sales Clerk",
     roleWarehouse: "Warehouse Keeper",
