@@ -32,6 +32,10 @@ import type {
   CreateStockTransferBody,
   AuditLog,
   AuditAction,
+  BalanceSheet,
+  CashFlow,
+  CustomerStatement,
+  VatReport,
 } from "@/lib/types"
 import type { CountryConfig } from "@/lib/countries"
 
@@ -1482,6 +1486,48 @@ export function useReceiveStockTransfer() {
       qc.invalidateQueries({ queryKey: ["products"] })
       qc.invalidateQueries({ queryKey: ["dashboard"] })
     },
+  })
+}
+
+/* --------------------- Advanced Financial Reports ------------------- */
+export function useBalanceSheet() {
+  return useQuery<BalanceSheet>({
+    queryKey: ["balance-sheet"],
+    queryFn: () => jget("/api/financial-reports/balance-sheet"),
+  })
+}
+
+export function useCashFlow(from?: string, to?: string) {
+  const qs = new URLSearchParams()
+  if (from) qs.set("from", from)
+  if (to) qs.set("to", to)
+  const s = qs.toString()
+  return useQuery<CashFlow>({
+    queryKey: ["cash-flow", from, to],
+    queryFn: () => jget(`/api/financial-reports/cash-flow${s ? `?${s}` : ""}`),
+  })
+}
+
+export function useCustomerStatement(customerId: string | null, from?: string, to?: string) {
+  const qs = new URLSearchParams()
+  if (from) qs.set("from", from)
+  if (to) qs.set("to", to)
+  const s = qs.toString()
+  return useQuery<CustomerStatement>({
+    queryKey: ["customer-statement", customerId, from, to],
+    queryFn: () => jget(`/api/customers/${customerId}/statement${s ? `?${s}` : ""}`),
+    enabled: !!customerId,
+  })
+}
+
+export function useVatReport(from?: string, to?: string) {
+  const qs = new URLSearchParams()
+  if (from) qs.set("from", from)
+  if (to) qs.set("to", to)
+  const s = qs.toString()
+  return useQuery<VatReport>({
+    queryKey: ["vat-report", from, to],
+    queryFn: () => jget(`/api/financial-reports/vat${s ? `?${s}` : ""}`),
   })
 }
 

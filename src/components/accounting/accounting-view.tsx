@@ -4,17 +4,32 @@ import * as React from "react"
 import { PageHeader } from "@/components/shared/page-header"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { BookOpen, Wallet, Receipt, FileBarChart, BookCopy, Scale } from "lucide-react"
+import { BookOpen, Wallet, Receipt, FileBarChart, BookCopy, Scale, TrendingUp, Banknote, User2, Percent } from "lucide-react"
 import { ChartOfAccountsTab } from "@/components/accounting/chart-of-accounts-tab"
 import { ExpensesTab } from "@/components/accounting/expenses-tab"
 import { PnLTab } from "@/components/accounting/pnl-tab"
 import { JournalTab, TrialBalanceTab } from "@/components/accounting/journal-tab"
+import { BalanceSheetTab } from "@/components/accounting/balance-sheet-tab"
+import { CashFlowTab } from "@/components/accounting/cash-flow-tab"
+import { CustomerStatementTab } from "@/components/accounting/customer-statement-tab"
+import { VatReportTab } from "@/components/accounting/vat-report-tab"
 import { useAccounts } from "@/hooks/use-api"
+import { useT } from "@/components/i18n-context"
 import { cn } from "@/lib/utils"
 
-type AccTab = "accounts" | "expenses" | "journal" | "pnl" | "trial"
+type AccTab =
+  | "accounts"
+  | "expenses"
+  | "journal"
+  | "pnl"
+  | "trial"
+  | "balance"
+  | "cashflow"
+  | "customer-statement"
+  | "vat"
 
 export function AccountingView() {
+  const t = useT()
   const [tab, setTab] = React.useState<AccTab>("accounts")
   const { data: accountsData } = useAccounts()
   const accountsCount = accountsData?.flat?.length ?? 0
@@ -28,18 +43,22 @@ export function AccountingView() {
     tone: string
     iconBg: string
   }> = [
-    { key: "accounts", label: "شجرة الحسابات", icon: Wallet, kpi: String(accountsCount), hint: "حساب", tone: "text-primary", iconBg: "bg-primary/10" },
-    { key: "expenses", label: "المصروفات", icon: Receipt, hint: "رواتب ومصروفات إدارية", tone: "text-amber-600", iconBg: "bg-amber-500/10" },
-    { key: "journal", label: "القيود المحاسبية", icon: BookCopy, hint: "دفتر اليومية المزدوج", tone: "text-[#055BE5]", iconBg: "bg-[#055BE5]/10" },
-    { key: "pnl", label: "الأرباح والخسائر", icon: FileBarChart, hint: "قائمة P&L", tone: "text-[#5CDE9D]", iconBg: "bg-[#5CDE9D]/10" },
-    { key: "trial", label: "ميزان المراجعة", icon: Scale, hint: "أرصدة الحسابات", tone: "text-[#185B6B]", iconBg: "bg-[#185B6B]/10" },
+    { key: "accounts", label: t.accJournalLedger || "شجرة الحسابات", icon: Wallet, kpi: String(accountsCount), hint: t.accAccount || "حساب", tone: "text-primary", iconBg: "bg-primary/10" },
+    { key: "expenses", label: t.accExpenses, icon: Receipt, hint: t.accJournalDesc || "رواتب ومصروفات", tone: "text-amber-600", iconBg: "bg-amber-500/10" },
+    { key: "journal", label: t.accJournalEntries, icon: BookCopy, hint: t.accJournalDesc || "دفتر اليومية", tone: "text-[#055BE5]", iconBg: "bg-[#055BE5]/10" },
+    { key: "pnl", label: t.accPnl, icon: FileBarChart, hint: "P&L", tone: "text-[#5CDE9D]", iconBg: "bg-[#5CDE9D]/10" },
+    { key: "trial", label: t.accTrialBalance, icon: Scale, hint: t.accTrialBalanceDesc || "أرصدة الحسابات", tone: "text-[#185B6B]", iconBg: "bg-[#185B6B]/10" },
+    { key: "balance", label: t.accBalanceSheet, icon: Scale, hint: t.accAssets + " / " + t.accLiabilities, tone: "text-[#2E6237]", iconBg: "bg-[#2E6237]/10" },
+    { key: "cashflow", label: t.accCashFlow, icon: Banknote, hint: t.accNetCashFlow, tone: "text-[#055BE5]", iconBg: "bg-[#055BE5]/10" },
+    { key: "customer-statement", label: t.accCustomerStatement, icon: User2, hint: t.customers || "العملاء", tone: "text-violet-600", iconBg: "bg-violet-500/10" },
+    { key: "vat", label: t.accVatReport, icon: Percent, hint: t.accNetVat, tone: "text-rose-600", iconBg: "bg-rose-500/10" },
   ]
 
   return (
     <div className="space-y-5">
       <PageHeader
-        title="المحاسبة والمصروفات"
-        description="شجرة الحسابات، القيود المحاسبية المزدوجة، الرواتب والمصروفات، والتقارير المالية."
+        title={t.accountingTitle}
+        description={t.accountingDesc}
         icon={<BookOpen className="h-5 w-5" />}
       />
 
@@ -85,6 +104,10 @@ export function AccountingView() {
       {tab === "journal" && <JournalTab />}
       {tab === "pnl" && <PnLTab />}
       {tab === "trial" && <TrialBalanceTab />}
+      {tab === "balance" && <BalanceSheetTab />}
+      {tab === "cashflow" && <CashFlowTab />}
+      {tab === "customer-statement" && <CustomerStatementTab />}
+      {tab === "vat" && <VatReportTab />}
     </div>
   )
 }

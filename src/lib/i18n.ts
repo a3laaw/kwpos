@@ -1644,6 +1644,26 @@ export interface Dict {
   auditActionDrawerOpen: string
   auditActionHoldBill: string
   auditActionManagerApproval: string
+  // Advanced financial reports
+  accBalanceSheet: string
+  accCashFlow: string
+  accCustomerStatement: string
+  accVatReport: string
+  accAssets: string
+  accLiabilities: string
+  accEquity: string
+  accInflows: string
+  accOutflows: string
+  accNetCashFlow: string
+  accOpeningCash: string
+  accClosingCash: string
+  accOutputVat: string
+  accInputVat: string
+  accNetVat: string
+  accSalesVatTotal: string
+  accPurchasesVatTotal: string
+  accBalanceSheetBalanced: string
+  accBalanceSheetNotBalanced: string
   piTitle: string
   piDesc: string
   piNew: string
@@ -3303,6 +3323,25 @@ export const DICTS: Record<Locale, Dict> = {
     auditActionDrawerOpen: "فتح درج",
     auditActionHoldBill: "تعليق فاتورة",
     auditActionManagerApproval: "موافقة مشرف",
+    accBalanceSheet: "الميزانية العمومية",
+    accCashFlow: "التدفقات النقدية",
+    accCustomerStatement: "كشف حساب عميل",
+    accVatReport: "تقرير الضريبة",
+    accAssets: "الأصول",
+    accLiabilities: "الخصوم",
+    accEquity: "حقوق الملكية",
+    accInflows: "تدفقات داخلة",
+    accOutflows: "تدفقات خارجة",
+    accNetCashFlow: "صافي التدفق النقدي",
+    accOpeningCash: "رصيد نقدي افتتاحي",
+    accClosingCash: "رصيد نقدي ختامي",
+    accOutputVat: "ضريبة المبيعات",
+    accInputVat: "ضريبة المشتريات",
+    accNetVat: "صافي الضريبة المستحقة",
+    accSalesVatTotal: "إجمالي المبيعات",
+    accPurchasesVatTotal: "إجمالي المشتريات",
+    accBalanceSheetBalanced: "الميزانية متوازنة ✓",
+    accBalanceSheetNotBalanced: "الميزانية غير متوازنة ✗",
     piTitle: "فواتير المشتريات",
     piDesc: "فواتير المشتريات وسندات استلام البضاعة",
     piNew: "فاتورة جديدة",
@@ -4960,6 +4999,25 @@ export const DICTS: Record<Locale, Dict> = {
     auditActionDrawerOpen: "Drawer Open",
     auditActionHoldBill: "Hold Bill",
     auditActionManagerApproval: "Manager Approval",
+    accBalanceSheet: "Balance Sheet",
+    accCashFlow: "Cash Flow",
+    accCustomerStatement: "Customer Statement",
+    accVatReport: "VAT Report",
+    accAssets: "Assets",
+    accLiabilities: "Liabilities",
+    accEquity: "Equity",
+    accInflows: "Inflows",
+    accOutflows: "Outflows",
+    accNetCashFlow: "Net Cash Flow",
+    accOpeningCash: "Opening Cash",
+    accClosingCash: "Closing Cash",
+    accOutputVat: "Output VAT",
+    accInputVat: "Input VAT",
+    accNetVat: "Net VAT Payable",
+    accSalesVatTotal: "Sales Total",
+    accPurchasesVatTotal: "Purchases Total",
+    accBalanceSheetBalanced: "Balance sheet balanced ✓",
+    accBalanceSheetNotBalanced: "Balance sheet NOT balanced ✗",
     piTitle: "Purchase Invoices",
     piDesc: "Purchase invoices and goods receipt notes",
     piNew: "New Invoice",

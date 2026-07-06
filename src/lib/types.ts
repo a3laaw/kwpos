@@ -480,3 +480,52 @@ export interface AuditLog {
   metadata: string | null
   createdAt: string
 }
+
+// ─── Advanced Financial Reports ────────────────────────────────────
+export interface BalanceSheetSection {
+  rows: { code: string; name: string; balance: number }[]
+  total: number
+}
+
+export interface BalanceSheet {
+  assets: BalanceSheetSection
+  liabilities: BalanceSheetSection
+  equity: BalanceSheetSection
+  totals: { assets: number; liabilities: number; equity: number }
+}
+
+export interface CashFlow {
+  from: string | null
+  to: string | null
+  inflows: { source: string; amount: number }[]
+  outflows: { source: string; amount: number }[]
+  netCashFlow: number
+  openingCash: number
+  closingCash: number
+}
+
+export interface CustomerStatementTx {
+  date: string
+  type: "SALE" | "REFUND"
+  referenceNo: string
+  debit: number
+  credit: number
+  balance: number
+}
+
+export interface CustomerStatement {
+  customer: { id: string; name: string; phone?: string | null; address?: string | null }
+  openingBalance: number
+  closingBalance: number
+  transactions: CustomerStatementTx[]
+}
+
+export interface VatReport {
+  from: string | null
+  to: string | null
+  outputVat: number
+  inputVat: number
+  netVat: number
+  salesTotal: number
+  purchasesTotal: number
+}
