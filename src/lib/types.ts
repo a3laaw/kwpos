@@ -328,3 +328,30 @@ export interface SupplierBalance {
   totalPaid: number
   balance: number
 }
+
+// ─── Supplier Statement (كشف حساب المورد) ───────────────────────────
+export interface SupplierStatementTransaction {
+  date: string
+  type: "INVOICE" | "PAYMENT" | "RETURN"
+  referenceNo: string
+  description: string
+  debit: number
+  credit: number
+  balance: number
+}
+
+export interface SupplierStatement {
+  supplier: {
+    id: string
+    name: string
+    phone?: string | null
+    email?: string | null
+    address?: string | null
+  }
+  openingBalance: number
+  closingBalance: number
+  invoicesTotal: number
+  paymentsTotal: number
+  returnsTotal: number
+  transactions: SupplierStatementTransaction[]
+}

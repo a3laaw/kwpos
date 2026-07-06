@@ -1550,6 +1550,29 @@ export interface Dict {
   supplierPaymentCreateFailed: string
   supplierPaymentDeleteFailed: string
   paymentMethodLabel: string
+  // Supplier statement (كشف حساب المورد)
+  supplierStatement: string
+  supplierStatementTitle: string
+  supplierStatementDesc: string
+  statementFrom: string
+  statementTo: string
+  statementInvoicesTotal: string
+  statementPaymentsTotal: string
+  statementReturnsTotal: string
+  statementOpeningBalance: string
+  statementClosingBalance: string
+  statementPrint: string
+  statementNoTransactions: string
+  statementInvoice: string
+  statementPayment: string
+  statementReturn: string
+  statementDate: string
+  statementType: string
+  statementDebit: string
+  statementCredit: string
+  statementBalance: string
+  statementReference: string
+  statementDescription: string
   piTitle: string
   piDesc: string
   piNew: string
@@ -3120,6 +3143,28 @@ export const DICTS: Record<Locale, Dict> = {
     supplierPaymentCreateFailed: "فشل تسجيل السداد",
     supplierPaymentDeleteFailed: "فشل حذف السداد",
     paymentMethodLabel: "طريقة الدفع",
+    supplierStatement: "كشف حساب",
+    supplierStatementTitle: "كشف حساب المورد",
+    supplierStatementDesc: "عرض فواتير المشتريات والسدادات والرصيد الجاري للمورد",
+    statementFrom: "من تاريخ",
+    statementTo: "إلى تاريخ",
+    statementInvoicesTotal: "إجمالي الفواتير",
+    statementPaymentsTotal: "إجمالي السدادات",
+    statementReturnsTotal: "إجمالي المرتجعات",
+    statementOpeningBalance: "رصيد افتتاحي",
+    statementClosingBalance: "الرصيد الختامي",
+    statementPrint: "طباعة",
+    statementNoTransactions: "لا توجد معاملات في هذه الفترة",
+    statementInvoice: "فاتورة",
+    statementPayment: "سداد",
+    statementReturn: "مرتجع",
+    statementDate: "التاريخ",
+    statementType: "النوع",
+    statementDebit: "مدين",
+    statementCredit: "دائن",
+    statementBalance: "الرصيد",
+    statementReference: "المرجع",
+    statementDescription: "البيان",
     piTitle: "فواتير المشتريات",
     piDesc: "فواتير المشتريات وسندات استلام البضاعة",
     piNew: "فاتورة جديدة",
@@ -4688,6 +4733,28 @@ export const DICTS: Record<Locale, Dict> = {
     supplierPaymentCreateFailed: "Failed to record payment",
     supplierPaymentDeleteFailed: "Failed to delete payment",
     paymentMethodLabel: "Payment Method",
+    supplierStatement: "Statement",
+    supplierStatementTitle: "Supplier Statement",
+    supplierStatementDesc: "Show purchase invoices, payments, and running balance for a supplier",
+    statementFrom: "From",
+    statementTo: "To",
+    statementInvoicesTotal: "Invoices Total",
+    statementPaymentsTotal: "Payments Total",
+    statementReturnsTotal: "Returns Total",
+    statementOpeningBalance: "Opening Balance",
+    statementClosingBalance: "Closing Balance",
+    statementPrint: "Print",
+    statementNoTransactions: "No transactions in this period",
+    statementInvoice: "Invoice",
+    statementPayment: "Payment",
+    statementReturn: "Return",
+    statementDate: "Date",
+    statementType: "Type",
+    statementDebit: "Debit",
+    statementCredit: "Credit",
+    statementBalance: "Balance",
+    statementReference: "Reference",
+    statementDescription: "Description",
     piTitle: "Purchase Invoices",
     piDesc: "Purchase invoices and goods receipt notes",
     piNew: "New Invoice",

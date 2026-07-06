@@ -23,6 +23,7 @@ import type {
   Warehouse,
   SupplierPayment,
   SupplierBalance,
+  SupplierStatement,
 } from "@/lib/types"
 import type { CountryConfig } from "@/lib/countries"
 
@@ -1348,6 +1349,23 @@ export function useSupplierBalances() {
   return useQuery<{ items: SupplierBalance[] }>({
     queryKey: ["supplier-balances"],
     queryFn: () => jget("/api/suppliers/balances"),
+  })
+}
+
+/** Supplier statement (كشف حساب): invoices + payments + returns + running balance. */
+export function useSupplierStatement(
+  supplierId: string | null,
+  from?: string,
+  to?: string
+) {
+  const qs = new URLSearchParams()
+  if (from) qs.set("from", from)
+  if (to) qs.set("to", to)
+  const s = qs.toString()
+  return useQuery<SupplierStatement>({
+    queryKey: ["supplier-statement", supplierId, from, to],
+    queryFn: () => jget(`/api/suppliers/${supplierId}/statement${s ? `?${s}` : ""}`),
+    enabled: !!supplierId,
   })
 }
 
