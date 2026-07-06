@@ -47,6 +47,7 @@ import {
 import { useUser } from "@/components/user-context"
 import { printBarcodeLabels } from "@/lib/print"
 import { SubNav, type SubNavItem } from "@/components/shared/sub-nav"
+import { Breadcrumbs } from "@/components/shared/breadcrumbs"
 import { WarehouseManager } from "@/components/inventory/warehouse-manager"
 import { StockTakeTab } from "@/components/inventory/stock-take-tab"
 import { StockTransferTab } from "@/components/inventory/stock-transfer-tab"
@@ -116,8 +117,21 @@ export function InventoryView() {
     })
   }
 
+  const INV_TAB_LABELS: Record<string, any> = {
+    products: "invItemsTab",
+    warehouses: "warehouses",
+    stocktake: "stockTakeTab",
+    transfers: "stockTransferTab",
+  }
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
+      <Breadcrumbs
+        items={[
+          { labelKey: "navInventory" },
+          { labelKey: INV_TAB_LABELS[invTab] || "invItemsTab" },
+        ]}
+      />
       <PageHeader
         title={t.invManageTitle}
         description={t.invManageDesc}

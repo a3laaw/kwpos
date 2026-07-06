@@ -21,6 +21,8 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { SubNav, type SubNavItem } from "@/components/shared/sub-nav"
+import { Breadcrumbs } from "@/components/shared/breadcrumbs"
+import { WorkflowBar, type WorkflowStep } from "@/components/shared/workflow-bar"
 import { Loader2 } from "lucide-react"
 import {
   Table,
@@ -211,8 +213,20 @@ export function PurchasesView() {
     }
   }
 
+  const PUR_TAB_LABELS: Record<string, any> = {
+    orders: "navPurchases",
+    invoices: "navPurchaseInvoices",
+    payments: "navSupplierPayments",
+  }
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
+      <Breadcrumbs
+        items={[
+          { labelKey: "navInventoryPurchases" },
+          { labelKey: PUR_TAB_LABELS[tab] || "navPurchases" },
+        ]}
+      />
       <PageHeader
         title={t.purchasesTitleLong}
         description={t.purchasesDescLong}
@@ -453,6 +467,14 @@ export function PurchasesView() {
                   <p className="font-semibold text-primary">{fmt.currency(detail.total)}</p>
                 </div>
               </div>
+              {(() => {
+                const poSteps: WorkflowStep[] = [
+                  { key: "PENDING_APPROVAL", label: t.poStatusPendingApproval, status: ["PENDING_APPROVAL", "APPROVED", "PENDING", "RECEIVED"].includes(detail.status) ? "completed" : "pending" },
+                  { key: "APPROVED", label: t.poStatusApproved, status: ["APPROVED", "PENDING", "RECEIVED"].includes(detail.status) ? "completed" : detail.status === "PENDING_APPROVAL" ? "current" : "pending" },
+                  { key: "RECEIVED", label: t.poStatusReceived, status: detail.status === "RECEIVED" ? "completed" : detail.status === "PENDING" || detail.status === "APPROVED" ? "current" : "pending" },
+                ]
+                return <WorkflowBar steps={poSteps} />
+              })()}
               {detail.note ? (
                 <div className="rounded-lg bg-muted/40 p-3 text-sm">
                   <p className="text-xs text-muted-foreground mb-1">{t.note}</p>

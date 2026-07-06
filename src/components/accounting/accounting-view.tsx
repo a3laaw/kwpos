@@ -3,6 +3,7 @@
 import * as React from "react"
 import { PageHeader } from "@/components/shared/page-header"
 import { SubNav, type SubNavItem } from "@/components/shared/sub-nav"
+import { Breadcrumbs } from "@/components/shared/breadcrumbs"
 import { BookOpen, Wallet, Receipt, FileBarChart, BookCopy, Scale, Banknote, User2, Percent } from "lucide-react"
 import { ChartOfAccountsTab } from "@/components/accounting/chart-of-accounts-tab"
 import { ExpensesTab } from "@/components/accounting/expenses-tab"
@@ -13,6 +14,7 @@ import { CashFlowTab } from "@/components/accounting/cash-flow-tab"
 import { CustomerStatementTab } from "@/components/accounting/customer-statement-tab"
 import { VatReportTab } from "@/components/accounting/vat-report-tab"
 import { useT } from "@/components/i18n-context"
+import type { Dict } from "@/lib/i18n"
 
 type AccTab =
   | "accounts"
@@ -24,6 +26,18 @@ type AccTab =
   | "cashflow"
   | "customer-statement"
   | "vat"
+
+const TAB_LABELS: Record<AccTab, keyof Dict> = {
+  accounts: "accJournalLedger",
+  expenses: "accExpenses",
+  journal: "accJournalEntries",
+  pnl: "accPnl",
+  trial: "accTrialBalance",
+  balance: "accBalanceSheet",
+  cashflow: "accCashFlow",
+  "customer-statement": "accCustomerStatement",
+  vat: "accVatReport",
+}
 
 export function AccountingView() {
   const t = useT()
@@ -42,7 +56,14 @@ export function AccountingView() {
   ]
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
+      <Breadcrumbs
+        items={[
+          { labelKey: "navAccounting" },
+          { labelKey: TAB_LABELS[tab] },
+        ]}
+      />
+
       <PageHeader
         title={t.accountingTitle}
         description={t.accountingDesc}
