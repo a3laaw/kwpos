@@ -9,16 +9,20 @@ import bcrypt from "bcryptjs"
 
 export const dynamic = "force-dynamic"
 
-// Auto-seed: if no users exist, create a default admin automatically.
+// Auto-seed: if no users exist AND BOOTSTRAP_ADMIN_PASSWORD env is set,
+// create a default admin with that password. If the env var is NOT set,
+// no admin is created (fail-safe — the user must seed via /api/seed).
 async function ensureDefaultUser() {
   const count = await db.user.count()
   if (count === 0) {
+    const bootstrapPw = process.env.BOOTSTRAP_ADMIN_PASSWORD
+    if (!bootstrapPw) return // fail-safe: no weak default password
     await db.user.create({
       data: {
         id: "user-admin-demo",
         email: "admin@demo.com",
         name: "Admin",
-        passwordHash: bcrypt.hashSync("***REMOVED***", 10),
+        passwordHash: bcrypt.hashSync(bootstrapPw, 10),
         role: "ADMIN",
       },
     })

@@ -41,7 +41,17 @@ export async function POST(req: Request) {
     }
 
     // ---- Users ----
+    // Passwords are read from environment variables (no hardcoded secrets).
+    // If not set, strong random passwords are generated and returned.
     const pw = (p: string) => bcrypt.hashSync(p, 10)
+    const randomPw = () =>
+      Array.from(crypto.getRandomValues(new Uint8Array(15)))
+        .map((b) => b.toString(36).padStart(2, "0"))
+        .join("")
+        .slice(0, 20)
+    const adminPw = process.env.SEED_ADMIN_PASSWORD || randomPw()
+    const salesPw = process.env.SEED_SALES_PASSWORD || randomPw()
+    const warehousePw = process.env.SEED_WAREHOUSE_PASSWORD || randomPw()
     // Use stable IDs so existing sessions stay valid after a re-seed.
     const users = await db.$transaction([
       db.user.create({
@@ -49,7 +59,7 @@ export async function POST(req: Request) {
           id: "user-admin-demo",
           email: "admin@demo.com",
           name: "أحمد المدير",
-          passwordHash: pw("***REMOVED***"),
+          passwordHash: pw(adminPw),
           role: "ADMIN",
         },
       }),
@@ -58,7 +68,7 @@ export async function POST(req: Request) {
           id: "user-sales-demo",
           email: "sales@demo.com",
           name: "سارة الموظفة",
-          passwordHash: pw("***REMOVED***"),
+          passwordHash: pw(salesPw),
           role: "SALES",
         },
       }),
@@ -67,7 +77,7 @@ export async function POST(req: Request) {
           id: "user-warehouse-demo",
           email: "warehouse@demo.com",
           name: "خالد أمين المخزن",
-          passwordHash: pw("***REMOVED***"),
+          passwordHash: pw(warehousePw),
           role: "WAREHOUSE",
         },
       }),
@@ -470,6 +480,14 @@ export async function POST(req: Request) {
     return NextResponse.json({
       ok: true,
       message: "seeded",
+      // Return generated passwords ONLY if they were randomly generated
+      // (env vars not set). Store these securely; they are NOT shown again.
+      generatedPasswords:
+        process.env.SEED_ADMIN_PASSWORD ? undefined : {
+          admin: adminPw,
+          sales: salesPw,
+          warehouse: warehousePw,
+        },
       counts: {
         users: await db.user.count(),
         categories: await db.category.count(),

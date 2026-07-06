@@ -27,7 +27,6 @@ import type { CountryConfig } from "@/lib/countries"
 interface DemoAccount {
   role: string
   email: string
-  password: string
   icon: React.ComponentType<{ className?: string }>
   tone: string
 }
@@ -38,21 +37,18 @@ function useDemoAccounts(t: Dict): DemoAccount[] {
       {
         role: t.roleAdmin,
         email: "admin@demo.com",
-        password: "***REMOVED***",
         icon: ShieldCheck,
         tone: "text-primary",
       },
       {
         role: t.roleSales,
         email: "sales@demo.com",
-        password: "***REMOVED***",
         icon: ShoppingCart,
         tone: "text-[#055BE5] dark:text-[#5CDE9D]",
       },
       {
         role: t.roleWarehouse,
         email: "warehouse@demo.com",
-        password: "***REMOVED***",
         icon: Warehouse,
         tone: "text-amber-600 dark:text-amber-400",
       },
@@ -65,8 +61,8 @@ export function LoginScreen({ country }: { country?: CountryConfig }) {
   const t = useT()
   const { locale } = useI18n()
   const router = useRouter()
-  const [email, setEmail] = React.useState("admin@demo.com")
-  const [password, setPassword] = React.useState("***REMOVED***")
+  const [email, setEmail] = React.useState("")
+  const [password, setPassword] = React.useState("")
   const [loading, setLoading] = React.useState(false)
 
   const demoAccounts = useDemoAccounts(t)
@@ -97,9 +93,9 @@ export function LoginScreen({ country }: { country?: CountryConfig }) {
     }
   }
 
-  function quickFill(em: string, pw: string) {
+  function quickFill(em: string) {
     setEmail(em)
-    setPassword(pw)
+    setPassword("")
   }
 
   return (
@@ -238,7 +234,7 @@ export function LoginScreen({ country }: { country?: CountryConfig }) {
                   <button
                     key={a.email}
                     type="button"
-                    onClick={() => quickFill(a.email, a.password)}
+                    onClick={() => quickFill(a.email)}
                     className="flex items-center gap-3 rounded-lg border border-border/70 bg-card px-3 py-2.5 text-right transition hover:border-primary/40 hover:bg-accent/50"
                   >
                     <span className={`flex h-9 w-9 items-center justify-center rounded-lg bg-muted ${a.tone}`}>
@@ -249,9 +245,6 @@ export function LoginScreen({ country }: { country?: CountryConfig }) {
                       <span className="block text-xs text-muted-foreground font-mono truncate" dir="ltr">
                         {a.email}
                       </span>
-                    </span>
-                    <span className="text-xs text-muted-foreground font-mono" dir="ltr">
-                      {a.password}
                     </span>
                   </button>
                 ))}
