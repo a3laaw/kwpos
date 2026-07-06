@@ -75,7 +75,7 @@ export function SupplierPaymentsView() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="flex items-center justify-between gap-3">
         <div>
           <h3 className="text-base font-bold flex items-center gap-2">
@@ -113,12 +113,12 @@ export function SupplierPaymentsView() {
           }
         />
       ) : (
-        <div className="rounded-lg border border-border overflow-hidden">
+        <div className="rounded-lg border border-border overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/40">
                 <TableHead className="text-start">{t.paymentNoLabel}</TableHead>
-                <TableHead className="text-start">{t.supplierBalance.split(" ")[0]}</TableHead>
+                <TableHead className="text-start">{t.colSupplier}</TableHead>
                 <TableHead className="text-start">{t.amountPaid}</TableHead>
                 <TableHead className="text-start">{t.paymentMethodLabel}</TableHead>
                 <TableHead className="text-start hidden sm:table-cell">{t.paymentDateLabel}</TableHead>

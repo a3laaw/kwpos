@@ -370,7 +370,7 @@ export function PerformanceMatrix() {
                             <td className="py-3 px-2 text-center tabular-nums font-medium">{fmt.number(cat.netQty)}</td>
                             <td className="py-3 px-2 text-center tabular-nums font-medium">{fmt.currency(cat.revenue)}</td>
                             <td className="py-3 px-2 text-center tabular-nums text-muted-foreground">{fmt.currency(cat.cost)}</td>
-                            <td className="py-3 px-2 text-center tabular-nums font-medium text-[#5CDE9D]">{fmt.currency(cat.grossProfit)}</td>
+                            <td className="py-3 px-2 text-center tabular-nums font-medium text-[#DFC196]">{fmt.currency(cat.grossProfit)}</td>
                             <td className="py-3 px-2 text-center tabular-nums">
                               <Badge className={cn("tabular-nums", cat.marginPct >= 30 ? "bg-emerald-500/15 text-emerald-600" : cat.marginPct >= 10 ? "bg-amber-500/15 text-amber-600" : "bg-rose-500/15 text-rose-600")}>
                                 {fmt.number(cat.marginPct)}%
@@ -403,7 +403,7 @@ export function PerformanceMatrix() {
                                 <td className="py-2 px-2 text-center tabular-nums">{fmt.number(p.netQty)}</td>
                                 <td className="py-2 px-2 text-center tabular-nums">{fmt.currency(p.revenue)}</td>
                                 <td className="py-2 px-2 text-center tabular-nums text-muted-foreground">{fmt.currency(p.cost)}</td>
-                                <td className="py-2 px-2 text-center tabular-nums font-medium text-[#5CDE9D]">{fmt.currency(p.grossProfit)}</td>
+                                <td className="py-2 px-2 text-center tabular-nums font-medium text-[#DFC196]">{fmt.currency(p.grossProfit)}</td>
                                 <td className="py-2 px-2 text-center tabular-nums">
                                   <span className={cn("text-xs", p.marginPct >= 30 ? "text-emerald-600" : p.marginPct >= 10 ? "text-amber-600" : "text-rose-600")}>
                                     {fmt.number(p.marginPct)}%
@@ -425,7 +425,7 @@ export function PerformanceMatrix() {
                       <td className="py-3 px-2 text-center tabular-nums">{fmt.number(totals.qty)}</td>
                       <td className="py-3 px-2 text-center tabular-nums">{fmt.currency(totals.revenue)}</td>
                       <td className="py-3 px-2 text-center tabular-nums">{fmt.currency(totals.cost)}</td>
-                      <td className="py-3 px-2 text-center tabular-nums text-[#5CDE9D]">{fmt.currency(totals.profit)}</td>
+                      <td className="py-3 px-2 text-center tabular-nums text-[#DFC196]">{fmt.currency(totals.profit)}</td>
                       <td className="py-3 px-2 text-center tabular-nums">{fmt.number(totals.margin)}%</td>
                       <td className="py-3 px-2 text-center tabular-nums">{fmt.number(totals.turnover)}×</td>
                       <td className="py-3 px-2 text-center tabular-nums">{fmt.number(totals.days)}</td>

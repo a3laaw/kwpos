@@ -3,6 +3,7 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
 import { Inbox } from "lucide-react"
+import { useT } from "@/components/i18n-context"
 
 interface EmptyStateProps {
   title?: string
@@ -13,12 +14,15 @@ interface EmptyStateProps {
 }
 
 export function EmptyState({
-  title = "لا توجد بيانات",
-  description = "ستظهر البيانات هنا بمجرد إضافتها.",
+  title,
+  description,
   icon,
   action,
   className,
 }: EmptyStateProps) {
+  const t = useT()
+  const finalTitle = title ?? t.noData
+  const finalDesc = description ?? t.noDataDescription
   return (
     <div
       className={cn(
@@ -30,10 +34,10 @@ export function EmptyState({
         {icon ?? <Inbox className="h-7 w-7" />}
       </div>
       <div>
-        <p className="font-semibold">{title}</p>
-        {description ? (
+        <p className="font-semibold">{finalTitle}</p>
+        {finalDesc ? (
           <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
-            {description}
+            {finalDesc}
           </p>
         ) : null}
       </div>

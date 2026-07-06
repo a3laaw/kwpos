@@ -2,13 +2,15 @@
 
 import { cn } from "@/lib/utils"
 import { Loader2 } from "lucide-react"
+import { useT } from "@/components/i18n-context"
 
 interface LoadingStateProps {
   text?: string
   className?: string
 }
 
-export function LoadingState({ text = "جارٍ التحميل...", className }: LoadingStateProps) {
+export function LoadingState({ text, className }: LoadingStateProps) {
+  const t = useT()
   return (
     <div
       className={cn(
@@ -17,7 +19,7 @@ export function LoadingState({ text = "جارٍ التحميل...", className }:
       )}
     >
       <Loader2 className="h-7 w-7 animate-spin text-primary" />
-      <p className="text-sm text-muted-foreground">{text}</p>
+      <p className="text-sm text-muted-foreground">{text ?? t.loading}</p>
     </div>
   )
 }

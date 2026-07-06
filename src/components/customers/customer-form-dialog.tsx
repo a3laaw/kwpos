@@ -107,7 +107,7 @@ export function CustomerFormDialog({ open, onOpenChange, customer }: CustomerFor
               value={form.phone}
               onChange={(e) => set("phone", e.target.value)}
               placeholder="+965 5xxx xxxx"
-              className="text-left"
+              className="text-end"
             />
           </div>
           <div className="space-y-2">

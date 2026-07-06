@@ -328,7 +328,7 @@ export function PurchaseOrderDialog({
             <CollapsibleTrigger asChild>
               <button
                 type="button"
-                className="flex w-full items-center justify-between gap-2 px-4 py-3 text-right hover:bg-muted/40 transition-colors"
+                className="flex w-full items-center justify-between gap-2 px-4 py-3 text-start hover:bg-muted/40 transition-colors"
               >
                 <span className="flex items-center gap-2 text-sm font-medium">
                   <Truck className="h-4 w-4 text-primary" />

@@ -69,7 +69,7 @@ export function ExcelExportButton({
     >
       {exportMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
       <span className="hidden sm:inline">{label ?? t.export}</span>
-      <FileSpreadsheet className="h-3.5 w-3.5 text-[#5CDE9D]" />
+      <FileSpreadsheet className="h-3.5 w-3.5 text-[#DFC196]" />
     </Button>
   )
 }
@@ -116,7 +116,7 @@ export function ExcelImportButton({ type }: { type: "products" | "customers" }) 
           <Button variant="outline" size="sm" className="gap-1.5" disabled={mut.isPending}>
             {mut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
             <span className="hidden sm:inline">{t.import}</span>
-            <FileSpreadsheet className="h-3.5 w-3.5 text-[#055BE5]" />
+            <FileSpreadsheet className="h-3.5 w-3.5 text-[#2E6237]" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">

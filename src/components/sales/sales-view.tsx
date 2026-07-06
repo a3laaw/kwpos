@@ -638,19 +638,19 @@ export function SalesView() {
                         <span className="absolute inset-0 flex items-center justify-center bg-background/70 text-[10px] font-bold text-destructive">{t.outOfStockShort}</span>
                       ) : null}
                       {promoActive ? (
-                        <span className="absolute top-0.5 right-0.5 inline-flex items-center gap-0.5 rounded-full bg-emerald-500 text-white text-[8px] font-bold px-1 py-0.5">
+                        <span className="absolute top-0.5 right-0.5 inline-flex items-center gap-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-bold px-1 py-0.5">
                           <Tag className="h-2 w-2" />
                           {t.promo}
                         </span>
                       ) : null}
                     </div>
                     {/* Info — compact single layout */}
-                    <div className="p-1.5 text-right flex-1 flex flex-col gap-0.5">
+                    <div className="p-1.5 text-start flex-1 flex flex-col gap-0.5">
                       <p className="font-medium text-xs leading-tight truncate" title={p.name}>{p.name}</p>
                       <div className="flex items-center justify-between gap-0.5 mt-auto">
                         <span className="flex flex-col items-start leading-none">
                           {promoActive ? (
-                            <span className="text-[9px] text-muted-foreground line-through tabular-nums">
+                            <span className="text-[10px] text-muted-foreground line-through tabular-nums">
                               {fmt.currency(baseP)}
                             </span>
                           ) : null}
@@ -659,7 +659,7 @@ export function SalesView() {
                           </span>
                         </span>
                         {!out ? (
-                          <Badge variant={available <= p.reorderLevel ? "secondary" : "outline"} className="tabular-nums text-[9px] h-4 px-1">
+                          <Badge variant={available <= p.reorderLevel ? "secondary" : "outline"} className="tabular-nums text-[10px] h-4 px-1">
                             {fmt.number(available)}
                           </Badge>
                         ) : null}
@@ -703,7 +703,7 @@ export function SalesView() {
                       <History className="h-3.5 w-3.5" />
                       {t.parked}
                       {parkedItems.length > 0 ? (
-                        <Badge className="tabular-nums text-[9px] h-4 px-1">{parkedItems.length}</Badge>
+                        <Badge className="tabular-nums text-[10px] h-4 px-1">{parkedItems.length}</Badge>
                       ) : null}
                     </Button>
                     {parkedListOpen ? (
@@ -725,7 +725,7 @@ export function SalesView() {
                                   className="flex-1 text-start min-w-0"
                                 >
                                   <div className="flex items-center gap-2">
-                                    <Badge variant="outline" className="text-[9px] font-mono">{p.holdNo}</Badge>
+                                    <Badge variant="outline" className="text-[10px] font-mono">{p.holdNo}</Badge>
                                     <span className="text-xs font-medium truncate">{p.label || t.unnamed}</span>
                                   </div>
                                   <div className="text-[10px] text-muted-foreground mt-0.5 tabular-nums">
@@ -826,8 +826,8 @@ export function SalesView() {
                         id="cphone"
                         dir="ltr"
                         className={cn(
-                          "h-7 text-xs text-left",
-                          customerFound && "border-[#5CDE9D] bg-[#5CDE9D]/5",
+                          "h-7 text-xs text-end",
+                          customerFound && "border-[#DFC196] bg-[#DFC196]/5",
                           customerPhone.trim().length >= 4 && !customerFound && "border-amber-500"
                         )}
                         value={customerPhone}
@@ -835,12 +835,12 @@ export function SalesView() {
                         placeholder="+965 5xxx xxxx"
                       />
                       {customerFound ? (
-                        <p className="text-[9px] text-[#5CDE9D] flex items-center gap-0.5 mt-0.5">
+                        <p className="text-[10px] text-[#DFC196] flex items-center gap-0.5 mt-0.5">
                           <UserCheck className="h-2.5 w-2.5" />
                           {t.customerFoundPrefix} {customerFound.name}
                         </p>
                       ) : customerPhone.trim().length >= 4 ? (
-                        <p className="text-[9px] text-amber-600 flex items-center gap-0.5 mt-0.5">
+                        <p className="text-[10px] text-amber-600 flex items-center gap-0.5 mt-0.5">
                           <UserPlus className="h-2.5 w-2.5" />
                           {t.newCustomerAutoInline}
                         </p>
@@ -902,7 +902,7 @@ export function SalesView() {
                           >
                             {it.product.name}
                             {promoActive ? (
-                              <Badge variant="outline" className="text-[8px] py-0 px-1 ml-1 bg-emerald-500/10 text-emerald-700 border-emerald-300">
+                              <Badge variant="outline" className="text-[10px] py-0 px-1 ml-1 bg-emerald-500/10 text-emerald-700 border-emerald-300">
                                 {t.promo}
                               </Badge>
                             ) : null}
@@ -933,7 +933,7 @@ export function SalesView() {
                           </div>
 
                           {/* Line total — right aligned, bold */}
-                          <span className="w-20 text-left text-xs font-bold tabular-nums text-primary shrink-0">
+                          <span className="w-20 text-end text-xs font-bold tabular-nums text-primary shrink-0">
                             {fmt.currency(lineTotal)}
                           </span>
                         </div>
@@ -1104,7 +1104,7 @@ export function SalesView() {
             <>
               {/* Scrollable receipt body */}
               <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4">
-                <div className="space-y-4">
+                <div className="space-y-5">
                   <div className="text-center">
                     <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600">
                       <Receipt className="h-8 w-8" />
@@ -1122,7 +1122,7 @@ export function SalesView() {
                     <table className="w-full text-sm">
                       <thead className="bg-muted/40">
                         <tr>
-                          <th className="text-right p-2 font-medium">{t.receiptItemsHeader}</th>
+                          <th className="text-start p-2 font-medium">{t.receiptItemsHeader}</th>
                           <th className="text-center p-2 font-medium">{t.receiptQtyHeader}</th>
                           <th className="text-center p-2 font-medium">{t.receiptTotalHeader}</th>
                         </tr>

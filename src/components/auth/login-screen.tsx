@@ -44,7 +44,7 @@ function useDemoAccounts(t: Dict): DemoAccount[] {
         role: t.roleSales,
         email: "sales@demo.com",
         icon: ShoppingCart,
-        tone: "text-[#055BE5] dark:text-[#5CDE9D]",
+        tone: "text-[#2E6237] dark:text-[#DFC196]",
       },
       {
         role: t.roleWarehouse,
@@ -104,7 +104,7 @@ export function LoginScreen({ country }: { country?: CountryConfig }) {
       <div className="relative hidden lg:flex lg:w-1/2 flex-col justify-between p-10 text-sidebar-foreground bg-sidebar overflow-hidden">
         <div className="absolute inset-0 opacity-20 pointer-events-none">
           <div className="absolute -top-20 -right-20 h-80 w-80 rounded-full bg-sidebar-primary blur-3xl" />
-          <div className="absolute bottom-10 -left-10 h-72 w-72 rounded-full bg-[#5CDE9D] blur-3xl" />
+          <div className="absolute bottom-10 -left-10 h-72 w-72 rounded-full bg-[#DFC196] blur-3xl" />
         </div>
         <div className="relative z-10 flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sidebar-primary text-sidebar-primary-foreground">
@@ -190,7 +190,7 @@ export function LoginScreen({ country }: { country?: CountryConfig }) {
                     placeholder="you@example.com"
                     autoComplete="email"
                     required
-                    className="text-left"
+                    className="text-end"
                   />
                 </div>
                 <div className="space-y-2">
@@ -204,7 +204,7 @@ export function LoginScreen({ country }: { country?: CountryConfig }) {
                     placeholder="••••••••"
                     autoComplete="current-password"
                     required
-                    className="text-left"
+                    className="text-end"
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
@@ -235,7 +235,7 @@ export function LoginScreen({ country }: { country?: CountryConfig }) {
                     key={a.email}
                     type="button"
                     onClick={() => quickFill(a.email)}
-                    className="flex items-center gap-3 rounded-lg border border-border/70 bg-card px-3 py-2.5 text-right transition hover:border-primary/40 hover:bg-accent/50"
+                    className="flex items-center gap-3 rounded-lg border border-border/70 bg-card px-3 py-2.5 text-start transition hover:border-primary/40 hover:bg-accent/50"
                   >
                     <span className={`flex h-9 w-9 items-center justify-center rounded-lg bg-muted ${a.tone}`}>
                       <a.icon className="h-4 w-4" />

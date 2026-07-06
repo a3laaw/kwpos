@@ -119,7 +119,7 @@ export function SupplierPaymentDialog({
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Supplier */}
           <div className="space-y-2">
-            <Label>{t.supplierBalance.split(" ")[0]}</Label>
+            <Label>{t.colSupplier}</Label>
             <Select
               value={selectedSupplier}
               onValueChange={setSelectedSupplier}
@@ -159,7 +159,7 @@ export function SupplierPaymentDialog({
               placeholder="0.000"
               required
               dir="ltr"
-              className="text-left"
+              className="text-end"
             />
           </div>
 
@@ -186,7 +186,7 @@ export function SupplierPaymentDialog({
                 value={paymentDate}
                 onChange={(e) => setPaymentDate(e.target.value)}
                 dir="ltr"
-                className="text-left"
+                className="text-end"
               />
             </div>
           </div>
@@ -200,7 +200,7 @@ export function SupplierPaymentDialog({
               onChange={(e) => setReferenceNo(e.target.value)}
               placeholder="—"
               dir="ltr"
-              className="text-left"
+              className="text-end"
             />
           </div>
 

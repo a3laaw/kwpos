@@ -127,7 +127,7 @@ export function SupplierFormDialog({ open, onOpenChange, supplier }: SupplierFor
                 value={form.phone}
                 onChange={(e) => set("phone", e.target.value)}
                 placeholder={t.phoneInputPlaceholder}
-                className="text-left"
+                className="text-end"
               />
             </div>
             <div className="space-y-2">
@@ -139,7 +139,7 @@ export function SupplierFormDialog({ open, onOpenChange, supplier }: SupplierFor
                 value={form.email}
                 onChange={(e) => set("email", e.target.value)}
                 placeholder={t.emailInputPlaceholder}
-                className="text-left"
+                className="text-end"
               />
             </div>
             <div className="space-y-2">

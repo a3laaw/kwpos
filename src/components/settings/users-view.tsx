@@ -132,7 +132,7 @@ export function UsersView() {
                             </div>
                             <span className="font-medium">{u.name}</span>
                             {u.id === currentUser.id ? (
-                              <Badge variant="outline" className="text-[9px]">{t.you || "You"}</Badge>
+                              <Badge variant="outline" className="text-[10px]">{t.you || "You"}</Badge>
                             ) : null}
                           </div>
                         </td>
@@ -262,13 +262,13 @@ function UserDialog({
           </div>
           <div className="space-y-2">
             <Label htmlFor="u-email">{t.email || "Email"} *</Label>
-            <Input id="u-email" type="email" dir="ltr" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="user@example.com" className="text-left" />
+            <Input id="u-email" type="email" dir="ltr" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="user@example.com" className="text-end" />
           </div>
           <div className="space-y-2">
             <Label htmlFor="u-pass">
               {t.password || "Password"} {isEdit ? `(${"optional"})` : " *"}
             </Label>
-            <Input id="u-pass" type="password" dir="ltr" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={isEdit ? "••••••" : "••••••••"} className="text-left" />
+            <Input id="u-pass" type="password" dir="ltr" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={isEdit ? "••••••" : "••••••••"} className="text-end" />
           </div>
           <div className="space-y-2">
             <Label>{t.role || "Role"}</Label>

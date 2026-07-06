@@ -145,7 +145,7 @@ function AccountNode({
         <span className="font-mono text-xs text-muted-foreground tabular-nums" dir="ltr">{account.code}</span>
         <span className="font-medium text-sm flex-1 truncate">{account.name}</span>
         <Badge variant="outline" className="text-[10px] hidden sm:inline-flex">{typeLabels[account.type]}</Badge>
-        <span className="font-semibold tabular-nums text-sm w-28 text-left" dir="ltr">
+        <span className="font-semibold tabular-nums text-sm w-28 text-end" dir="ltr">
           {fmt.currency(account.balance)}
         </span>
         <Button
@@ -247,7 +247,7 @@ function AccountFormDialog({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="a-code">{t.accCode}</Label>
-              <Input id="a-code" dir="ltr" value={code} onChange={(e) => setCode(e.target.value)} placeholder="1001" className="text-left" />
+              <Input id="a-code" dir="ltr" value={code} onChange={(e) => setCode(e.target.value)} placeholder="1001" className="text-end" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="a-name">{t.name}</Label>

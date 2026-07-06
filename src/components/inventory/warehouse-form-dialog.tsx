@@ -96,7 +96,7 @@ export function WarehouseFormDialog({ open, onOpenChange, warehouse }: Warehouse
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="w-code">{t.warehouseCode}</Label>
-              <Input id="w-code" dir="ltr" value={form.code} onChange={(e) => set("code", e.target.value)} placeholder={t.warehouseCodePlaceholder} className="text-left" />
+              <Input id="w-code" dir="ltr" value={form.code} onChange={(e) => set("code", e.target.value)} placeholder={t.warehouseCodePlaceholder} className="text-end" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="w-loc">{t.warehouseLocation}</Label>

@@ -84,7 +84,7 @@ export function InvoicesView() {
         description={t.invoicesDescFull}
         icon={<ReceiptText className="h-5 w-5" />}
         actions={
-          <Button variant="outline" onClick={() => setView("sales")} className="gap-2">
+          <Button variant="default" onClick={() => setView("sales")} className="gap-2">
             {t.newInvoice}
           </Button>
         }
@@ -106,7 +106,7 @@ export function InvoicesView() {
       {/* Master-detail layout */}
       <div className="grid lg:grid-cols-12 gap-4">
         {/* List (master) */}
-        <div className="lg:col-span-5 space-y-2">
+        <div className="lg:col-span-5 space-y-2 order-first lg:order-none">
           {isLoading ? (
             <TableSkeleton rows={6} />
           ) : isError ? (
@@ -127,7 +127,7 @@ export function InvoicesView() {
                         key={s.id}
                         onClick={() => setSelected(s)}
                         className={cn(
-                          "w-full text-right rounded-lg border p-3 transition-all",
+                          "w-full text-start rounded-lg border p-3 transition-all",
                           active
                             ? "border-primary bg-primary/5 ring-1 ring-primary/30"
                             : "border-border/60 hover:border-primary/40 hover:bg-muted/30"
@@ -149,7 +149,7 @@ export function InvoicesView() {
                             </p>
                             <p className="text-[10px] text-muted-foreground">{fmt.dateTime(s.createdAt)}</p>
                           </div>
-                          <div className="text-left shrink-0">
+                          <div className="text-end shrink-0">
                             <p className={cn("font-bold tabular-nums text-sm", refunded && "line-through text-muted-foreground")}>
                               {fmt.currency(s.total)}
                             </p>
@@ -275,7 +275,7 @@ function InvoiceDetail({
               <Badge variant="secondary" className="mt-1 bg-amber-500/15 text-amber-700">{t.invoicesRefundedPartialWithAmount.replace("{amount}", fmt.currency(sale.refundTotal))}</Badge>
             ) : null}
           </div>
-          <div className="text-left">
+          <div className="text-end">
             <p className="text-xs text-muted-foreground">{fmt.dateTime(sale.createdAt)}</p>
           </div>
         </div>
@@ -308,7 +308,7 @@ function InvoiceDetail({
           <table className="w-full text-sm">
             <thead className="bg-muted/40">
               <tr>
-                <th className="text-right p-2.5 font-medium">{t.colItem}</th>
+                <th className="text-start p-2.5 font-medium">{t.colItem}</th>
                 <th className="text-center p-2.5 font-medium w-16">{t.colQty}</th>
                 <th className="text-center p-2.5 font-medium w-24">{t.colPrice}</th>
                 <th className="text-center p-2.5 font-medium w-28">{t.colTotal}</th>

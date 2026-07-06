@@ -259,7 +259,7 @@ export function PurchaseInvoicesView() {
             <DialogDescription className="sr-only">{t.piDesc}</DialogDescription>
           </DialogHeader>
           {detail ? (
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
                 <div>
                   <p className="text-xs text-muted-foreground">{t.supplier}</p>

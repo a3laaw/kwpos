@@ -200,7 +200,7 @@ export function StockTransferTab() {
                   <table className="w-full text-sm">
                     <thead className="bg-muted/40">
                       <tr>
-                        <th className="text-right p-2.5 font-medium">{t.productName || "الصنف"}</th>
+                        <th className="text-start p-2.5 font-medium">{t.productName || "الصنف"}</th>
                         <th className="text-center p-2.5 font-medium w-20">{t.actualQty || "كمية"}</th>
                         <th className="text-center p-2.5 font-medium w-24">{t.varianceValue || "التكلفة"}</th>
                         <th className="text-center p-2.5 font-medium w-24">{t.returnTotal || "الإجمالي"}</th>
@@ -289,8 +289,8 @@ export function StockTransferTab() {
               <table className="w-full text-sm">
                 <thead className="bg-muted/40">
                   <tr>
-                    <th className="text-right p-2.5 font-medium">{t.returnNo || "رقم"}</th>
-                    <th className="text-right p-2.5 font-medium hidden sm:table-cell">{t.fromWarehouse} ← {t.toWarehouse}</th>
+                    <th className="text-start p-2.5 font-medium">{t.returnNo || "رقم"}</th>
+                    <th className="text-start p-2.5 font-medium hidden sm:table-cell">{t.fromWarehouse} ← {t.toWarehouse}</th>
                     <th className="text-center p-2.5 font-medium">{t.actualQty || "أصناف"}</th>
                     <th className="text-center p-2.5 font-medium">{t.returnTotal}</th>
                     <th className="text-center p-2.5 font-medium">{t.statementType || "الحالة"}</th>

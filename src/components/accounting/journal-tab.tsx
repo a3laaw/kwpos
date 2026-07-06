@@ -120,10 +120,10 @@ function JournalEntryCard({ je, fmt, sourceLabels, t }: { je: JournalEntry; fmt:
           <div key={l.id} className="flex items-center gap-3 px-4 py-2 text-sm">
             <span className="font-mono text-xs text-muted-foreground tabular-nums w-12" dir="ltr">{l.accountCode}</span>
             <span className="flex-1 min-w-0 truncate">{l.accountName}</span>
-            <span className="w-28 text-left tabular-nums text-emerald-600 font-medium" dir="ltr">
+            <span className="w-28 text-end tabular-nums text-emerald-600 font-medium" dir="ltr">
               {l.debit > 0 ? fmt.currency(l.debit) : "—"}
             </span>
-            <span className="w-28 text-left tabular-nums text-rose-600 font-medium" dir="ltr">
+            <span className="w-28 text-end tabular-nums text-rose-600 font-medium" dir="ltr">
               {l.credit > 0 ? fmt.currency(l.credit) : "—"}
             </span>
           </div>
@@ -133,8 +133,8 @@ function JournalEntryCard({ je, fmt, sourceLabels, t }: { je: JournalEntry; fmt:
       {/* Totals */}
       <div className="flex items-center gap-3 px-4 py-2 bg-muted/30 border-t border-border/40 text-sm font-bold">
         <span className="flex-1">{t.accSum}</span>
-        <span className="w-28 text-left tabular-nums text-emerald-700" dir="ltr">{fmt.currency(je.totalDebit)}</span>
-        <span className="w-28 text-left tabular-nums text-rose-700" dir="ltr">{fmt.currency(je.totalCredit)}</span>
+        <span className="w-28 text-end tabular-nums text-emerald-700" dir="ltr">{fmt.currency(je.totalDebit)}</span>
+        <span className="w-28 text-end tabular-nums text-rose-700" dir="ltr">{fmt.currency(je.totalCredit)}</span>
       </div>
     </div>
   )
@@ -170,11 +170,11 @@ export function TrialBalanceTab() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="text-right py-2 px-2 font-medium text-muted-foreground">{t.accCode}</th>
-                  <th className="text-right py-2 px-2 font-medium">{t.accAccountName}</th>
+                  <th className="text-start py-2 px-2 font-medium text-muted-foreground">{t.accCode}</th>
+                  <th className="text-start py-2 px-2 font-medium">{t.accAccountName}</th>
                   <th className="text-center py-2 px-2 font-medium text-muted-foreground hidden sm:table-cell">{t.colType}</th>
-                  <th className="text-left py-2 px-2 font-medium text-emerald-700">{t.accDebit}</th>
-                  <th className="text-left py-2 px-2 font-medium text-rose-700">{t.accCredit}</th>
+                  <th className="text-end py-2 px-2 font-medium text-emerald-700">{t.accDebit}</th>
+                  <th className="text-end py-2 px-2 font-medium text-rose-700">{t.accCredit}</th>
                 </tr>
               </thead>
               <tbody>
@@ -185,10 +185,10 @@ export function TrialBalanceTab() {
                     <td className="py-2 px-2 text-center hidden sm:table-cell">
                       <Badge variant="outline" className="text-[10px]">{r.type}</Badge>
                     </td>
-                    <td className="py-2 px-2 text-left tabular-nums text-emerald-600" dir="ltr">
+                    <td className="py-2 px-2 text-end tabular-nums text-emerald-600" dir="ltr">
                       {r.debit > 0 ? fmt.currency(r.debit) : "—"}
                     </td>
-                    <td className="py-2 px-2 text-left tabular-nums text-rose-600" dir="ltr">
+                    <td className="py-2 px-2 text-end tabular-nums text-rose-600" dir="ltr">
                       {r.credit > 0 ? fmt.currency(r.credit) : "—"}
                     </td>
                   </tr>
@@ -196,9 +196,9 @@ export function TrialBalanceTab() {
               </tbody>
               <tfoot>
                 <tr className="border-t-2 border-border font-bold">
-                  <td colSpan={3} className="py-3 px-2 text-left">{t.accSum}</td>
-                  <td className="py-3 px-2 text-left tabular-nums text-emerald-700" dir="ltr">{fmt.currency(data.totalDebit)}</td>
-                  <td className="py-3 px-2 text-left tabular-nums text-rose-700" dir="ltr">{fmt.currency(data.totalCredit)}</td>
+                  <td colSpan={3} className="py-3 px-2 text-end">{t.accSum}</td>
+                  <td className="py-3 px-2 text-end tabular-nums text-emerald-700" dir="ltr">{fmt.currency(data.totalDebit)}</td>
+                  <td className="py-3 px-2 text-end tabular-nums text-rose-700" dir="ltr">{fmt.currency(data.totalCredit)}</td>
                 </tr>
               </tfoot>
             </table>

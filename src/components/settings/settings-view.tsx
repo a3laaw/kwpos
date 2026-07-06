@@ -107,7 +107,7 @@ export function SettingsView() {
                     key={c.code}
                     onClick={() => setSelected(c.code)}
                     className={cn(
-                      "flex items-center gap-2 rounded-lg border p-2.5 text-right transition-all",
+                      "flex items-center gap-2 rounded-lg border p-2.5 text-start transition-all",
                       isActive
                         ? "border-primary bg-primary/5 ring-1 ring-primary/30"
                         : "border-border/70 hover:border-primary/40 hover:bg-accent/40"

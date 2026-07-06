@@ -191,7 +191,7 @@ export function StockTakeTab() {
                   <table className="w-full text-sm">
                     <thead className="bg-muted/40">
                       <tr>
-                        <th className="text-right p-2.5 font-medium">{t.productName || "الصنف"}</th>
+                        <th className="text-start p-2.5 font-medium">{t.productName || "الصنف"}</th>
                         <th className="text-center p-2.5 font-medium w-20">{t.systemQty}</th>
                         <th className="text-center p-2.5 font-medium w-20">{t.actualQty}</th>
                         <th className="text-center p-2.5 font-medium w-20">{t.varianceLabel}</th>
@@ -284,11 +284,11 @@ export function StockTakeTab() {
             <table className="w-full text-sm">
               <thead className="bg-muted/40">
                 <tr>
-                  <th className="text-right p-2.5 font-medium">#{t.returnNo}</th>
-                  <th className="text-right p-2.5 font-medium">{t.status || "الحالة"}</th>
+                  <th className="text-start p-2.5 font-medium">#{t.returnNo}</th>
+                  <th className="text-start p-2.5 font-medium">{t.status || "الحالة"}</th>
                   <th className="text-center p-2.5 font-medium">{t.shortage}</th>
                   <th className="text-center p-2.5 font-medium">{t.surplus}</th>
-                  <th className="text-right p-2.5 font-medium hidden md:table-cell">{t.statementDate}</th>
+                  <th className="text-start p-2.5 font-medium hidden md:table-cell">{t.statementDate}</th>
                   <th className="w-24" />
                 </tr>
               </thead>

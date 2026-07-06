@@ -28,11 +28,11 @@ export function VatReportTab() {
       <div className="grid grid-cols-2 gap-3 max-w-md">
         <div className="space-y-1">
           <Label className="text-xs">{t.statementFrom}</Label>
-          <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} dir="ltr" className="h-9 text-left" />
+          <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} dir="ltr" className="h-9 text-end" />
         </div>
         <div className="space-y-1">
           <Label className="text-xs">{t.statementTo}</Label>
-          <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} dir="ltr" className="h-9 text-left" />
+          <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} dir="ltr" className="h-9 text-end" />
         </div>
       </div>
 

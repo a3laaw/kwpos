@@ -98,7 +98,7 @@ export function SupplierStatementDialog({
               value={from}
               onChange={(e) => setFrom(e.target.value)}
               dir="ltr"
-              className="text-left h-9"
+              className="text-end h-9"
             />
           </div>
           <div className="space-y-1.5">
@@ -109,7 +109,7 @@ export function SupplierStatementDialog({
               value={to}
               onChange={(e) => setTo(e.target.value)}
               dir="ltr"
-              className="text-left h-9"
+              className="text-end h-9"
             />
           </div>
         </div>

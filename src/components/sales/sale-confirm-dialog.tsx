@@ -203,7 +203,7 @@ export function SaleConfirmDialog({
             </Button>
           </div>
           <p className="text-[10px] text-muted-foreground text-center mt-2">
-            {t.saleConfirmCtrlEnterHint} <kbd className="px-1 py-0.5 rounded bg-muted border border-border text-[9px] font-mono">Ctrl</kbd> + <kbd className="px-1 py-0.5 rounded bg-muted border border-border text-[9px] font-mono">Enter</kbd>
+            {t.saleConfirmCtrlEnterHint} <kbd className="px-1 py-0.5 rounded bg-muted border border-border text-[10px] font-mono">Ctrl</kbd> + <kbd className="px-1 py-0.5 rounded bg-muted border border-border text-[10px] font-mono">Enter</kbd>
           </p>
         </div>
       </AlertDialogContent>

@@ -18,7 +18,7 @@ const toneStyles: Record<NonNullable<StatCardProps["tone"]>, string> = {
   success: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
   warning: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
   danger: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
-  info: "bg-teal-500/10 text-teal-600 dark:text-teal-400",
+  info: "bg-[#DFC196]/10 text-[#8B7355] dark:text-[#DFC196]",
 }
 
 export function StatCard({

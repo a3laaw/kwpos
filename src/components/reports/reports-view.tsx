@@ -50,7 +50,7 @@ import { useT } from "@/components/i18n-context"
 import { PerformanceMatrix } from "@/components/reports/performance-matrix"
 import { cn } from "@/lib/utils"
 
-const PIE_COLORS = ["#055BE5", "#5CDE9D", "#185B6B", "#f59e0b", "#8b5cf6", "#ec4899", "#0ea5e9"]
+const PIE_COLORS = ["#2E6237", "#DFC196", "#F9DC7C", "#f59e0b", "#8b5cf6", "#ec4899", "#0ea5e9"]
 
 type ReportTab = "general" | "matrix"
 
@@ -279,15 +279,15 @@ function GeneralReports() {
                     <AreaChart data={data.byDay} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
                       <defs>
                         <linearGradient id="repGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#055BE5" stopOpacity={0.4} />
-                          <stop offset="95%" stopColor="#055BE5" stopOpacity={0} />
+                          <stop offset="5%" stopColor="#2E6237" stopOpacity={0.4} />
+                          <stop offset="95%" stopColor="#2E6237" stopOpacity={0} />
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
                       <XAxis dataKey="date" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} tickFormatter={(v) => v.slice(5)} />
                       <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} width={50} />
                       <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))", fontSize: 12 }} formatter={(v: number) => fmt.currency(v)} />
-                      <Area type="monotone" dataKey="revenue" stroke="#055BE5" strokeWidth={2.5} fill="url(#repGrad)" />
+                      <Area type="monotone" dataKey="revenue" stroke="#2E6237" strokeWidth={2.5} fill="url(#repGrad)" />
                     </AreaChart>
                   </ResponsiveContainer>
                 )}
@@ -346,8 +346,8 @@ function GeneralReports() {
                     <XAxis dataKey="category" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} />
                     <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} width={50} />
                     <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))", fontSize: 12 }} formatter={(v: number) => fmt.currency(v)} />
-                    <Bar dataKey="revenue" name={t.repRevenue} fill="#055BE5" radius={[6, 6, 0, 0]} />
-                    <Bar dataKey="profit" name={t.repProfit} fill="#5CDE9D" radius={[6, 6, 0, 0]} />
+                    <Bar dataKey="revenue" name={t.repRevenue} fill="#2E6237" radius={[6, 6, 0, 0]} />
+                    <Bar dataKey="profit" name={t.repProfit} fill="#DFC196" radius={[6, 6, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               )}
@@ -368,8 +368,8 @@ function GeneralReports() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-border text-muted-foreground">
-                        <th className="text-right py-2 px-2 font-medium">{t.colProduct}</th>
-                        <th className="text-right py-2 px-2 font-medium hidden sm:table-cell">{t.colCategory}</th>
+                        <th className="text-start py-2 px-2 font-medium">{t.colProduct}</th>
+                        <th className="text-start py-2 px-2 font-medium hidden sm:table-cell">{t.colCategory}</th>
                         <th className="text-center py-2 px-2 font-medium">{t.repColQty}</th>
                         <th className="text-center py-2 px-2 font-medium">{t.repColRevenue}</th>
                         <th className="text-center py-2 px-2 font-medium hidden md:table-cell">{t.repColCost}</th>
@@ -384,7 +384,7 @@ function GeneralReports() {
                           <td className="py-2 px-2 text-center tabular-nums">{fmt.number(p.qty)}</td>
                           <td className="py-2 px-2 text-center tabular-nums font-medium">{fmt.currency(p.revenue)}</td>
                           <td className="py-2 px-2 text-center tabular-nums text-muted-foreground hidden md:table-cell">{fmt.currency(p.cost)}</td>
-                          <td className="py-2 px-2 text-center tabular-nums font-medium text-[#5CDE9D]">{fmt.currency(p.profit)}</td>
+                          <td className="py-2 px-2 text-center tabular-nums font-medium text-[#DFC196]">{fmt.currency(p.profit)}</td>
                         </tr>
                       ))}
                     </tbody>

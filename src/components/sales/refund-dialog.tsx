@@ -178,7 +178,7 @@ export function RefundDialog({
         {result ? (
           /* ── Success screen ── */
           <div className="py-6 text-center space-y-4">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#5CDE9D]/15 text-[#5CDE9D]">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#DFC196]/15 text-[#DFC196]">
               <CheckCircle2 className="h-8 w-8" />
             </div>
             <div>

@@ -157,7 +157,7 @@ export function PurchaseReturnDialog({
             {/* Supplier info */}
             <div className="rounded-lg bg-muted/40 p-3 text-sm">
               <p>
-                <span className="text-muted-foreground">{t.supplierBalance.split(" ")[0]}:</span>{" "}
+                <span className="text-muted-foreground">{t.colSupplier}:</span>{" "}
                 {po?.supplierName}
               </p>
               <p>

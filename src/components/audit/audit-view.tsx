@@ -102,7 +102,7 @@ export function AuditView() {
                     <div className="flex items-center gap-2">
                       <Progress value={Math.min(r.voidRate, 10)} className="h-2 flex-1" />
                       <span className={cn(
-                        "text-sm font-bold tabular-nums w-16 text-left",
+                        "text-sm font-bold tabular-nums w-16 text-end",
                         r.suspicious ? "text-rose-600" : "text-muted-foreground"
                       )}>
                         {fmt.number(r.voidRate)}%

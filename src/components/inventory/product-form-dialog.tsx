@@ -206,7 +206,7 @@ export function ProductFormDialog({ open, onOpenChange, product }: ProductFormDi
                 value={form.barcode}
                 onChange={(e) => set("barcode", e.target.value)}
                 placeholder={t.barcodePlaceholder}
-                className="text-left flex-1"
+                className="text-end flex-1"
               />
               <Button
                 type="button"

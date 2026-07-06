@@ -195,9 +195,9 @@ function PricingConfirmDialog({
           </div>
           <p className="text-[10px] text-muted-foreground text-center mt-2">
             {t.prcCtrlEnterHint}{" "}
-            <kbd className="px-1 py-0.5 rounded bg-muted border border-border text-[9px] font-mono">Ctrl</kbd>{" "}
+            <kbd className="px-1 py-0.5 rounded bg-muted border border-border text-[10px] font-mono">Ctrl</kbd>{" "}
             +{" "}
-            <kbd className="px-1 py-0.5 rounded bg-muted border border-border text-[9px] font-mono">Enter</kbd>
+            <kbd className="px-1 py-0.5 rounded bg-muted border border-border text-[10px] font-mono">Enter</kbd>
           </p>
         </div>
       </AlertDialogContent>
@@ -402,9 +402,9 @@ function PriceManagementTab() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/40">
-                    <TableHead className="text-right">{t.colProduct}</TableHead>
-                    <TableHead className="text-right">{t.colBarcode}</TableHead>
-                    <TableHead className="text-right">{t.colCategory}</TableHead>
+                    <TableHead className="text-start">{t.colProduct}</TableHead>
+                    <TableHead className="text-start">{t.colBarcode}</TableHead>
+                    <TableHead className="text-start">{t.colCategory}</TableHead>
                     <TableHead className="text-center">{t.colCostPrice}</TableHead>
                     <TableHead className="text-center">{t.tierRetail}</TableHead>
                     <TableHead className="text-center">{t.tierWholesale}</TableHead>
@@ -536,7 +536,7 @@ function PriceManagementTab() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40">
-                  <TableHead className="text-right text-xs">{t.colItem}</TableHead>
+                  <TableHead className="text-start text-xs">{t.colItem}</TableHead>
                   <TableHead className="text-center text-xs">{t.colCostPrice}</TableHead>
                   <TableHead className="text-center text-xs">{t.prcNewPriceCol}</TableHead>
                   <TableHead className="text-center text-xs">{t.colVariance}</TableHead>
@@ -1013,14 +1013,14 @@ function AuditLogTab() {
               <Table>
                 <TableHeader className="sticky top-0 bg-muted/60 backdrop-blur z-10">
                   <TableRow>
-                    <TableHead className="text-right">{t.colDate}</TableHead>
-                    <TableHead className="text-right">{t.colItem}</TableHead>
+                    <TableHead className="text-start">{t.colDate}</TableHead>
+                    <TableHead className="text-start">{t.colItem}</TableHead>
                     <TableHead className="text-center">{t.colType}</TableHead>
                     <TableHead className="text-center">{t.colFrom}</TableHead>
                     <TableHead className="text-center">{t.colTo}</TableHead>
                     <TableHead className="text-center">{t.colChange}</TableHead>
-                    <TableHead className="text-right">{t.colBy}</TableHead>
-                    <TableHead className="text-right">{t.colNote}</TableHead>
+                    <TableHead className="text-start">{t.colBy}</TableHead>
+                    <TableHead className="text-start">{t.colNote}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

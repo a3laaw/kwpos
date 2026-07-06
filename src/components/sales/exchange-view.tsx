@@ -541,7 +541,7 @@ export function ExchangeView() {
                   <table className="w-full text-sm">
                     <thead className="bg-muted/30 sticky top-0">
                       <tr>
-                        <th className="text-right p-2 font-medium text-xs">{t.colItem}</th>
+                        <th className="text-start p-2 font-medium text-xs">{t.colItem}</th>
                         <th className="text-center p-2 font-medium text-xs">{t.colQty}</th>
                         <th className="text-center p-2 font-medium text-xs">{t.returned}</th>
                         <th className="text-center p-2 font-medium text-xs">{t.returnable}</th>
@@ -751,7 +751,7 @@ export function ExchangeView() {
                         }}
                         disabled={p.quantity < 1}
                         className={cn(
-                          "w-full flex items-center gap-2 px-3 py-2 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 border-b border-border/40 last:border-0 text-right",
+                          "w-full flex items-center gap-2 px-3 py-2 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 border-b border-border/40 last:border-0 text-start",
                           p.quantity < 1 && "opacity-50 cursor-not-allowed"
                         )}
                       >
@@ -981,7 +981,7 @@ export function ExchangeView() {
                     <table className="w-full text-sm">
                       <thead className="bg-muted/40">
                         <tr>
-                          <th className="text-right p-2 font-medium">{t.colItem}</th>
+                          <th className="text-start p-2 font-medium">{t.colItem}</th>
                           <th className="text-center p-2 font-medium">{t.colQty}</th>
                           <th className="text-center p-2 font-medium">{t.colTotal}</th>
                         </tr>
@@ -1179,9 +1179,9 @@ export function ExchangeView() {
             </div>
             <p className="text-[10px] text-muted-foreground text-center mt-2">
               {t.excCtrlEnterConfirmHint}{" "}
-              <kbd className="px-1 py-0.5 rounded bg-muted border border-border text-[9px] font-mono">Ctrl</kbd>{" "}
+              <kbd className="px-1 py-0.5 rounded bg-muted border border-border text-[10px] font-mono">Ctrl</kbd>{" "}
               +{" "}
-              <kbd className="px-1 py-0.5 rounded bg-muted border border-border text-[9px] font-mono">Enter</kbd>
+              <kbd className="px-1 py-0.5 rounded bg-muted border border-border text-[10px] font-mono">Enter</kbd>
             </p>
           </div>
         </AlertDialogContent>
