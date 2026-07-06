@@ -387,3 +387,35 @@ export interface CreatePurchaseReturnBody {
   items: { poItemId: string; returnQty: number }[]
   note?: string | null
 }
+
+// ─── Stock Take (جرد المخزون) ──────────────────────────────────────
+export interface StockTakeItem {
+  id: string
+  productId: string
+  productName: string
+  systemQty: number
+  actualQty: number
+  variance: number
+  unitCost: number
+  varianceValue: number
+}
+
+export interface StockTake {
+  id: string
+  takeNo: string
+  warehouseId: string | null
+  warehouseName: string | null
+  note: string | null
+  status: "DRAFT" | "APPROVED"
+  createdByName: string | null
+  approvedByName: string | null
+  approvedAt: string | null
+  createdAt: string
+  items: StockTakeItem[]
+}
+
+export interface CreateStockTakeBody {
+  warehouseId?: string | null
+  note?: string | null
+  items: { productId: string; actualQty: number }[]
+}

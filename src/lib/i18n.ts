@@ -1589,6 +1589,27 @@ export interface Dict {
   returnAvailable: string
   returnFullyReturned: string
   returnSelectQty: string
+  // Stock take (جرد المخزون)
+  stockTakeTab: string
+  stockTakeTitle: string
+  stockTakeDesc: string
+  newStockTake: string
+  systemQty: string
+  actualQty: string
+  varianceLabel: string
+  varianceValue: string
+  shortage: string
+  surplus: string
+  approveStockTake: string
+  stockTakeApproved: string
+  noStockTakes: string
+  stockTakeCreated: string
+  stockTakeCreateFailed: string
+  stockTakeApproveFailed: string
+  stockTakeWarehouse: string
+  stockTakeAllWarehouses: string
+  stockTakeConfirmApprove: string
+  stockTakeConfirmApproveDesc: string
   piTitle: string
   piDesc: string
   piNew: string
@@ -3196,6 +3217,26 @@ export const DICTS: Record<Locale, Dict> = {
     returnAvailable: "المتاح",
     returnFullyReturned: "مرتجع كامل",
     returnSelectQty: "حدد كمية مرتجعة",
+    stockTakeTab: "جرد",
+    stockTakeTitle: "جرد المخزون",
+    stockTakeDesc: "إنشاء أمر جرد، إدخال الكميات الفعلية، وتسوية الفروقات محاسبياً",
+    newStockTake: "جرد جديد",
+    systemQty: "دفتري",
+    actualQty: "فعلي",
+    varianceLabel: "الفرق",
+    varianceValue: "قيمة الفرق",
+    shortage: "عجز",
+    surplus: "فائض",
+    approveStockTake: "اعتماد الجرد",
+    stockTakeApproved: "تم اعتماد الجرد",
+    noStockTakes: "لا توجد عمليات جرد بعد",
+    stockTakeCreated: "تم إنشاء أمر الجرد",
+    stockTakeCreateFailed: "فشل إنشاء الجرد",
+    stockTakeApproveFailed: "فشل اعتماد الجرد",
+    stockTakeWarehouse: "المخزن",
+    stockTakeAllWarehouses: "كل المخازن",
+    stockTakeConfirmApprove: "اعتماد الجرد",
+    stockTakeConfirmApproveDesc: "سيتم تعديل كميات المخزون وإنشاء القيود المحاسبية للعجز/الفائض",
     piTitle: "فواتير المشتريات",
     piDesc: "فواتير المشتريات وسندات استلام البضاعة",
     piNew: "فاتورة جديدة",
@@ -4801,6 +4842,26 @@ export const DICTS: Record<Locale, Dict> = {
     returnAvailable: "Available",
     returnFullyReturned: "Fully returned",
     returnSelectQty: "Select return quantity",
+    stockTakeTab: "Stock Take",
+    stockTakeTitle: "Stock Take",
+    stockTakeDesc: "Create a stock take, enter actual quantities, and settle variances in accounting",
+    newStockTake: "New Stock Take",
+    systemQty: "System",
+    actualQty: "Actual",
+    varianceLabel: "Variance",
+    varianceValue: "Variance Value",
+    shortage: "Shortage",
+    surplus: "Surplus",
+    approveStockTake: "Approve",
+    stockTakeApproved: "Stock take approved",
+    noStockTakes: "No stock takes yet",
+    stockTakeCreated: "Stock take created",
+    stockTakeCreateFailed: "Failed to create stock take",
+    stockTakeApproveFailed: "Failed to approve stock take",
+    stockTakeWarehouse: "Warehouse",
+    stockTakeAllWarehouses: "All warehouses",
+    stockTakeConfirmApprove: "Approve Stock Take",
+    stockTakeConfirmApproveDesc: "Inventory quantities will be adjusted and journal entries created for shortage/surplus",
     piTitle: "Purchase Invoices",
     piDesc: "Purchase invoices and goods receipt notes",
     piNew: "New Invoice",

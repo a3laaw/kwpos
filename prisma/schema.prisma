@@ -31,6 +31,8 @@ model User {
   purchaseInvoices PurchaseInvoice[]
   supplierPayments SupplierPayment[]
   purchaseReturns PurchaseReturn[]
+  stockTakeCreated StockTake[] @relation("StockTakeCreator")
+  stockTakeApproved StockTake[] @relation("StockTakeApprover")
 }
 
 model Category {
@@ -126,6 +128,7 @@ model Product {
   priceChanges PriceChange[]
   purchaseInvoiceItems PurchaseInvoiceItem[]
   purchaseReturnItems PurchaseReturnItem[]
+  stockTakeItems StockTakeItem[]
 
   @@index([categoryId])
   @@index([supplierId])
@@ -144,6 +147,7 @@ model Warehouse {
   stockItems StockItem[]
   purchaseOrders PurchaseOrder[] @relation("POWarehouse")
   purchaseInvoices PurchaseInvoice[]
+  stockTakes StockTake[]
 }
 
 // Per-warehouse stock levels (a product can exist in many warehouses)
@@ -462,6 +466,51 @@ model SpotCheck {
   @@index([productId])
   @@index([userId])
   @@index([createdAt])
+}
+
+// ─── MODULE 11: Stock Take (جرد المخزون) ────────────────────────────
+// A stock take records a physical count of selected products. Created as
+// DRAFT (no inventory changes). On APPROVE, product quantities are
+// adjusted by `variance` and balanced journal entries are generated:
+//   - Shortage (variance < 0): debit 5070 (Stock Shortage) / credit 1010
+//   - Surplus  (variance > 0): debit 1010 (Inventory) / credit 4060
+model StockTake {
+  id           String    @id @default(cuid())
+  takeNo       String    @unique
+  warehouseId  String?
+  note         String?
+  status       String    @default("DRAFT") // DRAFT | APPROVED
+  createdById  String?
+  approvedById String?
+  approvedAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  warehouse    Warehouse?      @relation(fields: [warehouseId], references: [id], onDelete: SetNull)
+  createdBy    User?           @relation("StockTakeCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  approvedBy   User?           @relation("StockTakeApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  items        StockTakeItem[]
+
+  @@index([warehouseId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model StockTakeItem {
+  id            String   @id @default(cuid())
+  stockTakeId   String
+  productId     String
+  systemQty     Int      @default(0) // book quantity at creation time
+  actualQty     Int      @default(0) // counted physical quantity
+  variance      Int      @default(0) // actual − system
+  unitCost      Float    @default(0)
+  varianceValue Float    @default(0) // variance × unitCost
+
+  stockTake     StockTake @relation(fields: [stockTakeId], references: [id], onDelete: Cascade)
+  product       Product   @relation(fields: [productId], references: [id])
+
+  @@index([stockTakeId])
+  @@index([productId])
 }
 
 // ─── MODULE 5: Suspended / Parked Sales ─────────────────────────────

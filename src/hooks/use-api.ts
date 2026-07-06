@@ -26,6 +26,8 @@ import type {
   SupplierStatement,
   PurchaseReturn,
   CreatePurchaseReturnBody,
+  StockTake,
+  CreateStockTakeBody,
 } from "@/lib/types"
 import type { CountryConfig } from "@/lib/countries"
 
@@ -1396,6 +1398,44 @@ export function useCreatePurchaseReturn() {
       qc.invalidateQueries({ queryKey: ["purchase-orders"] })
       qc.invalidateQueries({ queryKey: ["products"] })
       qc.invalidateQueries({ queryKey: ["supplier-balances"] })
+      qc.invalidateQueries({ queryKey: ["dashboard"] })
+    },
+  })
+}
+
+/* ----------------------------- Stock Takes -------------------------- */
+/** List all stock takes (newest first). */
+export function useStockTakes() {
+  return useQuery<{ items: StockTake[] }>({
+    queryKey: ["stock-takes"],
+    queryFn: () => jget("/api/stock-takes"),
+  })
+}
+
+/** Create a stock take as DRAFT (ADMIN/WAREHOUSE). */
+export function useCreateStockTake() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: CreateStockTakeBody) =>
+      jsend<StockTake>("/api/stock-takes", "POST", body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["stock-takes"] })
+    },
+  })
+}
+
+/** Approve a DRAFT stock take — adjusts inventory + creates journal entries. */
+export function useApproveStockTake() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) =>
+      jsend<{ ok: boolean; id: string; takeNo: string; status: string; summary: { shortageValue: number; surplusValue: number; itemsAdjusted: number } }>(
+        `/api/stock-takes/${id}/approve`,
+        "POST"
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["stock-takes"] })
+      qc.invalidateQueries({ queryKey: ["products"] })
       qc.invalidateQueries({ queryKey: ["dashboard"] })
     },
   })
