@@ -82,9 +82,9 @@ curl -X POST https://kwpos.vercel.app/api/seed -H "Content-Type: application/jso
 
 | الدور | البريد | كلمة المرور |
 |---|---|---|
-| مدير النظام | admin@demo.com | ***REMOVED*** |
-| موظف مبيعات | sales@demo.com | ***REMOVED*** |
-| أمين مخزن | warehouse@demo.com | ***REMOVED*** |
+| مدير النظام | admin@demo.com | (يُعين أثناء الإعداد) |
+| موظف مبيعات | sales@demo.com | (يُعين أثناء الإعداد) |
+| أمين مخزن | warehouse@demo.com | (يُعين أثناء الإعداد) |
 
 ---
 
