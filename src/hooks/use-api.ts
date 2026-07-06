@@ -30,6 +30,8 @@ import type {
   CreateStockTakeBody,
   StockTransfer,
   CreateStockTransferBody,
+  AuditLog,
+  AuditAction,
 } from "@/lib/types"
 import type { CountryConfig } from "@/lib/countries"
 
@@ -1480,6 +1482,46 @@ export function useReceiveStockTransfer() {
       qc.invalidateQueries({ queryKey: ["products"] })
       qc.invalidateQueries({ queryKey: ["dashboard"] })
     },
+  })
+}
+
+/* ----------------------------- Audit Logs --------------------------- */
+export function useAuditLogs(filters?: {
+  action?: string
+  userId?: string
+  from?: string
+  to?: string
+}) {
+  const qs = new URLSearchParams()
+  if (filters?.action) qs.set("action", filters.action)
+  if (filters?.userId) qs.set("userId", filters.userId)
+  if (filters?.from) qs.set("from", filters.from)
+  if (filters?.to) qs.set("to", filters.to)
+  const s = qs.toString()
+  return useQuery<{ items: AuditLog[] }>({
+    queryKey: ["audit-logs", s],
+    queryFn: () => jget(`/api/audit-logs${s ? `?${s}` : ""}`),
+  })
+}
+
+export function useVoidRate() {
+  return useQuery<{ rows: any[]; flaggedCount: number; threshold: number }>({
+    queryKey: ["audit-void-rate"],
+    queryFn: () => jget("/api/audit-logs/void-rate"),
+  })
+}
+
+export function useCreateAuditLog() {
+  return useMutation({
+    mutationFn: (body: {
+      action: AuditAction
+      description?: string
+      saleId?: string
+      productId?: string
+      supervisorId?: string
+      supervisorName?: string
+      metadata?: any
+    }) => jsend("/api/audit-logs", "POST", body),
   })
 }
 

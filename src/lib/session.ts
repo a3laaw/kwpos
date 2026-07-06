@@ -29,7 +29,7 @@ export const ROLE_PERMISSIONS: Record<Role, {
     views: [
       "dashboard", "sales", "invoices", "reports", "inventory", "purchases", "suppliers",
       "customers", "analytics", "accounting", "integrations", "shifts", "spotcheck", "exchanges",
-      "pricing", "users", "settings",
+      "pricing", "users", "settings", "audit",
     ],
   },
   SALES: {

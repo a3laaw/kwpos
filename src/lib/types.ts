@@ -164,6 +164,7 @@ export type AppView =
   | "exchanges"
   | "pricing"
   | "users"
+  | "audit"
 
 // ─── Accounting types ───────────────────────────────────────────────
 export type AccountType = "ASSET" | "LIABILITY" | "EQUITY" | "REVENUE" | "EXPENSE"
@@ -452,4 +453,30 @@ export interface CreateStockTransferBody {
   toWarehouseId: string
   note?: string | null
   items: { productId: string; quantity: number }[]
+}
+
+// ─── Audit Log (سجل التدقيق) ───────────────────────────────────────
+export type AuditAction =
+  | "VOID_ITEM"
+  | "CANCEL_TXN"
+  | "REFUND"
+  | "EXCHANGE"
+  | "MANUAL_DISCOUNT"
+  | "DRAWER_OPEN"
+  | "HOLD_BILL"
+  | "MANAGER_APPROVAL"
+
+export interface AuditLog {
+  id: string
+  userId: string | null
+  userName: string | null
+  action: AuditAction
+  description: string | null
+  saleId: string | null
+  productId: string | null
+  supervisorId: string | null
+  supervisorName: string | null
+  deviceInfo: string | null
+  metadata: string | null
+  createdAt: string
 }

@@ -1627,6 +1627,23 @@ export interface Dict {
   transferCreateFailed: string
   transferReceiveFailed: string
   transferSameWarehouse: string
+  // Audit log (سجل التدقيق)
+  navAudit: string
+  auditTitle: string
+  auditDesc: string
+  auditLogs: string
+  auditVoidRate: string
+  auditSuspicious: string
+  auditNormal: string
+  auditVoidThresholdHint: string
+  auditActionVoidItem: string
+  auditActionCancelTxn: string
+  auditActionRefund: string
+  auditActionExchange: string
+  auditActionManualDiscount: string
+  auditActionDrawerOpen: string
+  auditActionHoldBill: string
+  auditActionManagerApproval: string
   piTitle: string
   piDesc: string
   piNew: string
@@ -3270,6 +3287,22 @@ export const DICTS: Record<Locale, Dict> = {
     transferCreateFailed: "فشل إنشاء التحويل",
     transferReceiveFailed: "فشل استلام التحويل",
     transferSameWarehouse: "لا يمكن التحويل لنفس المخزن",
+    navAudit: "التدقيق",
+    auditTitle: "سجل التدقيق والرقابة",
+    auditDesc: "مراقبة الحركات المشبوهة للكاشير، نسب الحذف، والإجراءات الاستثنائية",
+    auditLogs: "سجل الحركات",
+    auditVoidRate: "نسبة الحذف لكل كاشير",
+    auditSuspicious: "مشبوه",
+    auditNormal: "طبيعي",
+    auditVoidThresholdHint: "الحد الآمن: ≤ ٣٪ — ما يفوقه يُعتبر مشبوهاً",
+    auditActionVoidItem: "حذف صنف",
+    auditActionCancelTxn: "إلغاء فاتورة",
+    auditActionRefund: "مرتجع",
+    auditActionExchange: "تبديل",
+    auditActionManualDiscount: "خصم يدوي",
+    auditActionDrawerOpen: "فتح درج",
+    auditActionHoldBill: "تعليق فاتورة",
+    auditActionManagerApproval: "موافقة مشرف",
     piTitle: "فواتير المشتريات",
     piDesc: "فواتير المشتريات وسندات استلام البضاعة",
     piNew: "فاتورة جديدة",
@@ -4911,6 +4944,22 @@ export const DICTS: Record<Locale, Dict> = {
     transferCreateFailed: "Failed to create transfer",
     transferReceiveFailed: "Failed to receive transfer",
     transferSameWarehouse: "Cannot transfer to the same warehouse",
+    navAudit: "Audit",
+    auditTitle: "Audit & Control Log",
+    auditDesc: "Monitor suspicious cashier activity, void rates, and exceptional actions",
+    auditLogs: "Activity Log",
+    auditVoidRate: "Void Rate per Cashier",
+    auditSuspicious: "Suspicious",
+    auditNormal: "Normal",
+    auditVoidThresholdHint: "Safe threshold: ≤ 3% — above is suspicious",
+    auditActionVoidItem: "Void Item",
+    auditActionCancelTxn: "Cancel Txn",
+    auditActionRefund: "Refund",
+    auditActionExchange: "Exchange",
+    auditActionManualDiscount: "Manual Discount",
+    auditActionDrawerOpen: "Drawer Open",
+    auditActionHoldBill: "Hold Bill",
+    auditActionManagerApproval: "Manager Approval",
     piTitle: "Purchase Invoices",
     piDesc: "Purchase invoices and goods receipt notes",
     piNew: "New Invoice",

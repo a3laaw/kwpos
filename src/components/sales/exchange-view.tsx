@@ -3,6 +3,7 @@
 import * as React from "react"
 import { toast } from "sonner"
 import { signOut } from "next-auth/react"
+import { logAudit } from "@/lib/audit"
 import { PageHeader } from "@/components/shared/page-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -333,6 +334,10 @@ export function ExchangeView() {
       })
       toast.success(t.exchangeApprovedSuccess, {
         description: `${t.exchangeNo}: ${ex.exchangeNo}`,
+      })
+      void logAudit("EXCHANGE", {
+        saleId: sale.id,
+        description: `تبديل للفاتورة ${sale.invoiceNo} — مستند: ${ex.exchangeNo}`,
       })
       setLastExchange(ex)
       // Reset to Step 1 for the next customer.

@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { toast } from "sonner"
+import { logAudit } from "@/lib/audit"
 import {
   Dialog,
   DialogContent,
@@ -141,6 +142,10 @@ export function RefundDialog({
         override14Days: past14 && override14,
       })
       setResult(res)
+      void logAudit("REFUND", {
+        saleId: sale.id,
+        description: `مرتجع للفاتورة ${sale.invoiceNo} — ${items.length} صنف`,
+      })
       toast.success(t.refundApprovedToast, {
         description: t.refundApprovedToastDesc
           .replace("{creditNoteNo}", res.refundSummary?.creditNoteNo || "")

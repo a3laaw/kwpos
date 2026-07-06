@@ -729,3 +729,26 @@ model PurchaseInvoiceItem {
 
   @@index([purchaseInvoiceId])
 }
+
+// ─── MODULE 13: Audit Log (سجل التدقيق) ─────────────────────────────
+// Immutable record of sensitive operations (void item, cancel txn, refund,
+// exchange, manual discount, drawer open, manager approval). Used to detect
+// cashier fraud via void-rate analysis.
+model AuditLog {
+  id             String   @id @default(cuid())
+  userId         String?
+  userName       String?
+  action         String   // VOID_ITEM | CANCEL_TXN | REFUND | EXCHANGE | MANUAL_DISCOUNT | DRAWER_OPEN | HOLD_BILL | MANAGER_APPROVAL
+  description    String?
+  saleId         String?
+  productId      String?
+  supervisorId   String?
+  supervisorName String?
+  deviceInfo     String?
+  metadata       String?
+  createdAt      DateTime @default(now())
+
+  @@index([action])
+  @@index([userId])
+  @@index([createdAt])
+}

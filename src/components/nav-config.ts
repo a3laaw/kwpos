@@ -20,6 +20,7 @@ import {
   ArrowLeftRight,
   Tags,
   Cog,
+  ShieldCheck,
 } from "lucide-react"
 import type { Dict } from "@/lib/i18n"
 
@@ -103,6 +104,7 @@ export const NAV_ENTRIES: NavEntry[] = [
     children: [
       { view: "integrations", labelKey: "navIntegrations", icon: Plug },
       { view: "users", labelKey: "navUsers", icon: UsersIcon },
+      { view: "audit", labelKey: "navAudit", icon: ShieldCheck },
       { view: "settings", labelKey: "navSettings", icon: SettingsIcon },
     ],
   },
@@ -135,4 +137,5 @@ export const VIEW_META: Record<AppView, { titleKey: keyof Dict; descKey: keyof D
   exchanges: { titleKey: "exchangesTitle", descKey: "exchangesDesc" },
   pricing: { titleKey: "pricingTitle", descKey: "pricingDesc" },
   users: { titleKey: "usersTitle", descKey: "usersDesc" },
+  audit: { titleKey: "auditTitle", descKey: "auditDesc" },
 }
