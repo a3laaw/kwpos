@@ -24,12 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs"
+import { SubNav, type SubNavItem } from "@/components/shared/sub-nav"
 import {
   AlertDialog,
   AlertDialogContent,
@@ -1069,40 +1064,28 @@ function AuditLogTab() {
 
 export function PricingEngineView() {
   const t = useT()
+  const [tab, setTab] = React.useState<"prices" | "promotions" | "audit">("prices")
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <PageHeader
         title={t.prcPageTitle}
         description={t.pricingDesc}
         icon={<Tags className="h-5 w-5" />}
       />
 
-      <Tabs defaultValue="prices" className="w-full">
-        <TabsList className="h-auto">
-          <TabsTrigger value="prices" className="gap-1.5">
-            <Tags className="h-3.5 w-3.5" />
-            {t.priceManagement}
-          </TabsTrigger>
-          <TabsTrigger value="promotions" className="gap-1.5">
-            <Percent className="h-3.5 w-3.5" />
-            {t.promotionsAndDiscounts}
-          </TabsTrigger>
-          <TabsTrigger value="audit" className="gap-1.5">
-            <History className="h-3.5 w-3.5" />
-            {t.changeLog}
-          </TabsTrigger>
-        </TabsList>
+      <SubNav
+        items={[
+          { value: "prices", labelKey: "priceManagement", icon: Tags },
+          { value: "promotions", labelKey: "promotionsAndDiscounts", icon: Percent },
+          { value: "audit", labelKey: "changeLog", icon: History },
+        ] as SubNavItem[]}
+        value={tab}
+        onChange={(v) => setTab(v as typeof tab)}
+      />
 
-        <TabsContent value="prices">
-          <PriceManagementTab />
-        </TabsContent>
-        <TabsContent value="promotions">
-          <PromotionsTab />
-        </TabsContent>
-        <TabsContent value="audit">
-          <AuditLogTab />
-        </TabsContent>
-      </Tabs>
+      {tab === "prices" && <PriceManagementTab />}
+      {tab === "promotions" && <PromotionsTab />}
+      {tab === "audit" && <AuditLogTab />}
     </div>
   )
 }

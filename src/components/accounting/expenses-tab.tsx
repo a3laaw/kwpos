@@ -16,8 +16,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { SubNav, type SubNavItem } from "@/components/shared/sub-nav"
 import {
   UserCheck,
   Receipt,
@@ -211,20 +211,18 @@ function ExpenseForm() {
         <CardDescription>{t.accUpdatesBalancesImmediately2}</CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs value={tab} onValueChange={(v) => setTab(v as "SALARY" | "ADMIN")}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="SALARY" className="gap-1.5">
-              <UserCheck className="h-3.5 w-3.5" />
-              {t.accSalary}
-            </TabsTrigger>
-            <TabsTrigger value="ADMIN" className="gap-1.5">
-              <Receipt className="h-3.5 w-3.5" />
-              {t.accAdminExpense}
-            </TabsTrigger>
-          </TabsList>
+        <SubNav
+          items={[
+            { value: "SALARY", labelKey: "accSalary", icon: UserCheck },
+            { value: "ADMIN", labelKey: "accAdminExpense", icon: Receipt },
+          ] as SubNavItem[]}
+          value={tab}
+          onChange={(v) => setTab(v as "SALARY" | "ADMIN")}
+        />
 
           <form onSubmit={handleSubmit} className="space-y-3 mt-4">
-            <TabsContent value="SALARY" className="space-y-3 mt-0">
+            {tab === "SALARY" && (
+              <div className="space-y-3">
               <div className="space-y-1.5">
                 <Label htmlFor="emp" className="text-xs">{t.accEmployeeName} *</Label>
                 <Input id="emp" value={empName} onChange={(e) => setEmpName(e.target.value)} placeholder={t.accEmployeeNamePlaceholder} />
@@ -239,9 +237,11 @@ function ExpenseForm() {
                   <Input id="sdate" type="date" value={payDate} onChange={(e) => setPayDate(e.target.value)} />
                 </div>
               </div>
-            </TabsContent>
+              </div>
+            )}
 
-            <TabsContent value="ADMIN" className="space-y-3 mt-0">
+            {tab === "ADMIN" && (
+              <div className="space-y-3">
               <div className="space-y-1.5">
                 <Label htmlFor="ttl" className="text-xs">{t.accExpenseTitle} *</Label>
                 <Input id="ttl" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t.accExpenseTitlePlaceholder2} />
@@ -265,7 +265,8 @@ function ExpenseForm() {
                 <Label htmlFor="adate" className="text-xs">{t.date}</Label>
                 <Input id="adate" type="date" value={adminDate} onChange={(e) => setAdminDate(e.target.value)} />
               </div>
-            </TabsContent>
+              </div>
+            )}
 
             <Separator />
 
@@ -302,7 +303,6 @@ function ExpenseForm() {
               {tab === "SALARY" ? t.accRecordSalary : t.accRecordExpense}
             </Button>
           </form>
-        </Tabs>
       </CardContent>
     </Card>
   )
