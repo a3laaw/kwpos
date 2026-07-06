@@ -1530,6 +1530,26 @@ export interface Dict {
 
   // Purchase invoices / GRN
   navPurchaseInvoices: string
+  // Supplier payments (سداد الموردين)
+  navSupplierPayments: string
+  supplierPaymentsTitle: string
+  supplierPaymentsDesc: string
+  newSupplierPayment: string
+  paySupplier: string
+  supplierBalance: string
+  amountPaid: string
+  paymentDateLabel: string
+  paymentNoLabel: string
+  referenceNo: string
+  paymentMethodCash: string
+  paymentMethodBank: string
+  paymentMethodCheck: string
+  noSupplierPayments: string
+  supplierPaymentCreated: string
+  supplierPaymentDeleted: string
+  supplierPaymentCreateFailed: string
+  supplierPaymentDeleteFailed: string
+  paymentMethodLabel: string
   piTitle: string
   piDesc: string
   piNew: string
@@ -3081,6 +3101,25 @@ export const DICTS: Record<Locale, Dict> = {
 
     // Purchase invoices / GRN
     navPurchaseInvoices: "فواتير المشتريات",
+    navSupplierPayments: "سداد الموردين",
+    supplierPaymentsTitle: "سداد الموردين",
+    supplierPaymentsDesc: "تسجيل المدفوعات للموردين وتحديث الأرصدة المحاسبية تلقائيًا",
+    newSupplierPayment: "سداد جديد",
+    paySupplier: "سداد",
+    supplierBalance: "الرصيد المستحق",
+    amountPaid: "المبلغ المدفوع",
+    paymentDateLabel: "تاريخ السداد",
+    paymentNoLabel: "رقم السداد",
+    referenceNo: "الرقم المرجعي",
+    paymentMethodCash: "نقدية",
+    paymentMethodBank: "تحويل بنكي",
+    paymentMethodCheck: "شيك",
+    noSupplierPayments: "لا توجد سدادات مسجلة بعد",
+    supplierPaymentCreated: "تم تسجيل السداد بنجاح",
+    supplierPaymentDeleted: "تم حذف السداد",
+    supplierPaymentCreateFailed: "فشل تسجيل السداد",
+    supplierPaymentDeleteFailed: "فشل حذف السداد",
+    paymentMethodLabel: "طريقة الدفع",
     piTitle: "فواتير المشتريات",
     piDesc: "فواتير المشتريات وسندات استلام البضاعة",
     piNew: "فاتورة جديدة",
@@ -4630,6 +4669,25 @@ export const DICTS: Record<Locale, Dict> = {
 
     // Purchase invoices / GRN
     navPurchaseInvoices: "Purchase Invoices",
+    navSupplierPayments: "Supplier Payments",
+    supplierPaymentsTitle: "Supplier Payments",
+    supplierPaymentsDesc: "Record payments to suppliers and update accounting balances automatically",
+    newSupplierPayment: "New Payment",
+    paySupplier: "Pay",
+    supplierBalance: "Outstanding Balance",
+    amountPaid: "Amount Paid",
+    paymentDateLabel: "Payment Date",
+    paymentNoLabel: "Payment No.",
+    referenceNo: "Reference No.",
+    paymentMethodCash: "Cash",
+    paymentMethodBank: "Bank Transfer",
+    paymentMethodCheck: "Cheque",
+    noSupplierPayments: "No supplier payments recorded yet",
+    supplierPaymentCreated: "Payment recorded successfully",
+    supplierPaymentDeleted: "Payment deleted",
+    supplierPaymentCreateFailed: "Failed to record payment",
+    supplierPaymentDeleteFailed: "Failed to delete payment",
+    paymentMethodLabel: "Payment Method",
     piTitle: "Purchase Invoices",
     piDesc: "Purchase invoices and goods receipt notes",
     piNew: "New Invoice",

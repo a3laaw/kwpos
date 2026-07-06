@@ -29,6 +29,7 @@ model User {
   promotions Promotion[]
   priceChanges PriceChange[]
   purchaseInvoices PurchaseInvoice[]
+  supplierPayments SupplierPayment[]
 }
 
 model Category {
@@ -60,6 +61,34 @@ model Supplier {
   defaultForProducts Product[] @relation("DefaultProductSupplier")
   orders    PurchaseOrder[]
   purchaseInvoices PurchaseInvoice[]
+  payments  SupplierPayment[]
+}
+
+// ─── MODULE 9: Supplier Payments (سداد الموردين) ────────────────────
+// Records payments made to suppliers against their outstanding balance
+// (POSTED purchase invoices − payments). Each payment generates a balanced
+// journal entry: debit 2010 (Accounts Payable) / credit 1010 (Cash) or
+// 1020 (Bank).
+model SupplierPayment {
+  id             String   @id @default(cuid())
+  paymentNo      String   @unique
+  supplierId     String
+  amount         Float
+  paymentDate    DateTime @default(now())
+  paymentMethod  String   @default("CASH") // CASH | BANK | CHECK
+  referenceNo    String?
+  note           String?
+  journalEntryId String?
+  createdById    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  supplier      Supplier       @relation(fields: [supplierId], references: [id])
+  journalEntry  JournalEntry?  @relation(fields: [journalEntryId], references: [id], onDelete: SetNull)
+  createdBy     User?          @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([supplierId])
+  @@index([paymentDate])
 }
 
 model Product {
@@ -308,6 +337,7 @@ model JournalEntry {
 
   lines       JournalLine[]
   purchaseInvoices PurchaseInvoice[]
+  supplierPayments SupplierPayment[]
 
   @@index([sourceType])
   @@index([date])

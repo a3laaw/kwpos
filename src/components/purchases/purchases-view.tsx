@@ -13,6 +13,7 @@ import {
   type PurchaseInvoicePrefill,
 } from "@/components/purchases/purchase-invoice-dialog"
 import { PurchaseInvoicesView } from "@/components/purchases/purchase-invoices-view"
+import { SupplierPaymentsView } from "@/components/purchases/supplier-payments-view"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -62,6 +63,7 @@ import {
   Truck,
   Sparkles,
   FileText,
+  Wallet,
 } from "lucide-react"
 import {
   Dialog,
@@ -100,7 +102,7 @@ export function PurchasesView() {
   const fmt = useFmt()
   const t = useT()
   const user = useUser()
-  const [tab, setTab] = React.useState<"orders" | "invoices">("orders")
+  const [tab, setTab] = React.useState<"orders" | "invoices" | "payments">("orders")
   const [statusFilter, setStatusFilter] = React.useState<string>("all")
   const [createOpen, setCreateOpen] = React.useState(false)
   const [detail, setDetail] = React.useState<PurchaseOrder | null>(null)
@@ -229,10 +231,18 @@ export function PurchasesView() {
             <FileText className="h-4 w-4" />
             {t.navPurchaseInvoices}
           </TabsTrigger>
+          <TabsTrigger value="payments" className="gap-1.5">
+            <Wallet className="h-4 w-4" />
+            {t.navSupplierPayments}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="invoices" className="mt-4">
           <PurchaseInvoicesView />
+        </TabsContent>
+
+        <TabsContent value="payments" className="mt-4">
+          <SupplierPaymentsView />
         </TabsContent>
 
         <TabsContent value="orders" className="mt-4 space-y-5">

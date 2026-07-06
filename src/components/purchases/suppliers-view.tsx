@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/shared/page-header"
 import { EmptyState } from "@/components/shared/empty-state"
 import { ConfirmDialog } from "@/components/shared/confirm-dialog"
 import { SupplierFormDialog } from "@/components/purchases/supplier-form-dialog"
+import { SupplierPaymentDialog } from "@/components/purchases/supplier-payment-dialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -27,23 +28,32 @@ import {
   MoreVertical,
   Package,
   ShoppingCart,
+  Wallet,
 } from "lucide-react"
 import { useUser } from "@/components/user-context"
 import { useT } from "@/components/i18n-context"
-import { useSuppliers, useDeleteSupplier } from "@/hooks/use-api"
+import { useFmt } from "@/components/currency-context"
+import { useSuppliers, useDeleteSupplier, useSupplierBalances } from "@/hooks/use-api"
 import type { Supplier } from "@/lib/types"
 
 export function SuppliersView() {
   const t = useT()
   const user = useUser()
+  const fmt = useFmt()
   const [dialogOpen, setDialogOpen] = React.useState(false)
   const [editing, setEditing] = React.useState<Supplier | null>(null)
   const [deleteTarget, setDeleteTarget] = React.useState<Supplier | null>(null)
+  const [payTargetId, setPayTargetId] = React.useState<string | null>(null)
 
   const { data, isLoading, isError, refetch } = useSuppliers()
+  const { data: balancesData } = useSupplierBalances()
   const deleteMut = useDeleteSupplier()
 
   const canManage = user.role === "ADMIN" || user.role === "WAREHOUSE"
+  const balanceMap = React.useMemo(
+    () => new Map((balancesData?.items ?? []).map((b) => [b.supplierId, b.balance])),
+    [balancesData]
+  )
 
   function openAdd() {
     setEditing(null)
@@ -138,6 +148,10 @@ export function SuppliersView() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => setPayTargetId(s.id)} className="gap-2">
+                          <Wallet className="h-4 w-4" />
+                          {t.paySupplier}
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => openEdit(s)} className="gap-2">
                           <Pencil className="h-4 w-4" />
                           {t.edit}
@@ -190,7 +204,36 @@ export function SuppliersView() {
                     <ShoppingCart className="h-3 w-3" />
                     {t.ordersCountLabel.replace("{count}", String(s.ordersCount ?? 0))}
                   </Badge>
+                  {(() => {
+                    const bal = balanceMap.get(s.id) ?? 0
+                    return (
+                      <Badge
+                        variant="outline"
+                        className={`gap-1 ms-auto ${
+                          bal > 0
+                            ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30"
+                            : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                        }`}
+                        title={t.supplierBalance}
+                      >
+                        <Wallet className="h-3 w-3" />
+                        {fmt.currency(bal)}
+                      </Badge>
+                    )
+                  })()}
                 </div>
+
+                {canManage ? (
+                  <Button
+                    onClick={() => setPayTargetId(s.id)}
+                    variant="outline"
+                    size="sm"
+                    className="w-full mt-3 gap-2"
+                  >
+                    <Wallet className="h-4 w-4" />
+                    {t.paySupplier}
+                  </Button>
+                ) : null}
               </CardContent>
             </Card>
           ))}
@@ -198,6 +241,11 @@ export function SuppliersView() {
       )}
 
       <SupplierFormDialog open={dialogOpen} onOpenChange={setDialogOpen} supplier={editing} />
+      <SupplierPaymentDialog
+        open={!!payTargetId}
+        onOpenChange={(o) => !o && setPayTargetId(null)}
+        supplierId={payTargetId}
+      />
       <ConfirmDialog
         open={!!deleteTarget}
         onOpenChange={(o) => !o && setDeleteTarget(null)}

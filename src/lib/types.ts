@@ -304,3 +304,27 @@ export interface AnalyticsReport {
   highestMargin: ProductAnalytics[]
   dateRange: { from: string | null; to: string | null }
 }
+
+// ─── Supplier Payments (سداد الموردين) ──────────────────────────────
+export interface SupplierPayment {
+  id: string
+  paymentNo: string
+  supplierId: string
+  supplierName: string
+  amount: number
+  paymentDate: string
+  paymentMethod: "CASH" | "BANK" | "CHECK"
+  referenceNo: string | null
+  note: string | null
+  journalEntryId: string | null
+  createdByName: string | null
+  createdAt: string
+}
+
+export interface SupplierBalance {
+  supplierId: string
+  supplierName: string
+  totalInvoiced: number
+  totalPaid: number
+  balance: number
+}

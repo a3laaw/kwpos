@@ -21,6 +21,8 @@ import type {
   JournalEntry,
   TrialBalance,
   Warehouse,
+  SupplierPayment,
+  SupplierBalance,
 } from "@/lib/types"
 import type { CountryConfig } from "@/lib/countries"
 
@@ -1290,6 +1292,62 @@ export function useDeletePurchaseInvoice() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["purchase-invoices"] })
     },
+  })
+}
+
+/* ----------------------------- Supplier Payments --------------------- */
+export interface CreateSupplierPaymentBody {
+  supplierId: string
+  amount: number
+  paymentDate?: string
+  paymentMethod: "CASH" | "BANK" | "CHECK"
+  referenceNo?: string | null
+  note?: string | null
+}
+
+/** List all supplier payments (newest first). Pass supplierId to filter. */
+export function useSupplierPayments(supplierId?: string) {
+  const qs = supplierId ? `?supplierId=${supplierId}` : ""
+  return useQuery<{ items: SupplierPayment[] }>({
+    queryKey: ["supplier-payments", supplierId ?? "all"],
+    queryFn: () => jget(`/api/supplier-payments${qs}`),
+  })
+}
+
+/** Create a supplier payment (+ balanced journal entry server-side). */
+export function useCreateSupplierPayment() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: CreateSupplierPaymentBody) =>
+      jsend<SupplierPayment>("/api/supplier-payments", "POST", body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["supplier-payments"] })
+      qc.invalidateQueries({ queryKey: ["supplier-balances"] })
+      qc.invalidateQueries({ queryKey: ["suppliers"] })
+      qc.invalidateQueries({ queryKey: ["dashboard"] })
+    },
+  })
+}
+
+/** Delete a supplier payment (ADMIN only; also reverses its journal entry). */
+export function useDeleteSupplierPayment() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => jsend(`/api/supplier-payments/${id}`, "DELETE"),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["supplier-payments"] })
+      qc.invalidateQueries({ queryKey: ["supplier-balances"] })
+      qc.invalidateQueries({ queryKey: ["suppliers"] })
+      qc.invalidateQueries({ queryKey: ["dashboard"] })
+    },
+  })
+}
+
+/** Outstanding balance per supplier (POSTED invoices − payments). */
+export function useSupplierBalances() {
+  return useQuery<{ items: SupplierBalance[] }>({
+    queryKey: ["supplier-balances"],
+    queryFn: () => jget("/api/suppliers/balances"),
   })
 }
 
