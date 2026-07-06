@@ -8,7 +8,10 @@ export const dynamic = "force-dynamic"
 /**
  * One-time admin endpoint to create the SupplierPayment table + indexes
  * server-side (because prisma db push can't run from sandbox — rotated DB
- * password). Idempotent: uses CREATE TABLE IF NOT EXISTS. ADMIN only.
+ * password). Idempotent. ADMIN only.
+ *
+ * NOTE: PostgreSQL does NOT support `ADD CONSTRAINT IF NOT EXISTS`, so we use
+ * a DO block with information_schema check for FK constraints.
  */
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser()
@@ -19,6 +22,7 @@ export async function POST(req: NextRequest) {
 
   const steps: Array<{ name: string; ok: boolean; error?: string }> = []
 
+  // 1. Create the table
   try {
     await db.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "SupplierPayment" (
@@ -42,6 +46,7 @@ export async function POST(req: NextRequest) {
     steps.push({ name: "create-table", ok: false, error: String(e?.message || e).slice(0, 200) })
   }
 
+  // 2. Unique constraint on paymentNo (CREATE UNIQUE INDEX IF NOT EXISTS works)
   try {
     await db.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "SupplierPayment_paymentNo_key" ON "SupplierPayment"("paymentNo")`)
     steps.push({ name: "unique-paymentNo", ok: true })
@@ -49,19 +54,34 @@ export async function POST(req: NextRequest) {
     steps.push({ name: "unique-paymentNo", ok: false, error: String(e?.message || e).slice(0, 200) })
   }
 
-  for (const [name, sql] of [
-    ["fk-supplier", `ALTER TABLE "SupplierPayment" ADD CONSTRAINT IF NOT EXISTS "SupplierPayment_supplierId_fkey" FOREIGN KEY ("supplierId") REFERENCES "Supplier"("id") ON DELETE RESTRICT ON UPDATE CASCADE`],
-    ["fk-journal", `ALTER TABLE "SupplierPayment" ADD CONSTRAINT IF NOT EXISTS "SupplierPayment_journalEntryId_fkey" FOREIGN KEY ("journalEntryId") REFERENCES "JournalEntry"("id") ON DELETE SET NULL ON UPDATE CASCADE`],
-    ["fk-user", `ALTER TABLE "SupplierPayment" ADD CONSTRAINT IF NOT EXISTS "SupplierPayment_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE`],
-  ] as const) {
+  // 3. FK constraints — PostgreSQL doesn't support ADD CONSTRAINT IF NOT EXISTS,
+  // so use a DO block that checks information_schema.table_constraints.
+  const fks: Array<[string, string]> = [
+    ["SupplierPayment_supplierId_fkey", `ALTER TABLE "SupplierPayment" ADD CONSTRAINT "SupplierPayment_supplierId_fkey" FOREIGN KEY ("supplierId") REFERENCES "Supplier"("id") ON DELETE RESTRICT ON UPDATE CASCADE`],
+    ["SupplierPayment_journalEntryId_fkey", `ALTER TABLE "SupplierPayment" ADD CONSTRAINT "SupplierPayment_journalEntryId_fkey" FOREIGN KEY ("journalEntryId") REFERENCES "JournalEntry"("id") ON DELETE SET NULL ON UPDATE CASCADE`],
+    ["SupplierPayment_createdById_fkey", `ALTER TABLE "SupplierPayment" ADD CONSTRAINT "SupplierPayment_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE`],
+  ]
+
+  for (const [name, sql] of fks) {
     try {
-      await db.$executeRawUnsafe(sql)
-      steps.push({ name, ok: true })
+      // DO block: only ADD if the constraint doesn't already exist
+      await db.$executeRawUnsafe(`
+        DO $$ BEGIN
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.table_constraints
+            WHERE constraint_name = '${name}'
+          ) THEN
+            ${sql};
+          END IF;
+        END $$;
+      `)
+      steps.push({ name: `fk-${name}`, ok: true })
     } catch (e: any) {
-      steps.push({ name, ok: false, error: String(e?.message || e).slice(0, 200) })
+      steps.push({ name: `fk-${name}`, ok: false, error: String(e?.message || e).slice(0, 200) })
     }
   }
 
+  // 4. Indexes (CREATE INDEX IF NOT EXISTS works)
   try {
     await db.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "SupplierPayment_supplierId_idx" ON "SupplierPayment"("supplierId")`)
     await db.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "SupplierPayment_paymentDate_idx" ON "SupplierPayment"("paymentDate")`)
