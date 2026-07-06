@@ -419,3 +419,37 @@ export interface CreateStockTakeBody {
   note?: string | null
   items: { productId: string; actualQty: number }[]
 }
+
+// ─── Stock Transfers (التحويلات بين المخازن) ───────────────────────
+export interface StockTransferItem {
+  id: string
+  productId: string
+  productName: string
+  quantity: number
+  unitCost: number
+  subtotal: number
+}
+
+export interface StockTransfer {
+  id: string
+  transferNo: string
+  fromWarehouseId: string
+  fromWarehouseName: string
+  toWarehouseId: string
+  toWarehouseName: string
+  status: "OUT" | "RECEIVED" | "CANCELLED"
+  total: number
+  note: string | null
+  createdByName: string | null
+  receivedByName: string | null
+  receivedAt: string | null
+  createdAt: string
+  items: StockTransferItem[]
+}
+
+export interface CreateStockTransferBody {
+  fromWarehouseId: string
+  toWarehouseId: string
+  note?: string | null
+  items: { productId: string; quantity: number }[]
+}

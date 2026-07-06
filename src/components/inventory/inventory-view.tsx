@@ -49,7 +49,8 @@ import { printBarcodeLabels } from "@/lib/print"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { WarehouseManager } from "@/components/inventory/warehouse-manager"
 import { StockTakeTab } from "@/components/inventory/stock-take-tab"
-import { Warehouse as WarehouseIcon, ClipboardCheck } from "lucide-react"
+import { StockTransferTab } from "@/components/inventory/stock-transfer-tab"
+import { Warehouse as WarehouseIcon, ClipboardCheck, ArrowRightLeft } from "lucide-react"
 import { ExcelExportButton, ExcelImportButton } from "@/components/shared/excel-buttons"
 import { useProducts, useCategories, useDeleteProduct } from "@/hooks/use-api"
 import { useFmt } from "@/components/currency-context"
@@ -141,7 +142,7 @@ export function InventoryView() {
       />
 
       <Tabs defaultValue="products" className="space-y-4">
-        <TabsList className="grid w-full max-w-lg grid-cols-3">
+        <TabsList className="grid w-full max-w-2xl grid-cols-4">
           <TabsTrigger value="products" className="gap-1.5">
             <Boxes className="h-3.5 w-3.5" />
             {t.invItemsTab}
@@ -153,6 +154,10 @@ export function InventoryView() {
           <TabsTrigger value="stocktake" className="gap-1.5">
             <ClipboardCheck className="h-3.5 w-3.5" />
             {t.stockTakeTab}
+          </TabsTrigger>
+          <TabsTrigger value="transfers" className="gap-1.5">
+            <ArrowRightLeft className="h-3.5 w-3.5" />
+            {t.stockTransferTab}
           </TabsTrigger>
         </TabsList>
 
@@ -321,6 +326,10 @@ export function InventoryView() {
 
         <TabsContent value="stocktake" className="mt-0">
           <StockTakeTab />
+        </TabsContent>
+
+        <TabsContent value="transfers" className="mt-0">
+          <StockTransferTab />
         </TabsContent>
       </Tabs>
 

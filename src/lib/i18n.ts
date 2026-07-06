@@ -1610,6 +1610,23 @@ export interface Dict {
   stockTakeAllWarehouses: string
   stockTakeConfirmApprove: string
   stockTakeConfirmApproveDesc: string
+  // Stock transfers (التحويلات بين المخازن)
+  stockTransferTab: string
+  stockTransferTitle: string
+  stockTransferDesc: string
+  newStockTransfer: string
+  fromWarehouse: string
+  toWarehouse: string
+  receiveTransfer: string
+  transferOut: string
+  transferReceived: string
+  transferInTransit: string
+  transferCancelled: string
+  noStockTransfers: string
+  transferCreated: string
+  transferCreateFailed: string
+  transferReceiveFailed: string
+  transferSameWarehouse: string
   piTitle: string
   piDesc: string
   piNew: string
@@ -3237,6 +3254,22 @@ export const DICTS: Record<Locale, Dict> = {
     stockTakeAllWarehouses: "كل المخازن",
     stockTakeConfirmApprove: "اعتماد الجرد",
     stockTakeConfirmApproveDesc: "سيتم تعديل كميات المخزون وإنشاء القيود المحاسبية للعجز/الفائض",
+    stockTransferTab: "تحويلات",
+    stockTransferTitle: "التحويلات بين المخازن",
+    stockTransferDesc: "إنشاء تحويل (إرسال) من مخزن لآخر، ثم استلام البضاعة عند الوصول",
+    newStockTransfer: "تحويل جديد",
+    fromWarehouse: "من مخزن",
+    toWarehouse: "إلى مخزن",
+    receiveTransfer: "استلام",
+    transferOut: "بالطريق",
+    transferReceived: "مستلم",
+    transferInTransit: "بضاعة بالطريق",
+    transferCancelled: "ملغي",
+    noStockTransfers: "لا توجد تحويلات بعد",
+    transferCreated: "تم إنشاء التحويل",
+    transferCreateFailed: "فشل إنشاء التحويل",
+    transferReceiveFailed: "فشل استلام التحويل",
+    transferSameWarehouse: "لا يمكن التحويل لنفس المخزن",
     piTitle: "فواتير المشتريات",
     piDesc: "فواتير المشتريات وسندات استلام البضاعة",
     piNew: "فاتورة جديدة",
@@ -4862,6 +4895,22 @@ export const DICTS: Record<Locale, Dict> = {
     stockTakeAllWarehouses: "All warehouses",
     stockTakeConfirmApprove: "Approve Stock Take",
     stockTakeConfirmApproveDesc: "Inventory quantities will be adjusted and journal entries created for shortage/surplus",
+    stockTransferTab: "Transfers",
+    stockTransferTitle: "Stock Transfers",
+    stockTransferDesc: "Create a transfer (send) from one warehouse to another, then receive on arrival",
+    newStockTransfer: "New Transfer",
+    fromWarehouse: "From",
+    toWarehouse: "To",
+    receiveTransfer: "Receive",
+    transferOut: "In Transit",
+    transferReceived: "Received",
+    transferInTransit: "Goods in transit",
+    transferCancelled: "Cancelled",
+    noStockTransfers: "No transfers yet",
+    transferCreated: "Transfer created",
+    transferCreateFailed: "Failed to create transfer",
+    transferReceiveFailed: "Failed to receive transfer",
+    transferSameWarehouse: "Cannot transfer to the same warehouse",
     piTitle: "Purchase Invoices",
     piDesc: "Purchase invoices and goods receipt notes",
     piNew: "New Invoice",

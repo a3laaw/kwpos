@@ -33,6 +33,8 @@ model User {
   purchaseReturns PurchaseReturn[]
   stockTakeCreated StockTake[] @relation("StockTakeCreator")
   stockTakeApproved StockTake[] @relation("StockTakeApprover")
+  transfersCreated StockTransfer[] @relation("TransferCreator")
+  transfersReceived StockTransfer[] @relation("TransferReceiver")
 }
 
 model Category {
@@ -129,6 +131,7 @@ model Product {
   purchaseInvoiceItems PurchaseInvoiceItem[]
   purchaseReturnItems PurchaseReturnItem[]
   stockTakeItems StockTakeItem[]
+  stockTransferItems StockTransferItem[]
 
   @@index([categoryId])
   @@index([supplierId])
@@ -148,6 +151,8 @@ model Warehouse {
   purchaseOrders PurchaseOrder[] @relation("POWarehouse")
   purchaseInvoices PurchaseInvoice[]
   stockTakes StockTake[]
+  outgoingTransfers StockTransfer[] @relation("FromWarehouse")
+  incomingTransfers StockTransfer[] @relation("ToWarehouse")
 }
 
 // Per-warehouse stock levels (a product can exist in many warehouses)
@@ -510,6 +515,51 @@ model StockTakeItem {
   product       Product   @relation(fields: [productId], references: [id])
 
   @@index([stockTakeId])
+  @@index([productId])
+}
+
+// ─── MODULE 12: Stock Transfers (التحويلات بين المخازن) ─────────────
+// Transfer goods from one warehouse to another. Created as OUT (in transit,
+// quantities already deducted from source). On RECEIVE, quantities are
+// added to the destination warehouse.
+model StockTransfer {
+  id              String    @id @default(cuid())
+  transferNo      String    @unique
+  fromWarehouseId String
+  toWarehouseId   String
+  status          String    @default("OUT") // OUT | RECEIVED | CANCELLED
+  total           Float     @default(0)
+  note            String?
+  createdById     String?
+  receivedById    String?
+  receivedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  fromWarehouse   Warehouse @relation("FromWarehouse", fields: [fromWarehouseId], references: [id])
+  toWarehouse     Warehouse @relation("ToWarehouse", fields: [toWarehouseId], references: [id])
+  createdBy       User?     @relation("TransferCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  receivedBy      User?     @relation("TransferReceiver", fields: [receivedById], references: [id], onDelete: SetNull)
+  items           StockTransferItem[]
+
+  @@index([fromWarehouseId])
+  @@index([toWarehouseId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model StockTransferItem {
+  id              String   @id @default(cuid())
+  stockTransferId String
+  productId       String
+  quantity        Int
+  unitCost        Float
+  subtotal        Float
+
+  stockTransfer   StockTransfer @relation(fields: [stockTransferId], references: [id], onDelete: Cascade)
+  product         Product       @relation(fields: [productId], references: [id])
+
+  @@index([stockTransferId])
   @@index([productId])
 }
 

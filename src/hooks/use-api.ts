@@ -28,6 +28,8 @@ import type {
   CreatePurchaseReturnBody,
   StockTake,
   CreateStockTakeBody,
+  StockTransfer,
+  CreateStockTransferBody,
 } from "@/lib/types"
 import type { CountryConfig } from "@/lib/countries"
 
@@ -1435,6 +1437,46 @@ export function useApproveStockTake() {
       ),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["stock-takes"] })
+      qc.invalidateQueries({ queryKey: ["products"] })
+      qc.invalidateQueries({ queryKey: ["dashboard"] })
+    },
+  })
+}
+
+/* ----------------------------- Stock Transfers ---------------------- */
+/** List all stock transfers (newest first). */
+export function useStockTransfers() {
+  return useQuery<{ items: StockTransfer[] }>({
+    queryKey: ["stock-transfers"],
+    queryFn: () => jget("/api/stock-transfers"),
+  })
+}
+
+/** Create a stock transfer (Transfer Out) — deducts from source. */
+export function useCreateStockTransfer() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: CreateStockTransferBody) =>
+      jsend<StockTransfer>("/api/stock-transfers", "POST", body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["stock-transfers"] })
+      qc.invalidateQueries({ queryKey: ["products"] })
+      qc.invalidateQueries({ queryKey: ["dashboard"] })
+    },
+  })
+}
+
+/** Receive a stock transfer (Transfer In) — adds to destination. */
+export function useReceiveStockTransfer() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) =>
+      jsend<{ id: string; transferNo: string; status: string; receivedAt: string }>(
+        `/api/stock-transfers/${id}/receive`,
+        "POST"
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["stock-transfers"] })
       qc.invalidateQueries({ queryKey: ["products"] })
       qc.invalidateQueries({ queryKey: ["dashboard"] })
     },
