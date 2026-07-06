@@ -20,12 +20,7 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs"
+import { SubNav, type SubNavItem } from "@/components/shared/sub-nav"
 import { Loader2 } from "lucide-react"
 import {
   Table,
@@ -224,31 +219,17 @@ export function PurchasesView() {
         icon={<ShoppingCart className="h-5 w-5" />}
       />
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
-        <TabsList>
-          <TabsTrigger value="orders" className="gap-1.5">
-            <ShoppingCart className="h-4 w-4" />
-            {t.navPurchases}
-          </TabsTrigger>
-          <TabsTrigger value="invoices" className="gap-1.5">
-            <FileText className="h-4 w-4" />
-            {t.navPurchaseInvoices}
-          </TabsTrigger>
-          <TabsTrigger value="payments" className="gap-1.5">
-            <Wallet className="h-4 w-4" />
-            {t.navSupplierPayments}
-          </TabsTrigger>
-        </TabsList>
+      <SubNav items={[
+        { value: "orders", labelKey: "navPurchases", icon: ShoppingCart },
+        { value: "invoices", labelKey: "navPurchaseInvoices", icon: FileText },
+        { value: "payments", labelKey: "navSupplierPayments", icon: Wallet },
+      ] as SubNavItem[]} value={tab} onChange={(v) => setTab(v as typeof tab)} />
 
-        <TabsContent value="invoices" className="mt-4">
-          <PurchaseInvoicesView />
-        </TabsContent>
+      {tab === "invoices" && <PurchaseInvoicesView />}
+      {tab === "payments" && <SupplierPaymentsView />}
 
-        <TabsContent value="payments" className="mt-4">
-          <SupplierPaymentsView />
-        </TabsContent>
-
-        <TabsContent value="orders" className="mt-4 space-y-5">
+      {tab === "orders" && (
+        <div className="mt-4 space-y-5">
           {/* Inner header with PO-specific actions */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-sm text-muted-foreground">
@@ -438,8 +419,8 @@ export function PurchasesView() {
               </div>
             )}
           </Card>
-        </TabsContent>
-      </Tabs>
+      </div>
+      )}
 
       {/* Detail dialog */}
       <Dialog open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>

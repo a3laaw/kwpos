@@ -46,7 +46,7 @@ import {
 } from "lucide-react"
 import { useUser } from "@/components/user-context"
 import { printBarcodeLabels } from "@/lib/print"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { SubNav, type SubNavItem } from "@/components/shared/sub-nav"
 import { WarehouseManager } from "@/components/inventory/warehouse-manager"
 import { StockTakeTab } from "@/components/inventory/stock-take-tab"
 import { StockTransferTab } from "@/components/inventory/stock-transfer-tab"
@@ -67,6 +67,7 @@ export function InventoryView() {
   const [dialogOpen, setDialogOpen] = React.useState(false)
   const [editing, setEditing] = React.useState<Product | null>(null)
   const [deleteTarget, setDeleteTarget] = React.useState<Product | null>(null)
+  const [invTab, setInvTab] = React.useState<"products" | "warehouses" | "stocktake" | "transfers">("products")
 
   const debouncedQ = React.useDeferredValue(q)
   const { data, isLoading, isError, refetch } = useProducts({
@@ -141,27 +142,15 @@ export function InventoryView() {
         }
       />
 
-      <Tabs defaultValue="products" className="space-y-4">
-        <TabsList className="grid w-full max-w-2xl grid-cols-4">
-          <TabsTrigger value="products" className="gap-1.5">
-            <Boxes className="h-3.5 w-3.5" />
-            {t.invItemsTab}
-          </TabsTrigger>
-          <TabsTrigger value="warehouses" className="gap-1.5">
-            <WarehouseIcon className="h-3.5 w-3.5" />
-            {t.warehouses}
-          </TabsTrigger>
-          <TabsTrigger value="stocktake" className="gap-1.5">
-            <ClipboardCheck className="h-3.5 w-3.5" />
-            {t.stockTakeTab}
-          </TabsTrigger>
-          <TabsTrigger value="transfers" className="gap-1.5">
-            <ArrowRightLeft className="h-3.5 w-3.5" />
-            {t.stockTransferTab}
-          </TabsTrigger>
-        </TabsList>
+      <SubNav items={[
+        { value: "products", labelKey: "invItemsTab", icon: Boxes },
+        { value: "warehouses", labelKey: "warehouses", icon: WarehouseIcon },
+        { value: "stocktake", labelKey: "stockTakeTab", icon: ClipboardCheck },
+        { value: "transfers", labelKey: "stockTransferTab", icon: ArrowRightLeft },
+      ] as SubNavItem[]} value={invTab} onChange={(v) => setInvTab(v as typeof invTab)} />
 
-        <TabsContent value="products" className="space-y-5 mt-0">
+      {invTab === "products" && (
+        <div className="space-y-5">
       {/* Filters */}
       <Card className="p-3 sm:p-4">
         <div className="flex flex-col sm:flex-row gap-3">
@@ -318,20 +307,12 @@ export function InventoryView() {
       <p className="text-xs text-muted-foreground text-center">
         {t.productsCountLabel.replace("{count}", String(fmt.number(products.length)))}
       </p>
-        </TabsContent>
+      </div>
+      )}
 
-        <TabsContent value="warehouses" className="mt-0">
-          <WarehouseManager />
-        </TabsContent>
-
-        <TabsContent value="stocktake" className="mt-0">
-          <StockTakeTab />
-        </TabsContent>
-
-        <TabsContent value="transfers" className="mt-0">
-          <StockTransferTab />
-        </TabsContent>
-      </Tabs>
+      {invTab === "warehouses" && <WarehouseManager />}
+      {invTab === "stocktake" && <StockTakeTab />}
+      {invTab === "transfers" && <StockTransferTab />}
 
       <ProductFormDialog open={dialogOpen} onOpenChange={setDialogOpen} product={editing} />
       <ConfirmDialog

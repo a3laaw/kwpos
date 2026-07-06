@@ -1086,8 +1086,17 @@ export interface Dict {
   accAtLeastTwoLines: string
   accJournalCreated: string
   accJournalCreateFailed: string
-
-  // Customers module
+  // SubNav + Journal flat list + print
+  subNavSearch: string
+  accJournalEntryDetail: string
+  accJournalEntryNo: string
+  accJournalSourceType: string
+  accJournalCreatedAt: string
+  accJournalCreatedBy: string
+  accPrintJournal: string
+  accExportPdf: string
+  accJournalLinesCount: string
+  accSearchJournal: string
   cusAddCustomer: string
   cusEditCustomer: string
   cusCustomerName: string
@@ -2771,6 +2780,16 @@ export const DICTS: Record<Locale, Dict> = {
     accAtLeastTwoLines: "أضف سطرين على الأقل",
     accJournalCreated: "تم إنشاء القيد المحاسبي",
     accJournalCreateFailed: "فشل إنشاء القيد",
+    subNavSearch: "ابحث في القائمة...",
+    accJournalEntryDetail: "تفاصيل القيد المحاسبي",
+    accJournalEntryNo: "رقم القيد",
+    accJournalSourceType: "نوع المصدر",
+    accJournalCreatedAt: "تاريخ الإنشاء",
+    accJournalCreatedBy: "أنشأه",
+    accPrintJournal: "طباعة القيد",
+    accExportPdf: "تصدير PDF",
+    accJournalLinesCount: "عدد البنود",
+    accSearchJournal: "ابحث برقم القيد أو الوصف...",
 
     // Customers module
     cusAddCustomer: "إضافة عميل",
@@ -4447,6 +4466,16 @@ export const DICTS: Record<Locale, Dict> = {
     accAtLeastTwoLines: "Add at least two lines",
     accJournalCreated: "Journal entry created",
     accJournalCreateFailed: "Failed to create entry",
+    subNavSearch: "Search menu...",
+    accJournalEntryDetail: "Journal Entry Details",
+    accJournalEntryNo: "Entry No.",
+    accJournalSourceType: "Source Type",
+    accJournalCreatedAt: "Created At",
+    accJournalCreatedBy: "Created By",
+    accPrintJournal: "Print Entry",
+    accExportPdf: "Export PDF",
+    accJournalLinesCount: "Lines Count",
+    accSearchJournal: "Search by entry no. or description...",
 
     // Customers module
     cusAddCustomer: "Add customer",

@@ -3,17 +3,22 @@
 import * as React from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { LoadingState } from "@/components/shared/loading-state"
 import { EmptyState } from "@/components/shared/empty-state"
-import { BookOpen, FileText, Plus, Download } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { BookOpen, FileText, Plus, Download, Search, ChevronLeft, ChevronRight } from "lucide-react"
 import { useJournalEntries, useTrialBalance, useExportExcel } from "@/hooks/use-api"
 import { useFmt } from "@/components/currency-context"
 import { useT } from "@/components/i18n-context"
 import { ManualJournalDialog } from "@/components/accounting/manual-journal-dialog"
+import { JournalEntryModal } from "@/components/accounting/journal-entry-modal"
 import { toast } from "sonner"
 import type { JournalEntry } from "@/lib/types"
+import { cn } from "@/lib/utils"
+
+const PAGE_SIZE = 10
 
 export function JournalTab() {
   const fmt = useFmt()
@@ -21,6 +26,9 @@ export function JournalTab() {
   const { data, isLoading } = useJournalEntries()
   const items = data?.items ?? []
   const [manualOpen, setManualOpen] = React.useState(false)
+  const [detailEntry, setDetailEntry] = React.useState<JournalEntry | null>(null)
+  const [search, setSearch] = React.useState("")
+  const [page, setPage] = React.useState(1)
   const exportMut = useExportExcel()
 
   const SOURCE_LABELS: Record<string, { label: string; className: string }> = {
@@ -29,6 +37,22 @@ export function JournalTab() {
     PURCHASE: { label: t.accJournalSourcePurchase, className: "bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-500/30" },
     MANUAL: { label: t.accJournalSourceManual, className: "bg-muted text-muted-foreground" },
   }
+
+  // Filter by search
+  const filtered = React.useMemo(() => {
+    if (!search.trim()) return items
+    const q = search.trim().toLowerCase()
+    return items.filter(
+      (je) =>
+        je.entryNo.toLowerCase().includes(q) ||
+        je.description.toLowerCase().includes(q)
+    )
+  }, [items, search])
+
+  // Pagination
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const currentPage = Math.min(page, totalPages)
+  const pagedData = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
 
   function handleExport() {
     exportMut.mutate(
@@ -41,16 +65,14 @@ export function JournalTab() {
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
               <CardTitle className="flex items-center gap-2 text-base">
                 <BookOpen className="h-4 w-4 text-primary" />
                 {t.accJournalLedgerFull}
-                <Badge variant="secondary" className="tabular-nums">{items.length}</Badge>
+                <Badge variant="secondary" className="tabular-nums">{filtered.length}</Badge>
               </CardTitle>
-              <CardDescription className="mt-1">
-                {t.accJournalDescFull}
-              </CardDescription>
+              <CardDescription className="mt-1">{t.accJournalDescFull}</CardDescription>
             </div>
             <div className="flex gap-2">
               <Button size="sm" variant="outline" onClick={handleExport} disabled={exportMut.isPending} className="gap-1.5">
@@ -63,79 +85,107 @@ export function JournalTab() {
           </div>
         </CardHeader>
         <CardContent>
+          {/* Search bar */}
+          <div className="relative mb-3">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1) }}
+              placeholder={t.accSearchJournal}
+              className="pr-9 h-9"
+            />
+          </div>
+
           {isLoading ? (
             <LoadingState text={t.accLoadingJournal} />
-          ) : items.length === 0 ? (
+          ) : filtered.length === 0 ? (
             <EmptyState
               icon={<FileText className="h-7 w-7" />}
               title={t.accNoJournalEntries}
               description={t.accNoJournalEntriesDesc}
             />
           ) : (
-            <ScrollArea className="max-h-[70vh] pr-1 scrollbar-thin">
-              <div className="space-y-3">
-                {items.map((je) => (
-                  <JournalEntryCard key={je.id} je={je} fmt={fmt} sourceLabels={SOURCE_LABELS} t={t} />
-                ))}
+            <>
+              {/* Flat compact list */}
+              <div className="space-y-2">
+                {pagedData.map((je) => {
+                  const meta = SOURCE_LABELS[je.sourceType] ?? SOURCE_LABELS.MANUAL
+                  return (
+                    <button
+                      key={je.id}
+                      onClick={() => setDetailEntry(je)}
+                      className="w-full text-start rounded-lg border border-border/60 hover:border-primary/40 hover:bg-muted/20 transition-all p-3 group cursor-pointer"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        {/* Left: badge + entry no + date */}
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Badge variant="outline" className={cn("text-[10px] gap-0.5 shrink-0", meta.className)}>
+                            {meta.label}
+                          </Badge>
+                          <span className="font-mono text-sm font-bold text-primary group-hover:underline" dir="ltr">
+                            {je.entryNo}
+                          </span>
+                          <span className="text-xs text-muted-foreground hidden sm:inline" dir="ltr">
+                            {fmt.dateTime(je.date)}
+                          </span>
+                        </div>
+                        {/* Right: total */}
+                        <span className="font-bold tabular-nums text-sm shrink-0" dir="ltr">
+                          {fmt.currency(je.totalDebit)}
+                        </span>
+                      </div>
+                      {/* Description (truncated, one line) */}
+                      <p className="text-sm text-muted-foreground mt-1 truncate">
+                        {je.description}
+                      </p>
+                    </button>
+                  )
+                })}
               </div>
-            </ScrollArea>
+
+              {/* Pagination */}
+              {totalPages > 1 ? (
+                <div className="flex items-center justify-between gap-2 pt-3">
+                  <p className="text-xs text-muted-foreground">
+                    {Math.min((currentPage - 1) * PAGE_SIZE + 1, filtered.length)}–
+                    {Math.min(currentPage * PAGE_SIZE, filtered.length)} / {filtered.length}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={currentPage <= 1}
+                      onClick={() => setPage(Math.max(1, currentPage - 1))}
+                      className="h-8 w-8 p-0"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                    <span className="text-sm font-medium tabular-nums">
+                      {currentPage} / {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={currentPage >= totalPages}
+                      onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
+                      className="h-8 w-8 p-0"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
+            </>
           )}
         </CardContent>
       </Card>
 
       <ManualJournalDialog open={manualOpen} onOpenChange={setManualOpen} />
-    </div>
-  )
-}
-
-function JournalEntryCard({ je, fmt, sourceLabels, t }: { je: JournalEntry; fmt: ReturnType<typeof useFmt>; sourceLabels: Record<string, { label: string; className: string }>; t: ReturnType<typeof useT> }) {
-  const meta = sourceLabels[je.sourceType] ?? sourceLabels.MANUAL
-  return (
-    <div className="rounded-xl border border-border/70 overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-2 bg-muted/40 px-4 py-2.5">
-        <div className="flex items-center gap-2 min-w-0">
-          <Badge variant="outline" className={`gap-1 ${meta.className}`}>
-            {meta.label}
-          </Badge>
-          <span className="font-mono font-semibold text-sm" dir="ltr">{je.entryNo}</span>
-          <span className="text-xs text-muted-foreground hidden sm:inline">
-            {fmt.dateTime(je.date)}
-          </span>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <span className="text-xs text-muted-foreground">{t.total}:</span>
-          <span className="font-bold tabular-nums text-sm" dir="ltr">{fmt.currency(je.totalDebit)}</span>
-        </div>
-      </div>
-
-      {/* Description */}
-      <div className="px-4 py-2 text-sm border-b border-border/40">
-        {je.description}
-      </div>
-
-      {/* Lines (T-account style) */}
-      <div className="divide-y divide-border/30">
-        {je.lines.map((l) => (
-          <div key={l.id} className="flex items-center gap-3 px-4 py-2 text-sm">
-            <span className="font-mono text-xs text-muted-foreground tabular-nums w-12" dir="ltr">{l.accountCode}</span>
-            <span className="flex-1 min-w-0 truncate">{l.accountName}</span>
-            <span className="w-28 text-end tabular-nums text-emerald-600 font-medium" dir="ltr">
-              {l.debit > 0 ? fmt.currency(l.debit) : "—"}
-            </span>
-            <span className="w-28 text-end tabular-nums text-rose-600 font-medium" dir="ltr">
-              {l.credit > 0 ? fmt.currency(l.credit) : "—"}
-            </span>
-          </div>
-        ))}
-      </div>
-
-      {/* Totals */}
-      <div className="flex items-center gap-3 px-4 py-2 bg-muted/30 border-t border-border/40 text-sm font-bold">
-        <span className="flex-1">{t.accSum}</span>
-        <span className="w-28 text-end tabular-nums text-emerald-700" dir="ltr">{fmt.currency(je.totalDebit)}</span>
-        <span className="w-28 text-end tabular-nums text-rose-700" dir="ltr">{fmt.currency(je.totalCredit)}</span>
-      </div>
+      <JournalEntryModal
+        open={!!detailEntry}
+        onOpenChange={(o) => !o && setDetailEntry(null)}
+        entry={detailEntry}
+      />
     </div>
   )
 }
@@ -172,7 +222,7 @@ export function TrialBalanceTab() {
                 <tr className="border-b border-border">
                   <th className="text-start py-2 px-2 font-medium text-muted-foreground">{t.accCode}</th>
                   <th className="text-start py-2 px-2 font-medium">{t.accAccountName}</th>
-                  <th className="text-center py-2 px-2 font-medium text-muted-foreground hidden sm:table-cell">{t.colType}</th>
+                  <th className="text-center py-2 px-2 font-medium text-muted-foreground hidden sm:table-cell">{t.colType || "النوع"}</th>
                   <th className="text-end py-2 px-2 font-medium text-emerald-700">{t.accDebit}</th>
                   <th className="text-end py-2 px-2 font-medium text-rose-700">{t.accCredit}</th>
                 </tr>
