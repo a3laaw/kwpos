@@ -29,15 +29,17 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# Environment files
+# Environment files (NEVER commit secrets)
 .env
 .env.local
 .env.production
 .env.*
 
-# Database
+# Database (local SQLite files & backups)
+*.db
 db/*.db
 db/*.db-journal
+db/custom-backup-*
 
 # Logs
 *.log
@@ -45,10 +47,13 @@ dev.log
 dev.out.log
 server.log
 
-# Screenshots and uploads
+# Screenshots, uploads, and sandbox artifacts
 verify-*.png
+screenshots/
 upload/
 agent-ctx/
+tool-results/
+worklog.md
 
 # TypeScript
 *.tsbuildinfo

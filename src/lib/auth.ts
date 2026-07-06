@@ -43,34 +43,11 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null
 
-        // ── Fallback: built-in admin (works even if DB is unreachable) ──
-        // This ensures login ALWAYS works on Vercel/production even if the
-        // database connection has issues. The admin can then fix the DB.
-        const FALLBACK_ADMINS = [
-          { id: "user-admin-demo", email: "admin@demo.com", name: "Admin", role: "ADMIN", password: "***REMOVED***" },
-          { id: "user-sales-demo", email: "sales@demo.com", name: "Sales", role: "SALES", password: "***REMOVED***" },
-          { id: "user-warehouse-demo", email: "warehouse@demo.com", name: "Warehouse", role: "WAREHOUSE", password: "***REMOVED***" },
-        ]
+        // ── Normal DB auth (fail-closed: no fallback) ──
+        // Authentication requires a live database connection. There is no
+        // hardcoded fallback admin — if the DB is unreachable, login fails
+        // (fail-closed) rather than granting access with a known password.
         const email = credentials.email.toLowerCase().trim()
-        const fallback = FALLBACK_ADMINS.find((u) => u.email === email)
-        if (fallback && credentials.password === fallback.password) {
-          // Try DB first — if it works, use the DB user (with hashed password)
-          try {
-            const dbUser = await db.user.findUnique({ where: { email } })
-            if (dbUser) {
-              const ok = await bcrypt.compare(credentials.password, dbUser.passwordHash)
-              if (ok) {
-                return { id: dbUser.id, email: dbUser.email, name: dbUser.name, role: dbUser.role } as any
-              }
-            }
-          } catch {
-            // DB unreachable — use fallback
-          }
-          // Fallback: return the built-in admin
-          return { id: fallback.id, email: fallback.email, name: fallback.name, role: fallback.role } as any
-        }
-
-        // ── Normal DB auth for non-fallback users ──
         try {
           const user = await db.user.findUnique({
             where: { email },
@@ -106,7 +83,7 @@ export const authOptions: NextAuthOptions = {
       return session
     },
   },
-  secret: process.env.NEXTAUTH_SECRET || "dev-secret-please-change-in-production",
+  secret: process.env.NEXTAUTH_SECRET,
 }
 
 export type AppRole = "ADMIN" | "SALES" | "WAREHOUSE"

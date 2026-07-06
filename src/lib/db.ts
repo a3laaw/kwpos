@@ -4,10 +4,13 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-// Hardcoded Supabase connection — always used, ignores env vars.
-// Use pooler (port 6543) with connection_limit=1 to prevent pool exhaustion
-// on Vercel serverless (each function invocation = 1 connection max).
-const SUPABASE_URL = "***REMOVED***:***REMOVED***@***REMOVED***:6543/postgres?pgbouncer=true&connection_limit=1"
+// Database connection is configured via the DATABASE_URL environment
+// variable (read by Prisma from prisma/schema.prisma). No hardcoded
+// credentials live in this file. Set DATABASE_URL + DIRECT_DATABASE_URL
+// in your environment (local .env, Vercel dashboard, etc.).
+//
+// Use the Supabase pooler (port 6543) with connection_limit=1 to
+// prevent pool exhaustion on Vercel serverless.
 
 if (globalForPrisma.prisma) {
   const hasPI = typeof (globalForPrisma.prisma as any).purchaseInvoice !== "undefined"
@@ -19,16 +22,9 @@ if (globalForPrisma.prisma) {
   }
 }
 
-// Force Prisma to use this URL via datasources override.
-// This takes precedence over both env vars AND schema.prisma url.
 export const db =
   globalForPrisma.prisma ??
   new PrismaClient({
-    datasources: {
-      db: {
-        url: SUPABASE_URL,
-      },
-    },
     log: process.env.NODE_ENV === 'production' ? ['error', 'warn'] : ['query'],
   })
 

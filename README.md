@@ -81,8 +81,11 @@ bun run dev
 أنشئ ملف `.env` في جذر المشروع (استخدم `.env.example` كقالب):
 
 ```env
-# قاعدة البيانات (SQLite — مسار نسبي من جذر المشروع)
-DATABASE_URL=file:./db/custom.db
+# قاعدة البيانات — PostgreSQL (Supabase)
+# الاتصال المجمّع (للتشغيل على Vercel)
+DATABASE_URL="postgresql://postgres:PASSWORD@db.PROJECT_REF.supabase.co:6543/postgres?pgbouncer=true&connection_limit=1"
+# الاتصال المباشر (لترحيل Prisma فقط)
+DIRECT_DATABASE_URL="postgresql://postgres:PASSWORD@db.PROJECT_REF.supabase.co:5432/postgres"
 
 # NextAuth — ولّده بـ: openssl rand -base64 32
 NEXTAUTH_SECRET=your-secret-here
@@ -93,7 +96,7 @@ SHOPIFY_STORE_DOMAIN=
 SHOPIFY_ACCESS_TOKEN=
 ```
 
-> ⚠️ **لا ترفع ملف `.env` إلى Git** —他已经 في `.gitignore`.
+> ⚠️ **تحذير أمني:** لا ترفع ملف `.env` إلى Git أبداً — يحتوي على أسرار قاعدة البيانات. الملف مُستبعد في `.gitignore`. في الإنتاج، عيّن متغيرات البيئة من لوحة تحكم Vercel (Project Settings → Environment Variables) وليس في `vercel.json`.
 
 ---
 
@@ -188,7 +191,7 @@ kwpos/
 | الإطار | Next.js 16 (App Router + Turbopack) |
 | اللغة | TypeScript 5 |
 | الواجهة | React 19 + Tailwind CSS 4 + shadcn/ui (Radix UI) |
-| قاعدة البيانات | Prisma ORM + SQLite |
+| قاعدة البيانات | Prisma ORM + PostgreSQL (Supabase) |
 | المصادقة | NextAuth.js v4 (JWT sessions) |
 | إدارة الحالة | TanStack Query (server) + Zustand (client UI) |
 | الرسوم البيانية | Recharts |
