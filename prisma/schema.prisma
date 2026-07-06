@@ -94,6 +94,11 @@ model Product {
   promotions   Promotion[]
   priceChanges PriceChange[]
   purchaseInvoiceItems PurchaseInvoiceItem[]
+
+  @@index([categoryId])
+  @@index([supplierId])
+  @@index([barcode])
+  @@index([name])
 }
 
 // Multiple warehouses
@@ -120,6 +125,7 @@ model StockItem {
   warehouse   Warehouse  @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
 
   @@unique([productId, warehouseId])
+  @@index([warehouseId])
 }
 
 model PurchaseOrder {
@@ -148,6 +154,10 @@ model PurchaseOrder {
   warehouse   Warehouse?           @relation("POWarehouse", fields: [warehouseId], references: [id], onDelete: SetNull)
   items       PurchaseOrderItem[]
   purchaseInvoices PurchaseInvoice[]
+
+  @@index([supplierId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model PurchaseOrderItem {
@@ -165,6 +175,9 @@ model PurchaseOrderItem {
 
   purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
   product         Product       @relation(fields: [productId], references: [id])
+
+  @@index([purchaseOrderId])
+  @@index([productId])
 }
 
 model Sale {
@@ -190,6 +203,11 @@ model Sale {
   user         User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
   customer     Customer?  @relation(fields: [customerId], references: [id], onDelete: SetNull)
   items        SaleItem[]
+
+  @@index([createdAt])
+  @@index([userId])
+  @@index([customerId])
+  @@index([paymentMethod])
 }
 
 model SaleItem {
@@ -203,6 +221,9 @@ model SaleItem {
 
   sale      Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
   product   Product  @relation(fields: [productId], references: [id])
+
+  @@index([saleId])
+  @@index([productId])
 }
 
 // ─── MODULE 1: Accounting ───────────────────────────────────────────
@@ -221,6 +242,9 @@ model Account {
   children  Account[] @relation("AccountTree")
   expenses  ExpenseTransaction[]
   journalLines JournalLine[]
+
+  @@index([parentId])
+  @@index([type])
 }
 
 // Salaries & Administrative expenses ledger entries
@@ -242,6 +266,10 @@ model ExpenseTransaction {
   createdAt        DateTime @default(now())
 
   account          Account  @relation(fields: [accountId], references: [id])
+
+  @@index([accountId])
+  @@index([type])
+  @@index([date])
 }
 
 // ─── MODULE 2: Minimal Customer CRM ─────────────────────────────────
@@ -254,6 +282,8 @@ model Customer {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   sales     Sale[]
+
+  @@index([phone])
 }
 
 // ─── Settings (key-value) — active country, currency, tax ───────────
@@ -278,6 +308,9 @@ model JournalEntry {
 
   lines       JournalLine[]
   purchaseInvoices PurchaseInvoice[]
+
+  @@index([sourceType])
+  @@index([date])
 }
 
 model JournalLine {
@@ -290,6 +323,9 @@ model JournalLine {
 
   journalEntry   JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
   account        Account      @relation(fields: [accountId], references: [id])
+
+  @@index([journalEntryId])
+  @@index([accountId])
 }
 
 // ─── MODULE 3: Shift Closing & Cash/Terminal Reconciliation ─────────
@@ -320,6 +356,10 @@ model Shift {
   createdAt    DateTime @default(now())
 
   user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([status])
+  @@index([openedAt])
 }
 
 // ─── MODULE 4: Blind Spot-Check Inventory ───────────────────────────
@@ -339,6 +379,10 @@ model SpotCheck {
 
   product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([productId])
+  @@index([userId])
+  @@index([createdAt])
 }
 
 // ─── MODULE 5: Suspended / Parked Sales ─────────────────────────────
@@ -357,6 +401,10 @@ model SuspendedSale {
   status        String   @default("PARKED") // PARKED | RESUMED | DISCARDED
 
   user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 // ─── MODULE 6: Exchange / Swap Sales ────────────────────────────────
@@ -394,6 +442,9 @@ model ExchangeLine {
 
   exchange      ExchangeSale @relation(fields: [exchangeId], references: [id], onDelete: Cascade)
   product       Product  @relation(fields: [productId], references: [id])
+
+  @@index([exchangeId])
+  @@index([productId])
 }
 
 // ─── MODULE 7: Pricing Engine — Promotions + Audit Log ──────────────
@@ -421,6 +472,10 @@ model Promotion {
 
   product         Product?  @relation(fields: [productId], references: [id], onDelete: Cascade)
   createdBy       User?     @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([productId])
+  @@index([isActive])
+  @@index([startAt, endAt])
 }
 
 // Immutable audit log of every sale-price change. Once written, a row can
@@ -437,6 +492,9 @@ model PriceChange {
 
   product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   changedBy    User?    @relation(fields: [changedById], references: [id], onDelete: SetNull)
+
+  @@index([productId])
+  @@index([changedAt])
 }
 
 // ─── MODULE 8: Purchase Invoices / GRN ──────────────────────────────

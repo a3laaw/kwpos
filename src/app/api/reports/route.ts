@@ -8,6 +8,10 @@ export const dynamic = "force-dynamic"
  * Unified, filterable reports endpoint.
  * Filters: from, to, productId, categoryId, paymentMethod, source (POS|SHOPIFY)
  * Returns: summary KPIs + grouped breakdown (by day, by product, by category)
+ *
+ * Performance: uses DB-side aggregates/groupBy instead of fetching all sales
+ * and reducing in JS. Removed dead saleItems query and `include: { user: true }`
+ * (which leaked passwordHash).
  */
 export async function GET(req: NextRequest) {
   const user = await getCurrentUser()
@@ -19,9 +23,8 @@ export async function GET(req: NextRequest) {
   const productId = searchParams.get("productId") || undefined
   const categoryId = searchParams.get("categoryId") || undefined
   const paymentMethod = searchParams.get("paymentMethod") || undefined
-  const source = searchParams.get("source") || undefined // POS | SHOPIFY
+  const source = searchParams.get("source") || undefined
 
-  // Build date filter
   const dateFilter: any = {}
   if (from) dateFilter.gte = new Date(from)
   if (to) {
@@ -30,100 +33,119 @@ export async function GET(req: NextRequest) {
     dateFilter.lte = t
   }
 
-  // Build sale where clause
   const saleWhere: any = {}
   if (Object.keys(dateFilter).length) saleWhere.createdAt = dateFilter
   if (paymentMethod) saleWhere.paymentMethod = paymentMethod
   if (source === "POS") saleWhere.invoiceNo = { not: { startsWith: "SHP-" } }
   if (source === "SHOPIFY") saleWhere.invoiceNo = { startsWith: "SHP-" }
 
-  // Sale item filter (for productId / categoryId)
-  const itemFilter: any = {}
-  if (productId) itemFilter.productId = productId
-  if (categoryId) itemFilter.product = { categoryId }
+  // Sale item filter
+  const itemWhere: any = {}
+  if (productId) itemWhere.productId = productId
+  if (categoryId) itemWhere.product = { categoryId }
 
-  const [sales, saleItems, products, categories] = await Promise.all([
+  // ── DB-side aggregates (parallel) ──
+  const [
+    summaryAgg,
+    itemsSoldAgg,
+    byProductRows,
+    byCategoryRows,
+    byDayRows,
+    byPaymentRows,
+    products,
+    categories,
+  ] = await Promise.all([
+    // KPI summary: revenue, discount, tax, count, avg
+    db.sale.aggregate({
+      where: saleWhere,
+      _sum: { total: true, discount: true, taxAmount: true },
+      _count: true,
+      _avg: { total: true },
+    }),
+    // Items sold (sum of quantity across matched items)
+    db.saleItem.aggregate({
+      where: { sale: saleWhere, ...itemWhere },
+      _sum: { quantity: true },
+    }),
+    // By product (DB groupBy)
+    db.saleItem.groupBy({
+      by: ["productId"],
+      where: { sale: saleWhere, ...itemWhere },
+      _sum: { quantity: true, subtotal: true },
+    }),
+    // By category (DB groupBy via product relation)
+    db.saleItem.groupBy({
+      by: ["productId"],
+      where: { sale: saleWhere, ...itemWhere },
+      _sum: { quantity: true, subtotal: true },
+    }),
+    // By day — fetch lightweight sale rows for day grouping (fewer cols)
     db.sale.findMany({
       where: saleWhere,
-      include: {
-        items: itemFilter.productId || itemFilter.product
-          ? { where: itemFilter, include: { product: { include: { category: true } } } }
-          : { include: { product: { include: { category: true } } } },
-        user: true,
-      },
-      orderBy: { createdAt: "desc" },
+      select: { total: true, createdAt: true },
     }),
-    db.saleItem.findMany({
-      where: {
-        sale: saleWhere,
-        ...(itemFilter.productId ? { productId: itemFilter.productId } : {}),
-        ...(itemFilter.product ? { product: { categoryId } } : {}),
-      },
-      include: { product: { include: { category: true } } },
+    // By payment method (DB groupBy)
+    db.sale.groupBy({
+      by: ["paymentMethod"],
+      where: saleWhere,
+      _count: true,
+      _sum: { total: true },
     }),
-    db.product.findMany({ include: { category: true }, orderBy: { name: "asc" } }),
-    db.category.findMany({ orderBy: { name: "asc" } }),
+    // Catalog for filter dropdowns
+    db.product.findMany({ select: { id: true, name: true, categoryId: true }, orderBy: { name: "asc" } }),
+    db.category.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ])
 
-  // Summary KPIs
-  let totalRevenue = 0
-  let totalCost = 0
-  let totalDiscount = 0
-  let totalTax = 0
-  let salesCount = sales.length
-  let itemsSold = 0
+  // Resolve product names + categories + cost prices for the byProduct groupBy
+  const productIds = byProductRows.map((r) => r.productId)
+  const productMeta = productIds.length
+    ? await db.product.findMany({
+        where: { id: { in: productIds } },
+        select: { id: true, name: true, costPrice: true, categoryId: true, category: { select: { name: true } } },
+      })
+    : []
+  const metaMap = new Map(productMeta.map((p) => [p.id, p]))
 
-  // Group by product
-  const productMap = new Map<
-    string,
-    { name: string; category: string; qty: number; revenue: number; cost: number }
-  >()
-  // Group by category
+  // Build byProduct + byCategory in one pass
+  const productMap = new Map<string, { name: string; category: string; qty: number; revenue: number; cost: number }>()
   const categoryMap = new Map<string, { qty: number; revenue: number; cost: number }>()
-  // Group by day
+  for (const row of byProductRows) {
+    const meta = metaMap.get(row.productId)
+    const name = meta?.name || "—"
+    const cat = meta?.category?.name || "غير مصنف"
+    const qty = Number(row._sum.quantity || 0)
+    const revenue = Number(row._sum.subtotal || 0)
+    const cost = qty * Number(meta?.costPrice ?? 0)
+    productMap.set(name, { name, category: cat, qty, revenue, cost })
+    const cm = categoryMap.get(cat) || { qty: 0, revenue: 0, cost: 0 }
+    cm.qty += qty
+    cm.revenue += revenue
+    cm.cost += cost
+    categoryMap.set(cat, cm)
+  }
+
+  // Build byDay
   const dayMap = new Map<string, { revenue: number; count: number }>()
-  // Group by payment method
-  const paymentMap = new Map<string, { count: number; revenue: number }>()
-
-  for (const s of sales) {
-    totalRevenue += Number(s.total)
-    totalDiscount += Number(s.discount)
-    totalTax += Number(s.taxAmount)
-    const pm = s.paymentMethod
-    const pc = paymentMap.get(pm) || { count: 0, revenue: 0 }
-    pc.count++
-    pc.revenue += Number(s.total)
-    paymentMap.set(pm, pc)
-
+  for (const s of byDayRows) {
     const dayKey = new Date(s.createdAt).toISOString().slice(0, 10)
     const dc = dayMap.get(dayKey) || { revenue: 0, count: 0 }
     dc.revenue += Number(s.total)
     dc.count++
     dayMap.set(dayKey, dc)
-
-    for (const it of s.items) {
-      const cost = Number(it.quantity) * Number(it.product?.costPrice ?? 0)
-      totalCost += cost
-      itemsSold += Number(it.quantity)
-      const pname = it.product?.name || "—"
-      const pcat = it.product?.category?.name || "غير مصنف"
-      const pm2 = productMap.get(pname) || { name: pname, category: pcat, qty: 0, revenue: 0, cost: 0 }
-      pm2.qty += Number(it.quantity)
-      pm2.revenue += Number(it.subtotal)
-      pm2.cost += cost
-      productMap.set(pname, pm2)
-
-      const cm = categoryMap.get(pcat) || { qty: 0, revenue: 0, cost: 0 }
-      cm.qty += Number(it.quantity)
-      cm.revenue += Number(it.subtotal)
-      cm.cost += cost
-      categoryMap.set(pcat, cm)
-    }
   }
 
+  // Summary KPIs
+  const totalRevenue = Number(summaryAgg._sum.total || 0)
+  const totalDiscount = Number(summaryAgg._sum.discount || 0)
+  const totalTax = Number(summaryAgg._sum.taxAmount || 0)
+  const salesCount = summaryAgg._count || 0
+  const itemsSold = Number(itemsSoldAgg._sum.quantity || 0)
+  const avgSale = summaryAgg._avg.total ? Number(summaryAgg._avg.total) : 0
+
+  // Items cost = sum(qty * costPrice) — computed above in productMap loop
+  const totalCost = Array.from(productMap.values()).reduce((a, p) => a + p.cost, 0)
   const grossProfit = totalRevenue - totalCost
   const marginPct = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0
-  const avgSale = salesCount > 0 ? totalRevenue / salesCount : 0
 
   return NextResponse.json({
     summary: {
@@ -159,10 +181,10 @@ export async function GET(req: NextRequest) {
     byDay: Array.from(dayMap.entries())
       .map(([date, v]) => ({ date, revenue: +v.revenue.toFixed(3), count: v.count }))
       .sort((a, b) => a.date.localeCompare(b.date)),
-    byPayment: Array.from(paymentMap.entries()).map(([method, v]) => ({
-      method,
-      count: v.count,
-      revenue: +v.revenue.toFixed(3),
+    byPayment: byPaymentRows.map((r) => ({
+      method: r.paymentMethod,
+      count: r._count,
+      revenue: +Number(r._sum.total || 0).toFixed(3),
     })),
     filters: {
       from,
@@ -172,8 +194,7 @@ export async function GET(req: NextRequest) {
       paymentMethod: paymentMethod || null,
       source: source || null,
     },
-    // Catalog for filter dropdowns
-    products: products.map((p) => ({ id: p.id, name: p.name, categoryId: p.categoryId })),
-    categories: categories.map((c) => ({ id: c.id, name: c.name })),
+    products,
+    categories,
   })
 }

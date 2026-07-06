@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
   if (warehouseId) where.stockItems = { some: { warehouseId } }
 
   let products = await db.product.findMany({
-    where,
+    where: lowStock ? { ...where, quantity: { lte: db.product.fields.reorderLevel } } : where,
     include: {
       category: true,
       supplier: true,
@@ -32,10 +32,6 @@ export async function GET(req: NextRequest) {
     },
     orderBy: { name: "asc" },
   })
-
-  if (lowStock) {
-    products = products.filter((p) => p.quantity <= p.reorderLevel)
-  }
 
   return NextResponse.json({ items: products.map(serializeProduct) })
 }
