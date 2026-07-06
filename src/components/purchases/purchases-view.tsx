@@ -14,6 +14,7 @@ import {
 } from "@/components/purchases/purchase-invoice-dialog"
 import { PurchaseInvoicesView } from "@/components/purchases/purchase-invoices-view"
 import { SupplierPaymentsView } from "@/components/purchases/supplier-payments-view"
+import { PurchaseReturnDialog } from "@/components/purchases/purchase-return-dialog"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -64,6 +65,7 @@ import {
   Sparkles,
   FileText,
   Wallet,
+  RotateCcw,
 } from "lucide-react"
 import {
   Dialog,
@@ -108,6 +110,7 @@ export function PurchasesView() {
   const [detail, setDetail] = React.useState<PurchaseOrder | null>(null)
   const [receiveTarget, setReceiveTarget] = React.useState<PurchaseOrder | null>(null)
   const [cancelTarget, setCancelTarget] = React.useState<PurchaseOrder | null>(null)
+  const [returnTarget, setReturnTarget] = React.useState<PurchaseOrder | null>(null)
   const [autoDraftOpen, setAutoDraftOpen] = React.useState(false)
   const [autoDraftSupplier, setAutoDraftSupplier] = React.useState("")
   // Purchase-invoice dialog (used by the "Receive & Create Invoice" action
@@ -407,6 +410,15 @@ export function PurchasesView() {
                                     </DropdownMenuItem>
                                   </>
                                 )}
+                                {canManage && po.status === "RECEIVED" && (
+                                  <DropdownMenuItem
+                                    onClick={() => setReturnTarget(po)}
+                                    className="gap-2 text-amber-600 focus:text-amber-600"
+                                  >
+                                    <RotateCcw className="h-4 w-4" />
+                                    {t.newPurchaseReturn}
+                                  </DropdownMenuItem>
+                                )}
                                 {canManage && po.status !== "RECEIVED" && (
                                   <DropdownMenuItem
                                     onClick={() => handleDelete(po.id)}
@@ -683,6 +695,13 @@ export function PurchasesView() {
         open={piOpen}
         onOpenChange={setPiOpen}
         prefill={piPrefill}
+      />
+
+      {/* Purchase-return dialog (opened from a RECEIVED PO) */}
+      <PurchaseReturnDialog
+        open={!!returnTarget}
+        onOpenChange={(o) => !o && setReturnTarget(null)}
+        po={returnTarget}
       />
     </div>
   )

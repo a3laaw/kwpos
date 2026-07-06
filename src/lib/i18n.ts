@@ -1573,6 +1573,22 @@ export interface Dict {
   statementBalance: string
   statementReference: string
   statementDescription: string
+  // Purchase returns (مرتجعات المشتريات)
+  purchaseReturnsTitle: string
+  purchaseReturnsDesc: string
+  newPurchaseReturn: string
+  returnFromPO: string
+  returnableQty: string
+  returnTotal: string
+  returnNo: string
+  noPurchaseReturns: string
+  purchaseReturnCreated: string
+  purchaseReturnCreateFailed: string
+  approveReturn: string
+  returnOriginalQty: string
+  returnAvailable: string
+  returnFullyReturned: string
+  returnSelectQty: string
   piTitle: string
   piDesc: string
   piNew: string
@@ -3165,6 +3181,21 @@ export const DICTS: Record<Locale, Dict> = {
     statementBalance: "الرصيد",
     statementReference: "المرجع",
     statementDescription: "البيان",
+    purchaseReturnsTitle: "مرتجعات المشتريات",
+    purchaseReturnsDesc: "إرجاع بضاعة لمورد مقابل أمر شراء مستلم — يخصم المخزون وينشئ قيدًا محاسبيًا عكسيًا",
+    newPurchaseReturn: "مرتجع جديد",
+    returnFromPO: "مرتجع من أمر شراء",
+    returnableQty: "الكمية المتاحة للإرجاع",
+    returnTotal: "إجمالي المرتجع",
+    returnNo: "رقم المرتجع",
+    noPurchaseReturns: "لا توجد مرتجعات مشتريات بعد",
+    purchaseReturnCreated: "تم اعتماد مرتجع المشتريات",
+    purchaseReturnCreateFailed: "فشل اعتماد المرتجع",
+    approveReturn: "اعتماد المرتجع",
+    returnOriginalQty: "الأصلي",
+    returnAvailable: "المتاح",
+    returnFullyReturned: "مرتجع كامل",
+    returnSelectQty: "حدد كمية مرتجعة",
     piTitle: "فواتير المشتريات",
     piDesc: "فواتير المشتريات وسندات استلام البضاعة",
     piNew: "فاتورة جديدة",
@@ -4755,6 +4786,21 @@ export const DICTS: Record<Locale, Dict> = {
     statementBalance: "Balance",
     statementReference: "Reference",
     statementDescription: "Description",
+    purchaseReturnsTitle: "Purchase Returns",
+    purchaseReturnsDesc: "Return goods to a supplier against a received PO — deducts inventory and creates a reversing journal entry",
+    newPurchaseReturn: "New Return",
+    returnFromPO: "Return from PO",
+    returnableQty: "Returnable Qty",
+    returnTotal: "Return Total",
+    returnNo: "Return No.",
+    noPurchaseReturns: "No purchase returns yet",
+    purchaseReturnCreated: "Purchase return approved",
+    purchaseReturnCreateFailed: "Failed to approve return",
+    approveReturn: "Approve Return",
+    returnOriginalQty: "Original",
+    returnAvailable: "Available",
+    returnFullyReturned: "Fully returned",
+    returnSelectQty: "Select return quantity",
     piTitle: "Purchase Invoices",
     piDesc: "Purchase invoices and goods receipt notes",
     piNew: "New Invoice",

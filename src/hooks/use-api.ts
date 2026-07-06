@@ -24,6 +24,8 @@ import type {
   SupplierPayment,
   SupplierBalance,
   SupplierStatement,
+  PurchaseReturn,
+  CreatePurchaseReturnBody,
 } from "@/lib/types"
 import type { CountryConfig } from "@/lib/countries"
 
@@ -1366,6 +1368,36 @@ export function useSupplierStatement(
     queryKey: ["supplier-statement", supplierId, from, to],
     queryFn: () => jget(`/api/suppliers/${supplierId}/statement${s ? `?${s}` : ""}`),
     enabled: !!supplierId,
+  })
+}
+
+/* ----------------------------- Purchase Returns --------------------- */
+/** List all purchase returns (newest first). */
+export function usePurchaseReturns() {
+  return useQuery<{ items: PurchaseReturn[] }>({
+    queryKey: ["purchase-returns"],
+    queryFn: () => jget("/api/purchase-returns"),
+  })
+}
+
+/** Create a purchase return (ADMIN/WAREHOUSE). Deducts inventory, bumps
+ *  POItem.returnedQty, creates a reversing journal entry server-side. */
+export function useCreatePurchaseReturn() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: CreatePurchaseReturnBody) =>
+      jsend<PurchaseReturn & { returnTotal: number; journalEntryId?: string | null }>(
+        "/api/purchase-returns",
+        "POST",
+        body
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["purchase-returns"] })
+      qc.invalidateQueries({ queryKey: ["purchase-orders"] })
+      qc.invalidateQueries({ queryKey: ["products"] })
+      qc.invalidateQueries({ queryKey: ["supplier-balances"] })
+      qc.invalidateQueries({ queryKey: ["dashboard"] })
+    },
   })
 }
 

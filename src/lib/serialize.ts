@@ -90,6 +90,7 @@ export function serializePoItem(i: AnyRow): PurchaseOrderItem {
     productId: String(i.productId),
     productName: (i.product as any)?.name ?? "—",
     quantity: Number(i.quantity ?? 0),
+    returnedQty: Number(i.returnedQty ?? 0),
     unitCost: Number(i.unitCost ?? 0),
     subtotal: Number(i.subtotal ?? 0),
     suggestedSalePrice: Number(i.suggestedSalePrice ?? 0),

@@ -30,6 +30,7 @@ model User {
   priceChanges PriceChange[]
   purchaseInvoices PurchaseInvoice[]
   supplierPayments SupplierPayment[]
+  purchaseReturns PurchaseReturn[]
 }
 
 model Category {
@@ -62,6 +63,7 @@ model Supplier {
   orders    PurchaseOrder[]
   purchaseInvoices PurchaseInvoice[]
   payments  SupplierPayment[]
+  purchaseReturns PurchaseReturn[]
 }
 
 // ─── MODULE 9: Supplier Payments (سداد الموردين) ────────────────────
@@ -123,6 +125,7 @@ model Product {
   promotions   Promotion[]
   priceChanges PriceChange[]
   purchaseInvoiceItems PurchaseInvoiceItem[]
+  purchaseReturnItems PurchaseReturnItem[]
 
   @@index([categoryId])
   @@index([supplierId])
@@ -183,6 +186,7 @@ model PurchaseOrder {
   warehouse   Warehouse?           @relation("POWarehouse", fields: [warehouseId], references: [id], onDelete: SetNull)
   items       PurchaseOrderItem[]
   purchaseInvoices PurchaseInvoice[]
+  purchaseReturns PurchaseReturn[]
 
   @@index([supplierId])
   @@index([status])
@@ -201,11 +205,56 @@ model PurchaseOrderItem {
   // flow writes a PriceChange audit row + updates the product's salePrice
   // via the pricing engine (instead of editing the product directly).
   suggestedSalePrice Float     @default(0)
+  // Cumulative quantity returned to the supplier via PurchaseReturn records.
+  // returnableQty = quantity − returnedQty.
+  returnedQty     Int          @default(0)
 
   purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
   product         Product       @relation(fields: [productId], references: [id])
 
   @@index([purchaseOrderId])
+  @@index([productId])
+}
+
+// ─── MODULE 10: Purchase Returns (مرتجعات المشتريات) ────────────────
+// Records goods returned to a supplier against a RECEIVED purchase order.
+// Each return decrements inventory, bumps PurchaseOrderItem.returnedQty,
+// and generates a reversing journal entry (debit 2010 AP / credit 1010
+// Inventory).
+model PurchaseReturn {
+  id              String   @id @default(cuid())
+  returnNo        String   @unique
+  purchaseOrderId String
+  supplierId      String
+  total           Float    @default(0)
+  note            String?
+  status          String   @default("APPROVED") // APPROVED | CANCELLED
+  createdById     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  purchaseOrder   PurchaseOrder       @relation(fields: [purchaseOrderId], references: [id])
+  supplier        Supplier            @relation(fields: [supplierId], references: [id])
+  createdBy       User?               @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  items           PurchaseReturnItem[]
+
+  @@index([purchaseOrderId])
+  @@index([supplierId])
+  @@index([createdAt])
+}
+
+model PurchaseReturnItem {
+  id                String   @id @default(cuid())
+  purchaseReturnId  String
+  productId         String
+  quantity          Int
+  unitCost          Float
+  subtotal          Float
+
+  purchaseReturn    PurchaseReturn @relation(fields: [purchaseReturnId], references: [id], onDelete: Cascade)
+  product           Product        @relation(fields: [productId], references: [id])
+
+  @@index([purchaseReturnId])
   @@index([productId])
 }
 

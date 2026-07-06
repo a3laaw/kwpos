@@ -64,6 +64,8 @@ export interface PurchaseOrderItem {
   productId: string
   productName: string
   quantity: number
+  /** Cumulative quantity returned to supplier via PurchaseReturn records. */
+  returnedQty: number
   unitCost: number
   subtotal: number
   /** Optional manager-suggested retail sale price (0 = not set). Applied
@@ -354,4 +356,34 @@ export interface SupplierStatement {
   paymentsTotal: number
   returnsTotal: number
   transactions: SupplierStatementTransaction[]
+}
+
+// ─── Purchase Returns (مرتجعات المشتريات) ──────────────────────────
+export interface PurchaseReturnItem {
+  id: string
+  productId: string
+  productName: string
+  quantity: number
+  unitCost: number
+  subtotal: number
+}
+
+export interface PurchaseReturn {
+  id: string
+  returnNo: string
+  purchaseOrderId: string
+  supplierId: string
+  supplierName: string
+  total: number
+  note: string | null
+  status: "APPROVED" | "CANCELLED"
+  items: PurchaseReturnItem[]
+  createdByName?: string | null
+  createdAt: string
+}
+
+export interface CreatePurchaseReturnBody {
+  purchaseOrderId: string
+  items: { poItemId: string; returnQty: number }[]
+  note?: string | null
 }
