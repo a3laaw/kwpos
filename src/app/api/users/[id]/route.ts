@@ -7,6 +7,19 @@ import type { Role } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
 
+/**
+ * Password strength validation.
+ * Rules: min 8 chars, at least 1 uppercase, 1 lowercase, 1 digit.
+ * Returns an error code (string) when invalid, or null when valid.
+ */
+function validatePasswordStrength(pwd: string): string | null {
+  if (typeof pwd !== "string" || pwd.length < 8) return "password-too-short"
+  if (!/[A-Z]/.test(pwd)) return "password-no-uppercase"
+  if (!/[a-z]/.test(pwd)) return "password-no-lowercase"
+  if (!/[0-9]/.test(pwd)) return "password-no-digit"
+  return null
+}
+
 /** PUT /api/users/[id] — update a user (ADMIN only) */
 export async function PUT(
   req: NextRequest,
@@ -37,7 +50,14 @@ export async function PUT(
     }
   }
   if (name?.trim()) data.name = name.trim()
-  if (password?.trim()) data.passwordHash = bcrypt.hashSync(password, 10)
+  if (password?.trim()) {
+    // Validate password strength before hashing
+    const pwdError = validatePasswordStrength(password)
+    if (pwdError) {
+      return NextResponse.json({ error: pwdError }, { status: 400 })
+    }
+    data.passwordHash = await bcrypt.hash(password, 10)
+  }
   if (role) {
     const validRoles = ["ADMIN", "SALES", "WAREHOUSE"]
     if (!validRoles.includes(role)) {

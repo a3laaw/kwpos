@@ -63,6 +63,7 @@ import type { Product, Sale, CustomerTier } from "@/lib/types"
 import { effectivePrice } from "@/lib/types"
 import { computeEffectivePrice, promotionAppliesTo } from "@/lib/pricing"
 import { cn } from "@/lib/utils"
+import { Toggle } from "@/components/ui/toggle"
 import { SaleConfirmDialog, type SaleConfirmSummary } from "@/components/sales/sale-confirm-dialog"
 import { useT } from "@/components/i18n-context"
 
@@ -99,6 +100,27 @@ export function SalesView() {
   const [customerPhone, setCustomerPhone] = React.useState("")
   const [customerFound, setCustomerFound] = React.useState<{ name: string; address: string; type?: CustomerTier } | null>(null)
   const [lastSale, setLastSale] = React.useState<Sale | null>(null)
+
+  // ── Auto-print toggle (persisted in localStorage) ──
+  // When ON, the thermal receipt is printed automatically ~500ms after a
+  // successful sale (gives the receipt dialog time to render its content
+  // before printThermalReceipt walks the DOM).
+  const [autoPrint, setAutoPrint] = React.useState<boolean>(false)
+  React.useEffect(() => {
+    try {
+      setAutoPrint(localStorage.getItem("posAutoPrint") === "true")
+    } catch {
+      setAutoPrint(false)
+    }
+  }, [])
+  const toggleAutoPrint = React.useCallback((on: boolean) => {
+    setAutoPrint(on)
+    try {
+      localStorage.setItem("posAutoPrint", on ? "true" : "false")
+    } catch {
+      // ignore localStorage failures (private mode, etc.)
+    }
+  }, [])
 
   // ── Delivery service ──
   const [deliveryEnabled, setDeliveryEnabled] = React.useState(false)
@@ -503,6 +525,18 @@ export function SalesView() {
       })
       setLastSale(sale)
       clearCart()
+      // Auto-print: when the toggle is ON, fire the thermal receipt print
+      // after a short delay so the receipt dialog has time to mount its DOM
+      // (printThermalReceipt reads the rendered receipt contents).
+      if (autoPrint) {
+        setTimeout(() => {
+          try {
+            printThermalReceipt(sale)
+          } catch {
+            // ignore — user can still click the manual print button
+          }
+        }, 500)
+      }
     } catch (err: any) {
       // Stale session (e.g. after re-seed) — auto-logout so user can re-login.
       if (err?.message === "session-expired") {
@@ -535,6 +569,19 @@ export function SalesView() {
         title={t.posTitle}
         description={t.posDesc}
         icon={<Calculator className="h-5 w-5" />}
+        actions={
+          <Toggle
+            pressed={autoPrint}
+            onPressedChange={(v) => toggleAutoPrint(v)}
+            variant="outline"
+            size="sm"
+            aria-label={t.posAutoPrint}
+            className="gap-1.5"
+          >
+            <Printer className="h-3.5 w-3.5" />
+            <span className="text-xs">{t.posAutoPrint}</span>
+          </Toggle>
+        }
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">

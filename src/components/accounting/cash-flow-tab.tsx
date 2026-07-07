@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { TableSkeleton } from "@/components/shared/loading-state"
+import { ExportToolbar } from "@/components/shared/export-toolbar"
 import { ArrowDownCircle, ArrowUpCircle, Wallet } from "lucide-react"
 import { useCashFlow } from "@/hooks/use-api"
 import { useT } from "@/components/i18n-context"
@@ -31,17 +32,39 @@ export function CashFlowTab() {
   const totalIn = (data?.inflows || []).reduce((s, i) => s + i.amount, 0)
   const totalOut = (data?.outflows || []).reduce((s, o) => s + o.amount, 0)
 
+  // Export rows: opening, each inflow (+), each outflow (−), closing.
+  const exportHeaders = [t.statementDate, t.statementType, t.statementDescription, t.accInflows]
+  const exportRows: any[][] = []
+  exportRows.push(["", t.accOpeningCash, "", fmt.currency(data?.openingCash || 0)])
+  for (const i of data?.inflows ?? []) {
+    exportRows.push(["", t.accInflows, SOURCE_LABEL[i.source] || i.source, fmt.currency(i.amount)])
+  }
+  exportRows.push(["", t.accInflows, t.accNetCashFlow, fmt.currency(totalIn)])
+  for (const o of data?.outflows ?? []) {
+    exportRows.push(["", t.accOutflows, SOURCE_LABEL[o.source] || o.source, fmt.currency(-o.amount)])
+  }
+  exportRows.push(["", t.accOutflows, t.accNetCashFlow, fmt.currency(-totalOut)])
+  exportRows.push(["", t.accClosingCash, "", fmt.currency(data?.closingCash || 0)])
+
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3 max-w-md">
-        <div className="space-y-1">
-          <Label className="text-xs">{t.statementFrom}</Label>
-          <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} dir="ltr" className="h-9 text-end" />
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+        <div className="grid grid-cols-2 gap-3 max-w-md">
+          <div className="space-y-1">
+            <Label className="text-xs">{t.statementFrom}</Label>
+            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} dir="ltr" className="h-9 text-end" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">{t.statementTo}</Label>
+            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} dir="ltr" className="h-9 text-end" />
+          </div>
         </div>
-        <div className="space-y-1">
-          <Label className="text-xs">{t.statementTo}</Label>
-          <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} dir="ltr" className="h-9 text-end" />
-        </div>
+        <ExportToolbar
+          title={t.accCashFlow}
+          headers={exportHeaders}
+          rows={exportRows}
+          filename={`cash-flow-${from || "all"}-${to || "now"}`}
+        />
       </div>
 
       <div className="grid sm:grid-cols-3 gap-3">

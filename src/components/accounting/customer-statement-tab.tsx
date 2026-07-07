@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { TableSkeleton } from "@/components/shared/loading-state"
 import { EmptyState } from "@/components/shared/empty-state"
+import { ExportToolbar } from "@/components/shared/export-toolbar"
 import { User2 } from "lucide-react"
 import { useCustomers, useCustomerStatement } from "@/hooks/use-api"
 import { useT } from "@/components/i18n-context"
@@ -31,26 +32,47 @@ export function CustomerStatementTab() {
     to || undefined
   )
 
+  // Export rows (only meaningful when a customer is selected and data loaded)
+  const exportHeaders = [t.statementDate, t.statementType, t.statementReference, t.statementDebit, t.statementCredit, t.statementBalance]
+  const exportRows: any[][] = (data?.transactions ?? []).map((tx) => [
+    new Date(tx.date).toLocaleDateString("en-GB"),
+    tx.type === "SALE" ? t.statementInvoice : t.statementReturn,
+    tx.referenceNo,
+    tx.debit > 0 ? fmt.currency(tx.debit) : "",
+    tx.credit > 0 ? fmt.currency(tx.credit) : "",
+    fmt.currency(tx.balance),
+  ])
+
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        <div className="space-y-1 col-span-2 sm:col-span-1">
-          <Label className="text-xs">{t.accCustomerStatement}</Label>
-          <Select value={customerId} onValueChange={setCustomerId}>
-            <SelectTrigger className="h-9"><SelectValue placeholder="—" /></SelectTrigger>
-            <SelectContent>
-              {customers.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 flex-1">
+          <div className="space-y-1 col-span-2 sm:col-span-1">
+            <Label className="text-xs">{t.accCustomerStatement}</Label>
+            <Select value={customerId} onValueChange={setCustomerId}>
+              <SelectTrigger className="h-9"><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectContent>
+                {customers.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">{t.statementFrom}</Label>
+            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} dir="ltr" className="h-9 text-end" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">{t.statementTo}</Label>
+            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} dir="ltr" className="h-9 text-end" />
+          </div>
         </div>
-        <div className="space-y-1">
-          <Label className="text-xs">{t.statementFrom}</Label>
-          <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} dir="ltr" className="h-9 text-end" />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs">{t.statementTo}</Label>
-          <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} dir="ltr" className="h-9 text-end" />
-        </div>
+        {customerId && data ? (
+          <ExportToolbar
+            title={`${t.accCustomerStatement} - ${data.customer.name}`}
+            headers={exportHeaders}
+            rows={exportRows}
+            filename={`customer-statement-${data.customer.name}-${from || "all"}-${to || "now"}`}
+          />
+        ) : null}
       </div>
 
       {!customerId ? (

@@ -12,6 +12,7 @@ import { BalanceSheetTab } from "@/components/accounting/balance-sheet-tab"
 import { CashFlowTab } from "@/components/accounting/cash-flow-tab"
 import { CustomerStatementTab } from "@/components/accounting/customer-statement-tab"
 import { VatReportTab } from "@/components/accounting/vat-report-tab"
+import { GeneralLedgerTab } from "@/components/accounting/general-ledger-tab"
 import { useT } from "@/components/i18n-context"
 import { useModuleTab } from "@/lib/module-tab-store"
 import type { Dict } from "@/lib/i18n"
@@ -26,6 +27,7 @@ type AccTab =
   | "cashflow"
   | "customer-statement"
   | "vat"
+  | "general-ledger"
 
 const TAB_LABELS: Record<AccTab, keyof Dict> = {
   accounts: "accJournalLedger",
@@ -37,6 +39,7 @@ const TAB_LABELS: Record<AccTab, keyof Dict> = {
   cashflow: "accCashFlow",
   "customer-statement": "accCustomerStatement",
   vat: "accVatReport",
+  "general-ledger": "generalLedger",
 }
 
 export function AccountingView() {
@@ -68,6 +71,7 @@ export function AccountingView() {
       {tab === "cashflow" && <CashFlowTab />}
       {tab === "customer-statement" && <CustomerStatementTab />}
       {tab === "vat" && <VatReportTab />}
+      {tab === "general-ledger" && <GeneralLedgerTab />}
     </div>
   )
 }

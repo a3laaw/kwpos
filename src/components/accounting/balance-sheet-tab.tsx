@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { TableSkeleton } from "@/components/shared/loading-state"
 import { EmptyState } from "@/components/shared/empty-state"
+import { ExportToolbar } from "@/components/shared/export-toolbar"
 import { CheckCircle2, XCircle } from "lucide-react"
 import { useBalanceSheet } from "@/hooks/use-api"
 import { useT } from "@/components/i18n-context"
@@ -63,14 +64,39 @@ export function BalanceSheetTab() {
     ? Math.abs(data.totals.assets - (data.totals.liabilities + data.totals.equity)) < 0.01
     : false
 
+  // Build export rows: section label + code + name + balance, with section
+  // totals interleaved. Keeps the exported file readable in Excel/PDF.
+  const exportHeaders = [t.accBalanceSheet, t.accCode, t.accAccountName, t.accAssets]
+  const exportRows: any[][] = []
+  for (const r of data?.assets.rows ?? []) {
+    exportRows.push([t.accAssets, r.code, r.name, fmt.currency(r.balance)])
+  }
+  if (data) exportRows.push([t.accAssets, "", t.accAssets, fmt.currency(data.assets.total)])
+  for (const r of data?.liabilities.rows ?? []) {
+    exportRows.push([t.accLiabilities, r.code, r.name, fmt.currency(r.balance)])
+  }
+  if (data) exportRows.push([t.accLiabilities, "", t.accLiabilities, fmt.currency(data.liabilities.total)])
+  for (const r of data?.equity.rows ?? []) {
+    exportRows.push([t.accEquity, r.code, r.name, fmt.currency(r.balance)])
+  }
+  if (data) exportRows.push([t.accEquity, "", t.accEquity, fmt.currency(data.equity.total)])
+
   return (
     <div className="space-y-4">
-      <div className={cn("rounded-lg p-3 flex items-center gap-2", balanced ? "bg-emerald-500/10 text-emerald-700" : "bg-rose-500/10 text-rose-700")}>
-        {balanced ? <CheckCircle2 className="h-5 w-5" /> : <XCircle className="h-5 w-5" />}
-        <span className="font-bold">{balanced ? t.accBalanceSheetBalanced : t.accBalanceSheetNotBalanced}</span>
-        <Badge variant="outline" className="ms-auto tabular-nums">
-          {t.accAssets}: {fmt.currency(data?.totals.assets || 0)} = {t.accLiabilities} + {t.accEquity}: {fmt.currency((data?.totals.liabilities || 0) + (data?.totals.equity || 0))}
-        </Badge>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className={cn("rounded-lg p-3 flex items-center gap-2 flex-1", balanced ? "bg-emerald-500/10 text-emerald-700" : "bg-rose-500/10 text-rose-700")}>
+          {balanced ? <CheckCircle2 className="h-5 w-5" /> : <XCircle className="h-5 w-5" />}
+          <span className="font-bold">{balanced ? t.accBalanceSheetBalanced : t.accBalanceSheetNotBalanced}</span>
+          <Badge variant="outline" className="ms-auto tabular-nums">
+            {t.accAssets}: {fmt.currency(data?.totals.assets || 0)} = {t.accLiabilities} + {t.accEquity}: {fmt.currency((data?.totals.liabilities || 0) + (data?.totals.equity || 0))}
+          </Badge>
+        </div>
+        <ExportToolbar
+          title={t.accBalanceSheet}
+          headers={exportHeaders}
+          rows={exportRows}
+          filename={`balance-sheet-${new Date().toISOString().slice(0, 10)}`}
+        />
       </div>
       <div className="grid lg:grid-cols-3 gap-4">
         <Section title={t.accAssets} rows={data?.assets.rows ?? []} total={data?.assets.total || 0} tone="text-primary" fmt={fmt} />

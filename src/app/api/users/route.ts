@@ -7,6 +7,19 @@ import type { Role } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
 
+/**
+ * Password strength validation.
+ * Rules: min 8 chars, at least 1 uppercase, 1 lowercase, 1 digit.
+ * Returns an error code (string) when invalid, or null when valid.
+ */
+function validatePasswordStrength(pwd: string): string | null {
+  if (typeof pwd !== "string" || pwd.length < 8) return "password-too-short"
+  if (!/[A-Z]/.test(pwd)) return "password-no-uppercase"
+  if (!/[a-z]/.test(pwd)) return "password-no-lowercase"
+  if (!/[0-9]/.test(pwd)) return "password-no-digit"
+  return null
+}
+
 /** GET /api/users — list all users (ADMIN only) */
 export async function GET() {
   const user = await getCurrentUser()
@@ -54,6 +67,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "email-name-password-required" }, { status: 400 })
   }
 
+  // Password strength: min 8 chars, 1 upper, 1 lower, 1 digit
+  const pwdError = validatePasswordStrength(password)
+  if (pwdError) {
+    return NextResponse.json({ error: pwdError }, { status: 400 })
+  }
+
   const validRoles = ["ADMIN", "SALES", "WAREHOUSE"]
   if (!validRoles.includes(role)) {
     return NextResponse.json({ error: "invalid-role" }, { status: 400 })
@@ -67,11 +86,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "email-exists" }, { status: 409 })
   }
 
+  const passwordHash = await bcrypt.hash(password, 10)
   const created = await db.user.create({
     data: {
       email: email.toLowerCase().trim(),
       name: name.trim(),
-      passwordHash: bcrypt.hashSync(password, 10),
+      passwordHash,
       role,
     },
     select: { id: true, email: true, name: true, role: true, createdAt: true },

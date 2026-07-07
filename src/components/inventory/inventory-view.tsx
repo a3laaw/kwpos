@@ -51,6 +51,7 @@ import { Breadcrumbs } from "@/components/shared/breadcrumbs"
 import { WarehouseManager } from "@/components/inventory/warehouse-manager"
 import { StockTakeTab } from "@/components/inventory/stock-take-tab"
 import { StockTransferTab } from "@/components/inventory/stock-transfer-tab"
+import { StockMovementReport } from "@/components/inventory/stock-movement-report"
 import { Warehouse as WarehouseIcon, ClipboardCheck, ArrowRightLeft } from "lucide-react"
 import { ExcelExportButton, ExcelImportButton } from "@/components/shared/excel-buttons"
 import { useProducts, useCategories, useDeleteProduct } from "@/hooks/use-api"
@@ -122,6 +123,7 @@ export function InventoryView() {
     warehouses: "warehouses",
     stocktake: "stockTakeTab",
     transfers: "stockTransferTab",
+    movements: "stockMovementTab",
   }
 
   return (
@@ -321,6 +323,7 @@ export function InventoryView() {
       {invTab === "warehouses" && <WarehouseManager />}
       {invTab === "stocktake" && <StockTakeTab />}
       {invTab === "transfers" && <StockTransferTab />}
+      {invTab === "movements" && <StockMovementReport />}
 
       <ProductFormDialog open={dialogOpen} onOpenChange={setDialogOpen} product={editing} />
       <ConfirmDialog

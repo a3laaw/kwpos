@@ -25,6 +25,7 @@ import { Loader2, Printer, FileText, Wallet, RotateCcw } from "lucide-react"
 import { useT } from "@/components/i18n-context"
 import { useFmt } from "@/components/currency-context"
 import { useSupplierStatement } from "@/hooks/use-api"
+import { ExportToolbar } from "@/components/shared/export-toolbar"
 
 interface SupplierStatementDialogProps {
   open: boolean
@@ -75,6 +76,21 @@ export function SupplierStatementDialog({
     }
   }
 
+  // Export rows
+  const exportHeaders = [t.statementDate, t.statementType, t.statementReference, t.statementDescription, t.statementDebit, t.statementCredit, t.statementBalance]
+  const exportRows: any[][] = txs.map((tx) => {
+    const m = typeMeta(tx.type)
+    return [
+      new Date(tx.date).toLocaleDateString("en-GB"),
+      m.label,
+      tx.referenceNo,
+      tx.description ?? "",
+      tx.debit > 0 ? fmt.currency(tx.debit) : "",
+      tx.credit > 0 ? fmt.currency(tx.credit) : "",
+      fmt.currency(tx.balance),
+    ]
+  })
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[900px] max-h-[90vh] flex flex-col">
@@ -88,30 +104,40 @@ export function SupplierStatementDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {/* Date filters */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <Label htmlFor="stmt-from" className="text-xs">{t.statementFrom}</Label>
-            <Input
-              id="stmt-from"
-              type="date"
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
-              dir="ltr"
-              className="text-end h-9"
-            />
+        {/* Date filters + export toolbar */}
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+          <div className="grid grid-cols-2 gap-3 flex-1">
+            <div className="space-y-1.5">
+              <Label htmlFor="stmt-from" className="text-xs">{t.statementFrom}</Label>
+              <Input
+                id="stmt-from"
+                type="date"
+                value={from}
+                onChange={(e) => setFrom(e.target.value)}
+                dir="ltr"
+                className="text-end h-9"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="stmt-to" className="text-xs">{t.statementTo}</Label>
+              <Input
+                id="stmt-to"
+                type="date"
+                value={to}
+                onChange={(e) => setTo(e.target.value)}
+                dir="ltr"
+                className="text-end h-9"
+              />
+            </div>
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="stmt-to" className="text-xs">{t.statementTo}</Label>
-            <Input
-              id="stmt-to"
-              type="date"
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-              dir="ltr"
-              className="text-end h-9"
+          {txs.length > 0 ? (
+            <ExportToolbar
+              title={`${t.supplierStatementTitle} - ${data?.supplier?.name ?? supplierName ?? ""}`}
+              headers={exportHeaders}
+              rows={exportRows}
+              filename={`supplier-statement-${data?.supplier?.name ?? supplierName ?? "supplier"}-${from || "all"}-${to || "now"}`}
             />
-          </div>
+          ) : null}
         </div>
 
         {/* Summary cards */}

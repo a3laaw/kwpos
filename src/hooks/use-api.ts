@@ -1532,6 +1532,35 @@ export function useVatReport(from?: string, to?: string) {
   })
 }
 
+export interface GeneralLedgerLine {
+  date: string
+  entryNo: string
+  description: string | null
+  debit: number
+  credit: number
+  balance: number
+}
+export interface GeneralLedger {
+  account: { id: string; code: string; name: string; type: string }
+  openingBalance: number
+  closingBalance: number
+  totalDebit: number
+  totalCredit: number
+  lines: GeneralLedgerLine[]
+}
+
+export function useGeneralLedger(accountId: string | null, from?: string, to?: string) {
+  const qs = new URLSearchParams()
+  if (from) qs.set("from", from)
+  if (to) qs.set("to", to)
+  const s = qs.toString()
+  return useQuery<GeneralLedger>({
+    queryKey: ["general-ledger", accountId, from, to],
+    queryFn: () => jget(`/api/financial-reports/general-ledger?accountId=${encodeURIComponent(accountId || "")}${s ? `&${s}` : ""}`),
+    enabled: !!accountId,
+  })
+}
+
 /* ----------------------------- Audit Logs --------------------------- */
 export function useAuditLogs(filters?: {
   action?: string

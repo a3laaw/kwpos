@@ -557,6 +557,7 @@ export interface Dict {
   thermalPrint: string
   thermalPrint80: string
   a4Print: string
+  posAutoPrint: string
 
   // Promotions / discounts
   discountType: string
@@ -1636,6 +1637,24 @@ export interface Dict {
   transferCreateFailed: string
   transferReceiveFailed: string
   transferSameWarehouse: string
+  // Stock movement report (تقرير حركة المخزون)
+  stockMovementTab: string
+  stockMovementReport: string
+  stockMovementDesc: string
+  movementTypeAll: string
+  movementQuantityChange: string
+  movementUser: string
+  movementTypeSale: string
+  movementTypeRefund: string
+  movementTypeExchange: string
+  movementTypePurchaseInvoice: string
+  movementTypePurchaseReturn: string
+  movementTypeTransferOut: string
+  movementTypeTransferIn: string
+  movementTypeStockTake: string
+  movementTypeSpotCheck: string
+  movementNoData: string
+  movementExportCsv: string
   // Audit log (سجل التدقيق)
   navAudit: string
   auditTitle: string
@@ -1673,6 +1692,22 @@ export interface Dict {
   accPurchasesVatTotal: string
   accBalanceSheetBalanced: string
   accBalanceSheetNotBalanced: string
+  // General ledger report (دفتر الأستاذ العام)
+  generalLedger: string
+  generalLedgerDesc: string
+  glSelectAccount: string
+  glEntryNo: string
+  glRunningBalance: string
+  glNoAccountSelected: string
+  glNoMovements: string
+  glOpeningBalance: string
+  glDate: string
+  glDescription: string
+  // Export toolbar
+  exportPDF: string
+  exportExcel: string
+  exportFailedMsg: string
+  exportSucceededMsg: string
   piTitle: string
   piDesc: string
   piNew: string
@@ -2251,6 +2286,7 @@ export const DICTS: Record<Locale, Dict> = {
     thermalPrint: "طباعة حرارية",
     thermalPrint80: "طباعة حرارية 80مم",
     a4Print: "طباعة A4",
+    posAutoPrint: "طباعة تلقائية",
 
     // Promotions / discounts
     discountType: "نوع الخصم",
@@ -3326,6 +3362,23 @@ export const DICTS: Record<Locale, Dict> = {
     transferCreateFailed: "فشل إنشاء التحويل",
     transferReceiveFailed: "فشل استلام التحويل",
     transferSameWarehouse: "لا يمكن التحويل لنفس المخزن",
+    stockMovementTab: "حركة المخزون",
+    stockMovementReport: "تقرير حركة المخزون",
+    stockMovementDesc: "تتبع جميع حركات المخزون (مبيعات، مرتجعات، مشتريات، تحويلات، جرد)",
+    movementTypeAll: "كل الأنواع",
+    movementQuantityChange: "التغير في الكمية",
+    movementUser: "المستخدم",
+    movementTypeSale: "بيع",
+    movementTypeRefund: "مرتجع مبيعات",
+    movementTypeExchange: "تبديل",
+    movementTypePurchaseInvoice: "فاتورة مشتريات",
+    movementTypePurchaseReturn: "مرتجع مشتريات",
+    movementTypeTransferOut: "تحويل صادر",
+    movementTypeTransferIn: "تحويل وارد",
+    movementTypeStockTake: "جرد",
+    movementTypeSpotCheck: "فحص فجائي",
+    movementNoData: "لا توجد حركات في هذه الفترة",
+    movementExportCsv: "تصدير CSV",
     navAudit: "التدقيق",
     auditTitle: "سجل التدقيق والرقابة",
     auditDesc: "مراقبة الحركات المشبوهة للكاشير، نسب الحذف، والإجراءات الاستثنائية",
@@ -3361,6 +3414,20 @@ export const DICTS: Record<Locale, Dict> = {
     accPurchasesVatTotal: "إجمالي المشتريات",
     accBalanceSheetBalanced: "الميزانية متوازنة ✓",
     accBalanceSheetNotBalanced: "الميزانية غير متوازنة ✗",
+    generalLedger: "دفتر الأستاذ العام",
+    generalLedgerDesc: "عرض جميع القيود المحاسبية لحساب معين خلال فترة محددة",
+    glSelectAccount: "اختر الحساب",
+    glEntryNo: "رقم القيد",
+    glRunningBalance: "الرصيد الجاري",
+    glNoAccountSelected: "يرجى اختيار حساب لعرض القيود",
+    glNoMovements: "لا توجد قيود لهذا الحساب في الفترة المحددة",
+    glOpeningBalance: "رصيد افتتاحي",
+    glDate: "التاريخ",
+    glDescription: "البيان",
+    exportPDF: "تصدير PDF",
+    exportExcel: "تصدير Excel",
+    exportFailedMsg: "فشل التصدير",
+    exportSucceededMsg: "تم التصدير بنجاح",
     piTitle: "فواتير المشتريات",
     piDesc: "فواتير المشتريات وسندات استلام البضاعة",
     piNew: "فاتورة جديدة",
@@ -3937,6 +4004,7 @@ export const DICTS: Record<Locale, Dict> = {
     thermalPrint: "Thermal print",
     thermalPrint80: "Thermal print 80mm",
     a4Print: "A4 print",
+    posAutoPrint: "Auto Print",
 
     // Promotions / discounts
     discountType: "Discount type",
@@ -5012,6 +5080,23 @@ export const DICTS: Record<Locale, Dict> = {
     transferCreateFailed: "Failed to create transfer",
     transferReceiveFailed: "Failed to receive transfer",
     transferSameWarehouse: "Cannot transfer to the same warehouse",
+    stockMovementTab: "Stock Movement",
+    stockMovementReport: "Stock Movement Report",
+    stockMovementDesc: "Track all stock movements (sales, returns, purchases, transfers, counts)",
+    movementTypeAll: "All types",
+    movementQuantityChange: "Quantity Change",
+    movementUser: "User",
+    movementTypeSale: "Sale",
+    movementTypeRefund: "Sale Refund",
+    movementTypeExchange: "Exchange",
+    movementTypePurchaseInvoice: "Purchase Invoice",
+    movementTypePurchaseReturn: "Purchase Return",
+    movementTypeTransferOut: "Transfer Out",
+    movementTypeTransferIn: "Transfer In",
+    movementTypeStockTake: "Stock Take",
+    movementTypeSpotCheck: "Spot Check",
+    movementNoData: "No movements in this period",
+    movementExportCsv: "Export CSV",
     navAudit: "Audit",
     auditTitle: "Audit & Control Log",
     auditDesc: "Monitor suspicious cashier activity, void rates, and exceptional actions",
@@ -5047,6 +5132,20 @@ export const DICTS: Record<Locale, Dict> = {
     accPurchasesVatTotal: "Purchases Total",
     accBalanceSheetBalanced: "Balance sheet balanced ✓",
     accBalanceSheetNotBalanced: "Balance sheet NOT balanced ✗",
+    generalLedger: "General Ledger",
+    generalLedgerDesc: "View all journal entries for a specific account over a date range",
+    glSelectAccount: "Select account",
+    glEntryNo: "Entry No",
+    glRunningBalance: "Running Balance",
+    glNoAccountSelected: "Please select an account to view entries",
+    glNoMovements: "No journal entries for this account in the selected period",
+    glOpeningBalance: "Opening balance",
+    glDate: "Date",
+    glDescription: "Description",
+    exportPDF: "Export PDF",
+    exportExcel: "Export Excel",
+    exportFailedMsg: "Export failed",
+    exportSucceededMsg: "Export succeeded",
     piTitle: "Purchase Invoices",
     piDesc: "Purchase invoices and goods receipt notes",
     piNew: "New Invoice",

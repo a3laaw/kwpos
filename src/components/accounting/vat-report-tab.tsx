@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { TableSkeleton } from "@/components/shared/loading-state"
 import { EmptyState } from "@/components/shared/empty-state"
+import { ExportToolbar } from "@/components/shared/export-toolbar"
 import { Receipt, TrendingUp, TrendingDown, Scale } from "lucide-react"
 import { useVatReport } from "@/hooks/use-api"
 import { useT } from "@/components/i18n-context"
@@ -23,17 +24,35 @@ export function VatReportTab() {
   if (isLoading) return <TableSkeleton />
   if (isError) return <EmptyState title={t.accVatReport} action={<button onClick={() => refetch()}>{t.retry}</button>} />
 
+  // Export: a simple Field/Value summary
+  const exportHeaders = [t.statementDescription, t.accDebit, t.accCredit]
+  const exportRows: any[][] = [
+    [t.accOutputVat, fmt.currency(data?.outputVat || 0), ""],
+    [t.accInputVat, "", fmt.currency(data?.inputVat || 0)],
+    [t.accNetVat, fmt.currency(Math.max(0, data?.netVat || 0)), fmt.currency(Math.min(0, data?.netVat || 0) === 0 ? 0 : -(data?.netVat || 0))],
+    [t.accSalesVatTotal, fmt.currency(data?.salesTotal || 0), ""],
+    [t.accPurchasesVatTotal, "", fmt.currency(data?.purchasesTotal || 0)],
+  ]
+
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3 max-w-md">
-        <div className="space-y-1">
-          <Label className="text-xs">{t.statementFrom}</Label>
-          <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} dir="ltr" className="h-9 text-end" />
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+        <div className="grid grid-cols-2 gap-3 max-w-md">
+          <div className="space-y-1">
+            <Label className="text-xs">{t.statementFrom}</Label>
+            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} dir="ltr" className="h-9 text-end" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">{t.statementTo}</Label>
+            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} dir="ltr" className="h-9 text-end" />
+          </div>
         </div>
-        <div className="space-y-1">
-          <Label className="text-xs">{t.statementTo}</Label>
-          <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} dir="ltr" className="h-9 text-end" />
-        </div>
+        <ExportToolbar
+          title={t.accVatReport}
+          headers={exportHeaders}
+          rows={exportRows}
+          filename={`vat-report-${from || "all"}-${to || "now"}`}
+        />
       </div>
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">

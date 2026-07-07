@@ -3,7 +3,7 @@ import {
   Wallet, Receipt, BookCopy, Scale, FileBarChart, Banknote, User2, Percent,
   Boxes, Warehouse as WarehouseIcon, ClipboardCheck, ArrowRightLeft,
   ShoppingCart, FileText, Tags, History, Percent as PercentIcon,
-  TrendingUp, Coins, ArrowDown,
+  TrendingUp, Coins, ArrowDown, ArrowLeftRight as MovementIcon, BookOpen,
 } from "lucide-react"
 import type { Dict } from "@/lib/i18n"
 
@@ -45,6 +45,12 @@ export const MODULE_NAV: Partial<Record<string, MegaMenuGroup[]>> = {
       ],
     },
     {
+      labelKey: "generalLedger" as keyof Dict,
+      items: [
+        { value: "general-ledger", labelKey: "generalLedger" as keyof Dict, icon: BookOpen },
+      ],
+    },
+    {
       labelKey: "accChartOfAccountsDesc" as keyof Dict,
       items: [
         { value: "accounts", labelKey: "accJournalLedger" as keyof Dict, icon: Wallet },
@@ -80,6 +86,7 @@ export const MODULE_NAV: Partial<Record<string, MegaMenuGroup[]>> = {
       items: [
         { value: "stocktake", labelKey: "stockTakeTab" as keyof Dict, icon: ClipboardCheck },
         { value: "transfers", labelKey: "stockTransferTab" as keyof Dict, icon: ArrowRightLeft },
+        { value: "movements", labelKey: "stockMovementTab" as keyof Dict, icon: MovementIcon },
       ],
     },
   ],
