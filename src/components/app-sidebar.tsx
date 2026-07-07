@@ -23,6 +23,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
@@ -342,29 +348,182 @@ function LangToggle() {
   )
 }
 
+/* ─── Icon-only sidebar components ────────────────────────────────── */
+
+function BrandIcon() {
+  return (
+    <div className="flex items-center justify-center py-4">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground">
+        <Boxes className="h-5 w-5" />
+      </div>
+    </div>
+  )
+}
+
+function NavLinksIcon({ user }: { user: SidebarProps["user"] }) {
+  const view = useAppStore((s) => s.view)
+  const setView = useAppStore((s) => s.setView)
+  const t = useT()
+  const allowed = ROLE_PERMISSIONS[user.role].views
+
+  return (
+    <TooltipProvider delayDuration={200}>
+      <nav className="flex flex-col gap-1 px-2 py-2" dir="rtl">
+        {NAV_ENTRIES.map((entry) => {
+          if (entry.type === "leaf") {
+            if (!allowed.includes(entry.view)) return null
+            const Icon = entry.icon
+            const active = view === entry.view
+            return (
+              <Tooltip key={entry.view}>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => setView(entry.view)}
+                    className={cn(
+                      "group flex h-10 w-10 mx-auto items-center justify-center rounded-lg transition-colors",
+                      active
+                        ? "nav-active"
+                        : "text-sidebar-foreground/90 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+                    )}
+                  >
+                    <Icon
+                      className={cn(
+                        "h-5 w-5 shrink-0",
+                        active
+                          ? "text-sidebar-primary"
+                          : "text-sidebar-foreground/75 group-hover:text-sidebar-primary"
+                      )}
+                    />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="left" sideOffset={8}>
+                  {t[entry.labelKey]}
+                </TooltipContent>
+              </Tooltip>
+            )
+          }
+          const visibleChildren = entry.children.filter((c) => allowed.includes(c.view))
+          if (visibleChildren.length === 0) return null
+          const Icon = entry.icon
+          const hasActiveChild = visibleChildren.some((c) => c.view === view)
+          return (
+            <DropdownMenu key={entry.labelKey}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className={cn(
+                        "group flex h-10 w-10 mx-auto items-center justify-center rounded-lg transition-colors",
+                        hasActiveChild
+                          ? "text-sidebar-foreground bg-sidebar-accent/40"
+                          : "text-sidebar-foreground/90 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+                      )}
+                    >
+                      <Icon
+                        className={cn(
+                          "h-5 w-5 shrink-0",
+                          hasActiveChild
+                            ? "text-sidebar-primary"
+                            : "text-sidebar-foreground/75 group-hover:text-sidebar-primary"
+                        )}
+                      />
+                    </button>
+                  </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent side="left" sideOffset={8}>
+                  {t[entry.labelKey]}
+                </TooltipContent>
+              </Tooltip>
+              <DropdownMenuContent side="left" align="start" sideOffset={8} className="w-56">
+                <DropdownMenuLabel className="text-xs text-muted-foreground">
+                  {t[entry.labelKey]}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {visibleChildren.map((child) => {
+                  const ChildIcon = child.icon
+                  const childActive = view === child.view
+                  return (
+                    <DropdownMenuItem
+                      key={child.view}
+                      onClick={() => setView(child.view as AppView)}
+                      className={cn(
+                        "gap-2 cursor-pointer",
+                        childActive && "bg-primary/10 text-primary font-medium"
+                      )}
+                    >
+                      <ChildIcon className={cn("h-4 w-4", childActive ? "text-primary" : "text-muted-foreground")} />
+                      {t[child.labelKey]}
+                      {childActive ? <ChevronLeft className="h-3 w-3 ms-auto text-primary" /> : null}
+                    </DropdownMenuItem>
+                  )
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )
+        })}
+      </nav>
+    </TooltipProvider>
+  )
+}
+
+function UserCardIcon({ user }: { user: SidebarProps["user"] }) {
+  return (
+    <div className="flex items-center justify-center pb-4 pt-2">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button className="flex h-9 w-9 items-center justify-center rounded-full ring-2 ring-sidebar-primary/40 hover:ring-sidebar-primary transition">
+            <Avatar className="h-9 w-9">
+              <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-xs font-bold">
+                {initials(user.name)}
+              </AvatarFallback>
+            </Avatar>
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent side="left" align="end" sideOffset={8} className="w-56">
+          <DropdownMenuLabel>
+            <div className="flex flex-col">
+              <span>{user.name}</span>
+              <span className="text-xs text-muted-foreground font-normal" dir="ltr">
+                {user.email}
+              </span>
+            </div>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            className="gap-2 text-destructive focus:text-destructive"
+            onClick={async () => {
+              await signOut({ redirect: false })
+              toast.success("تم تسجيل الخروج")
+              window.location.reload()
+            }}
+          >
+            <LogOut className="h-4 w-4" />
+            خروج
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  )
+}
+
 export function AppSidebar({ user }: SidebarProps) {
   const { locale } = useI18n()
-  // Avoid hydration mismatch: Radix Collapsible generates useId values that
-  // differ between server and client. Render the sidebar only after mount.
   const [mounted, setMounted] = React.useState(false)
   React.useEffect(() => setMounted(true), [])
-  // Explicit dir on the whole aside ensures full RTL mirroring of the sidebar
-  // container (icons, text, chevrons) independent of any inherited direction.
   return (
     <aside
       dir={locale === "ar" ? "rtl" : "ltr"}
-      className="hidden lg:flex w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground border-s border-sidebar-border h-screen sticky top-0 overflow-hidden"
+      className="hidden lg:flex w-16 shrink-0 flex-col bg-sidebar text-sidebar-foreground border-s border-sidebar-border h-screen sticky top-0 overflow-hidden"
     >
-      <Brand />
+      <BrandIcon />
       <ScrollArea className="flex-1 min-h-0">
-        {mounted ? <NavLinks user={user} /> : <div className="p-3 space-y-2">
-          {/* Skeleton placeholder to prevent layout shift */}
+        {mounted ? <NavLinksIcon user={user} /> : <div className="flex flex-col gap-1 px-2 py-2">
           {Array.from({ length: 7 }).map((_, i) => (
-            <div key={i} className="h-10 rounded-lg bg-sidebar-accent/30 animate-pulse" />
+            <div key={i} className="h-10 w-10 mx-auto rounded-lg bg-sidebar-accent/30 animate-pulse" />
           ))}
         </div>}
       </ScrollArea>
-      <UserCard user={user} />
+      <UserCardIcon user={user} />
     </aside>
   )
 }

@@ -37,7 +37,7 @@ export function SubNav({ items, value, onChange }: SubNavProps) {
   const t = useT()
 
   return (
-    <div className="sticky top-16 z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 py-2 bg-background/85 backdrop-blur-xl border-b border-border/60">
+    <div className="sticky top-16 z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 py-2 bg-background/85 backdrop-blur-xl border-b border-border/60 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
       <div className="flex items-center gap-1 overflow-x-auto scrollbar-thin">
         {items.map((item) => {
           const Icon = item.icon
