@@ -186,6 +186,10 @@ model PurchaseOrder {
   status      String               @default("PENDING") // PENDING_APPROVAL | APPROVED | PENDING | RECEIVED | CANCELLED | REJECTED
   rejectionReason String?
   total       Float                @default(0)
+  // VAT rate (%) for this PO. Default 0. When the PO is received, the
+  // receive route computes receivedTaxAmount = subtotal × taxRate / 100
+  // and stores it on the PO so the VAT report can include it.
+  taxRate     Float                @default(0)
   // Landed cost: extra charges allocated across items
   customsAmount  Float             @default(0) // جمارك
   shippingAmount Float             @default(0) // شحن

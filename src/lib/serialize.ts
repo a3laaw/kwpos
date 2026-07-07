@@ -109,6 +109,8 @@ export function serializePurchaseOrder(po: AnyRow): PurchaseOrder {
     supplierName: (po.supplier as any)?.name ?? "—",
     status: (po.status as PurchaseOrder["status"]) ?? "PENDING",
     total: Number(po.total ?? 0),
+    taxRate: Number(po.taxRate ?? 0),
+    receivedTaxAmount: Number(po.receivedTaxAmount ?? 0),
     customsAmount: Number(po.customsAmount ?? 0),
     shippingAmount: Number(po.shippingAmount ?? 0),
     otherCharges: Number(po.otherCharges ?? 0),

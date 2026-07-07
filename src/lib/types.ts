@@ -87,6 +87,13 @@ export interface PurchaseOrder {
     | "CANCELLED"
     | "REJECTED"
   total: number
+  // VAT rate (%) — default 0. Set by the buyer; used at receive time
+  // to compute receivedTaxAmount.
+  taxRate: number
+  // VAT amount computed at receive time (subtotal × taxRate / 100).
+  // Stored so the VAT report can include PO receives even without a
+  // posted PurchaseInvoice.
+  receivedTaxAmount: number
   // Landed cost (تكلفة الوصول) — extra charges saved on the PO and
   // allocated across items on receipt using the weighted-average method.
   customsAmount: number

@@ -177,9 +177,10 @@ export async function POST(
       }
     }
     // Compute VAT at receive time: sum(item.subtotal × PO taxRate/100).
-    // Kuwait standard VAT rate is 0% but the field supports it for future use.
-    // If no explicit taxRate on PO, default to 0 (no VAT).
-    const poTaxRate = 0 // PO model doesn't have taxRate; VAT only on invoices
+    // The taxRate is set on the PO at creation time (default 0).
+    // receivedTaxAmount is stored on the PO so the VAT report can include
+    // it even when no PurchaseInvoice is posted.
+    const poTaxRate = Number(po.taxRate || 0)
     const receivedTaxAmount = po.items.reduce(
       (sum, it) => sum + (Number(it.subtotal) * poTaxRate / 100),
       0

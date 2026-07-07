@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json()
-  const { supplierId, note, items, customsAmount, shippingAmount, otherCharges } = body || {}
+  const { supplierId, note, items, customsAmount, shippingAmount, otherCharges, taxRate } = body || {}
   if (!supplierId) return NextResponse.json({ error: "supplier-required" }, { status: 400 })
   if (!Array.isArray(items) || items.length === 0) {
     return NextResponse.json({ error: "items-required" }, { status: 400 })
@@ -63,12 +63,14 @@ export async function POST(req: NextRequest) {
   const customs = Math.max(0, Number(customsAmount) || 0)
   const shipping = Math.max(0, Number(shippingAmount) || 0)
   const other = Math.max(0, Number(otherCharges) || 0)
+  const poTaxRate = Math.max(0, Number(taxRate) || 0)
 
   const created = await db.purchaseOrder.create({
     data: {
       supplierId,
       status: "PENDING",
       total: +total.toFixed(2),
+      taxRate: poTaxRate,
       note: note?.trim() || null,
       customsAmount: customs,
       shippingAmount: shipping,
