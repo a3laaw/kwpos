@@ -569,6 +569,7 @@ export function SalesView() {
         title={t.posTitle}
         description={t.posDesc}
         icon={<Calculator className="h-5 w-5" />}
+        breadcrumbItems={[{ labelKey: "navSales" }]}
         actions={
           <Toggle
             pressed={autoPrint}

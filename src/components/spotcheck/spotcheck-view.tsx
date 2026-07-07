@@ -81,6 +81,10 @@ export function SpotCheckView() {
         title={t.spotCheckTitle}
         description={t.spcSpotCheckDesc}
         icon={<ClipboardCheck className="h-5 w-5" />}
+        breadcrumbItems={[
+          { labelKey: "navInventoryPurchases" },
+          { labelKey: "navSpotCheck" },
+        ]}
       />
 
       <div className="grid gap-5 lg:grid-cols-2">

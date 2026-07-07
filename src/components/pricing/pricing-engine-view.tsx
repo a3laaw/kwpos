@@ -1064,12 +1064,22 @@ function AuditLogTab() {
 export function PricingEngineView() {
   const t = useT()
   const [tab, setTab] = React.useState<"prices" | "promotions" | "audit">("prices")
+  const PRC_TAB_BREADCRUMB: Record<"prices" | "promotions" | "audit", keyof import("@/lib/i18n").Dict> = {
+    prices: "priceManagement",
+    promotions: "promotionsAndDiscounts",
+    audit: "changeLog",
+  }
   return (
     <div className="space-y-4">
       <PageHeader
         title={t.prcPageTitle}
         description={t.pricingDesc}
         icon={<Tags className="h-5 w-5" />}
+        breadcrumbItems={[
+          { labelKey: "navInventoryPurchases" },
+          { labelKey: "navPricing" },
+          { labelKey: PRC_TAB_BREADCRUMB[tab] },
+        ]}
       />
 
 

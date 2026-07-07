@@ -1,7 +1,6 @@
 "use client"
 
 import * as React from "react"
-import { PageHeader } from "@/components/shared/page-header"
 import { LoadingState } from "@/components/shared/loading-state"
 import { EmptyState } from "@/components/shared/empty-state"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -211,12 +210,6 @@ export function PerformanceMatrix() {
 
   return (
     <div className="space-y-4">
-      <PageHeader
-        title={t.matrixTitleFull}
-        description={t.matrixLongDescFull}
-        icon={<Layers className="h-5 w-5" />}
-      />
-
       {/* Filters card */}
       <Card className="border-primary/20">
         <CardHeader className="pb-3">

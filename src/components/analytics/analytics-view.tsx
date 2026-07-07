@@ -114,12 +114,24 @@ export function AnalyticsView() {
     { key: "margin", label: t.anlProfitability, icon: Percent, kpi: fmt.number(profitableCount), hint: t.anlProfitableItem, tone: "text-[#DFC196]", iconBg: "bg-[#DFC196]/10" },
   ]
 
+  const ANL_TAB_BREADCRUMB: Record<ReportKey, keyof import("@/lib/i18n").Dict> = {
+    overview: "anlOverview",
+    top: "anlTopProducts",
+    stagnant: "anlStagnantItems",
+    cost: "anlCost",
+    margin: "anlProfitability",
+  }
+
   return (
     <div className="space-y-5">
       <PageHeader
         title={t.analyticsTitle}
         description={t.analyticsDesc}
         icon={<BarChart3 className="h-5 w-5" />}
+        breadcrumbItems={[
+          { labelKey: "navAnalytics" },
+          { labelKey: ANL_TAB_BREADCRUMB[tab] },
+        ]}
       />
 
       {isLoading ? (

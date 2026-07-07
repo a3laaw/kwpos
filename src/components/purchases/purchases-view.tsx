@@ -20,7 +20,6 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Breadcrumbs } from "@/components/shared/breadcrumbs"
 import { useModuleTab } from "@/lib/module-tab-store"
 import { WorkflowBar, type WorkflowStep } from "@/components/shared/workflow-bar"
 import { Loader2 } from "lucide-react"
@@ -221,16 +220,14 @@ export function PurchasesView() {
 
   return (
     <div className="space-y-4">
-      <Breadcrumbs
-        items={[
-          { labelKey: "navInventoryPurchases" },
-          { labelKey: PUR_TAB_LABELS[tab] || "navPurchases" },
-        ]}
-      />
       <PageHeader
         title={t.purchasesTitleLong}
         description={t.purchasesDescLong}
         icon={<ShoppingCart className="h-5 w-5" />}
+        breadcrumbItems={[
+          { labelKey: "navInventoryPurchases" },
+          { labelKey: (PUR_TAB_LABELS[tab] || "navPurchases") as keyof import("@/lib/i18n").Dict },
+        ]}
       />
 
 

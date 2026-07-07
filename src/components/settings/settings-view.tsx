@@ -76,6 +76,10 @@ export function SettingsView() {
         title={t.settingsTitle}
         description={t.setPageDesc}
         icon={<Globe className="h-5 w-5" />}
+        breadcrumbItems={[
+          { labelKey: "navSystem" },
+          { labelKey: "navSettings" },
+        ]}
       />
 
       {/* Current config */}

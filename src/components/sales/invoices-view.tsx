@@ -83,6 +83,10 @@ export function InvoicesView() {
         title={t.invoicesTitle}
         description={t.invoicesDescFull}
         icon={<ReceiptText className="h-5 w-5" />}
+        breadcrumbItems={[
+          { labelKey: "navInvoicesReports" },
+          { labelKey: "navInvoices" },
+        ]}
         actions={
           <Button variant="default" onClick={() => setView("sales")} className="gap-2">
             {t.newInvoice}

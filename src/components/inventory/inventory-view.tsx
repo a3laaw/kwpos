@@ -47,7 +47,6 @@ import {
 import { useUser } from "@/components/user-context"
 import { printBarcodeLabels } from "@/lib/print"
 import { useModuleTab } from "@/lib/module-tab-store"
-import { Breadcrumbs } from "@/components/shared/breadcrumbs"
 import { WarehouseManager } from "@/components/inventory/warehouse-manager"
 import { StockTakeTab } from "@/components/inventory/stock-take-tab"
 import { StockTransferTab } from "@/components/inventory/stock-transfer-tab"
@@ -128,16 +127,14 @@ export function InventoryView() {
 
   return (
     <div className="space-y-4">
-      <Breadcrumbs
-        items={[
-          { labelKey: "navInventory" },
-          { labelKey: INV_TAB_LABELS[invTab] || "invItemsTab" },
-        ]}
-      />
       <PageHeader
         title={t.invManageTitle}
         description={t.invManageDesc}
         icon={<Boxes className="h-5 w-5" />}
+        breadcrumbItems={[
+          { labelKey: "navInventory" },
+          { labelKey: (INV_TAB_LABELS[invTab] || "invItemsTab") as keyof import("@/lib/i18n").Dict },
+        ]}
         actions={
           <div className="flex items-center gap-2 flex-wrap">
             {canManage ? <ExcelImportButton type="products" /> : null}

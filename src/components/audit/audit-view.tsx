@@ -58,6 +58,10 @@ export function AuditView() {
         title={t.auditTitle}
         description={t.auditDesc}
         icon={<ShieldCheck className="h-5 w-5" />}
+        breadcrumbItems={[
+          { labelKey: "navSystem" },
+          { labelKey: "navAudit" },
+        ]}
       />
 
       {/* KPI row */}

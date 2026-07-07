@@ -82,6 +82,10 @@ export function CustomersView() {
         title={t.cusPageTitle}
         description={t.cusPageDesc}
         icon={<Users className="h-5 w-5" />}
+        breadcrumbItems={[
+          { labelKey: "navAccountingCustomers" },
+          { labelKey: "navCustomers" },
+        ]}
         actions={
           <div className="flex items-center gap-2 flex-wrap">
             <ExcelImportButton type="customers" />

@@ -45,6 +45,10 @@ export function ShiftView() {
         title={t.shiftsTitle}
         description={t.shfDescFull}
         icon={<Clock className="h-5 w-5" />}
+        breadcrumbItems={[
+          { labelKey: "navOperations" },
+          { labelKey: "navShifts" },
+        ]}
         actions={
           !activeShift ? (
             <Button onClick={() => openMut.mutate()} disabled={openMut.isPending} className="gap-2">

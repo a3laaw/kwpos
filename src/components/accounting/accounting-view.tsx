@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import { PageHeader } from "@/components/shared/page-header"
-import { Breadcrumbs } from "@/components/shared/breadcrumbs"
 import { BookOpen, Wallet, Receipt, FileBarChart, BookCopy, Scale, Banknote, User2, Percent, FileText } from "lucide-react"
 import { ChartOfAccountsTab } from "@/components/accounting/chart-of-accounts-tab"
 import { ExpensesTab } from "@/components/accounting/expenses-tab"
@@ -48,19 +47,15 @@ export function AccountingView() {
 
   return (
     <div className="space-y-4">
-      <Breadcrumbs
-        items={[
-          { labelKey: "navAccounting" },
-          { labelKey: TAB_LABELS[tab as AccTab] },
-        ]}
-      />
-
       <PageHeader
         title={t.accountingTitle}
         description={t.accountingDesc}
         icon={<BookOpen className="h-5 w-5" />}
+        breadcrumbItems={[
+          { labelKey: "navAccounting" },
+          { labelKey: TAB_LABELS[tab as AccTab] },
+        ]}
       />
-
 
       {tab === "accounts" && <ChartOfAccountsTab />}
       {tab === "expenses" && <ExpensesTab />}

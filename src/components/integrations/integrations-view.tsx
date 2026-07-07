@@ -123,6 +123,10 @@ export function IntegrationsView() {
         title={t.integrationsTitle}
         description={t.intPageDesc}
         icon={<Plug className="h-5 w-5" />}
+        breadcrumbItems={[
+          { labelKey: "navSystem" },
+          { labelKey: "navIntegrations" },
+        ]}
       />
 
       {/* Shopify card */}

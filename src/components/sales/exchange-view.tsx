@@ -401,6 +401,10 @@ export function ExchangeView() {
         title={t.exchangesTitle}
         description={t.excDesc}
         icon={<ArrowLeftRight className="h-5 w-5" />}
+        breadcrumbItems={[
+          { labelKey: "navOperations" },
+          { labelKey: "navExchanges" },
+        ]}
         actions={
           <Button
             variant="outline"

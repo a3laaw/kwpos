@@ -16,6 +16,7 @@ import {
   YAxis,
 } from "recharts"
 import { PageHeader } from "@/components/shared/page-header"
+import type { BreadcrumbItem } from "@/components/shared/breadcrumbs"
 import { LoadingState } from "@/components/shared/loading-state"
 import { EmptyState } from "@/components/shared/empty-state"
 import { StatCard } from "@/components/shared/stat-card"
@@ -39,10 +40,9 @@ import {
   DollarSign,
   Package,
   Percent,
-  Download,
+  Printer,
   Calendar,
   Layers,
-  LayoutDashboard,
 } from "lucide-react"
 import { useReport, type ReportFilters } from "@/hooks/use-api"
 import { useFmt } from "@/components/currency-context"
@@ -59,23 +59,40 @@ export function ReportsView() {
   const t = useT()
   const [tab] = useModuleTab("reports", "general")
 
+  // The parent view owns the single PageHeader so we don't end up with
+  // two stacked headers (parent + child) both reading "التقارير".
+  const isGeneral = tab === "general"
+  const headerTitle = isGeneral ? t.reportsTitle : t.matrixTitleFull
+  const headerDesc = isGeneral ? t.repDescFull : t.matrixLongDescFull
+  const headerIcon = isGeneral ? (
+    <FileBarChart className="h-5 w-5" />
+  ) : (
+    <Layers className="h-5 w-5" />
+  )
+
+  const breadcrumbItems: BreadcrumbItem[] = [
+    { labelKey: "navReports" },
+    { labelKey: isGeneral ? "generalReports" : "performanceMatrix" },
+  ]
+
   return (
     <div className="space-y-4">
       <PageHeader
-        title={t.reportsTitle}
-        description={t.repDescFull}
-        icon={<FileBarChart className="h-5 w-5" />}
+        title={headerTitle}
+        description={headerDesc}
+        icon={headerIcon}
+        breadcrumbItems={breadcrumbItems}
         actions={
-          tab === "general" ? (
+          isGeneral ? (
             <Button variant="outline" className="gap-2" onClick={() => window.print()}>
-              <Download className="h-4 w-4" />
-              <span className="hidden sm-inline">{t.exportPrint}</span>
+              <Printer className="h-4 w-4" />
+              <span className="hidden sm:inline">{t.exportPrint}</span>
             </Button>
           ) : null
         }
       />
 
-      {tab === "general" ? <GeneralReports /> : <PerformanceMatrix />}
+      {isGeneral ? <GeneralReports /> : <PerformanceMatrix />}
     </div>
   )
 }
@@ -131,18 +148,6 @@ function GeneralReports() {
 
   return (
     <div className="space-y-5">
-      <PageHeader
-        title={t.reportsTitle}
-        description={t.repDescFull}
-        icon={<FileBarChart className="h-5 w-5" />}
-        actions={
-          <Button variant="outline" className="gap-2" onClick={() => window.print()}>
-            <Download className="h-4 w-4" />
-            <span className="hidden sm-inline">{t.exportPrint}</span>
-          </Button>
-        }
-      />
-
       {/* Filters card */}
       <Card className="border-primary/20">
         <CardHeader className="pb-3">

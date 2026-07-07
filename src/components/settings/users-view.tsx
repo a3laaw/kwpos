@@ -91,6 +91,10 @@ export function UsersView() {
         title={t.usersTitle || "إدارة المستخدمين"}
         description={t.usersDesc || "إدارة حسابات المستخدمين والأدوار والصلاحيات"}
         icon={<UsersIcon className="h-5 w-5" />}
+        breadcrumbItems={[
+          { labelKey: "navSystem" },
+          { labelKey: "navUsers" },
+        ]}
         actions={
           <Button onClick={handleCreate} className="gap-2">
             <Plus className="h-4 w-4" />

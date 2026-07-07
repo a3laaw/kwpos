@@ -89,6 +89,10 @@ export function SuppliersView() {
         title={t.suppliersTitle}
         description={t.suppliersDescLong}
         icon={<Truck className="h-5 w-5" />}
+        breadcrumbItems={[
+          { labelKey: "navInventoryPurchases" },
+          { labelKey: "navSuppliers" },
+        ]}
         actions={
           canManage ? (
             <Button onClick={openAdd} className="gap-2">
