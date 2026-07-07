@@ -3,6 +3,7 @@
 import * as React from "react"
 import { toast } from "sonner"
 import { useQueryClient } from "@tanstack/react-query"
+import { cn } from "@/lib/utils"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -211,7 +212,37 @@ function ExpenseForm() {
       </CardHeader>
       <CardContent>
 
-          <form onSubmit={handleSubmit} className="space-y-3 mt-4">
+          {/* Expense type toggle — lets the user switch between Salary and Admin expenses */}
+          <div className="grid grid-cols-2 gap-1 p-1 bg-muted/50 rounded-lg mb-4">
+            <button
+              type="button"
+              onClick={() => setTab("SALARY")}
+              className={cn(
+                "flex items-center justify-center gap-1.5 rounded-md py-1.5 text-xs font-medium transition-all",
+                tab === "SALARY"
+                  ? "bg-background text-primary shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <UserCheck className="h-3.5 w-3.5" />
+              {t.accSalaries}
+            </button>
+            <button
+              type="button"
+              onClick={() => setTab("ADMIN")}
+              className={cn(
+                "flex items-center justify-center gap-1.5 rounded-md py-1.5 text-xs font-medium transition-all",
+                tab === "ADMIN"
+                  ? "bg-background text-primary shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Receipt className="h-3.5 w-3.5" />
+              {t.accAdminExpenses}
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-3">
             {tab === "SALARY" && (
               <div className="space-y-3">
               <div className="space-y-1.5">

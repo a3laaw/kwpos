@@ -133,6 +133,9 @@ model Product {
   purchaseReturnItems PurchaseReturnItem[]
   stockTakeItems StockTakeItem[]
   stockTransferItems StockTransferItem[]
+  bundleItems BundleItem[]
+  compositionIngredients CompositionIngredient[]
+  producedCompositions Composition[] @relation("CompositionOutput")
 
   @@index([categoryId])
   @@index([supplierId])
@@ -760,4 +763,91 @@ model AuditLog {
   @@index([action])
   @@index([userId])
   @@index([createdAt])
+}
+
+// ─────────────────────────── Product Bundles ──────────────────────────
+// A Bundle is a sellable group of products (e.g. perfume gift set,
+// restaurant meal combo). The bundle has its own sale price (usually
+// discounted vs. buying components separately). When a bundle is sold
+// via POS, the component quantities are deducted from stock.
+model Bundle {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  imageUrl    String?
+  salePrice   Float    @default(0) // bundle sale price (customer pays this)
+  isActive    Boolean  @default(true)
+  startDate   DateTime? // optional seasonal activation (e.g. Ramadan)
+  endDate     DateTime?   // optional seasonal end
+  category    String?    // optional grouping: "perfumes" | "restaurant" | "gifts"...
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  items BundleItem[]
+
+  @@index([isActive])
+  @@index([category])
+}
+
+model BundleItem {
+  id        String @id @default(cuid())
+  bundleId  String
+  productId String
+  quantity  Float  @default(1) // how many units of this product are in the bundle
+  createdAt DateTime @default(now())
+
+  bundle  Bundle  @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@unique([bundleId, productId])
+  @@index([bundleId])
+  @@index([productId])
+}
+
+// ─────────────────────────── Compositions (التركيبات) ─────────────────
+// A Composition is a perfume/recipe made by mixing raw ingredients in
+// specific quantities (e.g. 5g oud oil + 3g incense → "Royal Oud" 8g).
+// Unlike a Bundle (separate products sold together), a Composition
+// PRODUCES a new product — ingredients are consumed from stock and the
+// output is a new inventory item.
+//
+// Use cases:
+//   - Perfume shop: custom blends (دهن عود + بخور + مسك)
+//   - Restaurant: recipe prep (0.5kg rice + 0.5 chicken + spices → meal)
+//   - Manufacturing: BOM (Bill of Materials) for assembled products
+model Composition {
+  id              String   @id @default(cuid())
+  name            String   @unique             // اسم التركيبة
+  description     String?
+  imageUrl        String?
+  outputProductId String                       // the product this composition produces
+  yieldQty        Float    @default(1)         // how many units of output per batch
+  yieldUnit       String   @default("قطعة")    // unit of the output (gram, ml, piece...)
+  isActive        Boolean  @default(true)
+  notes           String?                      // preparation instructions, etc.
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  outputProduct Product                 @relation("CompositionOutput", fields: [outputProductId], references: [id], onDelete: Restrict)
+  ingredients   CompositionIngredient[]
+
+  @@index([isActive])
+  @@index([outputProductId])
+}
+
+model CompositionIngredient {
+  id             String @id @default(cuid())
+  compositionId  String
+  productId      String                       // the raw material consumed
+  quantity       Float  @default(0)           // amount consumed per batch (gram, ml, piece...)
+  unit           String @default("جرام")      // unit of measure for this ingredient
+  notes          String?                      // optional note (e.g. "add slowly")
+  createdAt      DateTime @default(now())
+
+  composition Composition @relation(fields: [compositionId], references: [id], onDelete: Cascade)
+  product     Product      @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@unique([compositionId, productId])
+  @@index([compositionId])
+  @@index([productId])
 }

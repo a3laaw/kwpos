@@ -51,9 +51,9 @@ export const MODULE_NAV: Partial<Record<string, MegaMenuGroup[]>> = {
       ],
     },
     {
-      labelKey: "accChartOfAccountsDesc" as keyof Dict,
+      labelKey: "accChartOfAccounts" as keyof Dict,
       items: [
-        { value: "accounts", labelKey: "accJournalLedger" as keyof Dict, icon: Wallet },
+        { value: "accounts", labelKey: "accChartOfAccounts" as keyof Dict, icon: Wallet },
         { value: "expenses", labelKey: "accExpenses" as keyof Dict, icon: Receipt },
       ],
     },

@@ -29,7 +29,7 @@ type AccTab =
   | "general-ledger"
 
 const TAB_LABELS: Record<AccTab, keyof Dict> = {
-  accounts: "accJournalLedger",
+  accounts: "accChartOfAccounts",
   expenses: "accExpenses",
   journal: "accJournalEntries",
   pnl: "accPnl",
