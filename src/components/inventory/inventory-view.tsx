@@ -46,6 +46,7 @@ import {
 } from "lucide-react"
 import { useUser } from "@/components/user-context"
 import { printBarcodeLabels } from "@/lib/print"
+import { useModuleTab } from "@/lib/module-tab-store"
 import { Breadcrumbs } from "@/components/shared/breadcrumbs"
 import { WarehouseManager } from "@/components/inventory/warehouse-manager"
 import { StockTakeTab } from "@/components/inventory/stock-take-tab"
@@ -67,7 +68,7 @@ export function InventoryView() {
   const [dialogOpen, setDialogOpen] = React.useState(false)
   const [editing, setEditing] = React.useState<Product | null>(null)
   const [deleteTarget, setDeleteTarget] = React.useState<Product | null>(null)
-  const [invTab, setInvTab] = React.useState<"products" | "warehouses" | "stocktake" | "transfers">("products")
+  const [invTab] = useModuleTab("inventory", "products")
 
   const debouncedQ = React.useDeferredValue(q)
   const { data, isLoading, isError, refetch } = useProducts({

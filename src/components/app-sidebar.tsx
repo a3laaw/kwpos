@@ -51,6 +51,7 @@ import { useAppStore } from "@/lib/store"
 import { NAV_ENTRIES, type NavEntry } from "@/components/nav-config"
 import { getModuleNav } from "@/components/module-nav-config"
 import { MegaMenuBar } from "@/components/shared/mega-menu-bar"
+import { useModuleTab, setModuleTab, getModuleTab } from "@/lib/module-tab-store"
 import { ROLE_PERMISSIONS } from "@/lib/session"
 import type { Role } from "@/lib/types"
 import type { AppView } from "@/lib/types"
@@ -673,19 +674,20 @@ export function Topbar({
 }
 
 /**
- * MegaMenuBarInline — renders the MegaMenuBar without its own sticky
- * wrapper (since it's already inside the sticky Topbar header).
- * Uses the same hover dropdown + search logic.
+ * MegaMenuBarInline — renders the MegaMenuBar inside the Topbar.
+ * Uses useModuleTab for sub-tab state (separate from AppView).
  */
 function MegaMenuBarInline({ groups }: { groups: import("@/components/shared/mega-menu-bar").MegaMenuGroup[] }) {
   const view = useAppStore((s) => s.view)
-  const setView = useAppStore((s) => s.setView)
+  const defaultValue = groups[0]?.items[0]?.value || ""
+  const [tab, setTab] = useModuleTab(view, defaultValue)
+
   return (
     <MegaMenuBar
       groups={groups}
-      value={view}
-      onChange={(v) => setView(v as AppView)}
-      className="static border-0 shadow-none bg-transparent -mx-0 px-0 top-auto"
+      value={tab}
+      onChange={setTab}
+      className="static border-0 shadow-none bg-transparent -mx-0 px-0 top-auto z-auto"
     />
   )
 }

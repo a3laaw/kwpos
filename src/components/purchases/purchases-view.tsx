@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Breadcrumbs } from "@/components/shared/breadcrumbs"
+import { useModuleTab } from "@/lib/module-tab-store"
 import { WorkflowBar, type WorkflowStep } from "@/components/shared/workflow-bar"
 import { Loader2 } from "lucide-react"
 import {
@@ -100,7 +101,7 @@ export function PurchasesView() {
   const fmt = useFmt()
   const t = useT()
   const user = useUser()
-  const [tab, setTab] = React.useState<"orders" | "invoices" | "payments">("orders")
+  const [tab] = useModuleTab("purchases", "orders")
   const [statusFilter, setStatusFilter] = React.useState<string>("all")
   const [createOpen, setCreateOpen] = React.useState(false)
   const [detail, setDetail] = React.useState<PurchaseOrder | null>(null)

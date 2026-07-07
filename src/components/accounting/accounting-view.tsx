@@ -13,6 +13,7 @@ import { CashFlowTab } from "@/components/accounting/cash-flow-tab"
 import { CustomerStatementTab } from "@/components/accounting/customer-statement-tab"
 import { VatReportTab } from "@/components/accounting/vat-report-tab"
 import { useT } from "@/components/i18n-context"
+import { useModuleTab } from "@/lib/module-tab-store"
 import type { Dict } from "@/lib/i18n"
 
 type AccTab =
@@ -40,14 +41,14 @@ const TAB_LABELS: Record<AccTab, keyof Dict> = {
 
 export function AccountingView() {
   const t = useT()
-  const [tab, setTab] = React.useState<AccTab>("accounts")
+  const [tab] = useModuleTab("accounting", "accounts")
 
   return (
     <div className="space-y-4">
       <Breadcrumbs
         items={[
           { labelKey: "navAccounting" },
-          { labelKey: TAB_LABELS[tab] },
+          { labelKey: TAB_LABELS[tab as AccTab] },
         ]}
       />
 
