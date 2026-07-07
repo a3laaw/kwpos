@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
 import bcrypt from "bcryptjs"
+import { logAuditEvent } from "@/lib/audit"
 import type { Role } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
@@ -51,6 +52,14 @@ export async function PUT(
     select: { id: true, email: true, name: true, role: true, createdAt: true, updatedAt: true },
   })
 
+  // ── Audit log ──
+  await logAuditEvent({
+    userId: user.id,
+    userName: user.name,
+    action: "USER_UPDATED",
+    description: `تحديث مستخدم ${updated.email}`,
+  })
+
   return NextResponse.json(updated)
 }
 
@@ -78,6 +87,14 @@ export async function DELETE(
   }
 
   await db.user.delete({ where: { id } })
+
+  // ── Audit log ──
+  await logAuditEvent({
+    userId: user.id,
+    userName: user.name,
+    action: "USER_DELETED",
+    description: `حذف مستخدم ${existing.email}`,
+  })
 
   return NextResponse.json({ ok: true })
 }

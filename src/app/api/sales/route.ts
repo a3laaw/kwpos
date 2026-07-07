@@ -4,6 +4,7 @@ import { getCurrentUser, hasRole } from "@/lib/session"
 import { serializeSale } from "@/lib/serialize"
 import { makeInvoiceNo } from "@/lib/format"
 import { createJournalEntry } from "@/lib/journal"
+import { logAuditEvent } from "@/lib/audit"
 import type { Role } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
@@ -203,6 +204,16 @@ export async function POST(req: NextRequest) {
       // client sees a meaningful message. The transaction rolls back.
       throw new Error(`فشل تسجيل القيد المحاسبي / Journal entry failed: ${e?.message ?? e}`)
     }
+
+    // ── Audit log (inside tx — atomic) ──
+    await logAuditEvent({
+      tx,
+      userId: user.id,
+      userName: user.name,
+      action: "SALE_CREATED",
+      description: `فاتورة مبيعات ${sale.invoiceNo}`,
+      saleId: sale.id,
+    })
 
     return { sale, total, afterDiscount, taxAmount }
   }).catch((e: any) => {

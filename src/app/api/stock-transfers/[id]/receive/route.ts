@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
+import { logAuditEvent } from "@/lib/audit"
 import type { Role } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
@@ -52,7 +53,7 @@ export async function POST(
         data: { quantity: { increment: it.quantity } },
       })
     }
-    return tx.stockTransfer.update({
+    const updated = await tx.stockTransfer.update({
       where: { id },
       data: {
         status: "RECEIVED",
@@ -67,6 +68,17 @@ export async function POST(
         receivedBy: true,
       },
     })
+
+    // ── Audit log (inside tx — atomic) ──
+    await logAuditEvent({
+      tx,
+      userId: user.id,
+      userName: user.name,
+      action: "STOCK_TRANSFER_RECEIVED",
+      description: `استلام تحويل ${updated.transferNo}`,
+    })
+
+    return updated
   })
 
   return NextResponse.json({

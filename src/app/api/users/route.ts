@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
 import bcrypt from "bcryptjs"
+import { logAuditEvent } from "@/lib/audit"
 import type { Role } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
@@ -74,6 +75,14 @@ export async function POST(req: NextRequest) {
       role,
     },
     select: { id: true, email: true, name: true, role: true, createdAt: true },
+  })
+
+  // ── Audit log ──
+  await logAuditEvent({
+    userId: user.id,
+    userName: user.name,
+    action: "USER_CREATED",
+    description: `إنشاء مستخدم ${created.email}`,
   })
 
   return NextResponse.json(created, { status: 201 })

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
 import { createJournalEntry } from "@/lib/journal"
+import { logAuditEvent } from "@/lib/audit"
 import type { Role } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
@@ -279,6 +280,15 @@ export async function POST(req: NextRequest) {
       } catch (e: any) {
         throw new Error(`فشل تسجيل القيد المحاسبي / Journal entry failed: ${e?.message ?? e}`)
       }
+
+      // ── Audit log (inside tx — atomic) ──
+      await logAuditEvent({
+        tx,
+        userId: user.id,
+        userName: user.name,
+        action: "PURCHASE_INVOICE_POSTED",
+        description: `فاتورة مشتريات ${inv.invoiceNo}`,
+      })
     }
 
     return inv

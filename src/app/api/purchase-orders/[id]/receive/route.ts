@@ -4,6 +4,7 @@ import { getCurrentUser, hasRole } from "@/lib/session"
 import { serializePurchaseOrder } from "@/lib/serialize"
 import { createJournalEntry } from "@/lib/journal"
 import { allocateLandedCost } from "@/lib/landed-cost"
+import { logAuditEvent } from "@/lib/audit"
 import type { Role } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
@@ -207,6 +208,15 @@ export async function POST(
     } catch (e: any) {
       throw new Error(`فشل تسجيل القيد المحاسبي / Journal entry failed: ${e?.message ?? e}`)
     }
+
+    // ── Audit log (inside tx — atomic) ──
+    await logAuditEvent({
+      tx,
+      userId: user.id,
+      userName: user.name,
+      action: "PO_RECEIVED",
+      description: `استلام أمر شراء ${po.id.slice(-6)}`,
+    })
 
     return result
   }).catch((e: any) => ({ __error: e?.message || "purchase-receive-failed" }))

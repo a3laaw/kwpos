@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
 import { createJournalEntry } from "@/lib/journal"
+import { logAuditEvent } from "@/lib/audit"
 import type { Role } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
@@ -142,6 +143,15 @@ export async function POST(req: NextRequest) {
         data: { journalEntryId },
       })
     }
+
+    // ── Audit log (inside tx — atomic) ──
+    await logAuditEvent({
+      tx,
+      userId: user.id,
+      userName: user.name,
+      action: "SUPPLIER_PAYMENT_CREATED",
+      description: `سداد مورد ${finalPaymentNo}`,
+    })
 
     return created.id
   }).catch((e: any) => ({ __error: e?.message || "supplier-payment-failed" }))

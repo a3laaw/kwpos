@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { db, incrementStockItem, decrementStockItem, updateProductQuantityFromStockItems } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
 import { createJournalEntry } from "@/lib/journal"
+import { logAuditEvent } from "@/lib/audit"
 import type { Role } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
@@ -128,6 +129,15 @@ export async function POST(
     } catch (e: any) {
       throw new Error(`فشل تسجيل القيد المحاسبي / Journal entry failed: ${e?.message ?? e}`)
     }
+
+    // ── Audit log (inside tx — atomic) ──
+    await logAuditEvent({
+      tx,
+      userId: user.id,
+      userName: user.name,
+      action: "STOCK_TAKE_APPROVED",
+      description: `اعتماد جرد ${take.takeNo}`,
+    })
 
     return result
   }).catch((e: any) => ({ __error: e?.message || "stock-take-approve-failed" }))

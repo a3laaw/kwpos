@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
+import { logAuditEvent, AUDIT_INTERNAL_SECRET } from "@/lib/audit"
 import type { Role } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
@@ -42,31 +43,46 @@ export async function GET(req: NextRequest) {
 }
 
 /**
- * POST /api/audit-logs — create a log entry (called from POS client).
- * Any authenticated user can create audit logs.
+ * POST /api/audit-logs — RESTRICTED.
+ *
+ * Only accepts requests with the internal secret header (X-Audit-Internal).
+ * This prevents clients from forging audit log entries. Normal audit
+ * logging happens server-side via logAuditEvent() inside API route
+ * transactions — not via this endpoint.
+ *
+ * ADMIN can also POST (for manual corrections).
  */
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+
+  const internalSecret = req.headers.get("x-audit-internal")
+  const isInternal = internalSecret === AUDIT_INTERNAL_SECRET
+  const isAdmin = hasRole(user.role, ["ADMIN" as Role])
+
+  if (!isInternal && !isAdmin) {
+    return NextResponse.json(
+      { error: "forbidden", message: "Audit logs can only be created server-side" },
+      { status: 403 }
+    )
+  }
 
   const body = await req.json().catch(() => ({} as any))
   const { action, description, saleId, productId, supervisorId, supervisorName, metadata } = body || {}
 
   if (!action) return NextResponse.json({ error: "action-required" }, { status: 400 })
 
-  const log = await db.auditLog.create({
-    data: {
-      userId: user.id,
-      userName: user.name,
-      action,
-      description: description || null,
-      saleId: saleId || null,
-      productId: productId || null,
-      supervisorId: supervisorId || null,
-      supervisorName: supervisorName || null,
-      deviceInfo: req.headers.get("user-agent") || null,
-      metadata: metadata ? JSON.stringify(metadata) : null,
-    },
+  const log = await logAuditEvent({
+    userId: user.id,
+    userName: user.name,
+    action,
+    description: description || null,
+    saleId: saleId || null,
+    productId: productId || null,
+    supervisorId: supervisorId || null,
+    supervisorName: supervisorName || null,
+    deviceInfo: req.headers.get("user-agent") || null,
+    metadata: metadata ? JSON.stringify(metadata) : null,
   })
 
   return NextResponse.json(log, { status: 201 })

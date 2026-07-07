@@ -3,6 +3,7 @@ import { db, incrementStockItem, updateProductQuantityFromStockItems, getDefault
 import { getCurrentUser } from "@/lib/session"
 import { serializeSale } from "@/lib/serialize"
 import { createJournalEntry } from "@/lib/journal"
+import { logAuditEvent } from "@/lib/audit"
 
 export const dynamic = "force-dynamic"
 
@@ -188,6 +189,16 @@ export async function POST(
     } catch (e: any) {
       throw new Error(`فشل تسجيل القيد المحاسبي / Journal entry failed: ${e?.message ?? e}`)
     }
+
+    // ── Audit log (inside tx — atomic) ──
+    await logAuditEvent({
+      tx,
+      userId: user.id,
+      userName: user.name,
+      action: "SALE_REFUNDED",
+      description: `مرتجع للفاتورة ${sale.invoiceNo}`,
+      saleId: sale.id,
+    })
 
     return result
   }).catch((e: any) => ({ __error: e?.message || "refund-failed" }))

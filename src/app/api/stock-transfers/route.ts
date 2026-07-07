@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
+import { logAuditEvent } from "@/lib/audit"
 import type { Role } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
@@ -164,6 +165,16 @@ export async function POST(req: NextRequest) {
           createdBy: true,
           receivedBy: true,
         },
+      }).then(async (created) => {
+        // ── Audit log (inside tx — atomic) ──
+        await logAuditEvent({
+          tx,
+          userId: user.id,
+          userName: user.name,
+          action: "STOCK_TRANSFER_CREATED",
+          description: `تحويل مخزني ${transferNo}`,
+        })
+        return created
       })
     })
   } catch (e: any) {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { db, incrementStockItem, decrementStockItem, updateProductQuantityFromStockItems, getDefaultWarehouseId } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
 import { serializeExchange } from "@/lib/serialize"
+import { logAuditEvent } from "@/lib/audit"
 import type { Role } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
@@ -333,6 +334,15 @@ export async function POST(req: NextRequest) {
         lines: { create: linesData },
       },
       include: { user: true, lines: { include: { product: true } } },
+    })
+
+    // ── Audit log (inside tx — atomic) ──
+    await logAuditEvent({
+      tx,
+      userId: user.id,
+      userName: user.name,
+      action: "SALE_EXCHANGED",
+      description: `تبديل ${created.exchangeNo}`,
     })
 
     return created

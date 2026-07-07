@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
 import { serializeProduct } from "@/lib/serialize"
+import { logAuditEvent } from "@/lib/audit"
 import type { Role } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
@@ -71,6 +72,15 @@ export async function PUT(
     include: { category: true, supplier: true, defaultSupplier: true, stockItems: { include: { warehouse: true } } },
   })
 
+  // ── Audit log ──
+  await logAuditEvent({
+    userId: user.id,
+    userName: user.name,
+    action: "PRODUCT_UPDATED",
+    description: `تحديث منتج ${updated.name ?? ""}`,
+    productId: id,
+  })
+
   return NextResponse.json(serializeProduct(updated as any))
 }
 
@@ -88,5 +98,15 @@ export async function DELETE(
   if (!exists) return NextResponse.json({ error: "not-found" }, { status: 404 })
 
   await db.product.delete({ where: { id } })
+
+  // ── Audit log ──
+  await logAuditEvent({
+    userId: user.id,
+    userName: user.name,
+    action: "PRODUCT_DELETED",
+    description: `حذف منتج ${exists.name ?? ""}`,
+    productId: id,
+  })
+
   return NextResponse.json({ ok: true })
 }
