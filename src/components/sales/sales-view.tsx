@@ -641,9 +641,9 @@ export function SalesView() {
           ) : null}
 
           {isLoading ? (
-            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
               {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="h-20 rounded-lg bg-muted/50 animate-pulse" />
+                <div key={i} className="h-32 rounded-lg bg-muted/50 animate-pulse" />
               ))}
             </div>
           ) : products.length === 0 ? (
@@ -653,7 +653,7 @@ export function SalesView() {
               <p className="text-sm text-muted-foreground">{t.tryAnotherKeyword}</p>
             </div>
           ) : (
-            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
               {products.map((p) => {
                 const used = inCart.get(p.id) || 0
                 const available = p.quantity - used
@@ -673,13 +673,13 @@ export function SalesView() {
                       promoActive && "ring-1 ring-emerald-400/60"
                     )}
                   >
-                    {/* Product image — compact */}
-                    <div className="relative h-14 w-full bg-muted/40 overflow-hidden">
+                    {/* Product image — larger, no cropping */}
+                    <div className="relative h-24 w-full bg-muted/40 overflow-hidden flex items-center justify-center">
                       {p.imageUrl ? (
-                        <img src={p.imageUrl} alt={p.name} className="h-full w-full object-cover group-hover:scale-105 transition-transform" />
+                        <img src={p.imageUrl} alt={p.name} className="h-full w-full object-contain group-hover:scale-105 transition-transform p-1" />
                       ) : (
                         <div className="flex h-full w-full items-center justify-center">
-                          <Package className="h-5 w-5 text-muted-foreground/40" />
+                          <Package className="h-8 w-8 text-muted-foreground/40" />
                         </div>
                       )}
                       {out ? (
@@ -694,7 +694,7 @@ export function SalesView() {
                     </div>
                     {/* Info — compact single layout */}
                     <div className="p-1.5 text-start flex-1 flex flex-col gap-0.5">
-                      <p className="font-medium text-xs leading-tight truncate" title={p.name}>{p.name}</p>
+                      <p className="font-medium text-xs leading-tight line-clamp-2" title={p.name}>{p.name}</p>
                       <div className="flex items-center justify-between gap-0.5 mt-auto">
                         <span className="flex flex-col items-start leading-none">
                           {promoActive ? (
@@ -929,7 +929,7 @@ export function SalesView() {
                         <div
                           key={it.product.id}
                           className={cn(
-                            "flex items-center gap-1.5 h-11 px-1 border-b border-border/30 hover:bg-muted/30 transition-colors group",
+                            "flex items-center gap-1.5 h-14 px-1 border-b border-border/30 hover:bg-muted/30 transition-colors group",
                             promoActive && "bg-emerald-50/30 dark:bg-emerald-950/10"
                           )}
                         >
@@ -942,6 +942,15 @@ export function SalesView() {
                           >
                             <Trash2 className="h-3 w-3" />
                           </Button>
+
+                          {/* Product thumbnail — small but visible */}
+                          <div className="h-9 w-9 shrink-0 rounded bg-muted/40 overflow-hidden flex items-center justify-center">
+                            {it.product.imageUrl ? (
+                              <img src={it.product.imageUrl} alt="" className="h-full w-full object-contain p-0.5" />
+                            ) : (
+                              <Package className="h-4 w-4 text-muted-foreground/40" />
+                            )}
+                          </div>
 
                           {/* Name — truncate + tooltip */}
                           <p
