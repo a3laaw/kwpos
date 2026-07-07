@@ -579,18 +579,26 @@ export function Topbar({
 
   return (
     <>
-      <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border/70 bg-background/80 backdrop-blur-xl px-4 sm:px-6">
+      <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b border-border/70 bg-background/80 backdrop-blur-xl px-4 sm:px-6">
         <Button
           variant="ghost"
           size="icon"
-          className="lg:hidden"
+          className="lg:hidden shrink-0"
           onClick={() => setSidebarOpen(true)}
         >
           <Menu className="h-5 w-5" />
         </Button>
-        <div className="shrink-0">
-          <h2 className="truncate text-base sm:text-lg font-semibold">{title}</h2>
-        </div>
+
+        {/* Title — hidden on desktop when MegaMenu is present (avoids overlap) */}
+        {moduleGroups ? (
+          <div className="shrink-0 hidden xl:block">
+            <h2 className="truncate text-sm font-semibold text-muted-foreground max-w-[100px]">{title}</h2>
+          </div>
+        ) : (
+          <div className="shrink-0">
+            <h2 className="truncate text-base sm:text-lg font-semibold">{title}</h2>
+          </div>
+        )}
 
         {/* MegaMenu groups — inline in the Topbar (Odoo-style) */}
         {moduleGroups ? (

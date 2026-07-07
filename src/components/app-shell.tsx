@@ -67,7 +67,7 @@ export function AppShell({
           <MobileSidebar user={user} />
           <div className="flex-1 flex flex-col min-w-0">
             <Topbar user={user} title={title} country={country} />
-            <main className="flex-1 px-4 sm:px-6 py-6 w-full max-w-[1400px] mx-auto">
+            <main className="flex-1 px-4 sm:px-6 py-6 w-full">
               {view === "dashboard" && <DashboardView />}
               {view === "inventory" && <InventoryView />}
               {view === "purchases" && <PurchasesView />}
@@ -88,7 +88,7 @@ export function AppShell({
               {view === "settings" && <SettingsView />}
             </main>
             <footer className="mt-auto border-t border-border/70 bg-muted/30">
-              <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
+              <div className="w-full px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <span className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-primary">
                     <Boxes className="h-3.5 w-3.5" />
