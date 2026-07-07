@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { db } from "@/lib/db"
+import { db, incrementStockItem, decrementStockItem, updateProductQuantityFromStockItems } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
 import { createJournalEntry } from "@/lib/journal"
 import type { Role } from "@/lib/types"
@@ -32,6 +32,11 @@ export async function POST(
   if (take.status === "APPROVED") {
     return NextResponse.json({ error: "already-approved" }, { status: 409 })
   }
+  // The StockTake carries the warehouse being audited — require it.
+  if (!take.warehouseId) {
+    return NextResponse.json({ error: "warehouse-required" }, { status: 400 })
+  }
+  const warehouseId = take.warehouseId
 
   // Calculate totals
   let shortageValue = 0
@@ -47,13 +52,27 @@ export async function POST(
     }
   }
 
-  // Transaction: adjust product quantities + mark take as APPROVED
+  // Transaction: adjust StockItem quantities + mark take as APPROVED
   const updated = await db.$transaction(async (tx) => {
     for (const adj of adjustments) {
-      await tx.product.update({
-        where: { id: adj.productId },
-        data: { quantity: { increment: adj.variance } }, // negative variance decrements
-      })
+      if (adj.variance > 0) {
+        // Surplus — increment the StockItem for this warehouse (upsert if
+        // missing) and resync Product.quantity as the derived aggregate.
+        await incrementStockItem(tx, adj.productId, warehouseId, adj.variance)
+        await updateProductQuantityFromStockItems(tx, adj.productId)
+      } else if (adj.variance < 0) {
+        // Shortage — decrement the StockItem (row-locked). Reject if there
+        // isn't enough stock to remove.
+        const ok = await decrementStockItem(tx, adj.productId, warehouseId, Math.abs(adj.variance))
+        if (!ok) {
+          const prod = await tx.product.findUnique({
+            where: { id: adj.productId },
+            select: { name: true },
+          })
+          throw new Error(`stock-insufficient:${prod?.name ?? adj.productId}:warehouse:${warehouseId}`)
+        }
+        await updateProductQuantityFromStockItems(tx, adj.productId)
+      }
     }
     return tx.stockTake.update({
       where: { id },
@@ -64,7 +83,17 @@ export async function POST(
       },
       include: { items: { include: { product: true } } },
     })
-  })
+  }).catch((e: any) => ({ __error: e?.message || "stock-take-approve-failed" }))
+
+  if ((updated as any).__error) {
+    const msg = (updated as any).__error as string
+    const isClientError =
+      msg.startsWith("stock-insufficient") ||
+      msg.startsWith("warehouse-")
+    return NextResponse.json({ error: msg }, { status: isClientError ? 400 : 500 })
+  }
+
+  const approvedTake = updated as Awaited<ReturnType<typeof db.stockTake.update>>
 
   // Journal entries — ensure accounts exist, then create balanced entries
   try {
@@ -107,9 +136,9 @@ export async function POST(
 
   return NextResponse.json({
     ok: true,
-    id: updated.id,
-    takeNo: updated.takeNo,
-    status: updated.status,
+    id: approvedTake.id,
+    takeNo: approvedTake.takeNo,
+    status: approvedTake.status,
     summary: {
       shortageValue: +shortageValue.toFixed(3),
       surplusValue: +surplusValue.toFixed(3),

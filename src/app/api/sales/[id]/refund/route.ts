@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { db } from "@/lib/db"
+import { db, incrementStockItem, updateProductQuantityFromStockItems, getDefaultWarehouseId } from "@/lib/db"
 import { getCurrentUser } from "@/lib/session"
 import { serializeSale } from "@/lib/serialize"
 import { createJournalEntry } from "@/lib/journal"
@@ -111,12 +111,20 @@ export async function POST(
   // ── Transaction: update inventory + sale items + sale ──
   const paymentAccCode = sale.paymentMethod === "CASH" ? "1010" : "1020"
   const updated = await db.$transaction(async (tx) => {
-    // Restore inventory
+    // Resolve warehouseId (Sale has no warehouseId — fall back to default).
+    let warehouseId = (sale as any).warehouseId as string | undefined
+    if (!warehouseId) {
+      warehouseId = (await getDefaultWarehouseId(tx)) || undefined
+    }
+    if (!warehouseId) {
+      throw new Error("no-warehouse-available")
+    }
+
+    // Restore inventory — restock the matching StockItem for this warehouse
+    // and keep Product.quantity in sync as the derived aggregate.
     for (const u of updates) {
-      await tx.product.update({
-        where: { id: u.productId },
-        data: { quantity: { increment: u.qtyToReturn } },
-      })
+      await incrementStockItem(tx, u.productId, warehouseId, u.qtyToReturn)
+      await updateProductQuantityFromStockItems(tx, u.productId)
       await tx.saleItem.update({
         where: { id: u.saleItemId },
         data: { returnedQty: u.newReturnedQty },

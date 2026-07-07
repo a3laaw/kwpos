@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { db } from "@/lib/db"
+import { db, incrementStockItem, updateProductQuantityFromStockItems, getDefaultWarehouseId } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
 import { serializePurchaseOrder } from "@/lib/serialize"
 import { createJournalEntry } from "@/lib/journal"
@@ -105,6 +105,16 @@ export async function POST(
   // via the pricing engine (writes a PriceChange audit row + updates the
   // product's salePrice).
   const updated = await db.$transaction(async (tx) => {
+    // Resolve the destination warehouse for received stock. Prefer the PO's
+    // warehouseId; fall back to the default active warehouse if missing.
+    let warehouseId: string | undefined = po.warehouseId ?? undefined
+    if (!warehouseId) {
+      warehouseId = (await getDefaultWarehouseId(tx)) || undefined
+    }
+    if (!warehouseId) {
+      throw new Error("no-warehouse-available")
+    }
+
     for (const it of po.items) {
       const alloc = allocByProduct.get(it.productId)
       // Decide the new cost price to write back:
@@ -124,6 +134,20 @@ export async function POST(
       const currentSalePrice = Number(productSnapshot?.salePrice ?? 0)
       const shouldApplySuggested =
         suggested > 0 && Math.abs(suggested - currentSalePrice) > 0.0001
+
+      // Row-level lock on the destination StockItem before the upsert so
+      // concurrent receives for the same (product, warehouse) serialize.
+      await tx.$executeRawUnsafe(
+        `SELECT * FROM "StockItem" WHERE "productId" = $1 AND "warehouseId" = $2 FOR UPDATE`,
+        it.productId,
+        warehouseId
+      )
+
+      // Increment the StockItem (upsert creates the row if missing) and
+      // keep Product.quantity in sync as the derived aggregate.
+      await incrementStockItem(tx, it.productId, warehouseId, Number(it.quantity))
+      await updateProductQuantityFromStockItems(tx, it.productId)
+
       if (shouldApplySuggested) {
         await tx.priceChange.create({
           data: {
@@ -138,7 +162,6 @@ export async function POST(
         await tx.product.update({
           where: { id: it.productId },
           data: {
-            quantity: { increment: it.quantity },
             costPrice: newCostPrice,
             salePrice: suggested,
           },
@@ -147,7 +170,6 @@ export async function POST(
         await tx.product.update({
           where: { id: it.productId },
           data: {
-            quantity: { increment: it.quantity },
             costPrice: newCostPrice,
           },
         })

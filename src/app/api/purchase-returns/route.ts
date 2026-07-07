@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { db } from "@/lib/db"
+import { db, decrementStockItem, updateProductQuantityFromStockItems, getDefaultWarehouseId } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
 import { createJournalEntry } from "@/lib/journal"
 import type { Role } from "@/lib/types"
@@ -138,12 +138,30 @@ export async function POST(req: NextRequest) {
   const returnNo = await nextReturnNo()
 
   const created = await db.$transaction(async (tx) => {
+    // Resolve warehouseId — PurchaseReturn has no warehouseId; fall back to
+    // the PO's warehouseId, then to the default active warehouse.
+    let warehouseId =
+      (po as any).warehouseId as string | undefined
+    if (!warehouseId) {
+      warehouseId = (await getDefaultWarehouseId(tx)) || undefined
+    }
+    if (!warehouseId) {
+      throw new Error("no-warehouse-available")
+    }
+
     // Decrement inventory + bump POItem.returnedQty
     for (const ri of returnItems) {
-      await tx.product.update({
-        where: { id: ri.productId },
-        data: { quantity: { decrement: ri.returnQty } },
-      })
+      // Decrement the matching StockItem (with row locking). Return 400 if
+      // insufficient stock for this warehouse.
+      const ok = await decrementStockItem(tx, ri.productId, warehouseId, ri.returnQty)
+      if (!ok) {
+        const prod = await tx.product.findUnique({
+          where: { id: ri.productId },
+          select: { name: true },
+        })
+        throw new Error(`stock-insufficient:${prod?.name ?? ri.productId}:warehouse:${warehouseId}`)
+      }
+      await updateProductQuantityFromStockItems(tx, ri.productId)
       await tx.purchaseOrderItem.update({
         where: { id: ri.poItemId },
         data: { returnedQty: { increment: ri.returnQty } },
@@ -173,7 +191,20 @@ export async function POST(req: NextRequest) {
         createdBy: true,
       },
     })
-  })
+  }).catch((e: any) => ({ __error: e?.message || "purchase-return-failed" }))
+
+  if ((created as any).__error) {
+    const msg = (created as any).__error as string
+    const isClientError =
+      msg.startsWith("stock-insufficient") ||
+      msg.startsWith("product-not-found") ||
+      msg.startsWith("invalid") ||
+      msg.startsWith("exceeds-returnable") ||
+      msg.startsWith("po-")
+    return NextResponse.json({ error: msg }, { status: isClientError ? 400 : 500 })
+  }
+
+  const purchaseReturn = created as Awaited<ReturnType<typeof db.purchaseReturn.create>>
 
   // Reversing journal entry: debit 2010 (AP — reduces what we owe supplier)
   // / credit 1010 (Inventory — reduces asset). Balanced.
@@ -181,7 +212,7 @@ export async function POST(req: NextRequest) {
   try {
     journalEntryId = await createJournalEntry({
       sourceType: "MANUAL",
-      sourceId: created.id,
+      sourceId: purchaseReturn.id,
       description: `قيد مرتجع مشتريات ${returnNo} — ${po.supplier?.name ?? ""}`,
       date: new Date(),
       lines: [
@@ -195,7 +226,7 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json(
     {
-      ...serializeReturn(created),
+      ...serializeReturn(purchaseReturn),
       journalEntryId,
       returnTotal,
     },

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { db } from "@/lib/db"
+import { db, incrementStockItem, decrementStockItem, updateProductQuantityFromStockItems, getDefaultWarehouseId } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
 import { serializeExchange } from "@/lib/serialize"
 import type { Role } from "@/lib/types"
@@ -205,6 +205,15 @@ export async function POST(req: NextRequest) {
     const count = await tx.exchangeSale.count()
     const exchangeNo = `EXC-${String(count + 1).padStart(5, "0")}`
 
+    // Resolve warehouseId — ExchangeSale has none; fall back to default.
+    let warehouseId = (body as any).warehouseId as string | undefined
+    if (!warehouseId) {
+      warehouseId = (await getDefaultWarehouseId(tx)) || undefined
+    }
+    if (!warehouseId) {
+      throw new Error("no-warehouse-available")
+    }
+
     // Resolve each line's product, mutate inventory, build the line payload,
     // and (for returns) increment the matching SaleItem.returnedQty.
     const linesData: Array<{
@@ -233,11 +242,11 @@ export async function POST(req: NextRequest) {
       if (!product) throw new Error("product-not-found:" + productId)
 
       if (isReturn) {
-        // Restock — increment product.quantity by |qty|
-        await tx.product.update({
-          where: { id: productId },
-          data: { quantity: { increment: Math.abs(qty) } },
-        })
+        // Restock — increment the StockItem for this warehouse (upsert if
+        // missing) and keep Product.quantity in sync as the derived aggregate.
+        const restockQty = Math.abs(qty)
+        await incrementStockItem(tx, productId, warehouseId, restockQty)
+        await updateProductQuantityFromStockItems(tx, productId)
 
         // Increment the matching SaleItem.returnedQty.
         const si = saleItemByProductId.get(productId)
@@ -270,14 +279,13 @@ export async function POST(req: NextRequest) {
           }
         }
       } else {
-        // Validate stock before depleting
-        if (product.quantity < qty) {
-          throw new Error(`stock-insufficient:${product.name}:${product.quantity}`)
+        // Validate + decrement the StockItem for this warehouse (with row
+        // locking via SELECT FOR UPDATE inside decrementStockItem).
+        const ok = await decrementStockItem(tx, productId, warehouseId, qty)
+        if (!ok) {
+          throw new Error(`stock-insufficient:${product.name}:warehouse:${warehouseId}`)
         }
-        await tx.product.update({
-          where: { id: productId },
-          data: { quantity: { decrement: qty } },
-        })
+        await updateProductQuantityFromStockItems(tx, productId)
       }
 
       linesData.push({

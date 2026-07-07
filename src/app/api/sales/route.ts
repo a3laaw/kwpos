@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { db } from "@/lib/db"
+import { db, decrementStockItem, updateProductQuantityFromStockItems, getDefaultWarehouseId } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
 import { serializeSale } from "@/lib/serialize"
 import { makeInvoiceNo } from "@/lib/format"
@@ -104,7 +104,16 @@ export async function POST(req: NextRequest) {
     const count = await tx.sale.count()
     const invoiceNo = makeInvoiceNo(count + 1)
 
-    // Lock & validate each product
+    // Resolve warehouseId (fallback to default)
+    let warehouseId = (body as any).warehouseId as string | undefined
+    if (!warehouseId) {
+      warehouseId = (await getDefaultWarehouseId(tx)) || undefined
+    }
+    if (!warehouseId) {
+      throw new Error("no-warehouse-available")
+    }
+
+    // Lock & validate each product via StockItem (SELECT FOR UPDATE)
     const itemsData: Array<{
       productId: string
       quantity: number
@@ -122,8 +131,11 @@ export async function POST(req: NextRequest) {
       }
       const product = await tx.product.findUnique({ where: { id: productId } })
       if (!product) throw new Error("product-not-found:" + productId)
-      if (product.quantity < qty) {
-        throw new Error(`stock-insufficient:${product.name}:${product.quantity}`)
+
+      // Check + decrement StockItem for this warehouse (with row locking)
+      const ok = await decrementStockItem(tx, productId, warehouseId, qty)
+      if (!ok) {
+        throw new Error(`stock-insufficient:${product.name}:warehouse:${warehouseId}`)
       }
       const lineSubtotal = +(qty * unitPrice).toFixed(3)
       subtotal += lineSubtotal
@@ -135,12 +147,9 @@ export async function POST(req: NextRequest) {
     // Delivery fee is added AFTER tax (it's a service charge, not taxable).
     const total = +(afterDiscount + taxAmount + DELIVERY_FEE).toFixed(3)
 
-    // Decrement inventory for each item
+    // Sync Product.quantity as aggregate of all StockItems
     for (const it of itemsData) {
-      await tx.product.update({
-        where: { id: it.productId },
-        data: { quantity: { decrement: it.quantity } },
-      })
+      await updateProductQuantityFromStockItems(tx, it.productId)
     }
 
     const sale = await tx.sale.create({
