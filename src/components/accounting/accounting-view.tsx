@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { PageHeader } from "@/components/shared/page-header"
-import { SubNav, type SubNavItem } from "@/components/shared/sub-nav"
+import { ContextDropdown, type ContextNavItem } from "@/components/shared/context-dropdown"
 import { Breadcrumbs } from "@/components/shared/breadcrumbs"
 import { BookOpen, Wallet, Receipt, FileBarChart, BookCopy, Scale, Banknote, User2, Percent } from "lucide-react"
 import { ChartOfAccountsTab } from "@/components/accounting/chart-of-accounts-tab"
@@ -43,7 +43,7 @@ export function AccountingView() {
   const t = useT()
   const [tab, setTab] = React.useState<AccTab>("accounts")
 
-  const items: SubNavItem[] = [
+  const items: ContextNavItem[] = [
     { value: "accounts", labelKey: "accJournalLedger", icon: Wallet },
     { value: "expenses", labelKey: "accExpenses", icon: Receipt },
     { value: "journal", labelKey: "accJournalEntries", icon: BookCopy },
@@ -70,7 +70,15 @@ export function AccountingView() {
         icon={<BookOpen className="h-5 w-5" />}
       />
 
-      <SubNav items={items} value={tab} onChange={(v) => setTab(v as AccTab)} />
+      {/* Context dropdown for 9 items (replaces horizontal SubNav) */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <ContextDropdown
+          sectionLabel={t.navAccounting}
+          items={items}
+          value={tab}
+          onChange={(v) => setTab(v as AccTab)}
+        />
+      </div>
 
       {tab === "accounts" && <ChartOfAccountsTab />}
       {tab === "expenses" && <ExpensesTab />}
