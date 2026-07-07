@@ -425,7 +425,10 @@ model Shift {
   closedAt      DateTime?
   status        String   @default("OPEN") // OPEN | CLOSED
 
-  // System-recorded totals during the shift (from sales)
+  // Opening cash balance entered by cashier at shift start
+  openingBalance   Float @default(0)
+
+  // System-recorded totals during the shift (from sales by THIS user)
   expectedCash     Float @default(0)
   expectedKnet     Float @default(0) // K-Net card sales
   expectedVisa     Float @default(0) // Visa/Mastercard sales
@@ -435,7 +438,7 @@ model Shift {
   countedKnet      Float @default(0) // actual from K-Net terminal receipts
   countedVisa      Float @default(0) // actual from Visa terminal receipts
 
-  // Computed variances (counted − expected)
+  // Computed variances (counted − (openingBalance + expected))
   cashVariance     Float @default(0)
   knetVariance     Float @default(0)
   visaVariance     Float @default(0)

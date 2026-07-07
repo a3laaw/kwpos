@@ -720,6 +720,7 @@ export interface ShiftItem {
   openedAt: string
   closedAt: string | null
   status: "OPEN" | "CLOSED"
+  openingBalance: number
   expectedCash: number
   expectedKnet: number
   expectedVisa: number
