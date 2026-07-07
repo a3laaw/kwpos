@@ -50,7 +50,7 @@ server.log
 # Screenshots, uploads, and sandbox artifacts
 verify-*.png
 screenshots/
-upload/
+/upload/
 agent-ctx/
 tool-results/
 worklog.md
