@@ -51,7 +51,7 @@ import { useAppStore } from "@/lib/store"
 import { NAV_ENTRIES, type NavEntry } from "@/components/nav-config"
 import { getModuleNav } from "@/components/module-nav-config"
 import { MegaMenuBar } from "@/components/shared/mega-menu-bar"
-import { useModuleTab, setModuleTab, getModuleTab } from "@/lib/module-tab-store"
+import { useModuleTab } from "@/lib/module-tab-store"
 import { ROLE_PERMISSIONS } from "@/lib/session"
 import type { Role } from "@/lib/types"
 import type { AppView } from "@/lib/types"
@@ -580,7 +580,7 @@ export function Topbar({
 
   return (
     <>
-      <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b border-border/70 bg-background/80 backdrop-blur-xl px-4 sm:px-6">
+      <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border/70 bg-background/80 backdrop-blur-xl px-4 sm:px-6">
         <Button
           variant="ghost"
           size="icon"
@@ -590,20 +590,16 @@ export function Topbar({
           <Menu className="h-5 w-5" />
         </Button>
 
-        {/* Title — hidden on desktop when MegaMenu is present (avoids overlap) */}
-        {moduleGroups ? (
-          <div className="shrink-0 hidden xl:block">
-            <h2 className="truncate text-sm font-semibold text-muted-foreground max-w-[100px]">{title}</h2>
-          </div>
-        ) : (
+        {/* Title — only show when NO MegaMenu (prevents overlap) */}
+        {!moduleGroups ? (
           <div className="shrink-0">
             <h2 className="truncate text-base sm:text-lg font-semibold">{title}</h2>
           </div>
-        )}
+        ) : null}
 
         {/* MegaMenu groups — inline in the Topbar (Odoo-style) */}
         {moduleGroups ? (
-          <div className="flex-1 min-w-0 flex items-center">
+          <div className="flex-1 min-w-0 flex items-center overflow-hidden">
             <MegaMenuBarInline groups={moduleGroups} />
           </div>
         ) : (
