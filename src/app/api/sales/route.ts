@@ -18,8 +18,8 @@ export async function GET(req: NextRequest) {
   const where: any = {}
   if (q) {
     where.OR = [
-      { invoiceNo: { contains: q } },
-      { customerName: { contains: q } },
+      { invoiceNo: { contains: q, mode: 'insensitive' as const } },
+      { customerName: { contains: q, mode: 'insensitive' as const } },
     ]
   }
 

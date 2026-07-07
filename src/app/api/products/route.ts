@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
 
   const where: any = {}
   if (q) {
-    where.OR = [{ name: { contains: q } }, { barcode: { contains: q } }]
+    where.OR = [{ name: { contains: q, mode: 'insensitive' as const } }, { barcode: { contains: q, mode: 'insensitive' as const } }]
   }
   if (categoryId) where.categoryId = categoryId
   if (supplierId) where.supplierId = supplierId
