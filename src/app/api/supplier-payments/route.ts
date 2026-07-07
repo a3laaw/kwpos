@@ -5,6 +5,29 @@ import { createJournalEntry } from "@/lib/journal"
 import { logAuditEvent } from "@/lib/audit"
 import type { Role } from "@/lib/types"
 
+/** Compute supplier outstanding balance: invoices - payments - returns */
+async function getSupplierBalance(supplierId: string): Promise<number> {
+  const [invoices, payments, returns] = await Promise.all([
+    db.purchaseInvoice.aggregate({
+      where: { supplierId, status: "POSTED" },
+      _sum: { total: true },
+    }),
+    db.supplierPayment.aggregate({
+      where: { supplierId },
+      _sum: { amount: true },
+    }),
+    db.purchaseReturn.aggregate({
+      where: { supplierId },
+      _sum: { total: true },
+    }),
+  ])
+  return (
+    Number(invoices._sum.total || 0)
+    - Number(payments._sum.amount || 0)
+    - Number(returns._sum.total || 0)
+  )
+}
+
 export const dynamic = "force-dynamic"
 
 function r(v: number): number {
@@ -88,6 +111,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "invalid-supplier" }, { status: 400 })
   }
 
+  // ── Server-side balance validation ──
+  // Compute outstanding balance: invoices - payments - returns
+  const outstandingBalance = await getSupplierBalance(supplierId)
+  const isAdmin = hasRole(user.role, ["ADMIN" as Role])
+  const override = body?.override === true && isAdmin
+
+  if (amt > outstandingBalance + 0.001 && !override) {
+    return NextResponse.json(
+      {
+        error: "exceeds-balance",
+        message: `المبلغ يتجاوز الرصيد المستحق / Amount exceeds outstanding balance`,
+        amount: amt,
+        outstandingBalance: +outstandingBalance.toFixed(3),
+      },
+      { status: 400 }
+    )
+  }
+
   const paymentDateVal = paymentDate ? new Date(paymentDate) : new Date()
   if (Number.isNaN(paymentDateVal.getTime())) {
     return NextResponse.json({ error: "invalid-date" }, { status: 400 })
@@ -150,7 +191,7 @@ export async function POST(req: NextRequest) {
       userId: user.id,
       userName: user.name,
       action: "SUPPLIER_PAYMENT_CREATED",
-      description: `سداد مورد ${finalPaymentNo}`,
+      description: `سداد مورد ${finalPaymentNo} — ${supplier.name} — ${amountRounded} د.ك${override ? ` ⚠️ تجاوز إداري (المبلغ > الرصيد ${outstandingBalance.toFixed(3)})` : ""}`,
     })
 
     return created.id
