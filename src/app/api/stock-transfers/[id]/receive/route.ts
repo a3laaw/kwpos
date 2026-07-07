@@ -33,7 +33,13 @@ export async function POST(
 
   const updated = await db.$transaction(async (tx) => {
     // Add to destination warehouse (StockItem + Product aggregate)
+    // Row-level lock via SELECT FOR UPDATE to prevent concurrent receives
     for (const it of transfer.items) {
+      await tx.$executeRawUnsafe(
+        `SELECT * FROM "StockItem" WHERE "productId" = $1 AND "warehouseId" = $2 FOR UPDATE`,
+        it.productId,
+        transfer.toWarehouseId
+      )
       await tx.stockItem.upsert({
         where: {
           productId_warehouseId: {

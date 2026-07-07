@@ -136,7 +136,13 @@ export async function POST(req: NextRequest) {
   try {
     created = await db.$transaction(async (tx) => {
       // Deduct from source warehouse (StockItem + Product aggregate)
+      // Row-level lock via SELECT FOR UPDATE to prevent concurrent transfers/sales
       for (const it of itemsData) {
+        await tx.$executeRawUnsafe(
+          `SELECT * FROM "StockItem" WHERE "productId" = $1 AND "warehouseId" = $2 FOR UPDATE`,
+          it.productId,
+          fromWarehouseId
+        )
         await tx.stockItem.upsert({
           where: { productId_warehouseId: { productId: it.productId, warehouseId: fromWarehouseId } },
           update: { quantity: { decrement: it.quantity } },
