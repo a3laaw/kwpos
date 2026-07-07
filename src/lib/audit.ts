@@ -1,11 +1,17 @@
 import { db } from "@/lib/db"
-import type { AuditAction } from "@/lib/types"
 
 /**
  * Internal secret for server-side audit log creation via the API route.
- * Clients don't have this — only server code does.
+ *
+ * SECURITY: NO FALLBACK. If the env var is not set, the audit API route
+ * refuses to create logs (returns 500 "audit-not-configured"). This
+ * prevents a known-default secret from being exploitable.
+ *
+ * Server-side code that calls logAuditEvent() directly (inside a
+ * transaction) does NOT need this secret — it writes to the DB via
+ * Prisma, bypassing the HTTP API route entirely.
  */
-export const AUDIT_INTERNAL_SECRET = process.env.AUDIT_INTERNAL_SECRET || "kwpos-internal-audit-2026"
+export const AUDIT_INTERNAL_SECRET = process.env.AUDIT_INTERNAL_SECRET
 
 /**
  * Server-side audit log helper.
@@ -13,6 +19,11 @@ export const AUDIT_INTERNAL_SECRET = process.env.AUDIT_INTERNAL_SECRET || "kwpos
  * Creates an AuditLog record directly via Prisma (not via HTTP fetch).
  * When `tx` is provided, the record is created inside the caller's
  * transaction — if it fails, the whole transaction rolls back.
+ *
+ * This is the ONLY way audit logs should be created for sensitive
+ * operations (sales, refunds, exchanges, stock mutations, etc.).
+ * The browser must NEVER send audit log requests — all audit logging
+ * happens server-side inside API route transactions.
  *
  * Usage inside a transaction:
  *   await logAuditEvent({ tx, userId: user.id, userName: user.name,
@@ -49,34 +60,11 @@ export async function logAuditEvent(opts: {
   })
 }
 
-/**
- * CLIENT-SIDE helper (kept for backward compatibility with existing
- * components that call logAudit from the browser).
- *
- * This now sends the internal secret header so the API route accepts it.
- * However, new code should use logAuditEvent (server-side) instead.
- */
-export async function logAudit(
-  action: AuditAction,
-  payload?: {
-    description?: string
-    saleId?: string
-    productId?: string
-    supervisorId?: string
-    supervisorName?: string
-    metadata?: any
-  }
-) {
-  try {
-    await fetch("/api/audit-logs", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-audit-internal": AUDIT_INTERNAL_SECRET,
-      },
-      body: JSON.stringify({ action, ...payload }),
-    })
-  } catch {
-    // Silent fail — client-side audit logging is best-effort
-  }
-}
+// NOTE: The client-side `logAudit()` helper has been REMOVED for security.
+// All audit logging must happen server-side via `logAuditEvent()` inside
+// API route transactions. The browser must not send audit log requests
+// because it cannot safely hold the internal secret.
+//
+// If a client component previously called `logAudit()`, the corresponding
+// server API route already calls `logAuditEvent()` — the client call was
+// redundant and has been removed.

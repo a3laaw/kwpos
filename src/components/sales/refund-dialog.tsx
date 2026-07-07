@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import { toast } from "sonner"
-import { logAudit } from "@/lib/audit"
 import {
   Dialog,
   DialogContent,
@@ -142,10 +141,8 @@ export function RefundDialog({
         override14Days: past14 && override14,
       })
       setResult(res)
-      void logAudit("REFUND", {
-        saleId: sale.id,
-        description: `مرتجع للفاتورة ${sale.invoiceNo} — ${items.length} صنف`,
-      })
+      // Audit log is created server-side by the refund API route
+      // (action: SALE_REFUNDED). No client-side logging needed.
       toast.success(t.refundApprovedToast, {
         description: t.refundApprovedToastDesc
           .replace("{creditNoteNo}", res.refundSummary?.creditNoteNo || "")

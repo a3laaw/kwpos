@@ -51,8 +51,20 @@ export async function GET(req: NextRequest) {
  * transactions — not via this endpoint.
  *
  * ADMIN can also POST (for manual corrections).
+ *
+ * SECURITY: If AUDIT_INTERNAL_SECRET is not configured in the environment,
+ * this endpoint returns 500 "audit-not-configured" — it does NOT fall back
+ * to a default secret.
  */
 export async function POST(req: NextRequest) {
+  // Fail-closed: if the secret is not configured, refuse all POSTs.
+  if (!AUDIT_INTERNAL_SECRET) {
+    return NextResponse.json(
+      { error: "audit-not-configured", message: "AUDIT_INTERNAL_SECRET env var is not set" },
+      { status: 500 }
+    )
+  }
+
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
 
