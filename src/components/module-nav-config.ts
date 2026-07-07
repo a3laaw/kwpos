@@ -8,36 +8,60 @@ import {
 import type { Dict } from "@/lib/i18n"
 
 /**
- * Module navigation config — defines MegaMenu groups for each module
- * that has sub-navigation. The Topbar reads this to render the menu bar
- * inline (Odoo-style) instead of a separate bar below.
+ * Module navigation config — defines MegaMenu groups for each module.
  *
- * Views NOT listed here (dashboard, sales, invoices, suppliers, customers,
- * shifts, spotcheck, exchanges, integrations, users, audit, settings)
- * have no sub-navigation — they render directly.
+ * Groups are organized PROFESSIONALLY by function:
+ *
+ * Accounting:
+ *   - القيود (journal entries + trial balance)
+ *   - الحسابات (chart of accounts + expenses)
+ *   - القوائم المالية (balance sheet + cash flow + P&L)
+ *   - التقارير الضريبية (customer statement + VAT)
+ *
+ * Inventory:
+ *   - المخزون (products + warehouses)
+ *   - العمليات (stock take + transfers)
+ *
+ * Purchases:
+ *   - المشتريات (POs + invoices + supplier payments)
+ *
+ * Pricing:
+ *   - التسعير (prices + promotions + audit log)
+ *
+ * Analytics:
+ *   - المبيعات (overview + top products)
+ *   - التكاليف (stagnant + cost + margin)
+ *
+ * Reports:
+ *   - التقارير (general + performance matrix)
  */
 export const MODULE_NAV: Partial<Record<string, MegaMenuGroup[]>> = {
   accounting: [
     {
       labelKey: "accJournalEntries" as keyof Dict,
       items: [
-        { value: "accounts", labelKey: "accJournalLedger" as keyof Dict, icon: Wallet },
         { value: "journal", labelKey: "accJournalEntries" as keyof Dict, icon: BookCopy },
         { value: "trial", labelKey: "accTrialBalance" as keyof Dict, icon: Scale },
       ],
     },
     {
-      labelKey: "accBalanceSheet" as keyof Dict,
+      labelKey: "accChartOfAccountsDesc" as keyof Dict,
       items: [
+        { value: "accounts", labelKey: "accJournalLedger" as keyof Dict, icon: Wallet },
         { value: "expenses", labelKey: "accExpenses" as keyof Dict, icon: Receipt },
-        { value: "balance", labelKey: "accBalanceSheet" as keyof Dict, icon: Scale },
-        { value: "cashflow", labelKey: "accCashFlow" as keyof Dict, icon: Banknote },
       ],
     },
     {
-      labelKey: "accPnl" as keyof Dict,
+      labelKey: "accBalanceSheet" as keyof Dict,
       items: [
+        { value: "balance", labelKey: "accBalanceSheet" as keyof Dict, icon: Scale },
+        { value: "cashflow", labelKey: "accCashFlow" as keyof Dict, icon: Banknote },
         { value: "pnl", labelKey: "accPnl" as keyof Dict, icon: FileBarChart },
+      ],
+    },
+    {
+      labelKey: "accVatReport" as keyof Dict,
+      items: [
         { value: "customer-statement", labelKey: "accCustomerStatement" as keyof Dict, icon: User2 },
         { value: "vat", labelKey: "accVatReport" as keyof Dict, icon: Percent },
       ],
@@ -88,10 +112,10 @@ export const MODULE_NAV: Partial<Record<string, MegaMenuGroup[]>> = {
       ],
     },
     {
-      labelKey: "anlStagnant" as keyof Dict,
+      labelKey: "anlStagnantItems" as keyof Dict,
       items: [
-        { value: "stagnant", labelKey: "anlStagnant" as keyof Dict, icon: Coins },
-        { value: "cost", labelKey: "anlCostAnalysis" as keyof Dict, icon: ArrowDown },
+        { value: "stagnant", labelKey: "anlStagnantItems" as keyof Dict, icon: Coins },
+        { value: "cost", labelKey: "anlCost" as keyof Dict, icon: ArrowDown },
         { value: "margin", labelKey: "anlProfitability" as keyof Dict, icon: Percent },
       ],
     },
