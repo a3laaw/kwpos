@@ -34,7 +34,17 @@ export function ImageUpload({ value, onChange, label, className, shape = "square
       onChange(res.url)
       toast.success(t.imageUploaded)
     } catch (err: any) {
-      toast.error(t.imageUploadFailed, { description: err?.message })
+      const code = err?.message || ""
+      // Translate known error codes to user-friendly messages
+      if (code === "file-too-large") {
+        toast.error(t.imageTooLarge)
+      } else if (code === "invalid-file-type") {
+        toast.error(t.imageUploadFailed, { description: t.imageFormatsHint })
+      } else if (code === "image-decode-failed" || code === "encode-failed") {
+        toast.error(t.imageResizeFailed)
+      } else {
+        toast.error(t.imageUploadFailed, { description: code })
+      }
     }
     if (fileRef.current) fileRef.current.value = ""
   }

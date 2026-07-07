@@ -633,9 +633,40 @@ export function useImportCustomers() {
 export function useUploadImage() {
   return useMutation({
     mutationFn: async (file: File) => {
+      // Resize + compress on the client so we never hit Vercel's
+      // serverless body limit (4.5 MB). A 5 MB phone photo becomes
+      // ~80–150 KB after resize to 800px + JPEG 0.8.
+      let uploadFile = file
+      try {
+        const { resizeImageFile } = await import("@/lib/image-resize")
+        uploadFile = await resizeImageFile(file, { maxDim: 800, quality: 0.8 })
+      } catch {
+        // If resize fails (e.g. corrupt image), fall back to the original
+        // and let the server validate it.
+        uploadFile = file
+      }
+
       const fd = new FormData()
-      fd.append("file", file)
+      fd.append("file", uploadFile)
       const res = await fetch("/api/upload", { method: "POST", body: fd })
+
+      // Vercel returns an HTML error page (413 / 500) when the body is
+      // too large or the function crashes. Detect that and throw a
+      // user-friendly error instead of letting res.json() produce the
+      // cryptic "Unexpected token '<'" message.
+      const contentType = res.headers.get("content-type") || ""
+      if (!contentType.includes("application/json")) {
+        if (res.status === 413) {
+          throw new Error("file-too-large")
+        }
+        // Read a snippet of the HTML to detect common error pages
+        const text = await res.text().catch(() => "")
+        if (text.includes("FUNCTION_PAYLOAD_TOO_LARGE") || text.includes("413")) {
+          throw new Error("file-too-large")
+        }
+        throw new Error(`upload-failed (${res.status})`)
+      }
+
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error || "upload-failed")
       return data as { url: string }

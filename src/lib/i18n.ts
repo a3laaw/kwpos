@@ -291,6 +291,8 @@ export interface Dict {
   downloadEmptyTemplate: string
   imageUploaded: string
   imageUploadFailed: string
+  imageTooLarge: string
+  imageResizeFailed: string
   changeImage: string
   uploadImage: string
   imageFormatsHint: string
@@ -2020,6 +2022,8 @@ export const DICTS: Record<Locale, Dict> = {
     downloadEmptyTemplate: "تحميل قالب فارغ",
     imageUploaded: "تم رفع الصورة",
     imageUploadFailed: "فشل رفع الصورة",
+    imageTooLarge: "حجم الصورة كبير جدًا — الحد الأقصى 2 ميجابايت",
+    imageResizeFailed: "تعذّر معالجة الصورة — حاول بصورة أخرى",
     changeImage: "تغيير الصورة",
     uploadImage: "رفع صورة",
     imageFormatsHint: "الصيغ المسموحة: JPG, PNG, WEBP",
@@ -3738,6 +3742,8 @@ export const DICTS: Record<Locale, Dict> = {
     downloadEmptyTemplate: "Download empty template",
     imageUploaded: "Image uploaded",
     imageUploadFailed: "Image upload failed",
+    imageTooLarge: "Image is too large — max 2 MB",
+    imageResizeFailed: "Could not process the image — try another one",
     changeImage: "Change image",
     uploadImage: "Upload image",
     imageFormatsHint: "Allowed formats: JPG, PNG, WEBP",
