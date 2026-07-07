@@ -1,5 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "installCommand": "bun install"
+  "installCommand": "bun install",
+  "functions": {
+    "src/app/api/upload/route.ts": {
+      "maxDuration": 30
+    }
+  }
 }

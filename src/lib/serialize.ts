@@ -67,6 +67,7 @@ export function serializeCategory(c: AnyRow): Category {
     id: String(c.id),
     name: String(c.name),
     code: (c.code as string | null) ?? null,
+    barcodePrefix: (c.barcodePrefix as number | null) ?? null,
     imageUrl: (c.imageUrl as string | null) ?? null,
     createdAt: String(c.createdAt),
   }

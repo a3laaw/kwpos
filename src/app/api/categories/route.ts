@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
   const name = String(body?.name || "").trim()
   if (!name) return NextResponse.json({ error: "name-required" }, { status: 400 })
-  // Short code (max 4 chars) used for auto-barcode generation. Optional + unique.
+  // Short code (max 4 chars) for display. Optional + unique.
   const rawCode = String(body?.code || "").trim().slice(0, 4)
   const code = rawCode || null
 
@@ -31,8 +31,18 @@ export async function POST(req: NextRequest) {
     if (dup) return NextResponse.json({ error: "code-exists" }, { status: 409 })
   }
 
+  // Optional explicit barcode prefix (1-9). If not provided, the barcode
+  // route will fall back to the category's order index.
+  let barcodePrefix: number | null = null
+  if (body?.barcodePrefix !== undefined && body?.barcodePrefix !== null && body?.barcodePrefix !== "") {
+    const p = Number(body.barcodePrefix)
+    if (!isNaN(p) && p >= 1 && p <= 9) {
+      barcodePrefix = p
+    }
+  }
+
   const created = await db.category.create({
-    data: { name, code, imageUrl: body.imageUrl?.trim() || null },
+    data: { name, code, barcodePrefix, imageUrl: body.imageUrl?.trim() || null },
   })
   return NextResponse.json(serializeCategory(created as any), { status: 201 })
 }

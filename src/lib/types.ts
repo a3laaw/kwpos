@@ -5,8 +5,10 @@ export type Role = "ADMIN" | "SALES" | "WAREHOUSE"
 export interface Category {
   id: string
   name: string
-  /** Short code used for auto-barcode generation (e.g. "03"). Optional. */
+  /** Short display code (e.g. "03"). Optional. */
   code?: string | null
+  /** Explicit barcode prefix digit (1-9). If null, uses order index. */
+  barcodePrefix?: number | null
   imageUrl?: string | null
   createdAt: string
 }

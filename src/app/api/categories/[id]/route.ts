@@ -32,7 +32,7 @@ export async function PUT(
   if (!exists) return NextResponse.json({ error: "not-found" }, { status: 404 })
 
   // Build the update payload — only fields actually present in the body.
-  const data: { name?: string; code?: string | null; imageUrl?: string | null } = {}
+  const data: { name?: string; code?: string | null; barcodePrefix?: number | null; imageUrl?: string | null } = {}
   if (body.name !== undefined) {
     const name = String(body.name).trim()
     if (!name) return NextResponse.json({ error: "name-required" }, { status: 400 })
@@ -49,6 +49,17 @@ export async function PUT(
       }
     }
     data.code = code
+  }
+  if (body.barcodePrefix !== undefined) {
+    if (body.barcodePrefix === null || body.barcodePrefix === "") {
+      data.barcodePrefix = null
+    } else {
+      const p = Number(body.barcodePrefix)
+      if (isNaN(p) || p < 1 || p > 9) {
+        return NextResponse.json({ error: "invalid-barcode-prefix" }, { status: 400 })
+      }
+      data.barcodePrefix = p
+    }
   }
   if (body.imageUrl !== undefined) {
     data.imageUrl = body.imageUrl ? String(body.imageUrl).trim() : null

@@ -650,14 +650,17 @@ export function useUploadImage() {
       fd.append("file", uploadFile)
       const res = await fetch("/api/upload", { method: "POST", body: fd })
 
-      // Vercel returns an HTML error page (413 / 500) when the body is
-      // too large or the function crashes. Detect that and throw a
-      // user-friendly error instead of letting res.json() produce the
-      // cryptic "Unexpected token '<'" message.
+      // Vercel returns an HTML error page (413 / 500 / 404) when the body
+      // is too large or the function fails to cold-start. Detect non-JSON
+      // responses and throw user-friendly error codes instead of letting
+      // res.json() produce the cryptic "Unexpected token '<'" message.
       const contentType = res.headers.get("content-type") || ""
       if (!contentType.includes("application/json")) {
         if (res.status === 413) {
           throw new Error("file-too-large")
+        }
+        if (res.status === 404) {
+          throw new Error("route-not-found")
         }
         // Read a snippet of the HTML to detect common error pages
         const text = await res.text().catch(() => "")

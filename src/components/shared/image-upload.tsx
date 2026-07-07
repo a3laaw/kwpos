@@ -38,6 +38,8 @@ export function ImageUpload({ value, onChange, label, className, shape = "square
       // Translate known error codes to user-friendly messages
       if (code === "file-too-large") {
         toast.error(t.imageTooLarge)
+      } else if (code === "route-not-found") {
+        toast.error(t.imageUploadFailed, { description: "API route not deployed — please redeploy" })
       } else if (code === "invalid-file-type") {
         toast.error(t.imageUploadFailed, { description: t.imageFormatsHint })
       } else if (code === "image-decode-failed" || code === "encode-failed") {
