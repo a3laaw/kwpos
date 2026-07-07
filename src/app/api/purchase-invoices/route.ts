@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { db } from "@/lib/db"
+import { db, updateProductQuantityFromStockItems } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
 import { createJournalEntry } from "@/lib/journal"
 import { logAuditEvent } from "@/lib/audit"
@@ -218,7 +218,7 @@ export async function POST(req: NextRequest) {
     let journalEntryId: string | null = null
     if (wantPost) {
       // Bump stock per item: StockItem.quantity (create if missing) +
-      // Product.quantity (sum across warehouses — recompute via increment).
+      // recompute Product.quantity from StockItems (derived aggregate).
       for (const it of itemsData) {
         if (warehouseId) {
           // Upsert the StockItem for (product, warehouse)
@@ -237,14 +237,16 @@ export async function POST(req: NextRequest) {
             },
           })
         }
-        // Always bump the aggregate Product.quantity (mirrors the PO receive flow)
-        await tx.product.update({
-          where: { id: it.productId },
-          data: {
-            quantity: { increment: it.quantity },
-            costPrice: it.unitCost > 0 ? it.unitCost : undefined,
-          },
-        })
+        // Keep Product.costPrice in sync if the invoice has a real unit cost.
+        if (it.unitCost > 0) {
+          await tx.product.update({
+            where: { id: it.productId },
+            data: { costPrice: it.unitCost },
+          })
+        }
+        // Recompute Product.quantity as SUM(StockItem.quantity) so it stays
+        // the derived aggregate — no direct increment.
+        await updateProductQuantityFromStockItems(tx, it.productId)
       }
 
       // If linked PO: mark RECEIVED

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { db } from "@/lib/db"
+import { db, updateProductQuantityFromStockItems } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
 import { logAuditEvent } from "@/lib/audit"
 import type { Role } from "@/lib/types"
@@ -32,7 +32,8 @@ export async function POST(
   }
 
   const updated = await db.$transaction(async (tx) => {
-    // Add to destination warehouse (StockItem + Product aggregate)
+    // Add to destination warehouse (StockItem only — Product.quantity is
+    // recomputed from StockItems as the derived aggregate).
     // Row-level lock via SELECT FOR UPDATE to prevent concurrent receives
     for (const it of transfer.items) {
       await tx.$executeRawUnsafe(
@@ -54,10 +55,8 @@ export async function POST(
           quantity: it.quantity,
         },
       })
-      await tx.product.update({
-        where: { id: it.productId },
-        data: { quantity: { increment: it.quantity } },
-      })
+      // Recompute Product.quantity as SUM(StockItem.quantity) — no direct increment.
+      await updateProductQuantityFromStockItems(tx, it.productId)
     }
     const updated = await tx.stockTransfer.update({
       where: { id },

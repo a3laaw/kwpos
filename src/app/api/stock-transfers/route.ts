@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { db } from "@/lib/db"
+import { db, updateProductQuantityFromStockItems } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
 import { logAuditEvent } from "@/lib/audit"
 import type { Role } from "@/lib/types"
@@ -135,7 +135,8 @@ export async function POST(req: NextRequest) {
   let created
   try {
     created = await db.$transaction(async (tx) => {
-      // Deduct from source warehouse (StockItem + Product aggregate)
+      // Deduct from source warehouse (StockItem only — Product.quantity is
+      // recomputed from StockItems as the derived aggregate).
       // Row-level lock via SELECT FOR UPDATE to prevent concurrent transfers/sales
       for (const it of itemsData) {
         await tx.$executeRawUnsafe(
@@ -148,10 +149,8 @@ export async function POST(req: NextRequest) {
           update: { quantity: { decrement: it.quantity } },
           create: { productId: it.productId, warehouseId: fromWarehouseId, quantity: 0 },
         })
-        await tx.product.update({
-          where: { id: it.productId },
-          data: { quantity: { decrement: it.quantity } },
-        })
+        // Recompute Product.quantity as SUM(StockItem.quantity) — no direct decrement.
+        await updateProductQuantityFromStockItems(tx, it.productId)
       }
       return tx.stockTransfer.create({
         data: {
