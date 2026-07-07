@@ -49,6 +49,8 @@ import {
 } from "lucide-react"
 import { useAppStore } from "@/lib/store"
 import { NAV_ENTRIES, type NavEntry } from "@/components/nav-config"
+import { getModuleNav } from "@/components/module-nav-config"
+import { MegaMenuBar } from "@/components/shared/mega-menu-bar"
 import { ROLE_PERMISSIONS } from "@/lib/session"
 import type { Role } from "@/lib/types"
 import type { AppView } from "@/lib/types"
@@ -565,33 +567,48 @@ export function Topbar({
   country?: CountryConfig
 }) {
   const setSidebarOpen = useAppStore((s) => s.setSidebarOpen)
+  const view = useAppStore((s) => s.view)
   const t = useT()
   const { locale } = useI18n()
-  // Avoid hydration mismatch from Radix DropdownMenu useId.
   const [mounted, setMounted] = React.useState(false)
   React.useEffect(() => setMounted(true), [])
   const roleLabel = user.role === "ADMIN" ? t.roleAdmin : user.role === "SALES" ? t.roleSales : t.roleWarehouse
+
+  // Get MegaMenu groups for the current module (null = no sub-nav)
+  const moduleGroups = getModuleNav(view)
+
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border/70 bg-background/80 backdrop-blur px-4 sm:px-6">
-      <Button
-        variant="ghost"
-        size="icon"
-        className="lg:hidden"
-        onClick={() => setSidebarOpen(true)}
-      >
-        <Menu className="h-5 w-5" />
-      </Button>
-      <div className="flex-1 min-w-0">
-        <h2 className="truncate text-base sm:text-lg font-semibold">{title}</h2>
-      </div>
-      {country ? (
-        <div className="hidden sm:flex items-center gap-1.5 rounded-lg bg-muted/60 px-2.5 py-1 text-xs" title={getCountryName(country, locale)}>
-          <span className="text-base leading-none">{country.flag}</span>
-          <span className="font-medium">{country.currencySymbol}</span>
+    <>
+      <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border/70 bg-background/80 backdrop-blur-xl px-4 sm:px-6">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="lg:hidden"
+          onClick={() => setSidebarOpen(true)}
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
+        <div className="shrink-0">
+          <h2 className="truncate text-base sm:text-lg font-semibold">{title}</h2>
         </div>
-      ) : null}
-      <LangToggle />
-      <ThemeToggle />
+
+        {/* MegaMenu groups — inline in the Topbar (Odoo-style) */}
+        {moduleGroups ? (
+          <div className="flex-1 min-w-0 flex items-center">
+            <MegaMenuBarInline groups={moduleGroups} />
+          </div>
+        ) : (
+          <div className="flex-1" />
+        )}
+
+        {country ? (
+          <div className="hidden sm:flex items-center gap-1.5 rounded-lg bg-muted/60 px-2.5 py-1 text-xs shrink-0" title={getCountryName(country, locale)}>
+            <span className="text-base leading-none">{country.flag}</span>
+            <span className="font-medium">{country.currencySymbol}</span>
+          </div>
+        ) : null}
+        <LangToggle />
+        <ThemeToggle />
       {mounted ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -643,5 +660,24 @@ export function Topbar({
         </Button>
       )}
     </header>
+    </>
+  )
+}
+
+/**
+ * MegaMenuBarInline — renders the MegaMenuBar without its own sticky
+ * wrapper (since it's already inside the sticky Topbar header).
+ * Uses the same hover dropdown + search logic.
+ */
+function MegaMenuBarInline({ groups }: { groups: import("@/components/shared/mega-menu-bar").MegaMenuGroup[] }) {
+  const view = useAppStore((s) => s.view)
+  const setView = useAppStore((s) => s.setView)
+  return (
+    <MegaMenuBar
+      groups={groups}
+      value={view}
+      onChange={(v) => setView(v as AppView)}
+      className="static border-0 shadow-none bg-transparent -mx-0 px-0 top-auto"
+    />
   )
 }

@@ -17,7 +17,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { SubNav, type SubNavItem } from "@/components/shared/sub-nav"
 import {
   UserCheck,
   Receipt,
@@ -211,14 +210,6 @@ function ExpenseForm() {
         <CardDescription>{t.accUpdatesBalancesImmediately2}</CardDescription>
       </CardHeader>
       <CardContent>
-        <SubNav
-          items={[
-            { value: "SALARY", labelKey: "accSalary", icon: UserCheck },
-            { value: "ADMIN", labelKey: "accAdminExpense", icon: Receipt },
-          ] as SubNavItem[]}
-          value={tab}
-          onChange={(v) => setTab(v as "SALARY" | "ADMIN")}
-        />
 
           <form onSubmit={handleSubmit} className="space-y-3 mt-4">
             {tab === "SALARY" && (

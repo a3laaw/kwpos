@@ -20,7 +20,6 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { MegaMenuBar } from "@/components/shared/mega-menu-bar"
 import { Breadcrumbs } from "@/components/shared/breadcrumbs"
 import { WorkflowBar, type WorkflowStep } from "@/components/shared/workflow-bar"
 import { Loader2 } from "lucide-react"
@@ -233,20 +232,6 @@ export function PurchasesView() {
         icon={<ShoppingCart className="h-5 w-5" />}
       />
 
-      <MegaMenuBar
-        groups={[
-          {
-            labelKey: "navPurchases",
-            items: [
-              { value: "orders", labelKey: "navPurchases", icon: ShoppingCart },
-              { value: "invoices", labelKey: "navPurchaseInvoices", icon: FileText },
-              { value: "payments", labelKey: "navSupplierPayments", icon: Wallet },
-            ],
-          },
-        ]}
-        value={tab}
-        onChange={(v) => setTab(v as typeof tab)}
-      />
 
       {tab === "invoices" && <PurchaseInvoicesView />}
       {tab === "payments" && <SupplierPaymentsView />}

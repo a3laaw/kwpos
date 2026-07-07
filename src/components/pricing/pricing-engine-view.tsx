@@ -24,7 +24,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { SubNav, type SubNavItem } from "@/components/shared/sub-nav"
 import {
   AlertDialog,
   AlertDialogContent,
@@ -1073,15 +1072,6 @@ export function PricingEngineView() {
         icon={<Tags className="h-5 w-5" />}
       />
 
-      <SubNav
-        items={[
-          { value: "prices", labelKey: "priceManagement", icon: Tags },
-          { value: "promotions", labelKey: "promotionsAndDiscounts", icon: Percent },
-          { value: "audit", labelKey: "changeLog", icon: History },
-        ] as SubNavItem[]}
-        value={tab}
-        onChange={(v) => setTab(v as typeof tab)}
-      />
 
       {tab === "prices" && <PriceManagementTab />}
       {tab === "promotions" && <PromotionsTab />}

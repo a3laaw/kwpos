@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import { PageHeader } from "@/components/shared/page-header"
-import { MegaMenuBar, type MegaMenuGroup } from "@/components/shared/mega-menu-bar"
 import { Breadcrumbs } from "@/components/shared/breadcrumbs"
 import { BookOpen, Wallet, Receipt, FileBarChart, BookCopy, Scale, Banknote, User2, Percent, FileText } from "lucide-react"
 import { ChartOfAccountsTab } from "@/components/accounting/chart-of-accounts-tab"
@@ -43,33 +42,6 @@ export function AccountingView() {
   const t = useT()
   const [tab, setTab] = React.useState<AccTab>("accounts")
 
-  const groups: MegaMenuGroup[] = [
-    {
-      labelKey: "accJournalEntries",
-      items: [
-        { value: "journal", labelKey: "accJournalEntries", icon: BookCopy },
-        { value: "trial", labelKey: "accTrialBalance", icon: Scale },
-      ],
-    },
-    {
-      labelKey: "accChartOfAccountsDesc",
-      items: [
-        { value: "accounts", labelKey: "accJournalLedger", icon: Wallet },
-        { value: "expenses", labelKey: "accExpenses", icon: Receipt },
-        { value: "balance", labelKey: "accBalanceSheet", icon: Scale },
-        { value: "cashflow", labelKey: "accCashFlow", icon: Banknote },
-      ],
-    },
-    {
-      labelKey: "accPnl",
-      items: [
-        { value: "pnl", labelKey: "accPnl", icon: FileBarChart },
-        { value: "customer-statement", labelKey: "accCustomerStatement", icon: User2 },
-        { value: "vat", labelKey: "accVatReport", icon: Percent },
-      ],
-    },
-  ]
-
   return (
     <div className="space-y-4">
       <Breadcrumbs
@@ -85,7 +57,6 @@ export function AccountingView() {
         icon={<BookOpen className="h-5 w-5" />}
       />
 
-      <MegaMenuBar groups={groups} value={tab} onChange={(v) => setTab(v as AccTab)} />
 
       {tab === "accounts" && <ChartOfAccountsTab />}
       {tab === "expenses" && <ExpensesTab />}
