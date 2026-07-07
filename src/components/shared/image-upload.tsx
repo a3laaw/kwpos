@@ -3,7 +3,7 @@
 import * as React from "react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
-import { ImagePlus, Loader2, X } from "lucide-react"
+import { ImagePlus, Loader2, X, Camera } from "lucide-react"
 import { useUploadImage } from "@/hooks/use-api"
 import { useT } from "@/components/i18n-context"
 
@@ -19,7 +19,10 @@ interface ImageUploadProps {
 
 /**
  * Image upload field with preview. Uploads to /api/upload and stores the
- * returned public URL. Shows the current image with a remove button.
+ * returned data URL. Shows the current image with a remove button.
+ *
+ * Mobile-friendly: uses a <label> wrapper around the file input so the
+ * tap target is reliable on iOS/Android Chrome. No JS click() needed.
  */
 export function ImageUpload({ value, onChange, label, className, shape = "square" }: ImageUploadProps) {
   const t = useT()
@@ -48,18 +51,20 @@ export function ImageUpload({ value, onChange, label, className, shape = "square
         toast.error(t.imageUploadFailed, { description: code })
       }
     }
+    // Reset so the same file can be re-selected after error
     if (fileRef.current) fileRef.current.value = ""
   }
 
   return (
     <div className={cn("flex items-center gap-3", className)}>
-      {/* Preview / dropzone */}
-      <div
+      {/* Preview / dropzone — wrapped in a <label> so mobile browsers
+          open the file picker natively on tap (no JS click() needed). */}
+      <label
         className={cn(
           "relative shrink-0 overflow-hidden border-2 border-dashed border-border/70 bg-muted/30 flex items-center justify-center cursor-pointer hover:border-primary/50 transition-colors",
-          shape === "circle" ? "h-16 w-16 rounded-full" : "h-20 w-20 rounded-lg"
+          shape === "circle" ? "h-16 w-16 rounded-full" : "h-20 w-20 rounded-lg",
+          uploadMut.isPending && "pointer-events-none opacity-70"
         )}
-        onClick={() => fileRef.current?.click()}
       >
         {value ? (
           <>
@@ -67,10 +72,11 @@ export function ImageUpload({ value, onChange, label, className, shape = "square
             <button
               type="button"
               onClick={(e) => {
+                e.preventDefault()
                 e.stopPropagation()
                 onChange(null)
               }}
-              className="absolute top-0.5 left-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-white shadow hover:scale-110 transition-transform"
+              className="absolute top-0.5 left-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-white shadow hover:scale-110 transition-transform z-10"
             >
               <X className="h-3 w-3" />
             </button>
@@ -80,22 +86,28 @@ export function ImageUpload({ value, onChange, label, className, shape = "square
         ) : (
           <ImagePlus className="h-7 w-7 text-muted-foreground" />
         )}
-      </div>
+        {/* Hidden file input inside the label — native mobile picker */}
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFile}
+          className="hidden"
+        />
+      </label>
 
       <div className="min-w-0">
         {label ? <p className="text-sm font-medium">{label}</p> : null}
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
-          className="text-xs text-primary hover:underline"
           disabled={uploadMut.isPending}
+          className="text-xs text-primary hover:underline disabled:opacity-50"
         >
           {value ? t.changeImage : t.uploadImage}
         </button>
         <p className="text-[10px] text-muted-foreground">{t.imageFormatsHint}</p>
       </div>
-
-      <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
     </div>
   )
 }
