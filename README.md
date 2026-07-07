@@ -162,6 +162,49 @@ kwpos/
 | `bun run db:generate` | توليد عميل Prisma |
 | `bun run db:migrate` | إنشاء ترحيل (migration) |
 | `bun run db:reset` | إعادة تعيين قاعدة البيانات |
+| `bun run test` | تشغيل اختبارات Vitest مرة واحدة |
+| `bun run test:watch` | تشغيل الاختبارات في وضع المراقبة |
+| `bun run test:ui` | تشغيل واجهة Vitest UI في المتصفح |
+
+---
+
+## 🧪 الاختبارات (Vitest)
+
+يحتوي المشروع على 6 اختبارات تكاملية لأهمّ منطق الأعمال:
+
+| الملف | السيناريو |
+|---|---|
+| `tests/sale-stock-warehouses.test.ts` | بيع POS: رفض النقص في مخزن محدّد حتى لو كان المجموع الكافي |
+| `tests/sale-concurrency.test.ts` | بيع متزامن للوحدة الأخيرة — نجاح واحد فقط |
+| `tests/journal-rollback.test.ts` | فشل القيد المحاسبي داخل المعاملة يلغي البيع بالكامل |
+| `tests/supplier-payment-limit.test.ts` | حدّ سداد المورّد + تجاوز إداري |
+| `tests/shift-expected-totals.test.ts` | إغلاق الوردية: التوقع يُحسب للمستخدم وحده |
+| `tests/vat-report.test.ts` | تقرير ض.ق.م: استلام أمر شراء vs فاتورة مرحيّلة — بدون ازدواج |
+
+### التشغيل
+
+```bash
+# تشغيل كل الاختبارات مرة واحدة (يستخدم SQLite محلي — لا يلمس Supabase)
+bun run test
+
+# وضع المراقبة (إعادة تشغيل عند التغيير)
+bun run test:watch
+
+# واجهة Vitest UI في المتصفح
+bun run test:ui
+```
+
+### تفاصيل تقنية
+
+- **قاعدة بيانات الاختبار**: ملف SQLite في `prisma/test.db` — يُعاد إنشاؤه قبل كل تشغيل.
+- **مخطط منفصل**: `prisma/schema.test.prisma` (SQLite) — لا يتداخل مع مخطط PostgreSQL الإنتاجي.
+- **عميل Prisma منفصل**: يُولَّد إلى `node_modules/.prisma/test-client`.
+- **العزل**: `tests/setup.ts` يُعيّن `globalThis.prisma` ليستخدمه `@/lib/db` بدلاً من عميل Postgres.
+- **التشغيل التسلسلي**: الملفات تعمل واحدة تلو الأخرى (SQLite لا يدعم الكتابة المتوازية على نفس الملف).
+- **محاكاة الجلسة**: يُستبدل `getCurrentUser` في كل ملف اختبار عبر `vi.mock("@/lib/session", ...)`.
+
+انظر `tests/README.md` للتفاصيل الكاملة.
+
 
 ---
 

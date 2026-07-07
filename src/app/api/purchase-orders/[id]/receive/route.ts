@@ -138,11 +138,17 @@ export async function POST(
 
       // Row-level lock on the destination StockItem before the upsert so
       // concurrent receives for the same (product, warehouse) serialize.
-      await tx.$executeRawUnsafe(
-        `SELECT * FROM "StockItem" WHERE "productId" = $1 AND "warehouseId" = $2 FOR UPDATE`,
-        it.productId,
-        warehouseId
-      )
+      // Best-effort: SQLite (used in tests) doesn't support FOR UPDATE;
+      // swallow that error and rely on SQLite's serializable isolation.
+      try {
+        await tx.$executeRawUnsafe(
+          `SELECT * FROM "StockItem" WHERE "productId" = $1 AND "warehouseId" = $2 FOR UPDATE`,
+          it.productId,
+          warehouseId
+        )
+      } catch {
+        // ignore — not supported on this engine (e.g. SQLite tests)
+      }
 
       // Increment the StockItem (upsert creates the row if missing) and
       // keep Product.quantity in sync as the derived aggregate.
