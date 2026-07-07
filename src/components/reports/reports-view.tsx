@@ -49,6 +49,7 @@ import { useFmt } from "@/components/currency-context"
 import { useT } from "@/components/i18n-context"
 import { PerformanceMatrix } from "@/components/reports/performance-matrix"
 import { cn } from "@/lib/utils"
+import { useModuleTab } from "@/lib/module-tab-store"
 
 const PIE_COLORS = ["#2E6237", "#DFC196", "#F9DC7C", "#f59e0b", "#8b5cf6", "#ec4899", "#0ea5e9"]
 
@@ -56,10 +57,10 @@ type ReportTab = "general" | "matrix"
 
 export function ReportsView() {
   const t = useT()
-  const [tab, setTab] = React.useState<ReportTab>("general")
+  const [tab] = useModuleTab("reports", "general")
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <PageHeader
         title={t.reportsTitle}
         description={t.repDescFull}
@@ -73,30 +74,6 @@ export function ReportsView() {
           ) : null
         }
       />
-
-      {/* Tab switcher — General reports vs Performance matrix */}
-      <div className="flex gap-1.5 p-1 rounded-lg bg-muted/60 w-fit">
-        <button
-          onClick={() => setTab("general")}
-          className={cn(
-            "flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors",
-            tab === "general" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          <LayoutDashboard className="h-4 w-4" />
-          {t.generalReports}
-        </button>
-        <button
-          onClick={() => setTab("matrix")}
-          className={cn(
-            "flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors",
-            tab === "matrix" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          <Layers className="h-4 w-4" />
-          {t.performanceMatrix}
-        </button>
-      </div>
 
       {tab === "general" ? <GeneralReports /> : <PerformanceMatrix />}
     </div>

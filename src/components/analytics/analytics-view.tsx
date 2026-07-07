@@ -44,6 +44,7 @@ import { useFmt } from "@/components/currency-context"
 import { useT } from "@/components/i18n-context"
 import type { ProductAnalytics } from "@/lib/types"
 import { cn } from "@/lib/utils"
+import { useModuleTab } from "@/lib/module-tab-store"
 
 const PIE_COLORS = ["#2E6237", "#DFC196", "#F9DC7C", "#f59e0b", "#8b5cf6", "#ec4899", "#0ea5e9"]
 
@@ -60,7 +61,7 @@ type ReportKey = "overview" | "top" | "stagnant" | "cost" | "margin"
 export function AnalyticsView() {
   const fmt = useFmt()
   const t = useT()
-  const [tab, setTab] = React.useState<ReportKey>("overview")
+  const [tab, setTab] = useModuleTab("analytics", "overview") as [ReportKey, (v: string) => void]
 
   const [from, setFrom] = React.useState(defaultFrom())
   const [to, setTo] = React.useState(defaultTo())
