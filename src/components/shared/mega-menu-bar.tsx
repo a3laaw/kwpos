@@ -48,7 +48,16 @@ export function MegaMenuBar({ groups, value, onChange, className }: MegaMenuBarP
     }
     if (triggerEl) {
       const rect = triggerEl.getBoundingClientRect()
-      setDropdownPos({ left: rect.left, top: rect.bottom, width: Math.max(rect.width, 220) })
+      // Add 8px horizontal offset so the dropdown doesn't visually touch
+      // the sidebar or feel cramped. Also ensure it doesn't overflow
+      // the right edge of the viewport.
+      const dropdownWidth = Math.max(rect.width, 240)
+      let left = rect.left
+      // Prevent overflow on the right
+      if (left + dropdownWidth > window.innerWidth - 16) {
+        left = window.innerWidth - dropdownWidth - 16
+      }
+      setDropdownPos({ left, top: rect.bottom + 4, width: dropdownWidth })
     }
     setHoveredGroup(idx)
   }
