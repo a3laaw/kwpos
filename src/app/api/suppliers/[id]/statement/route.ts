@@ -9,12 +9,11 @@ export const dynamic = "force-dynamic"
  * Returns the supplier statement (كشف حساب المورد):
  *   - POSTED purchase invoices (debit = total)
  *   - Supplier payments (credit = amount)
- *   - Purchase returns (credit = total) — when the model exists
+ *   - Purchase returns (credit = total) — reduces payable
  *   - Opening + closing balance + running balance per row
  *
- * Balance convention: positive = supplier owes the business (unlikely);
- * negative = business owes supplier (normal case). We report balance as
- * (invoices − payments − returns), positive means outstanding payable.
+ * Balance = invoices − payments − returns
+ * Positive = business owes supplier (normal payable)
  */
 export async function GET(
   req: NextRequest,
@@ -43,11 +42,11 @@ export async function GET(
     dateFilter.lte = t
   }
 
-  // For opening balance: sum of all invoices/payments BEFORE `from`.
+  // For opening balance: sum of all invoices/payments/returns BEFORE `from`
   const openingDateFilter: any = {}
   if (from) openingDateFilter.lt = new Date(from)
 
-  const [openingInvoices, openingPayments] = await Promise.all([
+  const [openingInvoices, openingPayments, openingReturns] = await Promise.all([
     db.purchaseInvoice.aggregate({
       where: { supplierId: id, status: "POSTED", invoiceDate: openingDateFilter },
       _sum: { total: true },
@@ -56,17 +55,25 @@ export async function GET(
       where: { supplierId: id, paymentDate: openingDateFilter },
       _sum: { amount: true },
     }),
+    db.purchaseReturn.aggregate({
+      where: { supplierId: id, createdAt: openingDateFilter },
+      _sum: { total: true },
+    }),
   ])
   const openingBalance =
-    Number(openingInvoices._sum.total || 0) - Number(openingPayments._sum.amount || 0)
+    Number(openingInvoices._sum.total || 0)
+    - Number(openingPayments._sum.amount || 0)
+    - Number(openingReturns._sum.total || 0)
 
-  // Fetch period transactions (invoices + payments) in parallel
+  // Fetch period transactions (invoices + payments + returns) in parallel
   const invoiceWhere: any = { supplierId: id, status: "POSTED" }
   if (Object.keys(dateFilter).length) invoiceWhere.invoiceDate = dateFilter
   const paymentWhere: any = { supplierId: id }
   if (Object.keys(dateFilter).length) paymentWhere.paymentDate = dateFilter
+  const returnWhere: any = { supplierId: id }
+  if (Object.keys(dateFilter).length) returnWhere.createdAt = dateFilter
 
-  const [invoices, payments] = await Promise.all([
+  const [invoices, payments, returns] = await Promise.all([
     db.purchaseInvoice.findMany({
       where: invoiceWhere,
       select: { id: true, invoiceNo: true, invoiceDate: true, total: true, note: true },
@@ -79,6 +86,13 @@ export async function GET(
         paymentMethod: true, referenceNo: true, note: true,
       },
       orderBy: { paymentDate: "asc" },
+    }),
+    db.purchaseReturn.findMany({
+      where: returnWhere,
+      select: {
+        id: true, returnNo: true, createdAt: true, total: true, note: true,
+      },
+      orderBy: { createdAt: "asc" },
     }),
   ])
 
@@ -113,6 +127,17 @@ export async function GET(
       description: p.note || `سداد (${p.paymentMethod})`,
       debit: 0,
       credit: +Number(p.amount).toFixed(3),
+      balance: 0,
+    })
+  }
+  for (const ret of returns) {
+    txs.push({
+      date: ret.createdAt.toISOString(),
+      type: "RETURN",
+      referenceNo: ret.returnNo,
+      description: ret.note || "مرتجع مشتريات",
+      debit: 0,
+      credit: +Number(ret.total).toFixed(3),
       balance: 0,
     })
   }
