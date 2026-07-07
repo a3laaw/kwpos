@@ -95,50 +95,67 @@ export async function POST(req: NextRequest) {
   const finalPaymentNo = await nextPaymentNo()
   const amountRounded = r(amt)
 
-  const created = await db.supplierPayment.create({
-    data: {
-      paymentNo: finalPaymentNo,
-      supplierId,
-      amount: amountRounded,
-      paymentDate: paymentDateVal,
-      paymentMethod: method,
-      referenceNo: referenceNo ? String(referenceNo).trim() : null,
-      note: note ? String(note).trim() : null,
-      createdById: user.id,
-    },
-    include: { supplier: true, createdBy: true },
-  })
-
   // Create the journal entry: debit 2010 (AP) / credit 1010 (Cash) or 1020 (Bank)
   // CHECK is treated as BANK for the credit account (bank-issued cheque).
   const creditAccount = method === "CASH" ? "1010" : "1020"
   const methodLabelAr = method === "CASH" ? "نقدية" : method === "BANK" ? "تحويل بنكي" : "شيك"
-  let journalEntryId: string | null = null
-  try {
-    journalEntryId = await createJournalEntry({
-      sourceType: "PURCHASE",
-      sourceId: created.id,
-      description: `سداد للمورد ${supplier.name} — ${finalPaymentNo} (${methodLabelAr})`,
-      date: paymentDateVal,
-      lines: [
-        // Debit Accounts Payable (liability decreases)
-        { accountCode: "2010", debit: amountRounded, description: `سداد ${finalPaymentNo} — ${supplier.name}` },
-        // Credit Cash or Bank (asset decreases)
-        { accountCode: creditAccount, credit: amountRounded, description: `${methodLabelAr} — ${finalPaymentNo}` },
-      ],
+
+  // Wrap payment create + journal entry + journalEntryId update in a single
+  // transaction so a JE failure rolls back the payment too.
+  const result = await db.$transaction(async (tx) => {
+    const created = await tx.supplierPayment.create({
+      data: {
+        paymentNo: finalPaymentNo,
+        supplierId,
+        amount: amountRounded,
+        paymentDate: paymentDateVal,
+        paymentMethod: method,
+        referenceNo: referenceNo ? String(referenceNo).trim() : null,
+        note: note ? String(note).trim() : null,
+        createdById: user.id,
+      },
+      include: { supplier: true, createdBy: true },
     })
+
+    let journalEntryId: string | null = null
+    try {
+      journalEntryId = await createJournalEntry({
+        sourceType: "PURCHASE",
+        sourceId: created.id,
+        description: `سداد للمورد ${supplier.name} — ${finalPaymentNo} (${methodLabelAr})`,
+        date: paymentDateVal,
+        lines: [
+          // Debit Accounts Payable (liability decreases)
+          { accountCode: "2010", debit: amountRounded, description: `سداد ${finalPaymentNo} — ${supplier.name}` },
+          // Credit Cash or Bank (asset decreases)
+          { accountCode: creditAccount, credit: amountRounded, description: `${methodLabelAr} — ${finalPaymentNo}` },
+        ],
+        tx,
+      })
+    } catch (e: any) {
+      throw new Error(`فشل تسجيل القيد المحاسبي / Journal entry failed: ${e?.message ?? e}`)
+    }
+
     if (journalEntryId) {
-      await db.supplierPayment.update({
+      await tx.supplierPayment.update({
         where: { id: created.id },
         data: { journalEntryId },
       })
     }
-  } catch (e: any) {
-    console.error("[supplier-payment] journal entry failed:", e?.message)
+
+    return created.id
+  }).catch((e: any) => ({ __error: e?.message || "supplier-payment-failed" }))
+
+  if (result && (result as any).__error) {
+    return NextResponse.json(
+      { error: (result as any).__error as string },
+      { status: 500 }
+    )
   }
 
+  const paymentId = result as string
   const finalPayment = await db.supplierPayment.findUnique({
-    where: { id: created.id },
+    where: { id: paymentId },
     include: { supplier: true, createdBy: true },
   })
 

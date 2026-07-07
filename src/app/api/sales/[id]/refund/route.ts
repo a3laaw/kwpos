@@ -9,10 +9,11 @@ export const dynamic = "force-dynamic"
 const MAX_REFUND_DAYS = 14
 
 /** Ensure a system account exists, create it if missing. */
-async function ensureAccount(code: string, name: string, type: string) {
-  let acc = await db.account.findUnique({ where: { code } })
+async function ensureAccount(code: string, name: string, type: string, tx?: any) {
+  const client = tx || db
+  let acc = await client.account.findUnique({ where: { code } })
   if (!acc) {
-    acc = await db.account.create({ data: { code, name, type, isSystem: true } })
+    acc = await client.account.create({ data: { code, name, type, isSystem: true } })
   }
   return acc
 }
@@ -108,7 +109,7 @@ export async function POST(
   refundTotal = +(refundSubtotal + refundTax).toFixed(3)
   const refundCost = updates.reduce((s, u) => s + u.qtyToReturn * u.unitCost, 0)
 
-  // ── Transaction: update inventory + sale items + sale ──
+  // ── Transaction: update inventory + sale items + sale + journal entries ──
   const paymentAccCode = sale.paymentMethod === "CASH" ? "1010" : "1020"
   const updated = await db.$transaction(async (tx) => {
     // Resolve warehouseId (Sale has no warehouseId — fall back to default).
@@ -136,7 +137,7 @@ export async function POST(
     const newRefundTotal = Number(sale.refundTotal || 0) + refundTotal
     const newRefundStatus = allReturned ? "FULL" : "PARTIAL"
 
-    return tx.sale.update({
+    const result = await tx.sale.update({
       where: { id },
       data: {
         refundTotal: newRefundTotal,
@@ -144,46 +145,60 @@ export async function POST(
       },
       include: { user: true, items: { include: { product: true } } },
     })
-  })
 
-  // ── Journal entries (outside tx — non-blocking) ──
-  try {
-    // Ensure accounts exist
-    await ensureAccount("4030", "مردودات المبيعات", "REVENUE")
-    await ensureAccount("5060", "تكلفة البضاعة المباعة", "EXPENSE")
+    // ── Journal entries (inside tx — atomic) ──
+    // If either journal entry fails, the entire refund rolls back.
+    try {
+      // Ensure accounts exist (use tx so it's part of the same atomic unit)
+      await ensureAccount("4030", "مردودات المبيعات", "REVENUE", tx)
+      await ensureAccount("5060", "تكلفة البضاعة المباعة", "EXPENSE", tx)
 
-    // 1. Financial entry: Debit Sales Returns + Debit VAT → Credit payment
-    const finLines: any[] = [
-      { accountCode: "4030", debit: +refundSubtotal.toFixed(3), description: `مردودات مبيعات — ${sale.invoiceNo}` },
-    ]
-    if (refundTax > 0) {
-      finLines.push({ accountCode: "2010", debit: refundTax, description: "ضريبة مستحقة (مرتجع)" })
-    }
-    finLines.push({ accountCode: paymentAccCode, credit: +refundTotal.toFixed(3), description: `رد لطريقة السداد — ${sale.invoiceNo}` })
+      // 1. Financial entry: Debit Sales Returns + Debit VAT → Credit payment
+      const finLines: any[] = [
+        { accountCode: "4030", debit: +refundSubtotal.toFixed(3), description: `مردودات مبيعات — ${sale.invoiceNo}` },
+      ]
+      if (refundTax > 0) {
+        finLines.push({ accountCode: "2010", debit: refundTax, description: "ضريبة مستحقة (مرتجع)" })
+      }
+      finLines.push({ accountCode: paymentAccCode, credit: +refundTotal.toFixed(3), description: `رد لطريقة السداد — ${sale.invoiceNo}` })
 
-    await createJournalEntry({
-      sourceType: "MANUAL",
-      sourceId: sale.id,
-      description: `قيد مرتجع مبيعات ${sale.invoiceNo} (مالي)`,
-      date: new Date(),
-      lines: finLines,
-    })
-
-    // 2. Inventory entry: Debit Inventory (cost) → Credit COGS
-    if (refundCost > 0) {
       await createJournalEntry({
         sourceType: "MANUAL",
         sourceId: sale.id,
-        description: `قيد مرتجع مخزون ${sale.invoiceNo} (مخزني)`,
+        description: `قيد مرتجع مبيعات ${sale.invoiceNo} (مالي)`,
         date: new Date(),
-        lines: [
-          { accountCode: "1010", debit: +refundCost.toFixed(3), description: "إعادة مخزون مرتجع" },
-          { accountCode: "5060", credit: +refundCost.toFixed(3), description: "عكس تكلفة البضاعة المباعة" },
-        ],
+        lines: finLines,
+        tx,
       })
+
+      // 2. Inventory entry: Debit Inventory (cost) → Credit COGS
+      if (refundCost > 0) {
+        await createJournalEntry({
+          sourceType: "MANUAL",
+          sourceId: sale.id,
+          description: `قيد مرتجع مخزون ${sale.invoiceNo} (مخزني)`,
+          date: new Date(),
+          lines: [
+            { accountCode: "1010", debit: +refundCost.toFixed(3), description: "إعادة مخزون مرتجع" },
+            { accountCode: "5060", credit: +refundCost.toFixed(3), description: "عكس تكلفة البضاعة المباعة" },
+          ],
+          tx,
+        })
+      }
+    } catch (e: any) {
+      throw new Error(`فشل تسجيل القيد المحاسبي / Journal entry failed: ${e?.message ?? e}`)
     }
-  } catch (e: any) {
-    console.error("[refund] journal failed:", e?.message)
+
+    return result
+  }).catch((e: any) => ({ __error: e?.message || "refund-failed" }))
+
+  if (updated && (updated as any).__error) {
+    const msg = (updated as any).__error as string
+    const isClientError =
+      msg.startsWith("item-not-found") ||
+      msg.startsWith("exceeds-returnable") ||
+      msg.startsWith("no-warehouse-available")
+    return NextResponse.json({ error: msg }, { status: isClientError ? 400 : 500 })
   }
 
   return NextResponse.json({

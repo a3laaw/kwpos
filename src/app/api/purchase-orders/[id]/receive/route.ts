@@ -175,7 +175,7 @@ export async function POST(
         })
       }
     }
-    return tx.purchaseOrder.update({
+    const result = await tx.purchaseOrder.update({
       where: { id },
       data: {
         status: "RECEIVED",
@@ -186,26 +186,37 @@ export async function POST(
       },
       include: { supplier: true, items: { include: { product: true } } },
     })
-  })
 
-  // Generate the double-entry journal for the purchase (outside tx is fine;
-  // if it fails we log but the receive already succeeded).
-  try {
-    await createJournalEntry({
-      sourceType: "PURCHASE",
-      sourceId: po.id,
-      description: `قيد استلام أمر شراء ${po.id.slice(-6)} — ${po.supplier?.name ?? ""}`,
-      date: new Date(),
-      lines: [
-        // Debit Inventory (asset increases) — use Cash 1010 as the inventory
-        // account proxy (in a full COA you'd have a dedicated Inventory sub-account)
-        { accountCode: "1010", debit: +po.total.toFixed(3), description: "إضافة مخزون مشتريات" },
-        // Credit Accounts Payable (liability increases)
-        { accountCode: "2010", credit: +po.total.toFixed(3), description: `ذمم دائنة — ${po.supplier?.name ?? ""}` },
-      ],
-    })
-  } catch (e: any) {
-    console.error("[purchase receive] journal entry failed:", e?.message)
+    // ── Journal entry (inside tx — atomic) ──
+    // If the journal entry fails, the entire receive rolls back.
+    try {
+      await createJournalEntry({
+        sourceType: "PURCHASE",
+        sourceId: po.id,
+        description: `قيد استلام أمر شراء ${po.id.slice(-6)} — ${po.supplier?.name ?? ""}`,
+        date: new Date(),
+        lines: [
+          // Debit Inventory (asset increases) — use Cash 1010 as the inventory
+          // account proxy (in a full COA you'd have a dedicated Inventory sub-account)
+          { accountCode: "1010", debit: +po.total.toFixed(3), description: "إضافة مخزون مشتريات" },
+          // Credit Accounts Payable (liability increases)
+          { accountCode: "2010", credit: +po.total.toFixed(3), description: `ذمم دائنة — ${po.supplier?.name ?? ""}` },
+        ],
+        tx,
+      })
+    } catch (e: any) {
+      throw new Error(`فشل تسجيل القيد المحاسبي / Journal entry failed: ${e?.message ?? e}`)
+    }
+
+    return result
+  }).catch((e: any) => ({ __error: e?.message || "purchase-receive-failed" }))
+
+  if (updated && (updated as any).__error) {
+    const msg = (updated as any).__error as string
+    const isClientError =
+      msg.startsWith("already-received") ||
+      msg.startsWith("no-warehouse-available")
+    return NextResponse.json({ error: msg }, { status: isClientError ? 400 : 500 })
   }
 
   return NextResponse.json(serializePurchaseOrder(updated as any))

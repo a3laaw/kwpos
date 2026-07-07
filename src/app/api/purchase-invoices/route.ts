@@ -214,6 +214,7 @@ export async function POST(req: NextRequest) {
       },
     })
 
+    let journalEntryId: string | null = null
     if (wantPost) {
       // Bump stock per item: StockItem.quantity (create if missing) +
       // Product.quantity (sum across warehouses — recompute via increment).
@@ -252,43 +253,49 @@ export async function POST(req: NextRequest) {
           data: { status: "RECEIVED" },
         })
       }
+
+      // ── Journal entry (inside tx — atomic) ──
+      // If the journal entry fails, the entire invoice creation rolls back.
+      try {
+        journalEntryId = await createJournalEntry({
+          sourceType: "PURCHASE",
+          sourceId: inv.id,
+          description: `قيد فاتورة مشتريات ${inv.invoiceNo} — ${supplier.name}`,
+          date: invoiceDateVal,
+          lines: [
+            // Debit Inventory (asset increases)
+            { accountCode: "1010", debit: total, description: `فاتورة مشتريات ${inv.invoiceNo}` },
+            // Credit Accounts Payable (liability increases)
+            { accountCode: "2010", credit: total, description: `ذمم دائنة — ${supplier.name}` },
+          ],
+          tx,
+        })
+        if (journalEntryId) {
+          await tx.purchaseInvoice.update({
+            where: { id: inv.id },
+            data: { journalEntryId },
+          })
+        }
+      } catch (e: any) {
+        throw new Error(`فشل تسجيل القيد المحاسبي / Journal entry failed: ${e?.message ?? e}`)
+      }
     }
 
     return inv
-  })
+  }).catch((e: any) => ({ __error: e?.message || "purchase-invoice-failed" }))
 
-  // Create the journal entry OUTSIDE the transaction (matches the PO receive
-  // pattern in src/app/api/purchase-orders/[id]/receive/route.ts). If it fails
-  // we log but the invoice is already created/posted.
-  let journalEntryId: string | null = null
-  if (wantPost) {
-    try {
-      journalEntryId = await createJournalEntry({
-        sourceType: "PURCHASE",
-        sourceId: created.id,
-        description: `قيد فاتورة مشتريات ${created.invoiceNo} — ${supplier.name}`,
-        date: invoiceDateVal,
-        lines: [
-          // Debit Inventory (asset increases)
-          { accountCode: "1010", debit: total, description: `فاتورة مشتريات ${created.invoiceNo}` },
-          // Credit Accounts Payable (liability increases)
-          { accountCode: "2010", credit: total, description: `ذمم دائنة — ${supplier.name}` },
-        ],
-      })
-      if (journalEntryId) {
-        await db.purchaseInvoice.update({
-          where: { id: created.id },
-          data: { journalEntryId },
-        })
-      }
-    } catch (e: any) {
-      console.error("[purchase-invoice] journal entry failed:", e?.message)
-    }
+  if (created && (created as any).__error) {
+    const msg = (created as any).__error as string
+    const isClientError =
+      msg.startsWith("invalid-") ||
+      msg.startsWith("items-required") ||
+      msg.startsWith("supplier-required")
+    return NextResponse.json({ error: msg }, { status: isClientError ? 400 : 500 })
   }
 
   // Re-fetch with the journal entry id attached.
   const finalInv = await db.purchaseInvoice.findUnique({
-    where: { id: created.id },
+    where: { id: (created as any).id },
     include: {
       supplier: true,
       warehouse: true,

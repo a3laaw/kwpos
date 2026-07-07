@@ -4,13 +4,19 @@ import { db } from "@/lib/db"
  * Journal entry (double-entry / قيد محاسبي) helpers.
  * Every financial transaction generates a balanced journal entry:
  *   totalDebit == totalCredit
+ *
+ * All functions accept an optional `tx` (Prisma transaction client).
+ * When `tx` is provided, operations run inside the caller's transaction
+ * (atomic: if journal fails, the whole transaction rolls back).
+ * When `tx` is not provided, falls back to the global `db` client.
  */
 
 let entrySeqCache: number | null = null
 
-async function nextEntryNo(): Promise<string> {
+async function nextEntryNo(tx?: any): Promise<string> {
+  const client = (tx || db) as typeof db
   if (entrySeqCache === null) {
-    entrySeqCache = await db.journalEntry.count()
+    entrySeqCache = await client.journalEntry.count()
   }
   entrySeqCache += 1
   return `JE-${String(entrySeqCache).padStart(5, "0")}`
@@ -31,6 +37,15 @@ export interface JELineInput {
  * Create a balanced journal entry. Resolves account codes to IDs,
  * validates that debits == credits, and updates account balances.
  * Returns the created JournalEntry id.
+ *
+ * @param opts.sourceType - SALE | EXPENSE | PURCHASE | MANUAL
+ * @param opts.sourceId - Optional source document ID
+ * @param opts.description - Entry description
+ * @param opts.date - Entry date (defaults to now)
+ * @param opts.lines - Array of { accountCode, debit?, credit?, description? }
+ * @param opts.tx - Optional Prisma transaction client. When provided,
+ *   the journal entry is created inside the caller's transaction. If
+ *   it fails, the entire transaction rolls back.
  */
 export async function createJournalEntry(opts: {
   sourceType: "SALE" | "EXPENSE" | "PURCHASE" | "MANUAL"
@@ -38,7 +53,10 @@ export async function createJournalEntry(opts: {
   description: string
   date?: Date
   lines: JELineInput[]
+  tx?: any
 }): Promise<string> {
+  const { tx } = opts
+  const client = (tx || db) as typeof db
   const lines = opts.lines
   const totalDebit = round(lines.reduce((a, l) => a + (l.debit || 0), 0))
   const totalCredit = round(lines.reduce((a, l) => a + (l.credit || 0), 0))
@@ -51,7 +69,7 @@ export async function createJournalEntry(opts: {
 
   // Resolve account codes → ids
   const codes = lines.map((l) => l.accountCode)
-  const accounts = await db.account.findMany({ where: { code: { in: codes } } })
+  const accounts = await client.account.findMany({ where: { code: { in: codes } } })
   const codeToId = new Map(accounts.map((a) => [a.code, a.id]))
   for (const l of lines) {
     if (!codeToId.has(l.accountCode)) {
@@ -59,9 +77,9 @@ export async function createJournalEntry(opts: {
     }
   }
 
-  const entry = await db.journalEntry.create({
+  const entry = await client.journalEntry.create({
     data: {
-      entryNo: await nextEntryNo(),
+      entryNo: await nextEntryNo(client),
       date: opts.date ?? new Date(),
       sourceType: opts.sourceType,
       sourceId: opts.sourceId || null,
@@ -85,7 +103,7 @@ export async function createJournalEntry(opts: {
   for (const l of lines) {
     const acc = accounts.find((a) => a.code === l.accountCode)!
     const delta = (l.debit || 0) - (l.credit || 0)
-    await db.account.update({
+    await client.account.update({
       where: { id: acc.id },
       data: { balance: { increment: round(delta) } },
     })

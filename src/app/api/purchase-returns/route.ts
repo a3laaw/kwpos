@@ -167,7 +167,7 @@ export async function POST(req: NextRequest) {
         data: { returnedQty: { increment: ri.returnQty } },
       })
     }
-    return tx.purchaseReturn.create({
+    const purchaseReturn = await tx.purchaseReturn.create({
       data: {
         returnNo,
         purchaseOrderId: po.id,
@@ -191,6 +191,29 @@ export async function POST(req: NextRequest) {
         createdBy: true,
       },
     })
+
+    // ── Reversing journal entry (inside tx — atomic) ──
+    // debit 2010 (AP — reduces what we owe supplier) /
+    // credit 1010 (Inventory — reduces asset). If this fails, the entire
+    // purchase return rolls back.
+    let journalEntryId: string | null = null
+    try {
+      journalEntryId = await createJournalEntry({
+        sourceType: "MANUAL",
+        sourceId: purchaseReturn.id,
+        description: `قيد مرتجع مشتريات ${returnNo} — ${po.supplier?.name ?? ""}`,
+        date: new Date(),
+        lines: [
+          { accountCode: "2010", debit: returnTotal, description: `مرتجع لمورد ${po.supplier?.name ?? ""}` },
+          { accountCode: "1010", credit: returnTotal, description: "خصم من المخزون (مرتجع مشتريات)" },
+        ],
+        tx,
+      })
+    } catch (e: any) {
+      throw new Error(`فشل تسجيل القيد المحاسبي / Journal entry failed: ${e?.message ?? e}`)
+    }
+
+    return { purchaseReturn, journalEntryId }
   }).catch((e: any) => ({ __error: e?.message || "purchase-return-failed" }))
 
   if ((created as any).__error) {
@@ -204,24 +227,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: msg }, { status: isClientError ? 400 : 500 })
   }
 
-  const purchaseReturn = created as Awaited<ReturnType<typeof db.purchaseReturn.create>>
-
-  // Reversing journal entry: debit 2010 (AP — reduces what we owe supplier)
-  // / credit 1010 (Inventory — reduces asset). Balanced.
-  let journalEntryId: string | null = null
-  try {
-    journalEntryId = await createJournalEntry({
-      sourceType: "MANUAL",
-      sourceId: purchaseReturn.id,
-      description: `قيد مرتجع مشتريات ${returnNo} — ${po.supplier?.name ?? ""}`,
-      date: new Date(),
-      lines: [
-        { accountCode: "2010", debit: returnTotal, description: `مرتجع لمورد ${po.supplier?.name ?? ""}` },
-        { accountCode: "1010", credit: returnTotal, description: "خصم من المخزون (مرتجع مشتريات)" },
-      ],
-    })
-  } catch (e: any) {
-    console.error("[purchase-return] journal failed:", e?.message)
+  const { purchaseReturn, journalEntryId } = created as {
+    purchaseReturn: Awaited<ReturnType<typeof db.purchaseReturn.create>>
+    journalEntryId: string | null
   }
 
   return NextResponse.json(

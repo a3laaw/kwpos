@@ -175,6 +175,35 @@ export async function POST(req: NextRequest) {
       include: { user: true, items: { include: { product: true } } },
     })
 
+    // ── Generate the double-entry journal for this sale ──
+    // Inside the transaction so a journal-entry failure rolls back the sale.
+    // Debit: Cash/Bank (total)
+    // Credit: Sales Revenue (afterDiscount)
+    // Credit: Tax Payable (taxAmount) — only if tax > 0
+    // (Discount is netted against revenue; COGS is recognized separately.)
+    const revenueLines: any[] = [
+      { accountCode: paymentAccCode, debit: total, description: `تحصيل فاتورة ${sale.invoiceNo}` },
+      { accountCode: "4010", credit: (total - taxAmount), description: "إيراد مبيعات" },
+    ]
+    if (taxAmount > 0) {
+      // Use accounts payable (2010) as a simple tax-collected account
+      revenueLines.push({ accountCode: "2010", credit: taxAmount, description: "ضريبة مستحقة" })
+    }
+    try {
+      await createJournalEntry({
+        sourceType: "SALE",
+        sourceId: sale.id,
+        description: `قيد فاتورة مبيعات ${sale.invoiceNo}${resolvedName ? ` — ${resolvedName}` : ""}`,
+        date: new Date(),
+        lines: revenueLines,
+        tx,
+      })
+    } catch (e: any) {
+      // Re-throw with a clear prefix so the outer .catch returns 500 and the
+      // client sees a meaningful message. The transaction rolls back.
+      throw new Error(`فشل تسجيل القيد المحاسبي / Journal entry failed: ${e?.message ?? e}`)
+    }
+
     return { sale, total, afterDiscount, taxAmount }
   }).catch((e: any) => {
     return { __error: e?.message || "sale-failed" }
@@ -188,33 +217,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: msg }, { status })
   }
 
-  const { sale, total, taxAmount } = result as any
-
-  // ── Generate the double-entry journal for this sale ──
-  // Debit: Cash/Bank (total)
-  // Credit: Sales Revenue (afterDiscount)
-  // Credit: Tax Payable (taxAmount) — only if tax > 0
-  // (Discount is netted against revenue; COGS is recognized separately.)
-  try {
-    const revenueLines: any[] = [
-      { accountCode: paymentAccCode, debit: total, description: `تحصيل فاتورة ${sale.invoiceNo}` },
-      { accountCode: "4010", credit: (total - taxAmount), description: "إيراد مبيعات" },
-    ]
-    if (taxAmount > 0) {
-      // Use accounts payable (2010) as a simple tax-collected account
-      revenueLines.push({ accountCode: "2010", credit: taxAmount, description: "ضريبة مستحقة" })
-    }
-    await createJournalEntry({
-      sourceType: "SALE",
-      sourceId: sale.id,
-      description: `قيد فاتورة مبيعات ${sale.invoiceNo}${resolvedName ? ` — ${resolvedName}` : ""}`,
-      date: new Date(),
-      lines: revenueLines,
-    })
-  } catch (e: any) {
-    // Journal failure shouldn't fail the sale, but log it
-    console.error("[sales] journal entry failed:", e?.message)
-  }
+  const { sale } = result as any
 
   return NextResponse.json(serializeSale(sale as any), { status: 201 })
 }

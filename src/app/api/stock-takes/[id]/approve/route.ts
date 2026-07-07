@@ -53,6 +53,7 @@ export async function POST(
   }
 
   // Transaction: adjust StockItem quantities + mark take as APPROVED
+  // + generate balanced journal entries (atomic — JE failure rolls back).
   const updated = await db.$transaction(async (tx) => {
     for (const adj of adjustments) {
       if (adj.variance > 0) {
@@ -74,7 +75,7 @@ export async function POST(
         await updateProductQuantityFromStockItems(tx, adj.productId)
       }
     }
-    return tx.stockTake.update({
+    const result = await tx.stockTake.update({
       where: { id },
       data: {
         status: "APPROVED",
@@ -83,6 +84,52 @@ export async function POST(
       },
       include: { items: { include: { product: true } } },
     })
+
+    // ── Journal entries (inside tx — atomic) ──
+    //  - Shortage (variance < 0): debit 5070 (Stock Shortage) / credit 1010
+    //  - Surplus  (variance > 0): debit 1010 (Inventory) / credit 4060
+    // If either entry fails, the entire stock-take approval rolls back.
+    async function ensureAccount(code: string, name: string, type: string) {
+      let a = await tx.account.findUnique({ where: { code } })
+      if (!a) a = await tx.account.create({ data: { code, name, type, isSystem: true } })
+      return a
+    }
+
+    try {
+      if (shortageValue > 0) {
+        await ensureAccount("5070", "عجز المخزون / تلفيات", "EXPENSE")
+        await createJournalEntry({
+          sourceType: "MANUAL",
+          sourceId: take.id,
+          description: `قيد عجز جرد ${take.takeNo}`,
+          date: new Date(),
+          lines: [
+            { accountCode: "5070", debit: +shortageValue.toFixed(3), description: "عجز/تلف جرد" },
+            { accountCode: "1010", credit: +shortageValue.toFixed(3), description: "تخفيض مخزون بالعجز" },
+          ],
+          tx,
+        })
+      }
+
+      if (surplusValue > 0) {
+        await ensureAccount("4060", "إيرادات تسوية مخزنية", "REVENUE")
+        await createJournalEntry({
+          sourceType: "MANUAL",
+          sourceId: take.id,
+          description: `قيد فائض جرد ${take.takeNo}`,
+          date: new Date(),
+          lines: [
+            { accountCode: "1010", debit: +surplusValue.toFixed(3), description: "زيادة مخزون بالفائض" },
+            { accountCode: "4060", credit: +surplusValue.toFixed(3), description: "إيراد فائض جرد" },
+          ],
+          tx,
+        })
+      }
+    } catch (e: any) {
+      throw new Error(`فشل تسجيل القيد المحاسبي / Journal entry failed: ${e?.message ?? e}`)
+    }
+
+    return result
   }).catch((e: any) => ({ __error: e?.message || "stock-take-approve-failed" }))
 
   if ((updated as any).__error) {
@@ -94,45 +141,6 @@ export async function POST(
   }
 
   const approvedTake = updated as Awaited<ReturnType<typeof db.stockTake.update>>
-
-  // Journal entries — ensure accounts exist, then create balanced entries
-  try {
-    async function ensureAccount(code: string, name: string, type: string) {
-      let a = await db.account.findUnique({ where: { code } })
-      if (!a) a = await db.account.create({ data: { code, name, type, isSystem: true } })
-      return a
-    }
-
-    if (shortageValue > 0) {
-      await ensureAccount("5070", "عجز المخزون / تلفيات", "EXPENSE")
-      await createJournalEntry({
-        sourceType: "MANUAL",
-        sourceId: take.id,
-        description: `قيد عجز جرد ${take.takeNo}`,
-        date: new Date(),
-        lines: [
-          { accountCode: "5070", debit: +shortageValue.toFixed(3), description: "عجز/تلف جرد" },
-          { accountCode: "1010", credit: +shortageValue.toFixed(3), description: "تخفيض مخزون بالعجز" },
-        ],
-      })
-    }
-
-    if (surplusValue > 0) {
-      await ensureAccount("4060", "إيرادات تسوية مخزنية", "REVENUE")
-      await createJournalEntry({
-        sourceType: "MANUAL",
-        sourceId: take.id,
-        description: `قيد فائض جرد ${take.takeNo}`,
-        date: new Date(),
-        lines: [
-          { accountCode: "1010", debit: +surplusValue.toFixed(3), description: "زيادة مخزون بالفائض" },
-          { accountCode: "4060", credit: +surplusValue.toFixed(3), description: "إيراد فائض جرد" },
-        ],
-      })
-    }
-  } catch (e: any) {
-    console.error("[stock-take approve] journal failed:", e?.message)
-  }
 
   return NextResponse.json({
     ok: true,
