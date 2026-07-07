@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db, incrementStockItem, decrementStockItem, updateProductQuantityFromStockItems, getDefaultWarehouseId } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
+import { createJournalEntry } from "@/lib/journal"
 import { serializeExchange } from "@/lib/serialize"
 import { logAuditEvent } from "@/lib/audit"
 import type { Role } from "@/lib/types"
@@ -335,6 +336,43 @@ export async function POST(req: NextRequest) {
       },
       include: { user: true, lines: { include: { product: true } } },
     })
+
+    // ── Journal entry for exchange net cash impact (inside tx — atomic) ──
+    if (Math.abs(netAmount) > 0.001) {
+      try {
+        const paymentAccCode = PAY === "CASH" ? "1010" : "1020"
+        if (netAmount > 0) {
+          // Customer pays the difference: debit Cash/Bank, credit Sales Revenue
+          await createJournalEntry({
+            tx,
+            sourceType: "SALE",
+            sourceId: created.id,
+            description: `قيد تبديل ${created.exchangeNo} — تحصيل الفرق`,
+            date: new Date(),
+            lines: [
+              { accountCode: paymentAccCode, debit: +netAmount.toFixed(3), description: `تحصيل فرق تبديل ${created.exchangeNo}` },
+              { accountCode: "4010", credit: +netAmount.toFixed(3), description: `إيراد فرق تبديل ${created.exchangeNo}` },
+            ],
+          })
+        } else {
+          // Customer receives refund: debit Sales Returns, credit Cash/Bank
+          const refundAmt = Math.abs(netAmount)
+          await createJournalEntry({
+            tx,
+            sourceType: "SALE",
+            sourceId: created.id,
+            description: `قيد تبديل ${created.exchangeNo} — رد الفرق`,
+            date: new Date(),
+            lines: [
+              { accountCode: "5060", debit: +refundAmt.toFixed(3), description: `مرتجع فرق تبديل ${created.exchangeNo}` },
+              { accountCode: paymentAccCode, credit: +refundAmt.toFixed(3), description: `رد فرق تبديل ${created.exchangeNo}` },
+            ],
+          })
+        }
+      } catch (e: any) {
+        throw new Error(`فشل تسجيل القيد المحاسبي / Journal entry failed: ${e?.message ?? e}`)
+      }
+    }
 
     // ── Audit log (inside tx — atomic) ──
     await logAuditEvent({

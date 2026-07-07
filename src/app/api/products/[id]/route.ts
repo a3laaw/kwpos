@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { db } from "@/lib/db"
+import { db, updateProductQuantityFromStockItems } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
 import { serializeProduct } from "@/lib/serialize"
 import { logAuditEvent } from "@/lib/audit"
@@ -37,7 +37,6 @@ export async function PUT(
     categoryId,
     supplierId,
     defaultSupplierId,
-    quantity,
     reorderLevel,
     optimalOrderQty,
     costPrice,
@@ -45,11 +44,79 @@ export async function PUT(
     wholesalePrice,
     corporatePrice,
     unit,
+    warehouseStock, // [{ warehouseId, quantity }]
   } = body || {}
 
   const exists = await db.product.findUnique({ where: { id } })
   if (!exists) return NextResponse.json({ error: "not-found" }, { status: 404 })
 
+  // If warehouseStock is provided, update StockItem rows inside a transaction
+  // and recalculate Product.quantity as the aggregate sum.
+  if (Array.isArray(warehouseStock) && warehouseStock.length > 0) {
+    // Validate warehouseIds
+    const whIds = warehouseStock.map((w: any) => w.warehouseId).filter(Boolean)
+    if (whIds.length > 0) {
+      const whCount = await db.warehouse.count({ where: { id: { in: whIds } } })
+      if (whCount !== whIds.length) {
+        return NextResponse.json({ error: "invalid-warehouse" }, { status: 400 })
+      }
+    }
+
+    const updated = await db.$transaction(async (tx) => {
+      // Update product fields
+      const product = await tx.product.update({
+        where: { id },
+        data: {
+          ...(name !== undefined ? { name: String(name).trim() } : {}),
+          ...(barcode !== undefined ? { barcode: barcode ? String(barcode).trim() : null } : {}),
+          ...(categoryId !== undefined ? { categoryId: categoryId || null } : {}),
+          ...(supplierId !== undefined ? { supplierId: supplierId || null } : {}),
+          ...(defaultSupplierId !== undefined ? { defaultSupplierId: defaultSupplierId || null } : {}),
+          ...(reorderLevel !== undefined ? { reorderLevel: Number(reorderLevel) || 0 } : {}),
+          ...(optimalOrderQty !== undefined ? { optimalOrderQty: Number(optimalOrderQty) || 0 } : {}),
+          ...(costPrice !== undefined ? { costPrice: Number(costPrice) || 0 } : {}),
+          ...(salePrice !== undefined ? { salePrice: Number(salePrice) || 0 } : {}),
+          ...(wholesalePrice !== undefined ? { wholesalePrice: Number(wholesalePrice) || 0 } : {}),
+          ...(corporatePrice !== undefined ? { corporatePrice: Number(corporatePrice) || 0 } : {}),
+          ...(unit !== undefined ? { unit: String(unit).trim() || "قطعة" } : {}),
+          ...(body.unitId !== undefined ? { unitId: body.unitId || null } : {}),
+          ...(body.imageUrl !== undefined ? { imageUrl: body.imageUrl ? String(body.imageUrl).trim() : null } : {}),
+        },
+        include: { category: true, supplier: true, defaultSupplier: true, stockItems: { include: { warehouse: true } } },
+      })
+
+      // Upsert each StockItem
+      for (const ws of warehouseStock) {
+        const whId = String(ws.warehouseId)
+        const qty = Math.max(0, Math.round(Number(ws.quantity) || 0))
+        await tx.stockItem.upsert({
+          where: { productId_warehouseId: { productId: id, warehouseId: whId } },
+          update: { quantity: qty },
+          create: { productId: id, warehouseId: whId, quantity: qty },
+        })
+      }
+
+      // Recalculate Product.quantity from StockItem sum
+      await updateProductQuantityFromStockItems(tx, id)
+
+      return tx.product.findUnique({
+        where: { id },
+        include: { category: true, supplier: true, defaultSupplier: true, stockItems: { include: { warehouse: true } } },
+      })
+    })
+
+    await logAuditEvent({
+      userId: user.id,
+      userName: user.name,
+      action: "PRODUCT_UPDATED",
+      description: `تحديث منتج ${updated?.name ?? ""} + مخزون المستودعات`,
+      productId: id,
+    })
+
+    return NextResponse.json(serializeProduct(updated as any))
+  }
+
+  // No warehouseStock — simple update (original path)
   const updated = await db.product.update({
     where: { id },
     data: {
@@ -58,7 +125,6 @@ export async function PUT(
       ...(categoryId !== undefined ? { categoryId: categoryId || null } : {}),
       ...(supplierId !== undefined ? { supplierId: supplierId || null } : {}),
       ...(defaultSupplierId !== undefined ? { defaultSupplierId: defaultSupplierId || null } : {}),
-      ...(quantity !== undefined ? { quantity: Number(quantity) || 0 } : {}),
       ...(reorderLevel !== undefined ? { reorderLevel: Number(reorderLevel) || 0 } : {}),
       ...(optimalOrderQty !== undefined ? { optimalOrderQty: Number(optimalOrderQty) || 0 } : {}),
       ...(costPrice !== undefined ? { costPrice: Number(costPrice) || 0 } : {}),
@@ -72,7 +138,6 @@ export async function PUT(
     include: { category: true, supplier: true, defaultSupplier: true, stockItems: { include: { warehouse: true } } },
   })
 
-  // ── Audit log ──
   await logAuditEvent({
     userId: user.id,
     userName: user.name,
@@ -99,7 +164,6 @@ export async function DELETE(
 
   await db.product.delete({ where: { id } })
 
-  // ── Audit log ──
   await logAuditEvent({
     userId: user.id,
     userName: user.name,
