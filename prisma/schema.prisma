@@ -187,6 +187,11 @@ model PurchaseOrder {
   shippingAmount Float             @default(0) // شحن
   otherCharges   Float             @default(0) // رسوم أخرى
   landedCostApplied Boolean        @default(false) // whether cost prices were updated on receipt
+  // VAT/tax amount computed at receive time (subtotal × taxRate). Stored so
+  // the VAT report can include PO receives even when no PurchaseInvoice is
+  // posted. Prevents double-counting: if a PurchaseInvoice is later posted
+  // for this PO, its taxAmount is netted against receivedTaxAmount.
+  receivedTaxAmount Float         @default(0)
   note        String?
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
