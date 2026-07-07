@@ -21,6 +21,8 @@ import {
   Tags,
   Cog,
   ShieldCheck,
+  PackageOpen,
+  FlaskConical,
 } from "lucide-react"
 import type { Dict } from "@/lib/i18n"
 
@@ -77,6 +79,8 @@ export const NAV_ENTRIES: NavEntry[] = [
       { view: "suppliers", labelKey: "navSuppliers", icon: Truck },
       { view: "pricing", labelKey: "navPricing", icon: Tags },
       { view: "spotcheck", labelKey: "navSpotCheck", icon: ClipboardCheck },
+      { view: "bundles", labelKey: "navBundles", icon: PackageOpen },
+      { view: "compositions", labelKey: "navCompositions", icon: FlaskConical },
     ],
   },
   {
@@ -138,4 +142,6 @@ export const VIEW_META: Record<AppView, { titleKey: keyof Dict; descKey: keyof D
   pricing: { titleKey: "pricingTitle", descKey: "pricingDesc" },
   users: { titleKey: "usersTitle", descKey: "usersDesc" },
   audit: { titleKey: "auditTitle", descKey: "auditDesc" },
+  bundles: { titleKey: "bundlesTitle", descKey: "bundlesDesc" },
+  compositions: { titleKey: "compositionsTitle", descKey: "compositionsDesc" },
 }

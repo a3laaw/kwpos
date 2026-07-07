@@ -1661,6 +1661,76 @@ export interface Dict {
   navAudit: string
   auditTitle: string
   auditDesc: string
+
+  // Bundles (الباقات)
+  navBundles: string
+  bundlesTitle: string
+  bundlesDesc: string
+  bundleAddNew: string
+  bundleEditTitle: string
+  bundleName: string
+  bundleNamePlaceholder: string
+  bundleDescription: string
+  bundleSalePrice: string
+  bundleIsActive: string
+  bundleStartDate: string
+  bundleEndDate: string
+  bundleCategory: string
+  bundleItems: string
+  bundleAddItem: string
+  bundleSelectProduct: string
+  bundleQuantity: string
+  bundleRemoveItem: string
+  bundleTotalCost: string
+  bundleRetailTotal: string
+  bundleProfit: string
+  bundleDiscountPct: string
+  bundleNoItems: string
+  bundleSaveSuccess: string
+  bundleDeleteConfirm: string
+  bundleActiveOnly: string
+  bundleInactive: string
+  bundleSearchPlaceholder: string
+  bundleSeasonal: string
+  bundleNoBundles: string
+
+  // Compositions (التركيبات)
+  navCompositions: string
+  compositionsTitle: string
+  compositionsDesc: string
+  compAddNew: string
+  compEditTitle: string
+  compName: string
+  compNamePlaceholder: string
+  compDescription: string
+  compOutputProduct: string
+  compOutputProductHint: string
+  compYieldQty: string
+  compYieldUnit: string
+  compNotes: string
+  compNotesPlaceholder: string
+  compIsActive: string
+  compIngredients: string
+  compAddIngredient: string
+  compSelectIngredient: string
+  compIngredientQty: string
+  compIngredientUnit: string
+  compIngredientNotes: string
+  compRemoveIngredient: string
+  compCostPerBatch: string
+  compCostPerUnit: string
+  compNoIngredients: string
+  compProduce: string
+  compProduceConfirm: string
+  compProduceSuccess: string
+  compProduceFailed: string
+  compProduceBatchQty: string
+  compInsufficientStock: string
+  compProduceInsufficientDesc: string
+  compSaveSuccess: string
+  compDeleteConfirm: string
+  compNoCompositions: string
+  compSearchPlaceholder: string
   auditLogs: string
   auditVoidRate: string
   auditSuspicious: string
@@ -3386,6 +3456,76 @@ export const DICTS: Record<Locale, Dict> = {
     navAudit: "التدقيق",
     auditTitle: "سجل التدقيق والرقابة",
     auditDesc: "مراقبة الحركات المشبوهة للكاشير، نسب الحذف، والإجراءات الاستثنائية",
+
+    // Bundles (الباقات)
+    navBundles: "الباقات والعرضات",
+    bundlesTitle: "الباقات والعرضات",
+    bundlesDesc: "إنشاء باقات ومنتجات تُباع معًا بسعر مخفّض — مثال: عطر + بخور + مبخرة",
+    bundleAddNew: "إضافة باقة",
+    bundleEditTitle: "تعديل الباقة",
+    bundleName: "اسم الباقة",
+    bundleNamePlaceholder: "مثال: باقة العيد الفاخرة",
+    bundleDescription: "وصف الباقة",
+    bundleSalePrice: "سعر الباقة",
+    bundleIsActive: "مفعّلة",
+    bundleStartDate: "تاريخ البدء",
+    bundleEndDate: "تاريخ الانتهاء",
+    bundleCategory: "التصنيف",
+    bundleItems: "مكونات الباقة",
+    bundleAddItem: "إضافة منتج",
+    bundleSelectProduct: "اختر منتجًا",
+    bundleQuantity: "الكمية",
+    bundleRemoveItem: "إزالة",
+    bundleTotalCost: "إجمالي التكلفة",
+    bundleRetailTotal: "سعر المكونات منفردة",
+    bundleProfit: "الربح",
+    bundleDiscountPct: "نسبة الخصم",
+    bundleNoItems: "لا توجد مكونات — أضف منتجات للباقة",
+    bundleSaveSuccess: "تم حفظ الباقة",
+    bundleDeleteConfirm: "هل تريد حذف هذه الباقة؟",
+    bundleActiveOnly: "النشطة فقط",
+    bundleInactive: "غير مفعّلة",
+    bundleSearchPlaceholder: "ابحث باسم الباقة...",
+    bundleSeasonal: "موسمية",
+    bundleNoBundles: "لا توجد باقات بعد",
+
+    // Compositions (التركيبات)
+    navCompositions: "التركيبات",
+    compositionsTitle: "التركيبات والخلطات",
+    compositionsDesc: "خلط مكوّنات خام بنسب محددة لإنتاج منتج جديد — مثال: دهن عود + بخور = عود ملكي",
+    compAddNew: "إضافة تركيبة",
+    compEditTitle: "تعديل التركيبة",
+    compName: "اسم التركيبة",
+    compNamePlaceholder: "مثال: عود ملكي فاخر",
+    compDescription: "وصف التركيبة",
+    compOutputProduct: "المنتج الناتج",
+    compOutputProductHint: "المنتج الذي سيُنتج عند تنفيذ التركيبة",
+    compYieldQty: "كمية الإنتاج",
+    compYieldUnit: "وحدة الإنتاج",
+    compNotes: "ملاحظات التحضير",
+    compNotesPlaceholder: "مثال: تُخلط المكونات بالتدريج مع التقليب البطيء",
+    compIsActive: "مفعّلة",
+    compIngredients: "المكونات الخام",
+    compAddIngredient: "إضافة مكوّن",
+    compSelectIngredient: "اختر مكوّنًا",
+    compIngredientQty: "الكمية",
+    compIngredientUnit: "الوحدة",
+    compIngredientNotes: "ملاحظات",
+    compRemoveIngredient: "إزالة",
+    compCostPerBatch: "تكلفة الدفعة",
+    compCostPerUnit: "تكلفة الوحدة",
+    compNoIngredients: "لا توجد مكونات — أضف مكوّنات خام",
+    compProduce: "إنتاج دفعة",
+    compProduceConfirm: "تأكيد الإنتاج",
+    compProduceSuccess: "تم إنتاج الدفعة بنجاح",
+    compProduceFailed: "فشل الإنتاج",
+    compProduceBatchQty: "عدد الدفعات",
+    compInsufficientStock: "مخزون غير كافٍ",
+    compProduceInsufficientDesc: "بعض المكونات لا يوجد منها كمية كافية في المخزون",
+    compSaveSuccess: "تم حفظ التركيبة",
+    compDeleteConfirm: "هل تريد حذف هذه التركيبة؟",
+    compNoCompositions: "لا توجد تركيبات بعد",
+    compSearchPlaceholder: "ابحث باسم التركيبة...",
     auditLogs: "سجل الحركات",
     auditVoidRate: "نسبة الحذف لكل كاشير",
     auditSuspicious: "مشبوه",
@@ -5106,6 +5246,76 @@ export const DICTS: Record<Locale, Dict> = {
     navAudit: "Audit",
     auditTitle: "Audit & Control Log",
     auditDesc: "Monitor suspicious cashier activity, void rates, and exceptional actions",
+
+    // Bundles
+    navBundles: "Bundles & Offers",
+    bundlesTitle: "Bundles & Offers",
+    bundlesDesc: "Create product bundles sold together at a discounted price — e.g. perfume + incense + burner",
+    bundleAddNew: "Add Bundle",
+    bundleEditTitle: "Edit Bundle",
+    bundleName: "Bundle Name",
+    bundleNamePlaceholder: "e.g. Eid Luxury Set",
+    bundleDescription: "Description",
+    bundleSalePrice: "Bundle Price",
+    bundleIsActive: "Active",
+    bundleStartDate: "Start Date",
+    bundleEndDate: "End Date",
+    bundleCategory: "Category",
+    bundleItems: "Bundle Items",
+    bundleAddItem: "Add Product",
+    bundleSelectProduct: "Select a product",
+    bundleQuantity: "Quantity",
+    bundleRemoveItem: "Remove",
+    bundleTotalCost: "Total Cost",
+    bundleRetailTotal: "Items Sold Separately",
+    bundleProfit: "Profit",
+    bundleDiscountPct: "Discount %",
+    bundleNoItems: "No items — add products to this bundle",
+    bundleSaveSuccess: "Bundle saved",
+    bundleDeleteConfirm: "Delete this bundle?",
+    bundleActiveOnly: "Active only",
+    bundleInactive: "Inactive",
+    bundleSearchPlaceholder: "Search bundles...",
+    bundleSeasonal: "Seasonal",
+    bundleNoBundles: "No bundles yet",
+
+    // Compositions
+    navCompositions: "Compositions",
+    compositionsTitle: "Compositions & Blends",
+    compositionsDesc: "Mix raw ingredients in specific ratios to produce a new product — e.g. oud oil + incense = Royal Oud",
+    compAddNew: "Add Composition",
+    compEditTitle: "Edit Composition",
+    compName: "Composition Name",
+    compNamePlaceholder: "e.g. Royal Oud Premium",
+    compDescription: "Description",
+    compOutputProduct: "Output Product",
+    compOutputProductHint: "The product created when this composition is produced",
+    compYieldQty: "Yield Quantity",
+    compYieldUnit: "Yield Unit",
+    compNotes: "Preparation Notes",
+    compNotesPlaceholder: "e.g. Mix ingredients gradually with slow stirring",
+    compIsActive: "Active",
+    compIngredients: "Raw Ingredients",
+    compAddIngredient: "Add Ingredient",
+    compSelectIngredient: "Select an ingredient",
+    compIngredientQty: "Quantity",
+    compIngredientUnit: "Unit",
+    compIngredientNotes: "Notes",
+    compRemoveIngredient: "Remove",
+    compCostPerBatch: "Cost per Batch",
+    compCostPerUnit: "Cost per Unit",
+    compNoIngredients: "No ingredients — add raw materials",
+    compProduce: "Produce Batch",
+    compProduceConfirm: "Confirm Production",
+    compProduceSuccess: "Batch produced successfully",
+    compProduceFailed: "Production failed",
+    compProduceBatchQty: "Number of Batches",
+    compInsufficientStock: "Insufficient Stock",
+    compProduceInsufficientDesc: "Some ingredients do not have enough quantity in stock",
+    compSaveSuccess: "Composition saved",
+    compDeleteConfirm: "Delete this composition?",
+    compNoCompositions: "No compositions yet",
+    compSearchPlaceholder: "Search compositions...",
     auditLogs: "Activity Log",
     auditVoidRate: "Void Rate per Cashier",
     auditSuspicious: "Suspicious",

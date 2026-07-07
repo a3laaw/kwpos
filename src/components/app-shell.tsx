@@ -27,6 +27,8 @@ import { ShiftView } from "@/components/shift/shift-view"
 import { SpotCheckView } from "@/components/spotcheck/spotcheck-view"
 import { ExchangeView } from "@/components/sales/exchange-view"
 import { PricingEngineView } from "@/components/pricing/pricing-engine-view"
+import { BundlesView } from "@/components/bundles/bundles-view"
+import { CompositionsView } from "@/components/compositions/compositions-view"
 
 export type { SessionUser }
 
@@ -86,6 +88,8 @@ export function AppShell({
               {view === "users" && <UsersView />}
               {view === "audit" && <AuditView />}
               {view === "settings" && <SettingsView />}
+              {view === "bundles" && <BundlesView />}
+              {view === "compositions" && <CompositionsView />}
             </main>
             <footer className="mt-auto border-t border-border/70 bg-muted/30">
               <div className="w-full px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">

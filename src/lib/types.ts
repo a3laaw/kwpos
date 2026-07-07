@@ -167,6 +167,8 @@ export type AppView =
   | "pricing"
   | "users"
   | "audit"
+  | "bundles"
+  | "compositions"
 
 // ─── Accounting types ───────────────────────────────────────────────
 export type AccountType = "ASSET" | "LIABILITY" | "EQUITY" | "REVENUE" | "EXPENSE"
@@ -530,4 +532,65 @@ export interface VatReport {
   netVat: number
   salesTotal: number
   purchasesTotal: number
+}
+
+// ─── Bundle types (الباقات) ─────────────────────────────────────────
+export interface BundleItem {
+  id: string
+  bundleId: string
+  productId: string
+  quantity: number
+  product?: Product
+}
+
+export interface Bundle {
+  id: string
+  name: string
+  description?: string | null
+  imageUrl?: string | null
+  salePrice: number
+  isActive: boolean
+  startDate?: string | null
+  endDate?: string | null
+  category?: string | null
+  createdAt: string
+  items: BundleItem[]
+  /** Computed: total cost of all items (sum of product.costPrice * quantity) */
+  totalCost?: number
+  /** Computed: sum of product.salePrice * quantity (buying separately) */
+  itemsRetailTotal?: number
+  /** Computed: profit = salePrice - totalCost */
+  profit?: number
+  /** Computed: discount % vs buying items separately */
+  discountPct?: number
+}
+
+// ─── Composition types (التركيبات) ──────────────────────────────────
+export interface CompositionIngredient {
+  id: string
+  compositionId: string
+  productId: string
+  quantity: number
+  unit: string
+  notes?: string | null
+  product?: Product
+}
+
+export interface Composition {
+  id: string
+  name: string
+  description?: string | null
+  imageUrl?: string | null
+  outputProductId: string
+  yieldQty: number
+  yieldUnit: string
+  isActive: boolean
+  notes?: string | null
+  createdAt: string
+  outputProduct?: Product
+  ingredients: CompositionIngredient[]
+  /** Computed: total cost of all ingredients per batch */
+  costPerBatch?: number
+  /** Computed: cost per unit of output = costPerBatch / yieldQty */
+  costPerUnit?: number
 }

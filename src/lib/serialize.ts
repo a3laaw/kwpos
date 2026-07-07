@@ -10,6 +10,10 @@ import type {
   ExpenseTransaction,
   Customer,
   Warehouse,
+  Bundle,
+  BundleItem,
+  Composition,
+  CompositionIngredient,
 } from "@/lib/types"
 
 type AnyRow = Record<string, unknown>
@@ -241,5 +245,125 @@ export function serializeExchange(e: AnyRow) {
     userName: (e.user as any)?.name ?? null,
     lines: ((e.lines as AnyRow[] | undefined) ?? []).map(serializeExchangeLine),
     createdAt: String(e.createdAt),
+  }
+}
+
+/* ------------------------------ Bundles ------------------------------ */
+/** Convert a Prisma BundleItem row (with product included) into our API shape. */
+export function serializeBundleItem(i: AnyRow): BundleItem {
+  const productRow = i.product as AnyRow | undefined
+  return {
+    id: String(i.id),
+    bundleId: String(i.bundleId),
+    productId: String(i.productId),
+    quantity: Number(i.quantity ?? 0),
+    product: productRow ? (serializeProduct(productRow) as Product) : undefined,
+  }
+}
+
+/**
+ * Convert a Prisma Bundle row (with items + product included) into our API
+ * `Bundle` shape. Computes the live cost/profit/discount figures from the
+ * included product cost & sale prices.
+ *
+ * - totalCost          = Σ (product.costPrice × item.quantity)
+ * - itemsRetailTotal   = Σ (product.salePrice × item.quantity)
+ * - profit             = salePrice − totalCost
+ * - discountPct        = ((itemsRetailTotal − salePrice) / itemsRetailTotal × 100)
+ *                        when itemsRetailTotal > 0, else 0.
+ */
+export function serializeBundle(b: AnyRow): Bundle {
+  const items = ((b.items as AnyRow[] | undefined) ?? []).map(serializeBundleItem)
+  const salePrice = Number(b.salePrice ?? 0)
+
+  const totalCost = items.reduce((sum, it) => {
+    const cost = Number(it.product?.costPrice ?? 0)
+    return sum + cost * Number(it.quantity ?? 0)
+  }, 0)
+
+  const itemsRetailTotal = items.reduce((sum, it) => {
+    const sale = Number(it.product?.salePrice ?? 0)
+    return sum + sale * Number(it.quantity ?? 0)
+  }, 0)
+
+  const profit = salePrice - totalCost
+  const discountPct = itemsRetailTotal > 0
+    ? ((itemsRetailTotal - salePrice) / itemsRetailTotal) * 100
+    : 0
+
+  return {
+    id: String(b.id),
+    name: String(b.name),
+    description: (b.description as string | null) ?? null,
+    imageUrl: (b.imageUrl as string | null) ?? null,
+    salePrice,
+    isActive: Boolean(b.isActive ?? true),
+    startDate: b.startDate ? String(b.startDate) : null,
+    endDate: b.endDate ? String(b.endDate) : null,
+    category: (b.category as string | null) ?? null,
+    createdAt: String(b.createdAt),
+    items,
+    totalCost,
+    itemsRetailTotal,
+    profit,
+    discountPct,
+  }
+}
+
+/* --------------------------- Compositions ---------------------------- */
+/** Convert a Prisma CompositionIngredient row (with product included) into our API shape. */
+export function serializeCompositionIngredient(i: AnyRow): CompositionIngredient {
+  const productRow = i.product as AnyRow | undefined
+  return {
+    id: String(i.id),
+    compositionId: String(i.compositionId),
+    productId: String(i.productId),
+    quantity: Number(i.quantity ?? 0),
+    unit: String(i.unit ?? "جرام"),
+    notes: (i.notes as string | null) ?? null,
+    product: productRow ? (serializeProduct(productRow) as Product) : undefined,
+  }
+}
+
+/**
+ * Convert a Prisma Composition row (with outputProduct + ingredients.product
+ * included) into our API `Composition` shape. Computes the live cost figures:
+ *
+ * - costPerBatch = Σ (ingredient.product.costPrice × ingredient.quantity)
+ * - costPerUnit  = costPerBatch / yieldQty   (0 when yieldQty <= 0)
+ */
+export function serializeComposition(c: AnyRow): Composition {
+  const ingredients = ((c.ingredients as AnyRow[] | undefined) ?? []).map(
+    serializeCompositionIngredient
+  )
+
+  const yieldQty = Number(c.yieldQty ?? 0)
+
+  const costPerBatch = ingredients.reduce((sum, ing) => {
+    const cost = Number(ing.product?.costPrice ?? 0)
+    return sum + cost * Number(ing.quantity ?? 0)
+  }, 0)
+
+  const costPerUnit = yieldQty > 0 ? costPerBatch / yieldQty : 0
+
+  const outputProductRow = c.outputProduct as AnyRow | undefined
+
+  return {
+    id: String(c.id),
+    name: String(c.name),
+    description: (c.description as string | null) ?? null,
+    imageUrl: (c.imageUrl as string | null) ?? null,
+    outputProductId: String(c.outputProductId),
+    yieldQty,
+    yieldUnit: String(c.yieldUnit ?? "قطعة"),
+    isActive: Boolean(c.isActive ?? true),
+    notes: (c.notes as string | null) ?? null,
+    createdAt: String(c.createdAt),
+    outputProduct: outputProductRow
+      ? (serializeProduct(outputProductRow) as Product)
+      : undefined,
+    ingredients,
+    costPerBatch,
+    costPerUnit,
   }
 }
