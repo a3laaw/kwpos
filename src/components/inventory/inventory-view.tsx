@@ -46,7 +46,7 @@ import {
 } from "lucide-react"
 import { useUser } from "@/components/user-context"
 import { printBarcodeLabels } from "@/lib/print"
-import { SubNav, type SubNavItem } from "@/components/shared/sub-nav"
+import { MegaMenuBar, type MegaMenuGroup } from "@/components/shared/mega-menu-bar"
 import { Breadcrumbs } from "@/components/shared/breadcrumbs"
 import { WarehouseManager } from "@/components/inventory/warehouse-manager"
 import { StockTakeTab } from "@/components/inventory/stock-take-tab"
@@ -156,12 +156,26 @@ export function InventoryView() {
         }
       />
 
-      <SubNav items={[
-        { value: "products", labelKey: "invItemsTab", icon: Boxes },
-        { value: "warehouses", labelKey: "warehouses", icon: WarehouseIcon },
-        { value: "stocktake", labelKey: "stockTakeTab", icon: ClipboardCheck },
-        { value: "transfers", labelKey: "stockTransferTab", icon: ArrowRightLeft },
-      ] as SubNavItem[]} value={invTab} onChange={(v) => setInvTab(v as typeof invTab)} />
+      <MegaMenuBar
+        groups={[
+          {
+            labelKey: "invItemsTab",
+            items: [
+              { value: "products", labelKey: "invItemsTab", icon: Boxes },
+              { value: "warehouses", labelKey: "warehouses", icon: WarehouseIcon },
+            ],
+          },
+          {
+            labelKey: "stockTakeTab",
+            items: [
+              { value: "stocktake", labelKey: "stockTakeTab", icon: ClipboardCheck },
+              { value: "transfers", labelKey: "stockTransferTab", icon: ArrowRightLeft },
+            ],
+          },
+        ]}
+        value={invTab}
+        onChange={(v) => setInvTab(v as typeof invTab)}
+      />
 
       {invTab === "products" && (
         <div className="space-y-5">

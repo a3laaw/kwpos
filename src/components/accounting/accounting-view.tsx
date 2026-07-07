@@ -2,9 +2,9 @@
 
 import * as React from "react"
 import { PageHeader } from "@/components/shared/page-header"
-import { ContextDropdown, type ContextNavItem } from "@/components/shared/context-dropdown"
+import { MegaMenuBar, type MegaMenuGroup } from "@/components/shared/mega-menu-bar"
 import { Breadcrumbs } from "@/components/shared/breadcrumbs"
-import { BookOpen, Wallet, Receipt, FileBarChart, BookCopy, Scale, Banknote, User2, Percent } from "lucide-react"
+import { BookOpen, Wallet, Receipt, FileBarChart, BookCopy, Scale, Banknote, User2, Percent, FileText } from "lucide-react"
 import { ChartOfAccountsTab } from "@/components/accounting/chart-of-accounts-tab"
 import { ExpensesTab } from "@/components/accounting/expenses-tab"
 import { PnLTab } from "@/components/accounting/pnl-tab"
@@ -43,16 +43,31 @@ export function AccountingView() {
   const t = useT()
   const [tab, setTab] = React.useState<AccTab>("accounts")
 
-  const items: ContextNavItem[] = [
-    { value: "accounts", labelKey: "accJournalLedger", icon: Wallet },
-    { value: "expenses", labelKey: "accExpenses", icon: Receipt },
-    { value: "journal", labelKey: "accJournalEntries", icon: BookCopy },
-    { value: "pnl", labelKey: "accPnl", icon: FileBarChart },
-    { value: "trial", labelKey: "accTrialBalance", icon: Scale },
-    { value: "balance", labelKey: "accBalanceSheet", icon: Scale },
-    { value: "cashflow", labelKey: "accCashFlow", icon: Banknote },
-    { value: "customer-statement", labelKey: "accCustomerStatement", icon: User2 },
-    { value: "vat", labelKey: "accVatReport", icon: Percent },
+  const groups: MegaMenuGroup[] = [
+    {
+      labelKey: "accJournalEntries",
+      items: [
+        { value: "journal", labelKey: "accJournalEntries", icon: BookCopy },
+        { value: "trial", labelKey: "accTrialBalance", icon: Scale },
+      ],
+    },
+    {
+      labelKey: "accChartOfAccountsDesc",
+      items: [
+        { value: "accounts", labelKey: "accJournalLedger", icon: Wallet },
+        { value: "expenses", labelKey: "accExpenses", icon: Receipt },
+        { value: "balance", labelKey: "accBalanceSheet", icon: Scale },
+        { value: "cashflow", labelKey: "accCashFlow", icon: Banknote },
+      ],
+    },
+    {
+      labelKey: "accPnl",
+      items: [
+        { value: "pnl", labelKey: "accPnl", icon: FileBarChart },
+        { value: "customer-statement", labelKey: "accCustomerStatement", icon: User2 },
+        { value: "vat", labelKey: "accVatReport", icon: Percent },
+      ],
+    },
   ]
 
   return (
@@ -70,15 +85,7 @@ export function AccountingView() {
         icon={<BookOpen className="h-5 w-5" />}
       />
 
-      {/* Context dropdown for 9 items (replaces horizontal SubNav) */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <ContextDropdown
-          sectionLabel={t.navAccounting}
-          items={items}
-          value={tab}
-          onChange={(v) => setTab(v as AccTab)}
-        />
-      </div>
+      <MegaMenuBar groups={groups} value={tab} onChange={(v) => setTab(v as AccTab)} />
 
       {tab === "accounts" && <ChartOfAccountsTab />}
       {tab === "expenses" && <ExpensesTab />}
