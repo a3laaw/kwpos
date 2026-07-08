@@ -46,6 +46,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Languages,
+  Search,
 } from "lucide-react"
 import { useAppStore } from "@/lib/store"
 import { NAV_ENTRIES, type NavEntry } from "@/components/nav-config"
@@ -57,6 +58,8 @@ import type { Role } from "@/lib/types"
 import type { AppView } from "@/lib/types"
 import { useT, useI18n } from "@/components/i18n-context"
 import { getCountryName } from "@/lib/countries"
+import { GlobalSearch, useGlobalSearchShortcut } from "@/components/shared/global-search"
+import { NotificationsBell } from "@/components/shared/notifications-bell"
 import type { CountryConfig } from "@/lib/countries"
 import { cn } from "@/lib/utils"
 
@@ -284,7 +287,7 @@ function Brand() {
 function UserCard({ user }: { user: SidebarProps["user"] }) {
   const t = useT()
   const { locale } = useI18n()
-  const roleLabel = user.role === "ADMIN" ? t.roleAdmin : user.role === "SALES" ? t.roleSales : t.roleWarehouse
+  const roleLabel = user.role === "ADMIN" ? t.roleAdmin : user.role === "MANAGER" ? t.roleManager : user.role === "ACCOUNTANT" ? t.roleAccountant : user.role === "SALES" ? t.roleSales : user.role === "CASHIER" ? t.roleCashier : t.roleWarehouse
   // Explicit dir ensures the avatar sits at the leading edge (right in Arabic,
   // left in English) and the text block flows toward the trailing edge.
   // Restructured so the role badge no longer squeezes the name — name + email
@@ -573,7 +576,7 @@ export function Topbar({
   const { locale } = useI18n()
   const [mounted, setMounted] = React.useState(false)
   React.useEffect(() => setMounted(true), [])
-  const roleLabel = user.role === "ADMIN" ? t.roleAdmin : user.role === "SALES" ? t.roleSales : t.roleWarehouse
+  const roleLabel = user.role === "ADMIN" ? t.roleAdmin : user.role === "MANAGER" ? t.roleManager : user.role === "ACCOUNTANT" ? t.roleAccountant : user.role === "SALES" ? t.roleSales : user.role === "CASHIER" ? t.roleCashier : t.roleWarehouse
 
   // Get MegaMenu groups for the current module (null = no sub-nav)
   const moduleGroups = getModuleNav(view)
@@ -612,6 +615,13 @@ export function Topbar({
             <span className="font-medium">{country.currencySymbol}</span>
           </div>
         ) : null}
+
+        {/* Global Search trigger button */}
+        <GlobalSearchButton />
+
+        {/* Notifications bell with unread count */}
+        <NotificationsBell />
+
         <LangToggle />
         <ThemeToggle />
       {mounted ? (
@@ -685,5 +695,36 @@ function MegaMenuBarInline({ groups }: { groups: import("@/components/shared/meg
       onChange={setTab}
       className="static border-0 shadow-none bg-transparent -mx-0 px-0 top-auto z-auto"
     />
+  )
+}
+
+/**
+ * GlobalSearchButton — a small button in the Topbar that opens the
+ * global search command palette. Also registers the Ctrl+K / Cmd+K
+ * keyboard shortcut via useGlobalSearchShortcut().
+ */
+function GlobalSearchButton() {
+  const t = useT()
+  const { open, setOpen } = useGlobalSearchShortcut()
+
+  return (
+    <>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="gap-2 h-9 px-2.5 shrink-0"
+        onClick={() => setOpen(true)}
+        title={t.globalSearchHint}
+      >
+        <Search className="h-4 w-4" />
+        <span className="hidden lg:inline text-sm text-muted-foreground">
+          {t.globalSearchHint}
+        </span>
+        <kbd className="hidden lg:inline-flex items-center gap-0.5 rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+          ⌘K
+        </kbd>
+      </Button>
+      <GlobalSearch open={open} onOpenChange={setOpen} />
+    </>
   )
 }

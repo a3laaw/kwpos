@@ -10,6 +10,9 @@ export interface Dict {
 
   // Nav
   navDashboard: string
+  navManagerDashboard: string
+  managerDashboardTitle: string
+  managerDashboardDesc: string
   navSales: string
   navInvoices: string
   navReports: string
@@ -35,8 +38,11 @@ export interface Dict {
 
   // Roles
   roleAdmin: string
+  roleManager: string
+  roleAccountant: string
   roleSales: string
   roleWarehouse: string
+  roleCashier: string
 
   // Common actions (existing)
   add: string
@@ -229,6 +235,9 @@ export interface Dict {
 
   // Common — search
   searchPlaceholder: string
+  noResults: string
+  recentPages: string
+  globalSearchHint: string
   searchProductPlaceholder: string
   searchNameBarcode: string
   searchInvoicePlaceholder: string
@@ -1356,6 +1365,32 @@ export interface Dict {
   posResumeFailedToast: string
   posParkEmptyToast: string
 
+  // Express POS mode (simplified cashier view)
+  expressMode: string
+  standardMode: string
+  expressBarcodePlaceholder: string
+  expressCash: string
+  expressCard: string
+  expressMoreOptions: string
+  expressClearCart: string
+  expressClearCartConfirm: string
+  expressCartTitle: string
+  expressCheckoutCash: string
+  expressCheckoutCard: string
+  expressNoProducts: string
+  expressLowStock: string
+  expressUnitPrice: string
+  expressCustomerPhone: string
+  expressCustomerName: string
+  expressDiscount: string
+  expressTaxRate: string
+  expressDelivery: string
+  expressDriverName: string
+  expressDeliveryFee: string
+  expressItemsInCart: string
+  expressLogout: string
+  expressBarcodeHint: string
+
   // Receipt dialog
   receiptItemsHeader: string
   receiptQtyHeader: string
@@ -1833,6 +1868,9 @@ export const DICTS: Record<Locale, Dict> = {
     appName: "نظام المتجر",
     appTagline: "إدارة المبيعات والمخازن والمشتريات",
     navDashboard: "لوحة التحكم",
+    navManagerDashboard: "لوحة المدير",
+    managerDashboardTitle: "لوحة المدير",
+    managerDashboardDesc: "نظرة عملياتية سريعة على أداء المتجر",
     navSales: "نقاط البيع",
     navInvoices: "الفواتير",
     navReports: "التقارير",
@@ -1855,8 +1893,11 @@ export const DICTS: Record<Locale, Dict> = {
     navSystem: "الإعدادات",
     navOperations: "العمليات اليومية",
     roleAdmin: "مدير النظام",
+    roleManager: "مدير",
+    roleAccountant: "محاسب",
     roleSales: "موظف مبيعات",
     roleWarehouse: "أمين مخزن",
+    roleCashier: "كاشير",
     add: "إضافة",
     edit: "تعديل",
     delete: "حذف",
@@ -2047,6 +2088,9 @@ export const DICTS: Record<Locale, Dict> = {
 
     // Common — search
     searchPlaceholder: "بحث...",
+    noResults: "لا توجد نتائج",
+    recentPages: "حديث",
+    globalSearchHint: "بحث شامل",
     searchProductPlaceholder: "ابحث عن منتج...",
     searchNameBarcode: "ابحث بالاسم أو الباركود",
     searchInvoicePlaceholder: "ابحث عن فاتورة...",
@@ -3175,6 +3219,32 @@ export const DICTS: Record<Locale, Dict> = {
     posResumeFailedToast: "تعذّر استرجاع الفاتورة المعلّقة",
     posParkEmptyToast: "السلة فارغة — لا شيء لتعليقه",
 
+    // Express POS mode (simplified cashier view)
+    expressMode: "الوضع السريع",
+    standardMode: "الوضع العادي",
+    expressBarcodePlaceholder: "امسح الباركود أو ابحث...",
+    expressCash: "نقدي",
+    expressCard: "بطاقة",
+    expressMoreOptions: "خيارات أكثر",
+    expressClearCart: "تفريغ السلة",
+    expressClearCartConfirm: "هل تريد تفريغ السلة؟ سيتم حذف جميع الأصناف.",
+    expressCartTitle: "السلة",
+    expressCheckoutCash: "نقدي",
+    expressCheckoutCard: "بطاقة",
+    expressNoProducts: "لا توجد منتجات",
+    expressLowStock: "مخزون منخفض",
+    expressUnitPrice: "سعر الوحدة",
+    expressCustomerPhone: "هاتف العميل",
+    expressCustomerName: "اسم العميل",
+    expressDiscount: "خصم",
+    expressTaxRate: "نسبة الضريبة %",
+    expressDelivery: "طلب توصيل",
+    expressDriverName: "اسم السائق",
+    expressDeliveryFee: "رسوم التوصيل",
+    expressItemsInCart: "{count} صنف في السلة",
+    expressLogout: "خروج",
+    expressBarcodeHint: "Enter: إضافة بالباركود • F2 أو Ctrl+Enter: إتمام • Esc: تفريغ",
+
     // Receipt dialog
     receiptItemsHeader: "الصنف",
     receiptQtyHeader: "كمية",
@@ -3640,6 +3710,9 @@ export const DICTS: Record<Locale, Dict> = {
     appName: "Store Manager",
     appTagline: "Sales, Inventory & Purchasing",
     navDashboard: "Dashboard",
+    navManagerDashboard: "Manager Dashboard",
+    managerDashboardTitle: "Manager Dashboard",
+    managerDashboardDesc: "Quick operational overview of store performance",
     navSales: "Point of Sale",
     navInvoices: "Invoices",
     navReports: "Reports",
@@ -3662,8 +3735,11 @@ export const DICTS: Record<Locale, Dict> = {
     navSystem: "Settings",
     navOperations: "Daily Operations",
     roleAdmin: "Administrator",
+    roleManager: "Manager",
+    roleAccountant: "Accountant",
     roleSales: "Sales Clerk",
     roleWarehouse: "Warehouse Keeper",
+    roleCashier: "Cashier",
     add: "Add",
     edit: "Edit",
     delete: "Delete",
@@ -3854,6 +3930,9 @@ export const DICTS: Record<Locale, Dict> = {
 
     // Common — search
     searchPlaceholder: "Search...",
+    noResults: "No results",
+    recentPages: "Recent",
+    globalSearchHint: "Global search",
     searchProductPlaceholder: "Search for a product...",
     searchNameBarcode: "Search by name or barcode",
     searchInvoicePlaceholder: "Search for an invoice...",
@@ -4981,6 +5060,32 @@ export const DICTS: Record<Locale, Dict> = {
     posStockInsufficientDesc: "Available balance of {name} is insufficient. Quantities updated.",
     posResumeFailedToast: "Failed to restore parked invoice",
     posParkEmptyToast: "Cart is empty — nothing to park",
+
+    // Express POS mode (simplified cashier view)
+    expressMode: "Express Mode",
+    standardMode: "Standard Mode",
+    expressBarcodePlaceholder: "Scan barcode or search...",
+    expressCash: "Cash",
+    expressCard: "Card",
+    expressMoreOptions: "More Options",
+    expressClearCart: "Clear Cart",
+    expressClearCartConfirm: "Clear the cart? All items will be removed.",
+    expressCartTitle: "Cart",
+    expressCheckoutCash: "Cash",
+    expressCheckoutCard: "Card",
+    expressNoProducts: "No products",
+    expressLowStock: "Low stock",
+    expressUnitPrice: "Unit price",
+    expressCustomerPhone: "Customer phone",
+    expressCustomerName: "Customer name",
+    expressDiscount: "Discount",
+    expressTaxRate: "Tax %",
+    expressDelivery: "Delivery",
+    expressDriverName: "Driver name",
+    expressDeliveryFee: "Delivery fee",
+    expressItemsInCart: "{count} items in cart",
+    expressLogout: "Logout",
+    expressBarcodeHint: "Enter: add by barcode • F2 or Ctrl+Enter: checkout • Esc: clear",
 
     // Receipt dialog
     receiptItemsHeader: "Item",

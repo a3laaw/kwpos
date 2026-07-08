@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
 import { serializeBundle } from "@/lib/serialize"
+import { logAuditEvent } from "@/lib/audit"
 import type { Role } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
@@ -134,6 +135,13 @@ export async function POST(req: NextRequest) {
           },
         },
         include: { items: { include: { product: true } } },
+      })
+      await logAuditEvent({
+        tx,
+        userId: user.id,
+        userName: user.name,
+        action: "BUNDLE_CREATED",
+        description: `إنشاء باقة ${bundle.name}`,
       })
       return bundle
     })

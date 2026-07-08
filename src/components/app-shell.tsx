@@ -10,6 +10,7 @@ import { CurrencyProvider } from "@/components/currency-context"
 import type { CountryConfig } from "@/lib/countries"
 import { Boxes, Heart } from "lucide-react"
 import { DashboardView } from "@/components/dashboard/dashboard-view"
+import { ManagerDashboardView } from "@/components/dashboard/manager-dashboard-view"
 import { InventoryView } from "@/components/inventory/inventory-view"
 import { PurchasesView } from "@/components/purchases/purchases-view"
 import { SuppliersView } from "@/components/purchases/suppliers-view"
@@ -71,6 +72,7 @@ export function AppShell({
             <Topbar user={user} title={title} country={country} />
             <main className="flex-1 px-4 sm:px-6 py-6 w-full">
               {view === "dashboard" && <DashboardView />}
+              {view === "managerDashboard" && <ManagerDashboardView />}
               {view === "inventory" && <InventoryView />}
               {view === "purchases" && <PurchasesView />}
               {view === "suppliers" && <SuppliersView />}

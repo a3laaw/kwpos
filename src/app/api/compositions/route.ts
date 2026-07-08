@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
 import { serializeComposition } from "@/lib/serialize"
+import { logAuditEvent } from "@/lib/audit"
 import type { Role } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
@@ -157,6 +158,13 @@ export async function POST(req: NextRequest) {
           outputProduct: true,
           ingredients: { include: { product: true } },
         },
+      })
+      await logAuditEvent({
+        tx,
+        userId: user.id,
+        userName: user.name,
+        action: "COMPOSITION_CREATED",
+        description: `إنشاء تركيبة ${composition.name}`,
       })
       return composition
     })
