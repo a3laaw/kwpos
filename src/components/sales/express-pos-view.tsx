@@ -62,6 +62,8 @@ import { cn } from "@/lib/utils"
 import { useT } from "@/components/i18n-context"
 import type { SessionUser } from "@/components/user-context"
 import { usePOS } from "@/hooks/use-pos"
+import { useBarcodeScanner } from "@/hooks/use-barcode-scanner"
+import { openCashDrawer } from "@/lib/cash-drawer"
 import { SaleConfirmDialog } from "@/components/sales/sale-confirm-dialog"
 
 export interface ExpressPosViewProps {
@@ -233,6 +235,35 @@ export function ExpressPosView({ user, onToggleMode }: ExpressPosViewProps) {
     }
   }
 
+  // ── Global barcode scanner hook ──
+  // Detects USB HID barcode scanner input even when the barcode input
+  // is NOT focused (e.g. user just finished a sale). Adds the product
+  // to cart by exact barcode match.
+  useBarcodeScanner(async (barcode) => {
+    // Exact match from loaded products
+    const local = products.find((p) => p.barcode && p.barcode === barcode)
+    if (local) {
+      addToCart(local)
+      toast.success(t.productAdded || "تمت الإضافة", { description: local.name })
+      return
+    }
+    // Fetch by barcode
+    try {
+      const res = await fetch(`/api/products?q=${encodeURIComponent(barcode)}`)
+      if (!res.ok) return
+      const data = await res.json()
+      const match = (data.items as any[])?.find((p) => p.barcode && p.barcode === barcode)
+      if (match) {
+        addToCart(match as Product)
+        toast.success(t.productAdded || "تمت الإضافة", { description: (match as Product).name })
+      } else {
+        toast.error(t.productNotFound || "لم يُعثر على المنتج", { description: barcode })
+      }
+    } catch {
+      // ignore
+    }
+  }, !confirmOpen) // disabled when checkout dialog is open
+
   function handleBarcodeKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter") {
       e.preventDefault()
@@ -324,6 +355,18 @@ export function ExpressPosView({ user, onToggleMode }: ExpressPosViewProps) {
           >
             <Printer className="h-3.5 w-3.5" />
             <span className="text-xs">{t.posAutoPrint}</span>
+          </Button>
+
+          {/* Open Cash Drawer */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => openCashDrawer()}
+            className="gap-1.5 h-8"
+            title="فتح درج النقدية"
+          >
+            <Wallet className="h-3.5 w-3.5" />
+            <span className="text-xs hidden sm:inline">الدرج</span>
           </Button>
 
           {/* Standard Mode toggle */}

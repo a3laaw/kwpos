@@ -10,6 +10,13 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
   CheckCircle2,
   Loader2,
   Globe,
@@ -19,6 +26,9 @@ import {
   Trash2,
   Ruler,
   Tags,
+  Printer,
+  ScanLine,
+  Wallet,
   X,
   Pencil,
   Save,
@@ -39,6 +49,8 @@ import {
 } from "@/hooks/use-api"
 import { cn } from "@/lib/utils"
 import { ImageUpload } from "@/components/shared/image-upload"
+import { getHardwareSettings, saveHardwareSettings, type HardwareSettings } from "@/lib/hardware"
+import { openCashDrawer } from "@/lib/cash-drawer"
 import {
   Dialog,
   DialogContent,
@@ -142,6 +154,9 @@ export function SettingsView() {
         {/* Units management */}
         <UnitsManager />
       </div>
+
+      {/* Hardware settings — printer, cash drawer, barcode scanner */}
+      <HardwareSettingsCard />
 
       {/* Categories management */}
       <CategoriesManager />
@@ -254,6 +269,148 @@ function CompanyInfoCard() {
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           {t.companyInfoSave}
         </Button>
+      </CardContent>
+    </Card>
+  )
+}
+
+function HardwareSettingsCard() {
+  const t = useT()
+  const [settings, setSettings] = React.useState<HardwareSettings | null>(null)
+  const [testing, setTesting] = React.useState(false)
+
+  React.useEffect(() => {
+    setSettings(getHardwareSettings())
+  }, [])
+
+  if (!settings) return null
+
+  function update(patch: Partial<HardwareSettings>) {
+    const updated = saveHardwareSettings(patch)
+    setSettings(updated)
+  }
+
+  async function testDrawer() {
+    setTesting(true)
+    await openCashDrawer()
+    setTesting(false)
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Printer className="h-4 w-4 text-primary" />
+          إعدادات الأجهزة (Hardware)
+        </CardTitle>
+        <CardDescription>الطابعة، درج النقدية، قارئ الباركود</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Printer type */}
+        <div className="space-y-1.5">
+          <Label>نوع اتصال الطابعة</Label>
+          <Select
+            value={settings.printerType}
+            onValueChange={(v) => update({ printerType: v as HardwareSettings["printerType"] })}
+          >
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">لا يوجد (بدون طابعة)</SelectItem>
+              <SelectItem value="network">شبكة (Network IP)</SelectItem>
+              <SelectItem value="usb">USB</SelectItem>
+              <SelectItem value="serial">Serial (منفذ تسلسلي)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Network printer address (only if network) */}
+        {settings.printerType === "network" ? (
+          <div className="space-y-1.5">
+            <Label>عنوان الطابعة (IP:Port)</Label>
+            <Input
+              dir="ltr"
+              value={settings.printerNetworkAddress}
+              onChange={(e) => update({ printerNetworkAddress: e.target.value })}
+              placeholder="192.168.1.100:9100"
+            />
+          </div>
+        ) : null}
+
+        {/* Cash drawer kick code */}
+        <div className="space-y-1.5">
+          <Label>رمز فتح درج النقدية (ESC/POS)</Label>
+          <Select
+            value={String(settings.drawerKickCode)}
+            onValueChange={(v) => update({ drawerKickCode: Number(v) })}
+          >
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0">نبضة قصيرة (50ms)</SelectItem>
+              <SelectItem value="1">نبضة طويلة (100ms)</SelectItem>
+              <SelectItem value="7">افتراضي (50ms — الأكثر شيوعًا)</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">يُرسل رمز ESC/POS لفتح الدرج عبر الطابعة الحرارية</p>
+        </div>
+
+        {/* Test cash drawer */}
+        <Button variant="outline" onClick={testDrawer} disabled={testing} className="w-full gap-2">
+          <Wallet className="h-4 w-4" />
+          {testing ? "جاري الإرسال..." : "اختبار فتح الدرج"}
+        </Button>
+
+        {/* Barcode scanner settings */}
+        <div className="border-t pt-4 space-y-3">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <ScanLine className="h-4 w-4 text-primary" />
+            إعدادات قارئ الباركود
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>بادئة (Prefix)</Label>
+              <Input
+                dir="ltr"
+                value={settings.scannerPrefix}
+                onChange={(e) => update({ scannerPrefix: e.target.value })}
+                placeholder="فارغ = بدون"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>لاحقة (Suffix)</Label>
+              <Input
+                dir="ltr"
+                value={settings.scannerSuffix === "\n" ? "\\n" : settings.scannerSuffix}
+                onChange={(e) => update({ scannerSuffix: e.target.value === "\\n" ? "\n" : e.target.value })}
+                placeholder="\\n = Enter"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>سرعة المسح (ms بين المفاتيح)</Label>
+              <Input
+                type="number"
+                dir="ltr"
+                value={settings.scannerMinInterval}
+                onChange={(e) => update({ scannerMinInterval: Number(e.target.value) || 15 })}
+                placeholder="15"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>أقصى مدة للمسح (ms)</Label>
+              <Input
+                type="number"
+                dir="ltr"
+                value={settings.scannerMaxDuration}
+                onChange={(e) => update({ scannerMaxDuration: Number(e.target.value) || 200 })}
+                placeholder="200"
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            القارئ يكتب بسرعة (~5-15ms بين المفاتيح). إذا لم يُكتشف، قلل القيم.
+          </p>
+        </div>
       </CardContent>
     </Card>
   )
