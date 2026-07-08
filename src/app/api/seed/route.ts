@@ -2,10 +2,18 @@ import { NextResponse } from "next/server"
 import bcrypt from "bcryptjs"
 import { db } from "@/lib/db"
 import { makeInvoiceNo } from "@/lib/format"
+import { getCurrentUser } from "@/lib/session"
 
 export const dynamic = "force-dynamic"
 
 export async function POST(req: Request) {
+  // Auth: ADMIN only — seeding resets the entire database.
+  const user = await getCurrentUser()
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+  if (user.role !== "ADMIN") {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 })
+  }
+
   try {
     const body = await req.json().catch(() => ({}))
     const reset = body?.reset === true
@@ -61,6 +69,7 @@ export async function POST(req: Request) {
           name: "أحمد المدير",
           passwordHash: pw(adminPw),
           role: "ADMIN",
+          posExpressMode: false, // ADMIN defaults to Standard Mode
         },
       }),
       db.user.create({
@@ -70,6 +79,7 @@ export async function POST(req: Request) {
           name: "سارة الموظفة",
           passwordHash: pw(salesPw),
           role: "SALES",
+          posExpressMode: true, // SALES defaults to Express Mode
         },
       }),
       db.user.create({
@@ -79,6 +89,7 @@ export async function POST(req: Request) {
           name: "خالد أمين المخزن",
           passwordHash: pw(warehousePw),
           role: "WAREHOUSE",
+          posExpressMode: false,
         },
       }),
     ])
@@ -509,6 +520,13 @@ export async function POST(req: Request) {
 }
 
 export async function GET() {
+  // Auth: ADMIN only — exposes DB row counts.
+  const user = await getCurrentUser()
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+  if (user.role !== "ADMIN") {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 })
+  }
+
   return NextResponse.json({
     ok: true,
     counts: {

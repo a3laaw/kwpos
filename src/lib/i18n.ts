@@ -1356,6 +1356,32 @@ export interface Dict {
   posResumeFailedToast: string
   posParkEmptyToast: string
 
+  // Express POS mode (simplified cashier view)
+  expressMode: string
+  standardMode: string
+  expressBarcodePlaceholder: string
+  expressCash: string
+  expressCard: string
+  expressMoreOptions: string
+  expressClearCart: string
+  expressClearCartConfirm: string
+  expressCartTitle: string
+  expressCheckoutCash: string
+  expressCheckoutCard: string
+  expressNoProducts: string
+  expressLowStock: string
+  expressUnitPrice: string
+  expressCustomerPhone: string
+  expressCustomerName: string
+  expressDiscount: string
+  expressTaxRate: string
+  expressDelivery: string
+  expressDriverName: string
+  expressDeliveryFee: string
+  expressItemsInCart: string
+  expressLogout: string
+  expressBarcodeHint: string
+
   // Receipt dialog
   receiptItemsHeader: string
   receiptQtyHeader: string
@@ -3175,6 +3201,32 @@ export const DICTS: Record<Locale, Dict> = {
     posResumeFailedToast: "تعذّر استرجاع الفاتورة المعلّقة",
     posParkEmptyToast: "السلة فارغة — لا شيء لتعليقه",
 
+    // Express POS mode (simplified cashier view)
+    expressMode: "الوضع السريع",
+    standardMode: "الوضع العادي",
+    expressBarcodePlaceholder: "امسح الباركود أو ابحث...",
+    expressCash: "نقدي",
+    expressCard: "بطاقة",
+    expressMoreOptions: "خيارات أكثر",
+    expressClearCart: "تفريغ السلة",
+    expressClearCartConfirm: "هل تريد تفريغ السلة؟ سيتم حذف جميع الأصناف.",
+    expressCartTitle: "السلة",
+    expressCheckoutCash: "نقدي",
+    expressCheckoutCard: "بطاقة",
+    expressNoProducts: "لا توجد منتجات",
+    expressLowStock: "مخزون منخفض",
+    expressUnitPrice: "سعر الوحدة",
+    expressCustomerPhone: "هاتف العميل",
+    expressCustomerName: "اسم العميل",
+    expressDiscount: "خصم",
+    expressTaxRate: "نسبة الضريبة %",
+    expressDelivery: "طلب توصيل",
+    expressDriverName: "اسم السائق",
+    expressDeliveryFee: "رسوم التوصيل",
+    expressItemsInCart: "{count} صنف في السلة",
+    expressLogout: "خروج",
+    expressBarcodeHint: "Enter: إضافة بالباركود • F2 أو Ctrl+Enter: إتمام • Esc: تفريغ",
+
     // Receipt dialog
     receiptItemsHeader: "الصنف",
     receiptQtyHeader: "كمية",
@@ -4981,6 +5033,32 @@ export const DICTS: Record<Locale, Dict> = {
     posStockInsufficientDesc: "Available balance of {name} is insufficient. Quantities updated.",
     posResumeFailedToast: "Failed to restore parked invoice",
     posParkEmptyToast: "Cart is empty — nothing to park",
+
+    // Express POS mode (simplified cashier view)
+    expressMode: "Express Mode",
+    standardMode: "Standard Mode",
+    expressBarcodePlaceholder: "Scan barcode or search...",
+    expressCash: "Cash",
+    expressCard: "Card",
+    expressMoreOptions: "More Options",
+    expressClearCart: "Clear Cart",
+    expressClearCartConfirm: "Clear the cart? All items will be removed.",
+    expressCartTitle: "Cart",
+    expressCheckoutCash: "Cash",
+    expressCheckoutCard: "Card",
+    expressNoProducts: "No products",
+    expressLowStock: "Low stock",
+    expressUnitPrice: "Unit price",
+    expressCustomerPhone: "Customer phone",
+    expressCustomerName: "Customer name",
+    expressDiscount: "Discount",
+    expressTaxRate: "Tax %",
+    expressDelivery: "Delivery",
+    expressDriverName: "Driver name",
+    expressDeliveryFee: "Delivery fee",
+    expressItemsInCart: "{count} items in cart",
+    expressLogout: "Logout",
+    expressBarcodeHint: "Enter: add by barcode • F2 or Ctrl+Enter: checkout • Esc: clear",
 
     // Receipt dialog
     receiptItemsHeader: "Item",
