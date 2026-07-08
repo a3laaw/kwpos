@@ -10,7 +10,13 @@ export async function getSession() {
 export async function getCurrentUser() {
   const session = await getSession()
   if (!session?.user) return null
-  return session.user as { id: string; name?: string | null; email?: string | null; role: Role }
+  return session.user as {
+    id: string
+    name?: string | null
+    email?: string | null
+    role: Role
+    posExpressMode?: boolean
+  }
 }
 
 /** Role-based access check helper. */

@@ -60,6 +60,7 @@ export const authOptions: NextAuthOptions = {
             email: user.email,
             name: user.name,
             role: user.role,
+            posExpressMode: (user as any).posExpressMode,
           } as any
         } catch {
           return null
@@ -72,6 +73,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = (user as any).id
         token.role = (user as any).role
+        token.posExpressMode = (user as any).posExpressMode
       }
       return token
     },
@@ -79,6 +81,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         ;(session.user as any).id = token.id
         ;(session.user as any).role = token.role
+        ;(session.user as any).posExpressMode = token.posExpressMode
       }
       return session
     },

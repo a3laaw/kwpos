@@ -69,6 +69,7 @@ export async function POST(req: Request) {
           name: "أحمد المدير",
           passwordHash: pw(adminPw),
           role: "ADMIN",
+          posExpressMode: false, // ADMIN defaults to Standard Mode
         },
       }),
       db.user.create({
@@ -78,6 +79,7 @@ export async function POST(req: Request) {
           name: "سارة الموظفة",
           passwordHash: pw(salesPw),
           role: "SALES",
+          posExpressMode: true, // SALES defaults to Express Mode
         },
       }),
       db.user.create({
@@ -87,6 +89,7 @@ export async function POST(req: Request) {
           name: "خالد أمين المخزن",
           passwordHash: pw(warehousePw),
           role: "WAREHOUSE",
+          posExpressMode: false,
         },
       }),
     ])
