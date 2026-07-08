@@ -18,6 +18,7 @@ import {
   LogIn,
   ShieldCheck,
   Sparkles,
+  Calculator,
 } from "lucide-react"
 import { useT, useI18n } from "@/components/i18n-context"
 import type { Dict } from "@/lib/i18n"
@@ -41,6 +42,18 @@ function useDemoAccounts(t: Dict): DemoAccount[] {
         tone: "text-primary",
       },
       {
+        role: t.roleManager,
+        email: "manager@demo.com",
+        icon: ShieldCheck,
+        tone: "text-blue-600",
+      },
+      {
+        role: t.roleAccountant,
+        email: "accountant@demo.com",
+        icon: Calculator,
+        tone: "text-purple-600",
+      },
+      {
         role: t.roleSales,
         email: "sales@demo.com",
         icon: ShoppingCart,
@@ -51,6 +64,12 @@ function useDemoAccounts(t: Dict): DemoAccount[] {
         email: "warehouse@demo.com",
         icon: Warehouse,
         tone: "text-amber-600 dark:text-amber-400",
+      },
+      {
+        role: t.roleCashier,
+        email: "cashier@demo.com",
+        icon: ShoppingCart,
+        tone: "text-rose-600",
       },
     ],
     [t]

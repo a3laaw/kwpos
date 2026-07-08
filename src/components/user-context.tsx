@@ -8,6 +8,7 @@ export interface SessionUser {
   name: string
   email: string
   role: Role
+  posExpressMode?: boolean
 }
 
 const UserContext = React.createContext<SessionUser | null>(null)

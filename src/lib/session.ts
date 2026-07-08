@@ -10,7 +10,13 @@ export async function getSession() {
 export async function getCurrentUser() {
   const session = await getSession()
   if (!session?.user) return null
-  return session.user as { id: string; name?: string | null; email?: string | null; role: Role }
+  return session.user as {
+    id: string
+    name?: string | null
+    email?: string | null
+    role: Role
+    posExpressMode?: boolean
+  }
 }
 
 /** Role-based access check helper. */
@@ -27,17 +33,35 @@ export const ROLE_PERMISSIONS: Record<Role, {
   ADMIN: {
     label: "مدير النظام",
     views: [
-      "dashboard", "sales", "invoices", "reports", "inventory", "purchases", "suppliers",
+      "dashboard", "managerDashboard", "sales", "invoices", "reports", "inventory", "purchases", "suppliers",
       "customers", "analytics", "accounting", "integrations", "shifts", "spotcheck", "exchanges",
       "pricing", "users", "settings", "audit", "bundles", "compositions",
     ],
+  },
+  MANAGER: {
+    label: "مدير",
+    views: [
+      "dashboard", "managerDashboard", "sales", "invoices", "reports", "inventory", "customers",
+      "analytics", "shifts", "exchanges", "users", "audit",
+    ],
+  },
+  ACCOUNTANT: {
+    label: "محاسب",
+    views: [
+      "dashboard", "reports", "accounting", "customers", "suppliers",
+      "invoices", "analytics",
+    ],
+  },
+  WAREHOUSE: {
+    label: "أمين مخزن",
+    views: ["dashboard", "inventory", "purchases", "suppliers", "spotcheck", "bundles", "compositions"],
   },
   SALES: {
     label: "موظف مبيعات",
     views: ["dashboard", "sales", "invoices", "reports", "inventory", "customers", "analytics", "shifts", "exchanges", "pricing", "bundles"],
   },
-  WAREHOUSE: {
-    label: "أمين مخزن",
-    views: ["dashboard", "inventory", "purchases", "suppliers", "spotcheck", "bundles", "compositions"],
+  CASHIER: {
+    label: "كاشير",
+    views: ["dashboard", "sales", "shifts"],
   },
 }

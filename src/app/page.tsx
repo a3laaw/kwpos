@@ -51,6 +51,7 @@ export default async function Home() {
     name: session.user.name || (session.user.email ?? "User"),
     email: session.user.email ?? "",
     role: (session.user.role as Role) || "SALES",
+    posExpressMode: (session.user as any).posExpressMode ?? true,
   }
 
   return <AppShell user={user} country={country} />
