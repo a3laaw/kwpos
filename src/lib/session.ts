@@ -38,12 +38,30 @@ export const ROLE_PERMISSIONS: Record<Role, {
       "pricing", "users", "settings", "audit", "bundles", "compositions",
     ],
   },
-  SALES: {
-    label: "موظف مبيعات",
-    views: ["dashboard", "sales", "invoices", "reports", "inventory", "customers", "analytics", "shifts", "exchanges", "pricing", "bundles"],
+  MANAGER: {
+    label: "مدير",
+    views: [
+      "dashboard", "sales", "invoices", "reports", "inventory", "customers",
+      "analytics", "shifts", "exchanges", "users", "audit",
+    ],
+  },
+  ACCOUNTANT: {
+    label: "محاسب",
+    views: [
+      "dashboard", "reports", "accounting", "customers", "suppliers",
+      "invoices", "analytics",
+    ],
   },
   WAREHOUSE: {
     label: "أمين مخزن",
     views: ["dashboard", "inventory", "purchases", "suppliers", "spotcheck", "bundles", "compositions"],
+  },
+  SALES: {
+    label: "موظف مبيعات",
+    views: ["dashboard", "sales", "invoices", "reports", "inventory", "customers", "analytics", "shifts", "exchanges", "pricing", "bundles"],
+  },
+  CASHIER: {
+    label: "كاشير",
+    views: ["dashboard", "sales", "shifts"],
   },
 }

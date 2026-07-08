@@ -35,8 +35,11 @@ export interface Dict {
 
   // Roles
   roleAdmin: string
+  roleManager: string
+  roleAccountant: string
   roleSales: string
   roleWarehouse: string
+  roleCashier: string
 
   // Common actions (existing)
   add: string
@@ -1881,8 +1884,11 @@ export const DICTS: Record<Locale, Dict> = {
     navSystem: "الإعدادات",
     navOperations: "العمليات اليومية",
     roleAdmin: "مدير النظام",
+    roleManager: "مدير",
+    roleAccountant: "محاسب",
     roleSales: "موظف مبيعات",
     roleWarehouse: "أمين مخزن",
+    roleCashier: "كاشير",
     add: "إضافة",
     edit: "تعديل",
     delete: "حذف",
@@ -3714,8 +3720,11 @@ export const DICTS: Record<Locale, Dict> = {
     navSystem: "Settings",
     navOperations: "Daily Operations",
     roleAdmin: "Administrator",
+    roleManager: "Manager",
+    roleAccountant: "Accountant",
     roleSales: "Sales Clerk",
     roleWarehouse: "Warehouse Keeper",
+    roleCashier: "Cashier",
     add: "Add",
     edit: "Edit",
     delete: "Delete",

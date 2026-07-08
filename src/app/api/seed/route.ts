@@ -58,8 +58,11 @@ export async function POST(req: Request) {
         .join("")
         .slice(0, 20)
     const adminPw = process.env.SEED_ADMIN_PASSWORD || randomPw()
+    const managerPw = process.env.SEED_MANAGER_PASSWORD || randomPw()
+    const accountantPw = process.env.SEED_ACCOUNTANT_PASSWORD || randomPw()
     const salesPw = process.env.SEED_SALES_PASSWORD || randomPw()
     const warehousePw = process.env.SEED_WAREHOUSE_PASSWORD || randomPw()
+    const cashierPw = process.env.SEED_CASHIER_PASSWORD || randomPw()
     // Use stable IDs so existing sessions stay valid after a re-seed.
     const users = await db.$transaction([
       db.user.create({
@@ -69,7 +72,27 @@ export async function POST(req: Request) {
           name: "أحمد المدير",
           passwordHash: pw(adminPw),
           role: "ADMIN",
-          posExpressMode: false, // ADMIN defaults to Standard Mode
+          posExpressMode: false,
+        },
+      }),
+      db.user.create({
+        data: {
+          id: "user-manager-demo",
+          email: "manager@demo.com",
+          name: "محمد المدير",
+          passwordHash: pw(managerPw),
+          role: "MANAGER",
+          posExpressMode: false,
+        },
+      }),
+      db.user.create({
+        data: {
+          id: "user-accountant-demo",
+          email: "accountant@demo.com",
+          name: "فاطمة المحاسبة",
+          passwordHash: pw(accountantPw),
+          role: "ACCOUNTANT",
+          posExpressMode: false,
         },
       }),
       db.user.create({
@@ -79,7 +102,7 @@ export async function POST(req: Request) {
           name: "سارة الموظفة",
           passwordHash: pw(salesPw),
           role: "SALES",
-          posExpressMode: true, // SALES defaults to Express Mode
+          posExpressMode: true,
         },
       }),
       db.user.create({
@@ -90,6 +113,16 @@ export async function POST(req: Request) {
           passwordHash: pw(warehousePw),
           role: "WAREHOUSE",
           posExpressMode: false,
+        },
+      }),
+      db.user.create({
+        data: {
+          id: "user-cashier-demo",
+          email: "cashier@demo.com",
+          name: "نورة الكاشير",
+          passwordHash: pw(cashierPw),
+          role: "CASHIER",
+          posExpressMode: true, // CASHIER always Express Mode
         },
       }),
     ])
@@ -496,8 +529,11 @@ export async function POST(req: Request) {
       generatedPasswords:
         process.env.SEED_ADMIN_PASSWORD ? undefined : {
           admin: adminPw,
+          manager: managerPw,
+          accountant: accountantPw,
           sales: salesPw,
           warehouse: warehousePw,
+          cashier: cashierPw,
         },
       counts: {
         users: await db.user.count(),
