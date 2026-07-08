@@ -1219,6 +1219,23 @@ export interface Dict {
   setCountryAndCurrency: string
   setCountryPickerDesc: string
   setSaveCountry: string
+
+  // Company / Store info (for invoices)
+  companyInfoTitle: string
+  companyInfoDesc: string
+  companyInfoName: string
+  companyInfoNamePlaceholder: string
+  companyInfoAddress: string
+  companyInfoAddressPlaceholder: string
+  companyInfoPhone: string
+  companyInfoPhonePlaceholder: string
+  companyInfoVatNo: string
+  companyInfoVatNoPlaceholder: string
+  companyInfoLogo: string
+  companyInfoLogoHint: string
+  companyInfoSave: string
+  companyInfoSaved: string
+  companyInfoPreview: string
   setNoCountryChange: string
   setCountryUpdated: string
   setCountryUpdatedDesc: string
@@ -3021,6 +3038,23 @@ export const DICTS: Record<Locale, Dict> = {
     setCountryAndCurrency: "الدولة والعملة",
     setCountryPickerDesc: "اختر الدولة لتحديث العملة والضريبة تلقائياً",
     setSaveCountry: "حفظ الدولة",
+
+    // Company / Store info (for invoices)
+    companyInfoTitle: "بيانات الشركة للمستندات",
+    companyInfoDesc: "تظهر هذه البيانات في ترويسة الفواتير والإيصالات المطبوعة",
+    companyInfoName: "اسم الشركة / المتجر",
+    companyInfoNamePlaceholder: "مثال: متجر العطور الفاخرة",
+    companyInfoAddress: "العنوان",
+    companyInfoAddressPlaceholder: "المدينة - الحي - الشارع",
+    companyInfoPhone: "الهاتف",
+    companyInfoPhonePlaceholder: "+965 XXXXXXXX",
+    companyInfoVatNo: "الرقم الضريبي",
+    companyInfoVatNoPlaceholder: "إن وجد",
+    companyInfoLogo: "شعار الشركة",
+    companyInfoLogoHint: "يظهر بجانب اسم الشركة في الفاتورة",
+    companyInfoSave: "حفظ البيانات",
+    companyInfoSaved: "تم حفظ بيانات الشركة",
+    companyInfoPreview: "معاينة الفاتورة",
     setNoCountryChange: "لم تقم بتغيير الدولة",
     setCountryUpdated: "تم تحديث الدولة",
     setCountryUpdatedDesc: "أعد تحميل الصفحة لتحديث كل التنسيقات.",
@@ -4811,6 +4845,23 @@ export const DICTS: Record<Locale, Dict> = {
     setCountryAndCurrency: "Country & currency",
     setCountryPickerDesc: "Pick a country to auto-update currency and tax",
     setSaveCountry: "Save country",
+
+    // Company / Store info (for invoices)
+    companyInfoTitle: "Company Info for Documents",
+    companyInfoDesc: "This information appears in the header of printed invoices and receipts",
+    companyInfoName: "Company / Store Name",
+    companyInfoNamePlaceholder: "e.g. Luxury Perfume Store",
+    companyInfoAddress: "Address",
+    companyInfoAddressPlaceholder: "City - District - Street",
+    companyInfoPhone: "Phone",
+    companyInfoPhonePlaceholder: "+965 XXXXXXXX",
+    companyInfoVatNo: "VAT Number",
+    companyInfoVatNoPlaceholder: "If applicable",
+    companyInfoLogo: "Company Logo",
+    companyInfoLogoHint: "Appears next to the company name on the invoice",
+    companyInfoSave: "Save Info",
+    companyInfoSaved: "Company info saved",
+    companyInfoPreview: "Invoice Preview",
     setNoCountryChange: "No country change",
     setCountryUpdated: "Country updated",
     setCountryUpdatedDesc: "Reload the page to refresh all formats.",

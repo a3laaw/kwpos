@@ -38,6 +38,7 @@ import {
   useDeleteCategory,
 } from "@/hooks/use-api"
 import { cn } from "@/lib/utils"
+import { ImageUpload } from "@/components/shared/image-upload"
 import {
   Dialog,
   DialogContent,
@@ -93,6 +94,9 @@ export function SettingsView() {
       </Card>
 
       <div className="grid gap-5 lg:grid-cols-2">
+        {/* Company info — appears on invoices */}
+        <CompanyInfoCard />
+
         {/* Country picker */}
         <Card>
           <CardHeader>
@@ -142,6 +146,116 @@ export function SettingsView() {
       {/* Categories management */}
       <CategoriesManager />
     </div>
+  )
+}
+
+function CompanyInfoCard() {
+  const t = useT()
+  const [name, setName] = React.useState("")
+  const [address, setAddress] = React.useState("")
+  const [phone, setPhone] = React.useState("")
+  const [vatNo, setVatNo] = React.useState("")
+  const [logo, setLogo] = React.useState<string | null>(null)
+  const [saving, setSaving] = React.useState(false)
+  const [loaded, setLoaded] = React.useState(false)
+
+  // Load from localStorage on mount
+  React.useEffect(() => {
+    try {
+      const raw = localStorage.getItem("erp-store-info")
+      const data = raw ? JSON.parse(raw) : {}
+      setName(data.name || "")
+      setAddress(data.address || "")
+      setPhone(data.phone || "")
+      setVatNo(data.vatNo || "")
+      setLogo(data.logo || null)
+    } catch {
+      // keep defaults
+    }
+    setLoaded(true)
+  }, [])
+
+  function handleSave() {
+    setSaving(true)
+    try {
+      const data = { name, address, phone, vatNo, logo }
+      localStorage.setItem("erp-store-info", JSON.stringify(data))
+      toast.success(t.companyInfoSaved)
+    } catch {
+      toast.error(t.saveFailed)
+    }
+    setSaving(false)
+  }
+
+  if (!loaded) return null
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Tags className="h-4 w-4 text-primary" />
+          {t.companyInfoTitle}
+        </CardTitle>
+        <CardDescription>{t.companyInfoDesc}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <ImageUpload
+          value={logo}
+          onChange={(url) => setLogo(url)}
+          label={t.companyInfoLogo}
+          className="py-1"
+        />
+        <p className="text-xs text-muted-foreground -mt-2">{t.companyInfoLogoHint}</p>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="company-name">{t.companyInfoName}</Label>
+          <Input
+            id="company-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={t.companyInfoNamePlaceholder}
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="company-address">{t.companyInfoAddress}</Label>
+          <Input
+            id="company-address"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder={t.companyInfoAddressPlaceholder}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="company-phone">{t.companyInfoPhone}</Label>
+            <Input
+              id="company-phone"
+              dir="ltr"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder={t.companyInfoPhonePlaceholder}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="company-vat">{t.companyInfoVatNo}</Label>
+            <Input
+              id="company-vat"
+              dir="ltr"
+              value={vatNo}
+              onChange={(e) => setVatNo(e.target.value)}
+              placeholder={t.companyInfoVatNoPlaceholder}
+            />
+          </div>
+        </div>
+
+        <Button onClick={handleSave} disabled={saving} className="w-full gap-2">
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          {t.companyInfoSave}
+        </Button>
+      </CardContent>
+    </Card>
   )
 }
 
