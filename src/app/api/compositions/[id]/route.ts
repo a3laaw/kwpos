@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
 import { serializeComposition } from "@/lib/serialize"
+import { logAuditEvent } from "@/lib/audit"
 import type { Role } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
@@ -193,13 +194,21 @@ export async function PUT(
         })
       }
       // Re-fetch so we always return the canonical post-update row.
-      return tx.composition.findUnique({
+      const updated = await tx.composition.findUnique({
         where: { id },
         include: {
           outputProduct: true,
           ingredients: { include: { product: true } },
         },
       })
+      await logAuditEvent({
+        tx,
+        userId: user.id,
+        userName: user.name,
+        action: "COMPOSITION_UPDATED",
+        description: `تعديل تركيبة ${updated?.name}`,
+      })
+      return updated
     })
 
     return NextResponse.json(serializeComposition(updated as any))
@@ -230,12 +239,18 @@ export async function DELETE(
   const { id } = await params
   const exists = await db.composition.findUnique({
     where: { id },
-    select: { id: true },
+    select: { id: true, name: true },
   })
   if (!exists) {
     return NextResponse.json({ error: "not-found" }, { status: 404 })
   }
 
   await db.composition.delete({ where: { id } })
+  await logAuditEvent({
+    userId: user.id,
+    userName: user.name,
+    action: "COMPOSITION_DELETED",
+    description: `حذف تركيبة ${exists.name}`,
+  })
   return NextResponse.json({ ok: true })
 }

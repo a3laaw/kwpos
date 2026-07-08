@@ -23,6 +23,7 @@ import {
   ShieldCheck,
   PackageOpen,
   FlaskConical,
+  TrendingUp,
 } from "lucide-react"
 import type { Dict } from "@/lib/i18n"
 
@@ -58,6 +59,7 @@ export type NavEntry =
  */
 export const NAV_ENTRIES: NavEntry[] = [
   { type: "leaf", view: "dashboard", labelKey: "navDashboard", icon: LayoutDashboard },
+  { type: "leaf", view: "managerDashboard", labelKey: "navManagerDashboard", icon: TrendingUp },
   { type: "leaf", view: "sales", labelKey: "navSales", icon: Calculator },
   {
     type: "group",
@@ -125,6 +127,7 @@ export const NAV_ITEMS: NavLeaf[] = NAV_ENTRIES.flatMap((e) =>
 /** Map a view to its page-title dict key + description dict key. */
 export const VIEW_META: Record<AppView, { titleKey: keyof Dict; descKey: keyof Dict }> = {
   dashboard: { titleKey: "dashboardTitle", descKey: "dashboardDesc" },
+  managerDashboard: { titleKey: "managerDashboardTitle", descKey: "managerDashboardDesc" },
   sales: { titleKey: "salesTitle", descKey: "salesDesc" },
   invoices: { titleKey: "invoicesTitle", descKey: "invoicesDesc" },
   reports: { titleKey: "reportsTitle", descKey: "reportsDesc" },

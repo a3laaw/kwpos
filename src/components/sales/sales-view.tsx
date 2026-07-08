@@ -1,15 +1,13 @@
 "use client"
 
 import * as React from "react"
-import { toast } from "sonner"
-import { signOut } from "next-auth/react"
+import { useRouter } from "next/navigation"
 import { PageHeader } from "@/components/shared/page-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import {
   Select,
@@ -48,6 +46,7 @@ import {
   Pause,
   Play,
   History,
+  Zap,
 } from "lucide-react"
 import {
   Dialog,
@@ -56,21 +55,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { useProducts, useCreateSale, useCategories, useSuspendedSales, useParkSale, useResumeSuspendedSale, useDiscardSuspendedSale, useFetchSuspendedSale, useActivePromotions } from "@/hooks/use-api"
 import { useFmt } from "@/components/currency-context"
 import { printThermalReceipt } from "@/lib/print"
-import type { Product, Sale, CustomerTier } from "@/lib/types"
-import { effectivePrice } from "@/lib/types"
-import { computeEffectivePrice, promotionAppliesTo } from "@/lib/pricing"
+import type { CustomerTier } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { Toggle } from "@/components/ui/toggle"
-import { SaleConfirmDialog, type SaleConfirmSummary } from "@/components/sales/sale-confirm-dialog"
+import { SaleConfirmDialog } from "@/components/sales/sale-confirm-dialog"
 import { useT } from "@/components/i18n-context"
-
-interface CartItem {
-  product: Product
-  quantity: number
-}
+import { useUser } from "@/components/user-context"
+import { usePOS } from "@/hooks/use-pos"
+import { ExpressPosView } from "@/components/sales/express-pos-view"
 
 /** Icon mapping for known category names (falls back to Tag). */
 const CATEGORY_ICONS: Record<string, any> = {
@@ -83,485 +77,92 @@ const CATEGORY_ICONS: Record<string, any> = {
 }
 
 export function SalesView() {
+  const user = useUser()
+  const router = useRouter()
+  const t = useT()
+  // Local mirror of the user's posExpressMode preference. The user-context
+  // value is memoized without `posExpressMode` in its deps, so we keep a
+  // local copy + toggle that calls the PATCH endpoint and `router.refresh()`
+  // to re-read the session.
+  const [expressMode, setExpressMode] = React.useState<boolean>(user.posExpressMode ?? false)
+
+  async function toggleMode() {
+    const next = !expressMode
+    setExpressMode(next) // optimistic
+    try {
+      await fetch("/api/users/me/preferences", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ posExpressMode: next }),
+      })
+      // Re-read the session so the server-rendered `user` prop reflects
+      // the new preference on next navigation.
+      router.refresh()
+    } catch {
+      setExpressMode(!next) // revert on failure
+    }
+  }
+
+  if (expressMode) {
+    return <ExpressPosView user={user} onToggleMode={toggleMode} />
+  }
+
+  return <StandardSalesView onToggleMode={toggleMode} />
+}
+
+function StandardSalesView({ onToggleMode }: { onToggleMode: () => void }) {
   const fmt = useFmt()
   const t = useT()
-  const PAYMENT_LABELS: Record<string, string> = {
-    CASH: t.cash,
-    CARD: t.card,
-    TRANSFER: t.transfer,
-  }
-  const [q, setQ] = React.useState("")
-  const [categoryId, setCategoryId] = React.useState("")
-  const [cart, setCart] = React.useState<CartItem[]>([])
-  const [discount, setDiscount] = React.useState("0")
-  const [taxRate, setTaxRate] = React.useState(String(fmt.taxRate))
-  const [paymentMethod, setPaymentMethod] = React.useState<"CASH" | "CARD" | "TRANSFER">("CASH")
-  const [customerName, setCustomerName] = React.useState("")
-  const [customerPhone, setCustomerPhone] = React.useState("")
-  const [customerFound, setCustomerFound] = React.useState<{ name: string; address: string; type?: CustomerTier } | null>(null)
-  const [lastSale, setLastSale] = React.useState<Sale | null>(null)
-
-  // ── Auto-print toggle (persisted in localStorage) ──
-  // When ON, the thermal receipt is printed automatically ~500ms after a
-  // successful sale (gives the receipt dialog time to render its content
-  // before printThermalReceipt walks the DOM).
-  const [autoPrint, setAutoPrint] = React.useState<boolean>(false)
-  React.useEffect(() => {
-    try {
-      setAutoPrint(localStorage.getItem("posAutoPrint") === "true")
-    } catch {
-      setAutoPrint(false)
-    }
-  }, [])
-  const toggleAutoPrint = React.useCallback((on: boolean) => {
-    setAutoPrint(on)
-    try {
-      localStorage.setItem("posAutoPrint", on ? "true" : "false")
-    } catch {
-      // ignore localStorage failures (private mode, etc.)
-    }
-  }, [])
-
-  // ── Delivery service ──
-  const [deliveryEnabled, setDeliveryEnabled] = React.useState(false)
-  const [driverName, setDriverName] = React.useState("")
-  const [deliveryFee, setDeliveryFee] = React.useState("")
-
-  // ── Sale confirmation dialog ──
-  const [confirmOpen, setConfirmOpen] = React.useState(false)
-
-  // ── Multi-tier pricing ──
-  // The active customer tier. Defaults to RETAIL. When a CRM customer is found
-  // by phone, their type is used automatically; the cashier can also override
-  // manually via the tier selector. Prices in the cart follow this tier.
-  const [tierOverride, setTierOverride] = React.useState<CustomerTier | "">("")
-  const customerTier: CustomerTier =
-    tierOverride || customerFound?.type || "RETAIL"
-
-  // ── Active promotions (preloaded once for the whole POS screen) ──
-  // We use the lightweight `useActivePromotions` hook (which filters the
-  // cached promotions list to those whose [startAt, endAt] window contains
-  // "now") so we never issue a per-product network call. The effective price
-  // for each cart line is computed locally via `computeEffectivePrice`, which
-  // now considers promotion SCOPE (PRODUCT | CATEGORY | ALL | ALL_EXCEPT).
-  const { data: activePromosData } = useActivePromotions()
-  const activePromos = activePromosData.items
-
-  /** Effective unit price for a product under the current customer tier,
-   *  applying any active promotion whose scope includes this product. */
-  const priceFor = React.useCallback(
-    (p: Product) => {
-      if (activePromos.length === 0) {
-        return effectivePrice(p, customerTier)
-      }
-      const ap = computeEffectivePrice(
-        {
-          id: p.id,
-          categoryId: p.categoryId ?? null,
-          salePrice: p.salePrice,
-          wholesalePrice: p.wholesalePrice,
-          corporatePrice: p.corporatePrice,
-        },
-        customerTier,
-        activePromos.map((pr) => ({
-          id: pr.id,
-          productId: pr.productId,
-          scope: pr.scope,
-          categoryIds: pr.categoryIds,
-          discountType: pr.discountType,
-          discountValue: pr.discountValue,
-          startAt: pr.startAt,
-          endAt: pr.endAt,
-          isActive: pr.isActive,
-          note: pr.note,
-        }))
-      )
-      return ap.effectivePrice
-    },
-    [customerTier, activePromos]
-  )
-
-  /** Base tier price (no promo) — used to show a struck-through original
-   *  price next to the promo price on product cards / cart lines. */
-  const basePriceFor = React.useCallback(
-    (p: Product) => effectivePrice(p, customerTier),
-    [customerTier]
-  )
-
-  /** Whether a product currently has an active promotion (drives the "عرض" badge). */
-  const hasActivePromo = React.useCallback(
-    (p: Product) =>
-      activePromos.some(
-        (pr) => pr.isActive && promotionAppliesTo(pr, p.id, p.categoryId ?? null)
-      ) && priceFor(p) < basePriceFor(p),
-    [activePromos, priceFor, basePriceFor]
-  )
-
-  // ── Suspended / parked sales ──
-  const { data: parkedData } = useSuspendedSales()
-  const parkMut = useParkSale()
-  const resumeMut = useResumeSuspendedSale()
-  const discardMut = useDiscardSuspendedSale()
-  const [parkedListOpen, setParkedListOpen] = React.useState(false)
-  const [resumeId, setResumeId] = React.useState<string | null>(null)
-  const { data: resumeData } = useFetchSuspendedSale(resumeId)
-  const parkedItems = parkedData?.items ?? []
-
-  // When a parked sale is fetched for resume, restore its cart snapshot.
-  React.useEffect(() => {
-    if (!resumeData) return
-    try {
-      const snap = JSON.parse(resumeData.cartJson) as {
-        items: { productId: string; name: string; barcode?: string | null; salePrice: number; wholesalePrice?: number; corporatePrice?: number; quantity: number; unit: string }[]
-        customerName?: string
-        customerPhone?: string
-        discount?: string
-        taxRate?: string
-        paymentMethod?: "CASH" | "CARD" | "TRANSFER"
-        deliveryEnabled?: boolean
-        driverName?: string
-        deliveryFee?: string
-      }
-      // Resolve each snapshot item back to a live product (to get current stock + price fields).
-      // If the product no longer exists, skip it.
-      Promise.all(
-        snap.items.map((s) =>
-          fetch(`/api/products?q=${encodeURIComponent(s.barcode || s.name)}`)
-            .then((r) => r.json())
-            .then((d: any) => (d.items as any[])?.find((p) => p.id === s.productId) || null)
-            .catch(() => null)
-        )
-      ).then((products) => {
-        const newCart: CartItem[] = []
-        products.forEach((p, i) => {
-          if (!p) return
-          const snapQty = snap.items[i].quantity
-          newCart.push({ product: p as Product, quantity: Math.min(snapQty, (p as Product).quantity) })
-        })
-        setCart(newCart)
-        setCustomerName(snap.customerName || "")
-        setCustomerPhone(snap.customerPhone || "")
-        setDiscount(snap.discount || "0")
-        setTaxRate(snap.taxRate || String(fmt.taxRate))
-        if (snap.paymentMethod) setPaymentMethod(snap.paymentMethod)
-        setDeliveryEnabled(!!snap.deliveryEnabled)
-        setDriverName(snap.driverName || "")
-        setDeliveryFee(snap.deliveryFee || "")
-        setCartPage(0)
-        // Mark as resumed in the backend
-        resumeMut.mutate(resumeData.id)
-        setResumeId(null)
-        toast.success(`${t.invoiceRestored} ${resumeData.holdNo}`, {
-          description: t.posResumeSuccessDesc
-            .replace("{count}", String(newCart.length))
-            .replace("{total}", fmt.currency(Number(resumeData.total))),
-        })
-      })
-    } catch {
-      toast.error(t.posResumeFailedToast)
-      setResumeId(null)
-    }
-  }, [resumeData])
-
-  function parkCurrentCart() {
-    if (cart.length === 0) {
-      toast.error(t.posParkEmptyToast)
-      return
-    }
-    const snapshot = {
-      items: cart.map((it) => ({
-        productId: it.product.id,
-        name: it.product.name,
-        barcode: it.product.barcode,
-        salePrice: it.product.salePrice,
-        wholesalePrice: it.product.wholesalePrice,
-        corporatePrice: it.product.corporatePrice,
-        quantity: it.quantity,
-        unit: it.product.unit,
-      })),
-      customerName,
-      customerPhone,
-      discount,
-      taxRate,
-      paymentMethod,
-      deliveryEnabled,
-      driverName,
-      deliveryFee,
-    }
-    parkMut.mutate(
-      {
-        label: customerName.trim() || customerPhone.trim() || undefined,
-        cartJson: JSON.stringify(snapshot),
-        itemCount: itemCount,
-        total,
-      },
-      {
-        onSuccess: (res: any) => {
-          toast.success(t.invoiceParked, {
-            description: t.posInvoiceParkedDesc.replace("{holdNo}", res.holdNo),
-          })
-          clearCart()
-        },
-        onError: () => toast.error(t.parkFailed),
-      }
-    )
-  }
-
-  function resumeParked(id: string) {
-    setParkedListOpen(false)
-    if (cart.length > 0) {
-      if (!confirm(t.posResumeCartReplaceConfirm)) {
-        return
-      }
-    }
-    setResumeId(id)
-  }
-
-  function discardParked(id: string, holdNo: string) {
-    if (!confirm(t.posDeleteParkedConfirm.replace("{holdNo}", holdNo))) return
-    discardMut.mutate(id, {
-      onSuccess: () => toast.success(t.posParkedDeletedToast.replace("{holdNo}", holdNo)),
-    })
-  }
-
-  // ── Cart pagination ──
-  // Show a fixed number of items per "page" in the cart. Auto-advance to the
-  // next page when a new item is added beyond the current page's capacity.
-  // Manual "previous" button lets the cashier review earlier items.
-  const ITEMS_PER_CART_PAGE = 10
-  const [cartPage, setCartPage] = React.useState(0)
-  const cartTotalPages = Math.max(1, Math.ceil(cart.length / ITEMS_PER_CART_PAGE))
-
-  // Clamp cartPage when cart shrinks (e.g. after remove/clear)
-  React.useEffect(() => {
-    if (cartPage >= cartTotalPages) setCartPage(Math.max(0, cartTotalPages - 1))
-  }, [cartTotalPages, cartPage])
-
-  const cartPageItems = cart.slice(
-    cartPage * ITEMS_PER_CART_PAGE,
-    (cartPage + 1) * ITEMS_PER_CART_PAGE
-  )
-
-  const debouncedQ = React.useDeferredValue(q)
-  const { data, isLoading } = useProducts({ q: debouncedQ || undefined, categoryId: categoryId || undefined })
-  const { data: categoriesData } = useCategories()
-  const createMut = useCreateSale()
-
-  const products = data?.items ?? []
-  const categories = categoriesData?.items ?? []
-
-  // ── Auto-lookup customer by phone (debounced) ──
-  // When the cashier types a phone number, search the CRM. If found, auto-fill
-  // the name to prevent duplicates. If not found, mark as "new customer".
-  const debouncedPhone = React.useDeferredValue(customerPhone)
-  React.useEffect(() => {
-    const phone = debouncedPhone.trim()
-    if (!phone || phone.length < 4) {
-      setCustomerFound(null)
-      return
-    }
-    let cancelled = false
-    fetch(`/api/customers?q=${encodeURIComponent(phone)}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (cancelled) return
-        const match = (data.items as any[])?.find((c) => c.phone === phone)
-        if (match) {
-          setCustomerFound({ name: match.name, address: match.address, type: (match.type as CustomerTier) || "RETAIL" })
-          setCustomerName(match.name)
-        } else {
-          setCustomerFound(null) // new customer — will be auto-registered on checkout
-        }
-      })
-      .catch(() => setCustomerFound(null))
-    return () => { cancelled = true }
-  }, [debouncedPhone])
-
-  // Quantity already in cart per product (for optimistic availability)
-  const inCart = React.useMemo(() => {
-    const m = new Map<string, number>()
-    for (const it of cart) m.set(it.product.id, (m.get(it.product.id) || 0) + it.quantity)
-    return m
-  }, [cart])
-
-  function addToCart(p: Product) {
-    // Zero-stock prevention — forbid selling any product whose effective
-    // on-hand quantity is zero, to protect cost accounts + inventory.
-    if (p.quantity <= 0) {
-      toast.error(t.posItemUnavailable, {
-        description: t.posItemUnavailableDesc
-          .replace("{name}", p.name)
-          .replace("{qty}", fmt.number(p.quantity)),
-      })
-      return
-    }
-    const inCartQty = inCart.get(p.id) || 0
-    if (inCartQty >= p.quantity) {
-      toast.error(t.qtyUnavailable, {
-        description: t.posQtyUnavailableDesc
-          .replace("{name}", p.name)
-          .replace("{qty}", fmt.number(p.quantity - inCartQty))
-          .replace("{unit}", p.unit),
-      })
-      return
-    }
-    const existing = cart.find((it) => it.product.id === p.id)
-    if (!existing) {
-      // New item — auto-advance to the page it will appear on
-      const newIndex = cart.length // index of the new item
-      const newPage = Math.floor(newIndex / ITEMS_PER_CART_PAGE)
-      setCartPage(newPage)
-    }
-    setCart((c) => {
-      const ex = c.find((it) => it.product.id === p.id)
-      if (ex) {
-        return c.map((it) =>
-          it.product.id === p.id ? { ...it, quantity: it.quantity + 1 } : it
-        )
-      }
-      return [...c, { product: p, quantity: 1 }]
-    })
-  }
-
-  function changeQty(productId: string, delta: number) {
-    setCart((c) =>
-      c
-        .map((it) => {
-          if (it.product.id !== productId) return it
-          const next = it.quantity + delta
-          if (next > it.product.quantity) {
-            toast.error(t.qtyExceedsStock)
-            return it
-          }
-          return { ...it, quantity: next }
-        })
-        .filter((it) => it.quantity > 0)
-    )
-  }
-
-  function setQty(productId: string, qty: number) {
-    const p = cart.find((it) => it.product.id === productId)?.product
-    if (!p) return
-    if (qty > p.quantity) {
-      toast.error(t.qtyExceedsStock)
-      return
-    }
-    setCart((c) =>
-      qty <= 0
-        ? c.filter((it) => it.product.id !== productId)
-        : c.map((it) => (it.product.id === productId ? { ...it, quantity: qty } : it))
-    )
-  }
-
-  function removeItem(productId: string) {
-    setCart((c) => c.filter((it) => it.product.id !== productId))
-  }
-
-  function clearCart() {
-    setCart([])
-    setDiscount("0")
-    setCustomerName("")
-    setCustomerPhone("")
-    setDeliveryEnabled(false)
-    setDriverName("")
-    setDeliveryFee("")
-  }
-
-  const subtotal = cart.reduce((acc, it) => acc + priceFor(it.product) * it.quantity, 0)
-  const discountVal = Math.max(0, Math.min(Number(discount) || 0, subtotal))
-  const deliveryFeeVal = deliveryEnabled ? Math.max(0, Number(deliveryFee) || 0) : 0
-  const afterDiscount = Math.max(0, subtotal - discountVal)
-  const taxVal = +(afterDiscount * ((Number(taxRate) || 0) / 100)).toFixed(2)
-  const total = +(afterDiscount + taxVal + deliveryFeeVal).toFixed(2)
-  const itemCount = cart.reduce((a, b) => a + b.quantity, 0)
-
-  // Sale confirmation summary shown in the warning dialog before committing.
-  const confirmSummary: SaleConfirmSummary | null = React.useMemo(
-    () => ({
-      itemCount,
-      subtotal,
-      discount: discountVal,
-      taxAmount: taxVal,
-      taxRate: Number(taxRate) || 0,
-      deliveryFee: deliveryFeeVal,
-      driverName: deliveryEnabled ? driverName.trim() || null : null,
-      total,
-      paymentMethod,
-      customerName: customerName.trim() || null,
-    }),
-    [itemCount, subtotal, discountVal, taxVal, taxRate, deliveryFeeVal, deliveryEnabled, driverName, total, paymentMethod, customerName]
-  )
-
-  // Clicking "إتمام البيع" does NOT execute the sale directly — it opens the
-  // confirmation dialog. The actual sale runs in doConfirmSale() only after
-  // the cashier explicitly presses "نعم، إتمام" (or Ctrl+Enter).
-  function handleCheckout() {
-    if (cart.length === 0) {
-      toast.error(t.cartEmpty)
-      return
-    }
-    setConfirmOpen(true)
-  }
-
-  async function doConfirmSale() {
-    if (cart.length === 0) return
-    try {
-      const sale = await createMut.mutateAsync({
-        customerName: customerName.trim() || undefined,
-        customerPhone: customerPhone.trim() || undefined,
-        items: cart.map((it) => ({
-          productId: it.product.id,
-          quantity: it.quantity,
-          unitPrice: priceFor(it.product),
-        })),
-        taxRate: Number(taxRate) || 0,
-        discount: discountVal,
-        paymentMethod,
-        deliveryFee: deliveryFeeVal,
-        driverName: deliveryEnabled ? driverName.trim() || undefined : undefined,
-      })
-      toast.success(t.saleCompleted, {
-        description: `${t.invoiceNo}: ${sale.invoiceNo}`,
-      })
-      setLastSale(sale)
-      clearCart()
-      // Auto-print: when the toggle is ON, fire the thermal receipt print
-      // after a short delay so the receipt dialog has time to mount its DOM
-      // (printThermalReceipt reads the rendered receipt contents).
-      if (autoPrint) {
-        setTimeout(() => {
-          try {
-            printThermalReceipt(sale)
-          } catch {
-            // ignore — user can still click the manual print button
-          }
-        }, 500)
-      }
-    } catch (err: any) {
-      // Stale session (e.g. after re-seed) — auto-logout so user can re-login.
-      if (err?.message === "session-expired") {
-        toast.error(t.sessionExpired, {
-          description: t.pleaseRelogin,
-        })
-        setTimeout(() => {
-          signOut({ redirect: false }).then(() => window.location.reload())
-        }, 1500)
-        return
-      }
-      // Handle stock-insufficient errors specifically
-      if (err?.message?.startsWith("stock-insufficient")) {
-        const parts = err.message.split(":")
-        const name = parts[2] || t.product
-        toast.error(t.stockInsufficient, {
-          description: t.posStockInsufficientDesc.replace("{name}", name),
-        })
-      } else {
-        toast.error(t.checkoutFailed, { description: err?.message })
-      }
-    } finally {
-      setConfirmOpen(false)
-    }
-  }
+  const pos = usePOS()
+  const {
+    q, setQ,
+    categoryId, setCategoryId,
+    cart,
+    discount, setDiscount,
+    taxRate, setTaxRate,
+    paymentMethod, setPaymentMethod,
+    customerName, setCustomerName,
+    customerPhone, setCustomerPhone,
+    customerFound,
+    lastSale, setLastSale,
+    autoPrint, toggleAutoPrint,
+    deliveryEnabled, setDeliveryEnabled,
+    driverName, setDriverName,
+    deliveryFee, setDeliveryFee,
+    tierOverride, setTierOverride,
+    customerTier,
+    confirmOpen, setConfirmOpen,
+    cartPage, setCartPage,
+    parkedListOpen, setParkedListOpen,
+    products, categories,
+    isLoading,
+    parkedItems,
+    createMut,
+    parkMut,
+    inCart,
+    cartPageItems,
+    cartTotalPages,
+    subtotal,
+    discountVal,
+    deliveryFeeVal,
+    taxVal,
+    total,
+    itemCount,
+    confirmSummary,
+    priceFor,
+    basePriceFor,
+    hasActivePromo,
+    addToCart,
+    changeQty,
+    removeItem,
+    clearCart,
+    parkCurrentCart,
+    resumeParked,
+    discardParked,
+    handleCheckout,
+    doConfirmSale,
+    PAYMENT_LABELS,
+  } = pos
 
   return (
     <div className="space-y-5">
@@ -571,17 +172,29 @@ export function SalesView() {
         icon={<Calculator className="h-5 w-5" />}
         breadcrumbItems={[{ labelKey: "navSales" }]}
         actions={
-          <Toggle
-            pressed={autoPrint}
-            onPressedChange={(v) => toggleAutoPrint(v)}
-            variant="outline"
-            size="sm"
-            aria-label={t.posAutoPrint}
-            className="gap-1.5"
-          >
-            <Printer className="h-3.5 w-3.5" />
-            <span className="text-xs">{t.posAutoPrint}</span>
-          </Toggle>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onToggleMode}
+              className="gap-1.5"
+              title={t.expressMode}
+            >
+              <Zap className="h-3.5 w-3.5" />
+              <span className="text-xs">{t.expressMode}</span>
+            </Button>
+            <Toggle
+              pressed={autoPrint}
+              onPressedChange={(v) => toggleAutoPrint(v)}
+              variant="outline"
+              size="sm"
+              aria-label={t.posAutoPrint}
+              className="gap-1.5"
+            >
+              <Printer className="h-3.5 w-3.5" />
+              <span className="text-xs">{t.posAutoPrint}</span>
+            </Toggle>
+          </div>
         }
       />
 

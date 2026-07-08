@@ -7,6 +7,7 @@ import {
   getDefaultWarehouseId,
 } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
+import { logAuditEvent } from "@/lib/audit"
 import type { Role } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
@@ -128,6 +129,8 @@ export async function POST(
       }
 
       // 4. Decrement each ingredient (guaranteed to succeed now).
+      // After each decrement, sync the ingredient's Product.quantity so it
+      // stays the derived aggregate (SUM of StockItem.quantity).
       for (const ing of composition.ingredients) {
         const requiredQty = Number(ing.quantity ?? 0) * batches
         const ok = await decrementStockItem(
@@ -155,6 +158,8 @@ export async function POST(
             },
           }
         }
+        // Sync the ingredient's Product.quantity (derived aggregate).
+        await updateProductQuantityFromStockItems(tx, ing.productId)
       }
 
       // 5. Increment the output product's stock.
@@ -167,6 +172,15 @@ export async function POST(
 
       // 6. Sync the aggregate Product.quantity for the output product.
       await updateProductQuantityFromStockItems(tx, composition.outputProductId)
+
+      // 7. Audit log (inside tx — atomic).
+      await logAuditEvent({
+        tx,
+        userId: user.id,
+        userName: user.name,
+        action: "COMPOSITION_PRODUCED",
+        description: `إنتاج تركيبة ${composition.name} — ${producedQty} ${composition.yieldUnit}`,
+      })
 
       return {
         produced: producedQty,
