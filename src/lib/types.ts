@@ -157,6 +157,7 @@ export interface DashboardStats {
 
 export type AppView =
   | "dashboard"
+  | "managerDashboard"
   | "inventory"
   | "purchases"
   | "suppliers"

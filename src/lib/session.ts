@@ -33,7 +33,7 @@ export const ROLE_PERMISSIONS: Record<Role, {
   ADMIN: {
     label: "مدير النظام",
     views: [
-      "dashboard", "sales", "invoices", "reports", "inventory", "purchases", "suppliers",
+      "dashboard", "managerDashboard", "sales", "invoices", "reports", "inventory", "purchases", "suppliers",
       "customers", "analytics", "accounting", "integrations", "shifts", "spotcheck", "exchanges",
       "pricing", "users", "settings", "audit", "bundles", "compositions",
     ],
@@ -41,7 +41,7 @@ export const ROLE_PERMISSIONS: Record<Role, {
   MANAGER: {
     label: "مدير",
     views: [
-      "dashboard", "sales", "invoices", "reports", "inventory", "customers",
+      "dashboard", "managerDashboard", "sales", "invoices", "reports", "inventory", "customers",
       "analytics", "shifts", "exchanges", "users", "audit",
     ],
   },

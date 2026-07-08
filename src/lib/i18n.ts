@@ -10,6 +10,9 @@ export interface Dict {
 
   // Nav
   navDashboard: string
+  navManagerDashboard: string
+  managerDashboardTitle: string
+  managerDashboardDesc: string
   navSales: string
   navInvoices: string
   navReports: string
@@ -1865,6 +1868,9 @@ export const DICTS: Record<Locale, Dict> = {
     appName: "نظام المتجر",
     appTagline: "إدارة المبيعات والمخازن والمشتريات",
     navDashboard: "لوحة التحكم",
+    navManagerDashboard: "لوحة المدير",
+    managerDashboardTitle: "لوحة المدير",
+    managerDashboardDesc: "نظرة عملياتية سريعة على أداء المتجر",
     navSales: "نقاط البيع",
     navInvoices: "الفواتير",
     navReports: "التقارير",
@@ -3704,6 +3710,9 @@ export const DICTS: Record<Locale, Dict> = {
     appName: "Store Manager",
     appTagline: "Sales, Inventory & Purchasing",
     navDashboard: "Dashboard",
+    navManagerDashboard: "Manager Dashboard",
+    managerDashboardTitle: "Manager Dashboard",
+    managerDashboardDesc: "Quick operational overview of store performance",
     navSales: "Point of Sale",
     navInvoices: "Invoices",
     navReports: "Reports",
