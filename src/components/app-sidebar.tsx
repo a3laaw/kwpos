@@ -59,6 +59,7 @@ import type { AppView } from "@/lib/types"
 import { useT, useI18n } from "@/components/i18n-context"
 import { getCountryName } from "@/lib/countries"
 import { GlobalSearch, useGlobalSearchShortcut } from "@/components/shared/global-search"
+import { NotificationsBell } from "@/components/shared/notifications-bell"
 import type { CountryConfig } from "@/lib/countries"
 import { cn } from "@/lib/utils"
 
@@ -617,6 +618,9 @@ export function Topbar({
 
         {/* Global Search trigger button */}
         <GlobalSearchButton />
+
+        {/* Notifications bell with unread count */}
+        <NotificationsBell />
 
         <LangToggle />
         <ThemeToggle />
