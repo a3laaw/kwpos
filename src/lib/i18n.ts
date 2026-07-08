@@ -232,6 +232,9 @@ export interface Dict {
 
   // Common — search
   searchPlaceholder: string
+  noResults: string
+  recentPages: string
+  globalSearchHint: string
   searchProductPlaceholder: string
   searchNameBarcode: string
   searchInvoicePlaceholder: string
@@ -2079,6 +2082,9 @@ export const DICTS: Record<Locale, Dict> = {
 
     // Common — search
     searchPlaceholder: "بحث...",
+    noResults: "لا توجد نتائج",
+    recentPages: "حديث",
+    globalSearchHint: "بحث شامل",
     searchProductPlaceholder: "ابحث عن منتج...",
     searchNameBarcode: "ابحث بالاسم أو الباركود",
     searchInvoicePlaceholder: "ابحث عن فاتورة...",
@@ -3915,6 +3921,9 @@ export const DICTS: Record<Locale, Dict> = {
 
     // Common — search
     searchPlaceholder: "Search...",
+    noResults: "No results",
+    recentPages: "Recent",
+    globalSearchHint: "Global search",
     searchProductPlaceholder: "Search for a product...",
     searchNameBarcode: "Search by name or barcode",
     searchInvoicePlaceholder: "Search for an invoice...",
