@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
 import { serializeBundle } from "@/lib/serialize"
+import { logAuditEvent } from "@/lib/audit"
 import type { Role } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
@@ -162,10 +163,18 @@ export async function PUT(
         })
       }
       // Re-fetch so we always return the canonical post-update row.
-      return tx.bundle.findUnique({
+      const updated = await tx.bundle.findUnique({
         where: { id },
         include: { items: { include: { product: true } } },
       })
+      await logAuditEvent({
+        tx,
+        userId: user.id,
+        userName: user.name,
+        action: "BUNDLE_UPDATED",
+        description: `تعديل باقة ${updated?.name}`,
+      })
+      return updated
     })
 
     return NextResponse.json(serializeBundle(updated as any))
@@ -193,9 +202,18 @@ export async function DELETE(
   }
 
   const { id } = await params
-  const exists = await db.bundle.findUnique({ where: { id }, select: { id: true } })
+  const exists = await db.bundle.findUnique({
+    where: { id },
+    select: { id: true, name: true },
+  })
   if (!exists) return NextResponse.json({ error: "not-found" }, { status: 404 })
 
   await db.bundle.delete({ where: { id } })
+  await logAuditEvent({
+    userId: user.id,
+    userName: user.name,
+    action: "BUNDLE_DELETED",
+    description: `حذف باقة ${exists.name}`,
+  })
   return NextResponse.json({ ok: true })
 }
