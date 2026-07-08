@@ -2,10 +2,18 @@ import { NextResponse } from "next/server"
 import bcrypt from "bcryptjs"
 import { db } from "@/lib/db"
 import { makeInvoiceNo } from "@/lib/format"
+import { getCurrentUser } from "@/lib/session"
 
 export const dynamic = "force-dynamic"
 
 export async function POST(req: Request) {
+  // Auth: ADMIN only — seeding resets the entire database.
+  const user = await getCurrentUser()
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+  if (user.role !== "ADMIN") {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 })
+  }
+
   try {
     const body = await req.json().catch(() => ({}))
     const reset = body?.reset === true
@@ -509,6 +517,13 @@ export async function POST(req: Request) {
 }
 
 export async function GET() {
+  // Auth: ADMIN only — exposes DB row counts.
+  const user = await getCurrentUser()
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+  if (user.role !== "ADMIN") {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 })
+  }
+
   return NextResponse.json({
     ok: true,
     counts: {

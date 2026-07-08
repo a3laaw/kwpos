@@ -26,6 +26,15 @@ export default function globalSetup() {
     DIRECT_DATABASE_URL: "file:./prisma/test.db",
   }
 
+  // Detect the package runner: prefer bunx (faster), fall back to npx.
+  let pmRunner = "npx"
+  try {
+    execSync("which bun", { stdio: "ignore", env })
+    pmRunner = "bunx"
+  } catch {
+    // bun not available — use npx (npm)
+  }
+
   // 1) Wipe stale DB + journal/wal/shm siblings.
   if (existsSync(testDbPath)) rmSync(testDbPath)
   for (const suffix of ["-journal", "-wal", "-shm"]) {
@@ -35,14 +44,14 @@ export default function globalSetup() {
   mkdirSync(path.dirname(testDbPath), { recursive: true })
 
   // 2) Generate the SQLite-aware PrismaClient.
-  execSync(`bunx prisma generate --schema "${testDbSchema}"`, {
+  execSync(`${pmRunner} prisma generate --schema "${testDbSchema}"`, {
     stdio: "inherit",
     cwd: repoRoot,
     env,
   })
 
   // 3) Push the schema to the SQLite file.
-  execSync(`bunx prisma db push --schema "${testDbSchema}" --skip-generate`, {
+  execSync(`${pmRunner} prisma db push --schema "${testDbSchema}" --skip-generate`, {
     stdio: "inherit",
     cwd: repoRoot,
     env,
