@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     "نظام متكامل لإدارة المبيعات والمخازن والمشتريات للمشاريع الصغيرة — نقاط بيع، فواتير، أوامر شراء، تقارير.",
   keywords: ["ERP", "مبيعات", "مخازن", "مشتريات", "فواتير", "نقاط بيع"],
   icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
+    icon: "/logo.svg",
   },
 };
 
