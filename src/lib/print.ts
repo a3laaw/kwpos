@@ -14,6 +14,7 @@ export interface PrintStore {
   address?: string
   phone?: string
   vatNo?: string
+  logo?: string | null // base64 data URL or remote URL
 }
 
 const DEFAULT_STORE: PrintStore = {
@@ -121,6 +122,7 @@ export function printThermalReceipt(sale: Sale) {
 </head>
 <body>
   <div class="store">
+    ${store.logo ? `<img src="${store.logo}" alt="logo" style="max-width:30mm;max-height:20mm;object-fit:contain;margin:0 auto 1mm;display:block" />` : ""}
     <h1>${escapeHtml(store.name)}</h1>
     ${store.address ? `<p>${escapeHtml(store.address)}</p>` : ""}
     ${store.phone ? `<p>هاتف: ${escapeHtml(store.phone)}</p>` : ""}
@@ -190,8 +192,10 @@ export function printA4Invoice(sale: Sale) {
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: "Tajawal", "Cairo", sans-serif; color: #1a1a1a; font-size: 12px; }
   .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #10b981; padding-bottom: 8mm; margin-bottom: 6mm; }
-  .store-info h1 { font-size: 22px; color: #10b981; }
-  .store-info p { font-size: 11px; color: #555; margin-top: 2px; }
+  .store-info { display: flex; align-items: center; gap: 4mm; }
+  .store-logo { width: 18mm; height: 18mm; object-fit: contain; border-radius: 2mm; }
+  .store-text h1 { font-size: 22px; color: #10b981; }
+  .store-text p { font-size: 11px; color: #555; margin-top: 2px; }
   .invoice-meta { text-align: left; }
   .invoice-meta h2 { font-size: 18px; color: #333; }
   .invoice-meta p { font-size: 11px; color: #555; margin-top: 2px; }
@@ -218,10 +222,13 @@ export function printA4Invoice(sale: Sale) {
 <body>
   <div class="header">
     <div class="store-info">
-      <h1>${escapeHtml(store.name)}</h1>
-      ${store.address ? `<p>${escapeHtml(store.address)}</p>` : ""}
-      ${store.phone ? `<p>هاتف: ${escapeHtml(store.phone)}</p>` : ""}
-      ${store.vatNo ? `<p>رقم ضريبي: ${escapeHtml(store.vatNo)}</p>` : ""}
+      ${store.logo ? `<img src="${store.logo}" alt="logo" class="store-logo" />` : ""}
+      <div class="store-text">
+        <h1>${escapeHtml(store.name)}</h1>
+        ${store.address ? `<p>${escapeHtml(store.address)}</p>` : ""}
+        ${store.phone ? `<p>هاتف: ${escapeHtml(store.phone)}</p>` : ""}
+        ${store.vatNo ? `<p>رقم ضريبي: ${escapeHtml(store.vatNo)}</p>` : ""}
+      </div>
     </div>
     <div class="invoice-meta">
       <h2>فاتورة مبيعات</h2>
@@ -428,6 +435,7 @@ export function printExchangeReceipt(exchange: ExchangeSale) {
 </head>
 <body>
   <div class="store">
+    ${store.logo ? `<img src="${store.logo}" alt="logo" style="max-width:30mm;max-height:20mm;object-fit:contain;margin:0 auto 1mm;display:block" />` : ""}
     <h1>${escapeHtml(store.name)}</h1>
     ${store.address ? `<p>${escapeHtml(store.address)}</p>` : ""}
     ${store.phone ? `<p>هاتف: ${escapeHtml(store.phone)}</p>` : ""}

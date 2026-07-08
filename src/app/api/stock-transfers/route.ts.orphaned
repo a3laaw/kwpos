@@ -1,0 +1,90 @@
+import { NextRequest, NextResponse } from "next/server"
+import { db } from "@/lib/db"
+import { getCurrentUser } from "@/lib/session"
+
+export const dynamic = "force-dynamic"
+
+/** GET /api/stock-transfers — list all transfers */
+export async function GET() {
+  const user = await getCurrentUser()
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+  const transfers = await db.stockTransfer.findMany({
+    include: {
+      items: { include: { product: true } },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+  })
+  return NextResponse.json({ items: transfers })
+}
+
+/**
+ * POST /api/stock-transfers — create a transfer (Transfer Out).
+ * Body: { fromWarehouseId, toWarehouseId, items: [{ productId, quantity }], note? }
+ * Deducts from source warehouse, marks as "in transit" (OUT).
+ */
+export async function POST(req: NextRequest) {
+  const user = await getCurrentUser()
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+  if (user.role !== "ADMIN" && user.role !== "WAREHOUSE") {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 })
+  }
+
+  const body = await req.json()
+  const { fromWarehouseId, toWarehouseId, items, note } = body || {}
+
+  if (!fromWarehouseId || !toWarehouseId) {
+    return NextResponse.json({ error: "warehouses-required" }, { status: 400 })
+  }
+  if (fromWarehouseId === toWarehouseId) {
+    return NextResponse.json({ error: "same-warehouse" }, { status: 400 })
+  }
+  if (!Array.isArray(items) || items.length === 0) {
+    return NextResponse.json({ error: "items-required" }, { status: 400 })
+  }
+
+  const count = await db.stockTransfer.count()
+  const transferNo = `TR-${String(count + 1).padStart(5, "0")}`
+
+  // Build items with unit cost
+  const productIds = items.map((i: any) => i.productId)
+  const products = await db.product.findMany({ where: { id: { in: productIds } } })
+
+  const itemsData = items.map((it: any) => {
+    const p = products.find((pr) => pr.id === it.productId)
+    const qty = Number(it.quantity) || 0
+    const unitCost = p?.costPrice ?? 0
+    return {
+      productId: it.productId,
+      quantity: qty,
+      unitCost,
+      subtotal: +(qty * unitCost).toFixed(3),
+    }
+  })
+  const total = itemsData.reduce((s, i) => s + i.subtotal, 0)
+
+  // Transaction: deduct from source + create transfer
+  const created = await db.$transaction(async (tx) => {
+    for (const it of itemsData) {
+      await tx.product.update({
+        where: { id: it.productId },
+        data: { quantity: { decrement: it.quantity } },
+      })
+    }
+    return tx.stockTransfer.create({
+      data: {
+        transferNo,
+        fromWarehouseId,
+        toWarehouseId,
+        status: "OUT",
+        total: +total.toFixed(3),
+        note: note?.trim() || null,
+        createdById: user.id,
+        items: { create: itemsData },
+      },
+      include: { items: { include: { product: true } } },
+    })
+  })
+
+  return NextResponse.json(created, { status: 201 })
+}

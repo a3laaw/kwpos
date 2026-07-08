@@ -215,6 +215,30 @@ export async function POST(req: NextRequest) {
       saleId: sale.id,
     })
 
+    // ── Loyalty points (inside tx — atomic) ──
+    // Earn 1 point per currency unit spent (excluding tax + delivery).
+    // Points are only awarded when a customer is linked.
+    if (customerId) {
+      const pointsEarned = Math.floor(afterDiscount) // 1 point per 1 currency unit
+      if (pointsEarned > 0) {
+        const cust = await tx.customer.findUnique({ where: { id: customerId }, select: { loyaltyPoints: true, loyaltyTier: true } })
+        if (cust) {
+          const newPoints = cust.loyaltyPoints + pointsEarned
+          let newTier: string | null = cust.loyaltyTier
+          if (newPoints >= 10000) newTier = "GOLD"
+          else if (newPoints >= 5000) newTier = "SILVER"
+          else if (newPoints >= 1000) newTier = "BRONZE"
+          await tx.customer.update({
+            where: { id: customerId },
+            data: {
+              loyaltyPoints: { increment: pointsEarned },
+              loyaltyTier: newTier,
+            },
+          })
+        }
+      }
+    }
+
     return { sale, total, afterDiscount, taxAmount }
   }).catch((e: any) => {
     return { __error: e?.message || "sale-failed" }

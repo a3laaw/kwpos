@@ -10,6 +10,13 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
   CheckCircle2,
   Loader2,
   Globe,
@@ -19,6 +26,9 @@ import {
   Trash2,
   Ruler,
   Tags,
+  Printer,
+  ScanLine,
+  Wallet,
   X,
   Pencil,
   Save,
@@ -38,6 +48,9 @@ import {
   useDeleteCategory,
 } from "@/hooks/use-api"
 import { cn } from "@/lib/utils"
+import { ImageUpload } from "@/components/shared/image-upload"
+import { getHardwareSettings, saveHardwareSettings, type HardwareSettings } from "@/lib/hardware"
+import { openCashDrawer } from "@/lib/cash-drawer"
 import {
   Dialog,
   DialogContent,
@@ -93,6 +106,9 @@ export function SettingsView() {
       </Card>
 
       <div className="grid gap-5 lg:grid-cols-2">
+        {/* Company info — appears on invoices */}
+        <CompanyInfoCard />
+
         {/* Country picker */}
         <Card>
           <CardHeader>
@@ -139,9 +155,264 @@ export function SettingsView() {
         <UnitsManager />
       </div>
 
+      {/* Hardware settings — printer, cash drawer, barcode scanner */}
+      <HardwareSettingsCard />
+
       {/* Categories management */}
       <CategoriesManager />
     </div>
+  )
+}
+
+function CompanyInfoCard() {
+  const t = useT()
+  const [name, setName] = React.useState("")
+  const [address, setAddress] = React.useState("")
+  const [phone, setPhone] = React.useState("")
+  const [vatNo, setVatNo] = React.useState("")
+  const [logo, setLogo] = React.useState<string | null>(null)
+  const [saving, setSaving] = React.useState(false)
+  const [loaded, setLoaded] = React.useState(false)
+
+  // Load from localStorage on mount
+  React.useEffect(() => {
+    try {
+      const raw = localStorage.getItem("erp-store-info")
+      const data = raw ? JSON.parse(raw) : {}
+      setName(data.name || "")
+      setAddress(data.address || "")
+      setPhone(data.phone || "")
+      setVatNo(data.vatNo || "")
+      setLogo(data.logo || null)
+    } catch {
+      // keep defaults
+    }
+    setLoaded(true)
+  }, [])
+
+  function handleSave() {
+    setSaving(true)
+    try {
+      const data = { name, address, phone, vatNo, logo }
+      localStorage.setItem("erp-store-info", JSON.stringify(data))
+      toast.success(t.companyInfoSaved)
+    } catch {
+      toast.error(t.saveFailed)
+    }
+    setSaving(false)
+  }
+
+  if (!loaded) return null
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Tags className="h-4 w-4 text-primary" />
+          {t.companyInfoTitle}
+        </CardTitle>
+        <CardDescription>{t.companyInfoDesc}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <ImageUpload
+          value={logo}
+          onChange={(url) => setLogo(url)}
+          label={t.companyInfoLogo}
+          className="py-1"
+        />
+        <p className="text-xs text-muted-foreground -mt-2">{t.companyInfoLogoHint}</p>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="company-name">{t.companyInfoName}</Label>
+          <Input
+            id="company-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={t.companyInfoNamePlaceholder}
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="company-address">{t.companyInfoAddress}</Label>
+          <Input
+            id="company-address"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder={t.companyInfoAddressPlaceholder}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="company-phone">{t.companyInfoPhone}</Label>
+            <Input
+              id="company-phone"
+              dir="ltr"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder={t.companyInfoPhonePlaceholder}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="company-vat">{t.companyInfoVatNo}</Label>
+            <Input
+              id="company-vat"
+              dir="ltr"
+              value={vatNo}
+              onChange={(e) => setVatNo(e.target.value)}
+              placeholder={t.companyInfoVatNoPlaceholder}
+            />
+          </div>
+        </div>
+
+        <Button onClick={handleSave} disabled={saving} className="w-full gap-2">
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          {t.companyInfoSave}
+        </Button>
+      </CardContent>
+    </Card>
+  )
+}
+
+function HardwareSettingsCard() {
+  const t = useT()
+  const [settings, setSettings] = React.useState<HardwareSettings | null>(null)
+  const [testing, setTesting] = React.useState(false)
+
+  React.useEffect(() => {
+    setSettings(getHardwareSettings())
+  }, [])
+
+  if (!settings) return null
+
+  function update(patch: Partial<HardwareSettings>) {
+    const updated = saveHardwareSettings(patch)
+    setSettings(updated)
+  }
+
+  async function testDrawer() {
+    setTesting(true)
+    await openCashDrawer()
+    setTesting(false)
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Printer className="h-4 w-4 text-primary" />
+          إعدادات الأجهزة (Hardware)
+        </CardTitle>
+        <CardDescription>الطابعة، درج النقدية، قارئ الباركود</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Printer type */}
+        <div className="space-y-1.5">
+          <Label>نوع اتصال الطابعة</Label>
+          <Select
+            value={settings.printerType}
+            onValueChange={(v) => update({ printerType: v as HardwareSettings["printerType"] })}
+          >
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">لا يوجد (بدون طابعة)</SelectItem>
+              <SelectItem value="network">شبكة (Network IP)</SelectItem>
+              <SelectItem value="usb">USB</SelectItem>
+              <SelectItem value="serial">Serial (منفذ تسلسلي)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Network printer address (only if network) */}
+        {settings.printerType === "network" ? (
+          <div className="space-y-1.5">
+            <Label>عنوان الطابعة (IP:Port)</Label>
+            <Input
+              dir="ltr"
+              value={settings.printerNetworkAddress}
+              onChange={(e) => update({ printerNetworkAddress: e.target.value })}
+              placeholder="192.168.1.100:9100"
+            />
+          </div>
+        ) : null}
+
+        {/* Cash drawer kick code */}
+        <div className="space-y-1.5">
+          <Label>رمز فتح درج النقدية (ESC/POS)</Label>
+          <Select
+            value={String(settings.drawerKickCode)}
+            onValueChange={(v) => update({ drawerKickCode: Number(v) })}
+          >
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0">نبضة قصيرة (50ms)</SelectItem>
+              <SelectItem value="1">نبضة طويلة (100ms)</SelectItem>
+              <SelectItem value="7">افتراضي (50ms — الأكثر شيوعًا)</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">يُرسل رمز ESC/POS لفتح الدرج عبر الطابعة الحرارية</p>
+        </div>
+
+        {/* Test cash drawer */}
+        <Button variant="outline" onClick={testDrawer} disabled={testing} className="w-full gap-2">
+          <Wallet className="h-4 w-4" />
+          {testing ? "جاري الإرسال..." : "اختبار فتح الدرج"}
+        </Button>
+
+        {/* Barcode scanner settings */}
+        <div className="border-t pt-4 space-y-3">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <ScanLine className="h-4 w-4 text-primary" />
+            إعدادات قارئ الباركود
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>بادئة (Prefix)</Label>
+              <Input
+                dir="ltr"
+                value={settings.scannerPrefix}
+                onChange={(e) => update({ scannerPrefix: e.target.value })}
+                placeholder="فارغ = بدون"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>لاحقة (Suffix)</Label>
+              <Input
+                dir="ltr"
+                value={settings.scannerSuffix === "\n" ? "\\n" : settings.scannerSuffix}
+                onChange={(e) => update({ scannerSuffix: e.target.value === "\\n" ? "\n" : e.target.value })}
+                placeholder="\\n = Enter"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>سرعة المسح (ms بين المفاتيح)</Label>
+              <Input
+                type="number"
+                dir="ltr"
+                value={settings.scannerMinInterval}
+                onChange={(e) => update({ scannerMinInterval: Number(e.target.value) || 15 })}
+                placeholder="15"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>أقصى مدة للمسح (ms)</Label>
+              <Input
+                type="number"
+                dir="ltr"
+                value={settings.scannerMaxDuration}
+                onChange={(e) => update({ scannerMaxDuration: Number(e.target.value) || 200 })}
+                placeholder="200"
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            القارئ يكتب بسرعة (~5-15ms بين المفاتيح). إذا لم يُكتشف، قلل القيم.
+          </p>
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 

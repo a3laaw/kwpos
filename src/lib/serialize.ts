@@ -202,6 +202,8 @@ export function serializeCustomer(c: AnyRow): Customer {
     phone: String(c.phone ?? ""),
     address: String(c.address ?? ""),
     type: ((c.type as string) || "RETAIL") as Customer["type"],
+    loyaltyPoints: Number(c.loyaltyPoints ?? 0),
+    loyaltyTier: (c.loyaltyTier as string | null) ?? null,
     createdAt: String(c.createdAt),
     updatedAt: String(c.updatedAt),
   }
