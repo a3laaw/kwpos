@@ -167,7 +167,7 @@ export function TransfersView() {
                   <table className="w-full text-sm">
                     <thead className="bg-muted/40">
                       <tr>
-                        <th className="text-right p-2.5 font-medium">الصنف</th>
+                        <th className="text-start p-2.5 font-medium">الصنف</th>
                         <th className="text-center p-2.5 font-medium w-20">كمية</th>
                         <th className="text-center p-2.5 font-medium w-24">التكلفة</th>
                         <th className="text-center p-2.5 font-medium w-24">الإجمالي</th>
@@ -240,8 +240,8 @@ export function TransfersView() {
               <table className="w-full text-sm">
                 <thead className="bg-muted/40">
                   <tr>
-                    <th className="text-right p-2.5 font-medium">رقم</th>
-                    <th className="text-right p-2.5 font-medium hidden sm:table-cell">من ← إلى</th>
+                    <th className="text-start p-2.5 font-medium">رقم</th>
+                    <th className="text-start p-2.5 font-medium hidden sm:table-cell">من ← إلى</th>
                     <th className="text-center p-2.5 font-medium">أصناف</th>
                     <th className="text-center p-2.5 font-medium">القيمة</th>
                     <th className="text-center p-2.5 font-medium">الحالة</th>

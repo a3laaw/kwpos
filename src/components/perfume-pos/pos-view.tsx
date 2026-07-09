@@ -555,11 +555,11 @@ export function PerfumePOS() {
 
               {/* Table */}
               <div className="flex-1 overflow-y-auto scrollbar-thin">
-                <table className="w-full text-right">
+                <table className="w-full">
                   <thead className="sticky top-0 z-10 bg-[#FBFBF9]">
                     <tr className="text-[11px] font-bold text-[#9B9B9B] uppercase tracking-wider">
-                      <th className="font-bold py-3 px-4 text-right">المنتج</th>
-                      <th className="font-bold py-3 px-3 text-right hidden sm:table-cell">
+                      <th className="font-bold py-3 px-4 text-start">المنتج</th>
+                      <th className="font-bold py-3 px-3 text-start hidden sm:table-cell">
                         الفئة
                       </th>
                       <th className="font-bold py-3 px-3 text-center hidden md:table-cell">
@@ -568,7 +568,7 @@ export function PerfumePOS() {
                       <th className="font-bold py-3 px-3 text-center hidden lg:table-cell">
                         المخزون
                       </th>
-                      <th className="font-bold py-3 px-3 text-left">السعر</th>
+                      <th className="font-bold py-3 px-3 text-end">السعر</th>
                       <th className="font-bold py-3 px-4 text-center w-14">
                         إضافة
                       </th>
@@ -648,7 +648,7 @@ export function PerfumePOS() {
                             </div>
                           </td>
                           {/* Price */}
-                          <td className="py-3 px-3 text-left">
+                          <td className="py-3 px-3 text-end">
                             <div className="text-[14px] font-extrabold text-[#1A1A1A] tabular-nums">
                               {fmtKwd(p.price)}
                             </div>
@@ -720,7 +720,7 @@ export function PerfumePOS() {
                   <div className="h-8 w-8 rounded-lg bg-[#F9EDC5] grid place-items-center">
                     <User2 className="h-4 w-4 text-[#2E6237]" />
                   </div>
-                  <div className="text-right flex-1 min-w-0">
+                  <div className="text-start flex-1 min-w-0">
                     <div className="text-[12px] font-bold text-[#1A1A1A]">
                       عميل نقدي
                     </div>
@@ -890,7 +890,7 @@ export function PerfumePOS() {
                       شامل الضريبة
                     </div>
                   </div>
-                  <div className="text-left">
+                  <div className="text-end">
                     <div className="text-[22px] font-extrabold text-white tabular-nums leading-none">
                       {fmtKwd(total)}
                     </div>

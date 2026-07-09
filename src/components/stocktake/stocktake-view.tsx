@@ -168,7 +168,7 @@ export function StockTakeView() {
                   <table className="w-full text-sm">
                     <thead className="bg-muted/40">
                       <tr>
-                        <th className="text-right p-2.5 font-medium">الصنف</th>
+                        <th className="text-start p-2.5 font-medium">الصنف</th>
                         <th className="text-center p-2.5 font-medium w-20">دفتري</th>
                         <th className="text-center p-2.5 font-medium w-20">فعلي</th>
                         <th className="text-center p-2.5 font-medium w-20">الفرق</th>
