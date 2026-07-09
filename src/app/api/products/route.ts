@@ -57,6 +57,7 @@ export async function POST(req: NextRequest) {
     salePrice,
     wholesalePrice,
     corporatePrice,
+    taxRate,
     unit,
     unitId,
     warehouseStock, // array of { warehouseId, quantity }
@@ -88,6 +89,7 @@ export async function POST(req: NextRequest) {
       salePrice: Number(salePrice) || 0,
       wholesalePrice: Number(wholesalePrice) || 0,
       corporatePrice: Number(corporatePrice) || 0,
+      taxRate: Math.max(0, Number(taxRate) || 0),
       unit: unit?.trim() || "قطعة",
       unitId: unitId || null,
       imageUrl: body.imageUrl?.trim() || null,

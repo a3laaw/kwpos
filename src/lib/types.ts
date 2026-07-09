@@ -42,6 +42,8 @@ export interface Product {
   salePrice: number
   wholesalePrice: number
   corporatePrice: number
+  /** Tax rate (%) for this product. Default 0. */
+  taxRate: number
   unit: string
   unitId?: string | null
   imageUrl?: string | null

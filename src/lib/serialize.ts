@@ -43,6 +43,7 @@ export function serializeProduct(p: AnyRow): Product {
     salePrice: Number(p.salePrice ?? 0),
     wholesalePrice: Number(p.wholesalePrice ?? 0),
     corporatePrice: Number(p.corporatePrice ?? 0),
+    taxRate: Number((p as any).taxRate ?? 0),
     unit: String(p.unit ?? "قطعة"),
     unitId: (p.unitId as string | null) ?? null,
     imageUrl: (p.imageUrl as string | null) ?? null,
