@@ -105,7 +105,7 @@ export function SupplierStatementDialog({
         </DialogHeader>
 
         {/* Date filters + export toolbar */}
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 print:hidden">
           <div className="grid grid-cols-2 gap-3 flex-1">
             <div className="space-y-1.5">
               <Label htmlFor="stmt-from" className="text-xs">{t.statementFrom}</Label>
@@ -216,7 +216,7 @@ export function SupplierStatementDialog({
         </div>
 
         {/* Footer with print */}
-        <div className="flex justify-end gap-2 pt-2">
+        <div className="flex justify-end gap-2 pt-2 print:hidden">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {t.close}
           </Button>

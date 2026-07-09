@@ -92,6 +92,13 @@ export function ReportsView() {
         }
       />
 
+      {/* Print-only header — visible only when printing */}
+      <div className="hidden print:block mb-4">
+        <h1 className="text-2xl font-bold">{headerTitle}</h1>
+        <p className="text-sm text-gray-600">{headerDesc}</p>
+        <hr className="my-2 border-gray-300" />
+      </div>
+
       {isGeneral ? <GeneralReports /> : <PerformanceMatrix />}
     </div>
   )
