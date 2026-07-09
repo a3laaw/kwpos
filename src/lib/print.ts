@@ -475,3 +475,78 @@ export function printExchangeReceipt(exchange: ExchangeSale) {
 </html>`
   openPrintWindow(html, `فاتورة تبديل ${exchange.exchangeNo}`, 360, 640)
 }
+
+/* ───────────────────────── 5. Report/Table Printer ────────────────── */
+
+/**
+ * Print only the tables from a page — opens a clean print window with
+ * just the report title + all <table> elements found on the page.
+ *
+ * This avoids printing the full page chrome (sidebar, topbar, filters,
+ * buttons, cards) and focuses on the actual data tables.
+ *
+ * Usage:
+ *   <Button onClick={() => printReportOnly("تقرير المبيعات")}>
+ */
+export function printReportOnly(title: string, subtitle?: string) {
+  // Collect all visible tables on the page
+  const tables = Array.from(document.querySelectorAll("table"))
+    .filter((t) => {
+      // Skip tables inside print:hidden elements
+      const parent = t.closest(".print\\:hidden, [data-print='hidden']")
+      return !parent
+    })
+    .map((t) => t.outerHTML)
+
+  if (tables.length === 0) {
+    alert("لا توجد جداول للطباعة")
+    return
+  }
+
+  const dateStr = new Intl.DateTimeFormat("ar-KW-u-nu-latn", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date())
+
+  const html = `<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="utf-8">
+<title>${escapeHtml(title)}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4; margin: 12mm; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: "Tajawal", "Cairo", sans-serif; color: #1a1a1a; font-size: 11px; }
+  .report-header { text-align: center; margin-bottom: 6mm; border-bottom: 2px solid #10b981; padding-bottom: 3mm; }
+  .report-header h1 { font-size: 20px; color: #10b981; }
+  .report-header p { font-size: 11px; color: #666; margin-top: 2px; }
+  .report-date { font-size: 10px; color: #999; text-align: center; margin-bottom: 4mm; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 6mm; }
+  thead th { background: #f0fdf4; color: #065f46; font-size: 10px; padding: 2mm; border-bottom: 2px solid #10b981; text-align: start; }
+  thead th:nth-child(n+2) { text-align: center; }
+  tbody td { padding: 1.5mm 2mm; border-bottom: 1px solid #e5e7eb; font-size: 10px; }
+  tbody td:nth-child(n+2) { text-align: center; }
+  .report-footer { margin-top: 8mm; text-align: center; font-size: 9px; color: #999; border-top: 1px solid #e5e7eb; padding-top: 3mm; }
+  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style>
+</head>
+<body>
+  <div class="report-header">
+    <h1>${escapeHtml(title)}</h1>
+    ${subtitle ? `<p>${escapeHtml(subtitle)}</p>` : ""}
+  </div>
+  <p class="report-date">تاريخ الطباعة: ${dateStr}</p>
+  ${tables.join("\n")}
+  <div class="report-footer">
+    <p>تم إنشاء هذا التقرير إلكترونيًا — ${dateStr}</p>
+  </div>
+</body>
+</html>`
+  openPrintWindow(html, title)
+}

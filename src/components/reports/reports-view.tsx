@@ -48,6 +48,7 @@ import { useReport, type ReportFilters } from "@/hooks/use-api"
 import { useFmt } from "@/components/currency-context"
 import { useT } from "@/components/i18n-context"
 import { PerformanceMatrix } from "@/components/reports/performance-matrix"
+import { printReportOnly } from "@/lib/print"
 import { cn } from "@/lib/utils"
 import { useModuleTab } from "@/lib/module-tab-store"
 
@@ -83,7 +84,7 @@ export function ReportsView() {
         icon={headerIcon}
         breadcrumbItems={breadcrumbItems}
         actions={
-          <Button variant="outline" className="gap-2" onClick={() => window.print()}>
+          <Button variant="outline" className="gap-2" onClick={() => printReportOnly(headerTitle, headerDesc)}>
             <Printer className="h-4 w-4" />
             <span className="hidden sm:inline">{t.exportPrint}</span>
           </Button>

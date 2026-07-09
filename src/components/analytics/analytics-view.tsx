@@ -40,6 +40,7 @@ import {
   LayoutGrid,
 } from "lucide-react"
 import { Printer } from "lucide-react"
+import { printReportOnly } from "@/lib/print"
 import { useAnalytics } from "@/hooks/use-api"
 import { useFmt } from "@/components/currency-context"
 import { useT } from "@/components/i18n-context"
@@ -134,7 +135,7 @@ export function AnalyticsView() {
           { labelKey: ANL_TAB_BREADCRUMB[tab] },
         ]}
         actions={
-          <Button variant="outline" className="gap-2" onClick={() => window.print()}>
+          <Button variant="outline" className="gap-2" onClick={() => printReportOnly(t.analyticsTitle, t.analyticsDesc)}>
             <Printer className="h-4 w-4" />
             <span className="hidden sm:inline">{t.exportPrint || "طباعة"}</span>
           </Button>

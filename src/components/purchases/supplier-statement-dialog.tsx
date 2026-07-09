@@ -25,6 +25,7 @@ import { Loader2, Printer, FileText, Wallet, RotateCcw } from "lucide-react"
 import { useT } from "@/components/i18n-context"
 import { useFmt } from "@/components/currency-context"
 import { useSupplierStatement } from "@/hooks/use-api"
+import { printReportOnly } from "@/lib/print"
 import { ExportToolbar } from "@/components/shared/export-toolbar"
 
 interface SupplierStatementDialogProps {
@@ -220,7 +221,7 @@ export function SupplierStatementDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {t.close}
           </Button>
-          <Button onClick={() => window.print()} disabled={txs.length === 0} className="gap-2">
+          <Button onClick={() => printReportOnly(t.supplierStatementTitle || "كشف حساب مورد", supplierName ?? data?.supplier?.name)} disabled={txs.length === 0} className="gap-2">
             <Printer className="h-4 w-4" />
             {t.statementPrint}
           </Button>

@@ -14,6 +14,7 @@ import { Printer, FileDown, X } from "lucide-react"
 import { useT } from "@/components/i18n-context"
 import { useFmt } from "@/components/currency-context"
 import type { JournalEntry } from "@/lib/types"
+import { printReportOnly } from "@/lib/print"
 import { cn } from "@/lib/utils"
 
 interface JournalEntryModalProps {
@@ -39,7 +40,8 @@ export function JournalEntryModal({ open, onOpenChange, entry }: JournalEntryMod
   const balanced = Math.abs(entry.totalDebit - entry.totalCredit) < 0.001
 
   function handlePrint() {
-    window.print()
+    if (!entry) return
+    printReportOnly(`قيد محاسبي ${entry.entryNo}`, entry.description || "")
   }
 
   return (
