@@ -39,6 +39,7 @@ import {
   AlertTriangle,
   LayoutGrid,
 } from "lucide-react"
+import { Printer } from "lucide-react"
 import { useAnalytics } from "@/hooks/use-api"
 import { useFmt } from "@/components/currency-context"
 import { useT } from "@/components/i18n-context"
@@ -132,7 +133,20 @@ export function AnalyticsView() {
           { labelKey: "navAnalytics" },
           { labelKey: ANL_TAB_BREADCRUMB[tab] },
         ]}
+        actions={
+          <Button variant="outline" className="gap-2" onClick={() => window.print()}>
+            <Printer className="h-4 w-4" />
+            <span className="hidden sm:inline">{t.exportPrint || "طباعة"}</span>
+          </Button>
+        }
       />
+
+      {/* Print-only header */}
+      <div className="hidden print:block mb-4">
+        <h1 className="text-2xl font-bold">{t.analyticsTitle}</h1>
+        <p className="text-sm text-gray-600">{t.analyticsDesc}</p>
+        <hr className="my-2 border-gray-300" />
+      </div>
 
       {isLoading ? (
         <LoadingState text={t.anlCalculating} />
@@ -141,7 +155,7 @@ export function AnalyticsView() {
       ) : !data ? null : (
         <>
           {/* Clickable report cards (the new "tabs") */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 print:hidden">
             {reportCards.map((c) => {
               const Icon = c.icon
               const active = tab === c.key
@@ -178,6 +192,7 @@ export function AnalyticsView() {
 
           {/* Date-range filter (for sales-based reports + overview) */}
           {showDateFilter ? (
+            <div className="print:hidden">
             <Card className="border-primary/20 p-4">
               <div className="flex flex-col sm:flex-row sm:items-end gap-3">
                 <div className="space-y-1">
@@ -200,6 +215,7 @@ export function AnalyticsView() {
                 <Badge variant="outline" className="self-end">{rangeLabel}</Badge>
               </div>
             </Card>
+            </div>
           ) : null}
 
           {/* Report content */}

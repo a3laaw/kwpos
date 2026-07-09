@@ -83,12 +83,10 @@ export function ReportsView() {
         icon={headerIcon}
         breadcrumbItems={breadcrumbItems}
         actions={
-          isGeneral ? (
-            <Button variant="outline" className="gap-2" onClick={() => window.print()}>
-              <Printer className="h-4 w-4" />
-              <span className="hidden sm:inline">{t.exportPrint}</span>
-            </Button>
-          ) : null
+          <Button variant="outline" className="gap-2" onClick={() => window.print()}>
+            <Printer className="h-4 w-4" />
+            <span className="hidden sm:inline">{t.exportPrint}</span>
+          </Button>
         }
       />
 

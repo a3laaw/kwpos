@@ -210,8 +210,8 @@ export function PerformanceMatrix() {
 
   return (
     <div className="space-y-4">
-      {/* Filters card */}
-      <Card className="border-primary/20">
+      {/* Filters card — hidden when printing */}
+      <Card className="border-primary/20 print:hidden">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <CardTitle className="flex items-center gap-2 text-base">
