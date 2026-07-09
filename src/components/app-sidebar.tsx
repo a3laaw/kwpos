@@ -519,7 +519,7 @@ export function AppSidebar({ user }: SidebarProps) {
   return (
     <aside
       dir={locale === "ar" ? "rtl" : "ltr"}
-      className="hidden lg:flex w-16 shrink-0 flex-col bg-sidebar text-sidebar-foreground border-s border-sidebar-border h-screen sticky top-0 overflow-hidden"
+      className="hidden md:flex w-16 shrink-0 flex-col bg-sidebar text-sidebar-foreground border-s border-sidebar-border h-screen sticky top-0 overflow-hidden"
     >
       <BrandIcon />
       <ScrollArea className="flex-1 min-h-0">
@@ -587,7 +587,7 @@ export function Topbar({
         <Button
           variant="ghost"
           size="icon"
-          className="lg:hidden shrink-0"
+          className="md:hidden shrink-0"
           onClick={() => setSidebarOpen(true)}
         >
           <Menu className="h-5 w-5" />
