@@ -329,6 +329,8 @@ export interface SupplierPayment {
   supplierId: string
   supplierName: string
   amount: number
+  paidAmount: number
+  discountEarned: number
   paymentDate: string
   paymentMethod: "CASH" | "BANK" | "CHECK"
   referenceNo: string | null

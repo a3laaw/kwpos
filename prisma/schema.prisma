@@ -203,6 +203,9 @@ model PurchaseOrder {
   // posted. Prevents double-counting: if a PurchaseInvoice is later posted
   // for this PO, its taxAmount is netted against receivedTaxAmount.
   receivedTaxAmount Float         @default(0)
+  // Payment tracking (used by /api/purchase-orders/[id]/pay)
+  paidAmount      Float            @default(0)
+  discountEarned  Float            @default(0)
   note        String?
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
@@ -442,25 +445,41 @@ model Shift {
   userId        String?
   openedAt      DateTime @default(now())
   closedAt      DateTime?
-  status        String   @default("OPEN") // OPEN | CLOSED
+  status        String   @default("OPEN") // OPEN | CLOSED | APPROVED
 
   // Opening cash balance entered by cashier at shift start
   openingBalance   Float @default(0)
+  // Alias used by some routes (same as openingBalance)
+  openingFloat     Float @default(0)
 
   // System-recorded totals during the shift (from sales by THIS user)
   expectedCash     Float @default(0)
   expectedKnet     Float @default(0) // K-Net card sales
   expectedVisa     Float @default(0) // Visa/Mastercard sales
+  expectedCard     Float @default(0) // total card (Knet + Visa)
+  expectedTransfer Float @default(0) // bank transfers
 
   // Actual counted amounts at close (entered by supervisor)
   countedCash      Float @default(0)
   countedKnet      Float @default(0) // actual from K-Net terminal receipts
   countedVisa      Float @default(0) // actual from Visa terminal receipts
+  // Aliases used by some routes
+  actualCash       Float @default(0)
+  actualCard       Float @default(0)
 
   // Computed variances (counted − (openingBalance + expected))
   cashVariance     Float @default(0)
   knetVariance     Float @default(0)
   visaVariance     Float @default(0)
+
+  // Total sales amount during the shift
+  totalSales       Float @default(0)
+  totalRefunds     Float @default(0)
+  blindClosedAt    DateTime?
+
+  // Approval timestamp (when MANAGER/ADMIN approves the shift close)
+  approvedAt       DateTime?
+  approvedBy       String?
 
   note         String?
   createdAt    DateTime @default(now())

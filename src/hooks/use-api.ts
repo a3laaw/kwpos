@@ -1345,10 +1345,14 @@ export function useDeletePurchaseInvoice() {
 
 /* ----------------------------- Supplier Payments --------------------- */
 export interface CreateSupplierPaymentBody {
-  supplierId: string
+  id?: string
+  supplierId?: string
   amount: number
+  paidAmount?: number
+  discountEarned?: number
   paymentDate?: string
-  paymentMethod: "CASH" | "BANK" | "CHECK"
+  paymentMethod?: "CASH" | "BANK" | "CHECK"
+  paymentAccount?: string
   referenceNo?: string | null
   note?: string | null
 }
@@ -1376,6 +1380,9 @@ export function useCreateSupplierPayment() {
     },
   })
 }
+
+/** Alias for useCreateSupplierPayment (used by supplier-pay-dialog). */
+export const usePaySupplier = useCreateSupplierPayment
 
 /** Delete a supplier payment (ADMIN only; also reverses its journal entry). */
 export function useDeleteSupplierPayment() {
