@@ -43,6 +43,7 @@ export async function PUT(
     salePrice,
     wholesalePrice,
     corporatePrice,
+    taxRate,
     unit,
     warehouseStock, // [{ warehouseId, quantity }]
   } = body || {}
@@ -78,6 +79,7 @@ export async function PUT(
           ...(salePrice !== undefined ? { salePrice: Number(salePrice) || 0 } : {}),
           ...(wholesalePrice !== undefined ? { wholesalePrice: Number(wholesalePrice) || 0 } : {}),
           ...(corporatePrice !== undefined ? { corporatePrice: Number(corporatePrice) || 0 } : {}),
+          ...(taxRate !== undefined ? { taxRate: Math.max(0, Number(taxRate) || 0) } : {}),
           ...(unit !== undefined ? { unit: String(unit).trim() || "قطعة" } : {}),
           ...(body.unitId !== undefined ? { unitId: body.unitId || null } : {}),
           ...(body.imageUrl !== undefined ? { imageUrl: body.imageUrl ? String(body.imageUrl).trim() : null } : {}),

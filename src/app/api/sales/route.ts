@@ -67,7 +67,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "items-required" }, { status: 400 })
   }
 
-  const TAX = Number(taxRate) || 0
+  // Cart-level taxRate is now optional — per-product taxRate takes priority.
+  // If cart-level taxRate is provided AND products don't have their own rate,
+  // fall back to the cart-level rate for backward compatibility.
+  const CART_TAX = Number(taxRate) || 0
   const DISCOUNT = Math.max(0, Number(discount) || 0)
   // Delivery fee (>= 0). A fee > 0 marks the sale as a delivery order.
   const DELIVERY_FEE = Math.max(0, Number(deliveryFee) || 0)
@@ -120,8 +123,10 @@ export async function POST(req: NextRequest) {
       quantity: number
       unitPrice: number
       subtotal: number
+      lineTaxRate: number
     }> = []
     let subtotal = 0
+    let totalTaxFromProducts = 0
 
     for (const it of items) {
       const productId = String(it.productId)
@@ -139,12 +144,20 @@ export async function POST(req: NextRequest) {
         throw new Error(`stock-insufficient:${product.name}:warehouse:${warehouseId}`)
       }
       const lineSubtotal = +(qty * unitPrice).toFixed(3)
+      // Per-product tax rate — fall back to cart-level rate for backward compat
+      const lineTaxRate = Number((product as any).taxRate ?? CART_TAX)
+      const lineTax = +(lineSubtotal * (lineTaxRate / 100)).toFixed(3)
       subtotal += lineSubtotal
-      itemsData.push({ productId, quantity: qty, unitPrice, subtotal: lineSubtotal })
+      totalTaxFromProducts += lineTax
+      itemsData.push({ productId, quantity: qty, unitPrice, subtotal: lineSubtotal, lineTaxRate })
     }
 
     const afterDiscount = Math.max(0, subtotal - DISCOUNT)
-    const taxAmount = +(afterDiscount * (TAX / 100)).toFixed(3)
+    // Use per-product tax if any product has a non-zero rate; otherwise
+    // fall back to cart-level rate for backward compatibility.
+    const taxAmount = totalTaxFromProducts > 0
+      ? totalTaxFromProducts
+      : +(afterDiscount * (CART_TAX / 100)).toFixed(3)
     // Delivery fee is added AFTER tax (it's a service charge, not taxable).
     const total = +(afterDiscount + taxAmount + DELIVERY_FEE).toFixed(3)
 
@@ -160,7 +173,7 @@ export async function POST(req: NextRequest) {
         customerPhone: phone || null,
         customerId: customerId || null,
         subtotal: +subtotal.toFixed(3),
-        taxRate: TAX,
+        taxRate: totalTaxFromProducts > 0 ? 0 : CART_TAX, // 0 when per-product
         taxAmount,
         discount: DISCOUNT,
         deliveryFee: DELIVERY_FEE,

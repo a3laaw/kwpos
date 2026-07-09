@@ -131,6 +131,7 @@ export function ProductFormDialog({ open, onOpenChange, product }: ProductFormDi
           salePrice: product?.salePrice ?? 0,
           wholesalePrice: product?.wholesalePrice ?? 0,
           corporatePrice: product?.corporatePrice ?? 0,
+          taxRate: product?.taxRate ?? 0,
           unit: product?.unit ?? "قطعة",
         }
       : {
@@ -147,6 +148,7 @@ export function ProductFormDialog({ open, onOpenChange, product }: ProductFormDi
           costPrice: 0,
           salePrice: 0,
           wholesalePrice: 0,
+          taxRate: 0,
           corporatePrice: 0,
           unit: "قطعة",
         }

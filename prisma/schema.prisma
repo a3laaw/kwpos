@@ -113,6 +113,9 @@ model Product {
   salePrice       Float            @default(0) // retail price (default tier)
   wholesalePrice  Float            @default(0) // wholesale tier (0 = same as retail)
   corporatePrice  Float            @default(0) // corporate/contract tier (0 = same as retail)
+  // Tax rate (%) for this product. Default 0. When sold via POS, the
+  // sale API uses this rate to compute taxAmount per line item.
+  taxRate         Float            @default(0)
   unit            String           @default("قطعة")
   unitId          String?
   imageUrl        String? // product image (local path or remote URL)
