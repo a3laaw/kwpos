@@ -137,12 +137,25 @@ export function ExpressPosView({ user, onToggleMode }: ExpressPosViewProps) {
       // Don't steal focus if the user is typing in another input or a dialog
       // is open.
       const active = document.activeElement as HTMLElement | null
-      const inDialog = active?.closest('[role="dialog"]') || active?.closest('[role="combobox"]')
+      if (!active) return // no active element — safe to focus
+
+      // Don't steal focus if a dialog/combobox is open
+      const inDialog = active.closest('[role="dialog"]') || active.closest('[role="combobox"]')
       if (inDialog) return
+
+      // Don't steal focus if the user is interacting with ANY interactive element
+      // (inputs, buttons, selects, textareas, links, [role=button], collapsible triggers)
       if (
-        active &&
         active !== el &&
-        (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.tagName === "SELECT")
+        (active.tagName === "INPUT" ||
+          active.tagName === "TEXTAREA" ||
+          active.tagName === "SELECT" ||
+          active.tagName === "BUTTON" ||
+          active.tagName === "A" ||
+          active.getAttribute("role") === "button" ||
+          active.closest("button") ||
+          active.closest('[role="button"]') ||
+          active.closest("[data-radix-collection-item]"))
       ) {
         return
       }
@@ -169,11 +182,18 @@ export function ExpressPosView({ user, onToggleMode }: ExpressPosViewProps) {
     }
   }, [lastSale, focusBarcode])
 
-  // Refocus after a product is added (cart length increases).
+  // Refocus after a product is added (cart length increases) — ONLY if
+  // the barcode input is already focused (don't steal focus from cart
+  // qty controls or other elements the user might be interacting with).
   const prevCartLen = React.useRef(cart.length)
   React.useEffect(() => {
     if (cart.length > prevCartLen.current) {
-      focusBarcode()
+      // Only refocus if the barcode input itself was focused (i.e. the
+      // user added via barcode scan, not by tapping a product card).
+      const active = document.activeElement
+      if (active === barcodeRef.current) {
+        focusBarcode()
+      }
     }
     prevCartLen.current = cart.length
   }, [cart.length, focusBarcode])
@@ -423,22 +443,32 @@ export function ExpressPosView({ user, onToggleMode }: ExpressPosViewProps) {
               onChange={(e) => setQ(e.target.value)}
               onKeyDown={handleBarcodeKeyDown}
               onBlur={() => {
-                // Refocus on next tick unless the user clicked into another
-                // input/select/textarea or a dialog opened.
+                // Only refocus the barcode if the user didn't click into
+                // another interactive element. Give a longer delay (150ms)
+                // so click events on buttons/links have time to register.
                 setTimeout(() => {
                   const active = document.activeElement as HTMLElement | null
+                  if (!active || active === document.body) {
+                    // Nothing focused — safe to refocus barcode
+                    focusBarcode()
+                    return
+                  }
+                  // Don't refocus if the user is interacting with anything
                   if (
-                    active &&
-                    (active.tagName === "INPUT" ||
-                      active.tagName === "TEXTAREA" ||
-                      active.tagName === "SELECT" ||
-                      active.closest('[role="dialog"]') ||
-                      active.closest('[role="combobox"]'))
+                    active.tagName === "INPUT" ||
+                    active.tagName === "TEXTAREA" ||
+                    active.tagName === "SELECT" ||
+                    active.tagName === "BUTTON" ||
+                    active.tagName === "A" ||
+                    active.closest('[role="dialog"]') ||
+                    active.closest('[role="combobox"]') ||
+                    active.closest("button") ||
+                    active.closest('[role="button"]')
                   ) {
                     return
                   }
                   focusBarcode()
-                }, 50)
+                }, 150)
               }}
               placeholder={t.expressBarcodePlaceholder}
               className="pr-11 h-14 text-lg font-medium"
