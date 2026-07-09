@@ -215,10 +215,10 @@ export function StockMovementReport() {
             </div>
             <div className="space-y-1 col-span-2 lg:col-span-1">
               <Label className="text-xs">{t.statementType}</Label>
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v === "__all__" ? "" : v)}>
                 <SelectTrigger className="h-9"><SelectValue placeholder={t.movementTypeAll} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">{t.movementTypeAll}</SelectItem>
+                  <SelectItem value="__all__">{t.movementTypeAll}</SelectItem>
                   <SelectItem value="SALE">{t.movementTypeSale}</SelectItem>
                   <SelectItem value="REFUND">{t.movementTypeRefund}</SelectItem>
                   <SelectItem value="EXCHANGE">{t.movementTypeExchange}</SelectItem>
