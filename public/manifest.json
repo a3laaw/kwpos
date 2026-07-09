@@ -1,0 +1,21 @@
+{
+  "name": "نظام إدارة المبيعات والمخازن والمشتريات",
+  "short_name": "KWPOS",
+  "description": "نظام متكامل لإدارة المبيعات والمخازن والمشتريات",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#ffffff",
+  "theme_color": "#2E6237",
+  "dir": "rtl",
+  "lang": "ar",
+  "categories": ["business", "productivity", "finance"],
+  "icons": [
+    {
+      "src": "/logo.svg?v=2",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

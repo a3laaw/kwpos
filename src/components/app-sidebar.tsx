@@ -287,7 +287,7 @@ function Brand() {
 function UserCard({ user }: { user: SidebarProps["user"] }) {
   const t = useT()
   const { locale } = useI18n()
-  const roleLabel = user.role === "ADMIN" ? t.roleAdmin : user.role === "MANAGER" ? t.roleManager : user.role === "ACCOUNTANT" ? t.roleAccountant : user.role === "SALES" ? t.roleSales : user.role === "CASHIER" ? t.roleCashier : t.roleWarehouse
+  const roleLabel = user.role === "OWNER" ? t.roleOwner : user.role === "ADMIN" ? t.roleAdmin : user.role === "MANAGER" ? t.roleManager : user.role === "ACCOUNTANT" ? t.roleAccountant : user.role === "SALES" ? t.roleSales : user.role === "CASHIER" ? t.roleCashier : t.roleWarehouse
   // Explicit dir ensures the avatar sits at the leading edge (right in Arabic,
   // left in English) and the text block flows toward the trailing edge.
   // Restructured so the role badge no longer squeezes the name — name + email
@@ -576,7 +576,7 @@ export function Topbar({
   const { locale } = useI18n()
   const [mounted, setMounted] = React.useState(false)
   React.useEffect(() => setMounted(true), [])
-  const roleLabel = user.role === "ADMIN" ? t.roleAdmin : user.role === "MANAGER" ? t.roleManager : user.role === "ACCOUNTANT" ? t.roleAccountant : user.role === "SALES" ? t.roleSales : user.role === "CASHIER" ? t.roleCashier : t.roleWarehouse
+  const roleLabel = user.role === "OWNER" ? t.roleOwner : user.role === "ADMIN" ? t.roleAdmin : user.role === "MANAGER" ? t.roleManager : user.role === "ACCOUNTANT" ? t.roleAccountant : user.role === "SALES" ? t.roleSales : user.role === "CASHIER" ? t.roleCashier : t.roleWarehouse
 
   // Get MegaMenu groups for the current module (null = no sub-nav)
   const moduleGroups = getModuleNav(view)

@@ -30,6 +30,16 @@ export const ROLE_PERMISSIONS: Record<Role, {
   label: string
   views: import("@/lib/types").AppView[]
 }> = {
+  OWNER: {
+    label: "المالك",
+    views: [
+      "dashboard", "ownerDashboard", "managerDashboard",
+      "sales", "invoices", "reports", "inventory", "purchases", "suppliers",
+      "customers", "analytics", "accounting", "integrations", "shifts",
+      "spotcheck", "exchanges", "pricing", "users", "settings", "audit",
+      "bundles", "compositions",
+    ],
+  },
   ADMIN: {
     label: "مدير النظام",
     views: [

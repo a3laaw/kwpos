@@ -24,6 +24,7 @@ import {
   PackageOpen,
   FlaskConical,
   TrendingUp,
+  Crown,
 } from "lucide-react"
 import type { Dict } from "@/lib/i18n"
 
@@ -59,6 +60,7 @@ export type NavEntry =
  */
 export const NAV_ENTRIES: NavEntry[] = [
   { type: "leaf", view: "dashboard", labelKey: "navDashboard", icon: LayoutDashboard },
+  { type: "leaf", view: "ownerDashboard", labelKey: "navOwnerDashboard", icon: Crown },
   { type: "leaf", view: "managerDashboard", labelKey: "navManagerDashboard", icon: TrendingUp },
   { type: "leaf", view: "sales", labelKey: "navSales", icon: Calculator },
   {
@@ -128,6 +130,7 @@ export const NAV_ITEMS: NavLeaf[] = NAV_ENTRIES.flatMap((e) =>
 export const VIEW_META: Record<AppView, { titleKey: keyof Dict; descKey: keyof Dict }> = {
   dashboard: { titleKey: "dashboardTitle", descKey: "dashboardDesc" },
   managerDashboard: { titleKey: "managerDashboardTitle", descKey: "managerDashboardDesc" },
+  ownerDashboard: { titleKey: "ownerDashboardTitle", descKey: "ownerDashboardDesc" },
   sales: { titleKey: "salesTitle", descKey: "salesDesc" },
   invoices: { titleKey: "invoicesTitle", descKey: "invoicesDesc" },
   reports: { titleKey: "reportsTitle", descKey: "reportsDesc" },

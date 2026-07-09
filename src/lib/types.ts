@@ -1,6 +1,6 @@
 // Shared application types
 
-export type Role = "ADMIN" | "MANAGER" | "ACCOUNTANT" | "WAREHOUSE" | "SALES" | "CASHIER"
+export type Role = "OWNER" | "ADMIN" | "MANAGER" | "ACCOUNTANT" | "WAREHOUSE" | "SALES" | "CASHIER"
 
 export interface Category {
   id: string
@@ -158,6 +158,7 @@ export interface DashboardStats {
 export type AppView =
   | "dashboard"
   | "managerDashboard"
+  | "ownerDashboard"
   | "inventory"
   | "purchases"
   | "suppliers"

@@ -13,6 +13,9 @@ export interface Dict {
   navManagerDashboard: string
   managerDashboardTitle: string
   managerDashboardDesc: string
+  navOwnerDashboard: string
+  ownerDashboardTitle: string
+  ownerDashboardDesc: string
   navSales: string
   navInvoices: string
   navReports: string
@@ -38,6 +41,7 @@ export interface Dict {
 
   // Roles
   roleAdmin: string
+  roleOwner: string
   roleManager: string
   roleAccountant: string
   roleSales: string
@@ -1871,6 +1875,9 @@ export const DICTS: Record<Locale, Dict> = {
     navManagerDashboard: "لوحة المدير",
     managerDashboardTitle: "لوحة المدير",
     managerDashboardDesc: "نظرة عملياتية سريعة على أداء المتجر",
+    navOwnerDashboard: "لوحة المالك",
+    ownerDashboardTitle: "لوحة المالك",
+    ownerDashboardDesc: "نظرة شاملة على أداء الأعمال والربحية",
     navSales: "نقاط البيع",
     navInvoices: "الفواتير",
     navReports: "التقارير",
@@ -1893,6 +1900,7 @@ export const DICTS: Record<Locale, Dict> = {
     navSystem: "الإعدادات",
     navOperations: "العمليات اليومية",
     roleAdmin: "مدير النظام",
+    roleOwner: "المالك",
     roleManager: "مدير",
     roleAccountant: "محاسب",
     roleSales: "موظف مبيعات",
@@ -3713,6 +3721,9 @@ export const DICTS: Record<Locale, Dict> = {
     navManagerDashboard: "Manager Dashboard",
     managerDashboardTitle: "Manager Dashboard",
     managerDashboardDesc: "Quick operational overview of store performance",
+    navOwnerDashboard: "Owner Dashboard",
+    ownerDashboardTitle: "Owner Dashboard",
+    ownerDashboardDesc: "Comprehensive business performance overview",
     navSales: "Point of Sale",
     navInvoices: "Invoices",
     navReports: "Reports",
@@ -3735,6 +3746,7 @@ export const DICTS: Record<Locale, Dict> = {
     navSystem: "Settings",
     navOperations: "Daily Operations",
     roleAdmin: "Administrator",
+    roleOwner: "Owner",
     roleManager: "Manager",
     roleAccountant: "Accountant",
     roleSales: "Sales Clerk",

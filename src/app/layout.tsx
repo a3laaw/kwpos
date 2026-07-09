@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Tajawal } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
@@ -24,10 +24,24 @@ export const metadata: Metadata = {
   description:
     "نظام متكامل لإدارة المبيعات والمخازن والمشتريات للمشاريع الصغيرة — نقاط بيع، فواتير، أوامر شراء، تقارير.",
   keywords: ["ERP", "مبيعات", "مخازن", "مشتريات", "فواتير", "نقاط بيع"],
+  manifest: "/manifest.json",
   icons: {
     icon: "/logo.svg?v=2",
     apple: "/logo.svg?v=2",
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "KWPOS",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  themeColor: "#2E6237",
 };
 
 export default function RootLayout({
