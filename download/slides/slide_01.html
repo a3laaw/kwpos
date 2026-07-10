@@ -3,115 +3,130 @@
 <head>
 <meta charset="UTF-8">
 <title>KWPOS — نظام إدارة متكامل</title>
-<link rel="stylesheet" href="global.css">
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<link rel="stylesheet" href="global.css">
 <style>
-  .cover-image {
-    position: absolute; inset: 0;
-    background-image: url('https://sfile.chatglm.cn/images-ppt/6035bd255217.jpg');
-    background-size: cover; background-position: center;
+  body { margin: 0; padding: 0; background: #e9ebeb; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+  .font-heading { font-family: 'Cairo', sans-serif; }
+  .font-body { font-family: 'Tajawal', sans-serif; }
+  .hero-img {
+    border-radius: 16px;
+    box-shadow: 0 30px 70px -20px rgba(46,98,55,0.45), 0 10px 30px -8px rgba(0,0,0,0.18);
+    object-fit: cover;
+    object-position: top center;
   }
-  .cover-overlay {
-    position: absolute; inset: 0;
-    background: linear-gradient(135deg, rgba(26,46,29,0.97) 0%, rgba(46,98,55,0.93) 55%, rgba(46,98,55,0.80) 100%);
-  }
-  .pattern-dot {
-    position: absolute; inset: 0;
-    background-image: radial-gradient(rgba(223,193,150,0.20) 1.5px, transparent 1.5px);
-    background-size: 26px 26px;
-    opacity: 0.55;
-  }
-  .display-title {
+  .ghost-num {
     font-family: 'Cairo', sans-serif;
     font-weight: 900;
-    letter-spacing: -0.03em;
-    background: linear-gradient(180deg, #ffffff 0%, #f0d9b8 100%);
+    color: rgba(46,98,55,0.04);
+    font-size: 360px;
+    line-height: 1;
+    letter-spacing: -10px;
+  }
+  .title-display {
+    font-family: 'Cairo', sans-serif;
+    font-weight: 900;
+    letter-spacing: -3px;
+    background: linear-gradient(135deg, #2E6237 0%, #1a2e1d 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-    color: transparent;
-    text-shadow: 0 6px 32px rgba(0,0,0,0.18);
   }
-  .heading { font-family: 'Cairo', sans-serif; }
-  .body { font-family: 'Tajawal', sans-serif; }
-  .stat-pill {
-    background: rgba(255,255,255,0.10);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255,255,255,0.22);
-    padding: 9px 16px;
-    border-radius: 12px;
-    color: #ffffff;
-    font-weight: 700;
-    font-family: 'Tajawal', sans-serif;
-    font-size: 15px;
-  }
-  .gold-glow {
-    position: absolute;
-    width: 360px; height: 360px;
-    background: radial-gradient(circle, rgba(223,193,150,0.40) 0%, transparent 70%);
-    border-radius: 50%;
-    pointer-events: none;
-  }
-  .corner-mark {
-    position: absolute;
-    width: 56px; height: 56px;
-    border: 2px solid rgba(223,193,150,0.5);
+  .pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 16px; border-radius: 999px;
+    font-family: 'Tajawal', sans-serif; font-weight: 600; font-size: 13px;
   }
 </style>
 </head>
 <body>
-<div class="slide slide-rtl relative" dir="rtl">
-  <div class="cover-image" data-decor aria-hidden="true"></div>
-  <div class="cover-overlay" data-decor aria-hidden="true"></div>
-  <div class="pattern-dot" data-decor aria-hidden="true"></div>
-  <div class="gold-glow" style="top: -140px; right: -100px;" data-decor aria-hidden="true"></div>
-  <div class="gold-glow" style="bottom: -120px; left: 25%; opacity: 0.55;" data-decor aria-hidden="true"></div>
-  <div class="corner-mark" style="top: 36px; left: 36px; border-right: none; border-bottom: none;" data-decor aria-hidden="true"></div>
-  <div class="corner-mark" style="bottom: 36px; right: 36px; border-left: none; border-top: none;" data-decor aria-hidden="true"></div>
+<div class="slide slide-rtl relative" dir="rtl" style="width:1280px;height:720px;overflow:hidden;background:#ffffff;">
+  <!-- Decorative background -->
+  <div data-decor aria-hidden="true" class="absolute inset-0 pointer-events-none">
+    <div class="absolute -top-40 -left-40 w-[460px] h-[460px] rounded-full" style="background: radial-gradient(circle, rgba(46,98,55,0.10), transparent 70%);"></div>
+    <div class="absolute -bottom-48 -right-32 w-[520px] h-[520px] rounded-full" style="background: radial-gradient(circle, rgba(223,193,150,0.18), transparent 70%);"></div>
+    <div class="ghost-num absolute -bottom-24 right-8 select-none">7</div>
+  </div>
 
-  <!-- Top bar: brand right, system indicator left -->
-  <div class="absolute top-0 right-0 left-0 flex items-center justify-between px-16 py-8 z-10">
+  <!-- Top brand bar -->
+  <div class="absolute top-0 right-0 left-0 px-14 py-6 flex items-center justify-between z-10">
     <div class="flex items-center gap-3">
-      <div class="w-12 h-12 rounded-2xl bg-[#DFC196] flex items-center justify-center shadow-lg">
-        <span class="material-icons" style="font-size: 28px; color: #2E6237;">store</span>
+      <div class="w-11 h-11 rounded-xl flex items-center justify-center shadow-md" style="background: linear-gradient(135deg, #2E6237, #1a2e1d);">
+        <span class="material-icons text-white" style="font-size: 24px;">storefront</span>
       </div>
-      <span class="text-white heading text-xl font-bold tracking-wide">KWPOS</span>
+      <div class="flex flex-col leading-tight">
+        <span class="font-heading font-bold text-base" style="color: var(--primary);">KWPOS</span>
+        <span class="font-body text-[11px]" style="color: var(--muted);">Business Suite</span>
+      </div>
     </div>
-    <div class="flex items-center gap-2 text-white/75 text-sm heading font-semibold">
-      <span class="material-icons" style="font-size: 18px;">verified_user</span>
-      نظام إدارة أعمال
+    <div class="flex items-center gap-2 px-4 py-2 rounded-full" style="background: rgba(223,193,150,0.18);">
+      <span class="material-icons" style="font-size: 16px; color: #8a6d3b;">verified</span>
+      <span class="font-body font-semibold text-xs" style="color: #6b5328;">جاهز للإنتاج • Production Ready</span>
     </div>
   </div>
 
-  <!-- Hero content (right-aligned) -->
-  <div class="absolute inset-0 flex items-center px-16 z-10">
-    <div class="ml-auto" style="max-width: 780px;">
-      <div class="text-right">
-        <div class="inline-flex items-center gap-2 bg-[#DFC196]/15 border border-[#DFC196]/40 text-[#DFC196] px-4 py-1.5 rounded-full text-sm font-bold mb-6 heading">
-          <span class="material-icons" style="font-size: 16px;">auto_awesome</span>
-          نظام متكامل لإدارة المتاجر
+  <!-- Main content -->
+  <div class="absolute inset-0 pt-24 pb-20 px-14 flex items-center gap-12 z-10">
+    <!-- Left: Hero image -->
+    <div class="flex-shrink-0" style="width: 520px;">
+      <div class="relative">
+        <div data-decor aria-hidden="true" class="absolute -top-5 -right-5 w-28 h-28 rounded-2xl rotate-6" style="background: var(--accent); opacity: 0.55;"></div>
+        <div data-decor aria-hidden="true" class="absolute -bottom-6 -left-6 w-32 h-32 rounded-full" style="background: var(--primary); opacity: 0.10;"></div>
+        <img src="screenshots/01-login.png" alt="شاشة تسجيل الدخول" class="hero-img relative z-10 w-full" style="height: 440px;">
+        <div class="absolute -bottom-4 right-6 z-20 flex items-center gap-2 px-4 py-2 rounded-full shadow-lg bg-white">
+          <span class="material-icons" style="font-size: 16px; color: var(--primary);">lock</span>
+          <span class="font-body font-semibold text-xs" style="color: var(--dark);">دخول آمن • 7 أدوار</span>
         </div>
       </div>
-      <h1 class="display-title text-[124px] leading-[0.95] mb-3 text-right">KWPOS</h1>
-      <p class="text-[#DFC196] heading text-3xl font-bold mb-3 text-right">نظام إدارة المبيعات والمخازن والمشتريات</p>
-      <p class="text-white/85 body text-xl leading-relaxed text-right" style="max-width: 720px; margin-right: 0; margin-left: auto;">نظام متكامل لإدارة المتاجر — نقاط بيع، مخزون، مشتريات، محاسبة، تقارير</p>
+    </div>
+
+    <!-- Right: Title content -->
+    <div class="flex-1 flex flex-col justify-center pl-4">
+      <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-5 self-start" style="background: rgba(46,98,55,0.08);">
+        <span class="material-icons" style="font-size: 16px; color: var(--primary);">hub</span>
+        <span class="font-body font-semibold text-xs" style="color: var(--primary);">نظام متكامل لإدارة الأعمال</span>
+      </div>
+
+      <h1 class="title-display leading-none mb-3" style="font-size: 130px;">KWPOS</h1>
+
+      <div class="flex items-center gap-3 mb-5">
+        <div class="h-1 w-20 rounded-full" style="background: var(--accent);"></div>
+        <span class="font-body font-semibold text-sm tracking-wide" style="color: #8a6d3b;">V 1.0</span>
+      </div>
+
+      <h2 class="font-heading font-bold leading-snug mb-3" style="font-size: 26px; color: var(--dark);">
+        نظام إدارة المبيعات والمخازن والمشتريات
+      </h2>
+
+      <p class="font-body leading-relaxed mb-8" style="font-size: 16px; color: var(--muted); max-width: 540px;">
+        نظام متكامل لإدارة المتاجر — نقاط بيع، مخزون، مشتريات، محاسبة، تقارير
+      </p>
+
+      <div class="flex flex-wrap gap-2.5">
+        <span class="pill" style="background: rgba(46,98,55,0.10); color: var(--primary);">
+          <span class="material-icons" style="font-size: 16px;">groups</span>7 أدوار
+        </span>
+        <span class="pill" style="background: rgba(46,98,55,0.10); color: var(--primary);">
+          <span class="material-icons" style="font-size: 16px;">description</span>20+ صفحة
+        </span>
+        <span class="pill" style="background: rgba(223,193,150,0.22); color: #6b5328;">
+          <span class="material-icons" style="font-size: 16px;">api</span>90+ API
+        </span>
+        <span class="pill" style="background: rgba(223,193,150,0.22); color: #6b5328;">
+          <span class="material-icons" style="font-size: 16px;">science</span>11 اختبار
+        </span>
+      </div>
     </div>
   </div>
 
-  <!-- Bottom-left stats -->
-  <div class="absolute bottom-10 left-16 z-10">
-    <div class="flex items-center gap-2.5 body">
-      <span class="stat-pill">7 أدوار</span>
-      <span class="text-[#DFC196] text-xl font-bold">•</span>
-      <span class="stat-pill">20+ صفحة</span>
-      <span class="text-[#DFC196] text-xl font-bold">•</span>
-      <span class="stat-pill">90+ API</span>
-      <span class="text-[#DFC196] text-xl font-bold">•</span>
-      <span class="stat-pill">11 اختبار</span>
-    </div>
+  <!-- Bottom-left stats strip -->
+  <div class="absolute bottom-7 left-14 z-10 flex items-center gap-3 px-5 py-2.5 rounded-xl shadow-md" style="background: var(--dark);">
+    <span class="material-icons" style="font-size: 18px; color: var(--accent);">trending_up</span>
+    <span class="font-body font-semibold text-sm text-white tracking-wide">7 أدوار • 20+ صفحة • 90+ API • 11 اختبار</span>
   </div>
 
+  <!-- Footer gradient bar -->
   <div class="footer-bar"></div>
 </div>
 </body>

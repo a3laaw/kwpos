@@ -2,119 +2,143 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<title>نقاط البيع — POS</title>
-<link rel="stylesheet" href="global.css">
+<title>نقاط البيع POS — KWPOS</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<link rel="stylesheet" href="global.css">
 <style>
-  .heading { font-family: 'Cairo', sans-serif; }
-  .body { font-family: 'Tajawal', sans-serif; }
-  .pattern-bg {
-    position: absolute; inset: 0;
-    background-image: radial-gradient(rgba(46,98,55,0.04) 1.5px, transparent 1.5px);
-    background-size: 22px 22px;
-    pointer-events: none;
+  body { margin: 0; padding: 0; background: #e9ebeb; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+  .font-heading { font-family: 'Cairo', sans-serif; }
+  .font-body { font-family: 'Tajawal', sans-serif; }
+  .shot-img {
+    border-radius: 16px;
+    box-shadow: 0 30px 60px -20px rgba(46,98,55,0.30), 0 8px 25px -8px rgba(0,0,0,0.18);
+    object-fit: cover;
+    object-position: top center;
   }
-  .image-frame {
-    border-radius: 18px;
-    overflow: hidden;
-    border: 1px solid #e5e7eb;
-    box-shadow: 0 12px 30px -10px rgba(46,98,55,0.25);
-    position: relative;
+  .feat-card {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border-radius: 10px;
+    background: #f8faf9; border: 1px solid #eef1ef;
   }
-  .image-frame::after {
-    content: '';
-    position: absolute; inset: 0;
-    background: linear-gradient(135deg, transparent 60%, rgba(46,98,55,0.18) 100%);
-    pointer-events: none;
-  }
-  .check-pill {
-    width: 22px; height: 22px;
-    border-radius: 6px;
+  .feat-ico {
+    flex-shrink: 0; width: 28px; height: 28px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
     background: rgba(46,98,55,0.10);
-    display: inline-flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-    margin-top: 2px;
   }
-  .stat-card {
-    background: linear-gradient(135deg, rgba(46,98,55,0.08) 0%, rgba(223,193,150,0.18) 100%);
-    border: 1px solid rgba(46,98,55,0.15);
-    border-radius: 14px;
-    padding: 14px 18px;
-    flex: 1;
+  .ghost-num {
+    font-family: 'Cairo', sans-serif; font-weight: 900;
+    color: rgba(46,98,55,0.05); font-size: 280px; line-height: 1; letter-spacing: -8px;
+  }
+  .stat-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border-radius: 999px;
+    font-family: 'Tajawal', sans-serif; font-weight: 700; font-size: 12px;
   }
 </style>
 </head>
 <body>
-<div class="slide slide-rtl relative" dir="rtl">
-  <div class="pattern-bg" data-decor aria-hidden="true"></div>
+<div class="slide slide-rtl relative" dir="rtl" style="width:1280px;height:720px;overflow:hidden;background:#ffffff;">
+  <!-- Decorative -->
+  <div data-decor aria-hidden="true" class="absolute inset-0 pointer-events-none">
+    <div class="absolute -top-32 -right-32 w-[420px] h-[420px] rounded-full" style="background: radial-gradient(circle, rgba(223,193,150,0.18), transparent 70%);"></div>
+    <div class="ghost-num absolute -bottom-16 -right-8 select-none">03</div>
+  </div>
 
-  <!-- Header -->
-  <div class="relative px-16 pt-10 pb-5 flex items-end justify-between z-10">
-    <div>
-      <div class="flex items-center gap-2 mb-3">
-        <span class="bg-[#2E6237] text-white text-xs font-bold px-2.5 py-1 rounded-md heading">03</span>
-        <span class="text-[#8a6d3b] heading text-sm font-bold tracking-wide">وحدة نقاط البيع</span>
+  <!-- Top header -->
+  <div class="absolute top-0 right-0 left-0 px-14 py-6 flex items-center justify-between z-20">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, #2E6237, #1a2e1d);">
+        <span class="material-icons text-white" style="font-size: 22px;">storefront</span>
       </div>
-      <h1 class="text-[#2E6237] heading text-5xl font-extrabold">نقاط البيع — POS</h1>
+      <span class="font-heading font-bold text-base" style="color: var(--primary);">KWPOS</span>
     </div>
-    <div class="flex items-center gap-2 text-[#2E6237] bg-[#f8faf9] border border-[#e5e7eb] px-4 py-2.5 rounded-xl">
-      <span class="material-icons" style="font-size: 22px;">point_of_sale</span>
-      <span class="heading font-bold text-base">واجهة الكاشير</span>
+    <div class="flex items-center gap-2 text-sm" style="color: var(--muted);">
+      <span class="font-body font-semibold">03 / 10</span>
+      <span style="width:1px;height:14px;background:#d1d5db;"></span>
+      <span class="font-body">نقاط البيع</span>
     </div>
   </div>
 
-  <!-- 2-col grid: image right (first DOM), text left (second DOM) -->
-  <div class="relative px-16 pb-10 z-10">
-    <div class="grid grid-cols-2 gap-8 items-stretch">
-
-      <!-- Image (right side in RTL) -->
-      <div class="image-frame" style="height: 480px;">
-        <img src="https://sfile.chatglm.cn/images-ppt/8796d5e2ac1b.png" alt="POS interface" class="w-full h-full object-cover"/>
-      </div>
-
-      <!-- Text (left side in RTL) -->
-      <div class="flex flex-col" style="min-height: 480px;">
-        <p class="text-[#1a2e1d] body text-lg font-bold mb-4 leading-relaxed">
-          <span class="text-[#2E6237]">وضعان للكاشير:</span> الوضع العادي والوضع السريع
-        </p>
-        <ul class="body text-[15px] text-[#1a2e1d] space-y-2 mb-5">
-          <li class="flex items-start gap-2.5"><span class="check-pill"><span class="material-icons" style="font-size: 14px; color: #2E6237;">check</span></span><span>بحث فوري بالاسم أو الباركود</span></li>
-          <li class="flex items-start gap-2.5"><span class="check-pill"><span class="material-icons" style="font-size: 14px; color: #2E6237;">check</span></span><span>بطاقات منتجات بصور كبيرة</span></li>
-          <li class="flex items-start gap-2.5"><span class="check-pill"><span class="material-icons" style="font-size: 14px; color: #2E6237;">check</span></span><span>سلة مبسطة مع التحكم بالكمية</span></li>
-          <li class="flex items-start gap-2.5"><span class="check-pill"><span class="material-icons" style="font-size: 14px; color: #2E6237;">check</span></span><span>أزرار دفع سريعة (نقدي/بطاقة)</span></li>
-          <li class="flex items-start gap-2.5"><span class="check-pill"><span class="material-icons" style="font-size: 14px; color: #2E6237;">check</span></span><span>قارئ باركود عالمي (USB HID)</span></li>
-          <li class="flex items-start gap-2.5"><span class="check-pill"><span class="material-icons" style="font-size: 14px; color: #2E6237;">check</span></span><span>فتح درج النقدية (ESC/POS)</span></li>
-          <li class="flex items-start gap-2.5"><span class="check-pill"><span class="material-icons" style="font-size: 14px; color: #2E6237;">check</span></span><span>طباعة إيصال حراري 80mm</span></li>
-          <li class="flex items-start gap-2.5"><span class="check-pill"><span class="material-icons" style="font-size: 14px; color: #2E6237;">check</span></span><span>دعم تلقائي للطابعة الحرارية</span></li>
-        </ul>
-
-        <!-- Stat badges -->
-        <div class="mt-auto flex items-center gap-3">
-          <div class="stat-card">
-            <div class="flex items-center gap-2">
-              <span class="material-icons" style="font-size: 22px; color: #2E6237;">layers</span>
-              <div>
-                <div class="heading text-2xl font-extrabold text-[#2E6237] leading-none">2</div>
-                <div class="body text-xs text-[#1a2e1d] font-semibold mt-0.5">أوضاع</div>
-              </div>
-            </div>
+  <!-- Main content -->
+  <div class="absolute inset-0 pt-24 pb-14 px-14 flex items-center gap-10 z-10">
+    <!-- Left: Screenshot (visually left) -->
+    <div class="flex-shrink-0" style="width: 540px;">
+      <div class="relative">
+        <div data-decor aria-hidden="true" class="absolute -top-4 -left-4 w-20 h-20 rounded-2xl -rotate-6" style="background: var(--accent); opacity: 0.45;"></div>
+        <img src="screenshots/03-pos.png" alt="نقاط البيع POS" class="shot-img relative z-10 w-full" style="height: 460px;">
+        <div class="mt-4 flex items-center justify-between gap-3 px-2">
+          <div class="flex items-center gap-2">
+            <span class="material-icons" style="font-size: 16px; color: var(--primary);">point_of_sale</span>
+            <p class="font-body font-medium text-[13px]" style="color: var(--dark);">واجهة الكاشير — وضع سريع وفعّال</p>
           </div>
-          <div class="stat-card">
-            <div class="flex items-center gap-2">
-              <span class="material-icons" style="font-size: 22px; color: #8a6d3b;">stars</span>
-              <div>
-                <div class="heading text-2xl font-extrabold text-[#8a6d3b] leading-none">8</div>
-                <div class="body text-xs text-[#1a2e1d] font-semibold mt-0.5">ميزات</div>
-              </div>
-            </div>
-          </div>
+          <span class="font-body text-[11px] px-2 py-1 rounded" style="background: rgba(46,98,55,0.08); color: var(--primary);">POS UI</span>
         </div>
       </div>
+    </div>
 
+    <!-- Right: Text content -->
+    <div class="flex-1 flex flex-col justify-center" style="max-width: 560px;">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="font-body font-bold text-sm" style="color: var(--accent); letter-spacing: 4px;">POINT OF SALE</span>
+        <div class="h-px flex-1" style="background: var(--accent); opacity: 0.6;"></div>
+      </div>
+      <h1 class="font-heading font-black leading-tight mb-3" style="font-size: 40px; color: var(--dark);">
+        نقاط البيع — <span style="color: var(--primary);">POS</span>
+      </h1>
+      <p class="font-body leading-relaxed mb-4" style="font-size: 15px; color: var(--muted);">
+        وضعان للكاشير: الوضع العادي والوضع السريع
+      </p>
+
+      <!-- Stats badges -->
+      <div class="flex gap-2 mb-4">
+        <span class="stat-pill" style="background: rgba(46,98,55,0.10); color: var(--primary);">
+          <span class="material-icons" style="font-size: 14px;">layers</span>2 أوضاع
+        </span>
+        <span class="stat-pill" style="background: rgba(223,193,150,0.25); color: #6b5328;">
+          <span class="material-icons" style="font-size: 14px;">stars</span>8 ميزات
+        </span>
+      </div>
+
+      <!-- Bullets in 2 columns -->
+      <div class="grid grid-cols-2 gap-2">
+        <div class="feat-card">
+          <div class="feat-ico"><span class="material-icons" style="font-size: 16px; color: var(--primary);">search</span></div>
+          <p class="font-body font-semibold text-[12.5px]" style="color: var(--dark);">بحث فوري بالاسم أو الباركود</p>
+        </div>
+        <div class="feat-card">
+          <div class="feat-ico"><span class="material-icons" style="font-size: 16px; color: var(--primary);">grid_view</span></div>
+          <p class="font-body font-semibold text-[12.5px]" style="color: var(--dark);">بطاقات منتجات بصور كبيرة</p>
+        </div>
+        <div class="feat-card">
+          <div class="feat-ico"><span class="material-icons" style="font-size: 16px; color: var(--primary);">shopping_cart</span></div>
+          <p class="font-body font-semibold text-[12.5px]" style="color: var(--dark);">سلة مبسطة مع التحكم بالكمية</p>
+        </div>
+        <div class="feat-card">
+          <div class="feat-ico"><span class="material-icons" style="font-size: 16px; color: var(--primary);">payments</span></div>
+          <p class="font-body font-semibold text-[12.5px]" style="color: var(--dark);">أزرار دفع سريعة (نقدي/بطاقة)</p>
+        </div>
+        <div class="feat-card">
+          <div class="feat-ico"><span class="material-icons" style="font-size: 16px; color: var(--primary);">qr_code_scanner</span></div>
+          <p class="font-body font-semibold text-[12.5px]" style="color: var(--dark);">قارئ باركود عالمي (USB HID)</p>
+        </div>
+        <div class="feat-card">
+          <div class="feat-ico"><span class="material-icons" style="font-size: 16px; color: var(--primary);">account_balance_wallet</span></div>
+          <p class="font-body font-semibold text-[12.5px]" style="color: var(--dark);">فتح درج النقدية (ESC/POS)</p>
+        </div>
+        <div class="feat-card">
+          <div class="feat-ico"><span class="material-icons" style="font-size: 16px; color: var(--primary);">print</span></div>
+          <p class="font-body font-semibold text-[12.5px]" style="color: var(--dark);">طباعة إيصال حراري 80mm</p>
+        </div>
+        <div class="feat-card">
+          <div class="feat-ico"><span class="material-icons" style="font-size: 16px; color: var(--primary);">settings_remote</span></div>
+          <p class="font-body font-semibold text-[12.5px]" style="color: var(--dark);">دعم تلقائي للطابعة</p>
+        </div>
+      </div>
     </div>
   </div>
 
+  <!-- Footer gradient bar -->
   <div class="footer-bar"></div>
 </div>
 </body>

@@ -15,61 +15,61 @@
       "title": "KWPOS — نظام إدارة متكامل",
       "layout": "cover",
       "output_path": "/home/z/my-project/download/slides/slide_01.html",
-      "task_brief": "Cover slide. RTL Arabic. Big title: 'KWPOS' with subtitle 'نظام إدارة المبيعات والمخازن والمشتريات'. Tagline: 'نظام متكامل لإدارة المتاجر — نقاط بيع، مخزون، مشتريات، محاسبة، تقارير'. Bottom-left: '7 أدوار • 20+ صفحة • 90+ API • 11 اختبار'. Use green (#2E6237) as primary, gold (#DFC196) as accent. Show a subtle background pattern or gradient. Add the system logo concept (store icon). Image: https://sfile.chatglm.cn/images-ppt/6035bd255217.jpg as a subtle background or side image."
+      "task_brief": "Cover slide. RTL Arabic. Big title: 'KWPOS' with subtitle 'نظام إدارة المبيعات والمخازن والمشتريات'. Tagline: 'نظام متكامل لإدارة المتاجر — نقاط بيع، مخزون، مشتريات، محاسبة، تقارير'. Bottom-left: '7 أدوار • 20+ صفحة • 90+ API • 11 اختبار'. Use green (#2E6237) as primary, gold (#DFC196) as accent. Show the login screenshot as a hero image on the left side: screenshots/01-login.png (use relative path, rounded corners, shadow)."
     },
     {
-      "title": "نظرة عامة على النظام",
-      "layout": "bento grid",
+      "title": "لوحة التحكم الرئيسية",
+      "layout": "split text+image",
       "output_path": "/home/z/my-project/download/slides/slide_02.html",
-      "task_brief": "Bento grid layout, RTL. Title: 'نظرة عامة'. 6 cards in a 3x2 grid: 1) 'نقاط البيع (POS)' — بيع سريع، وضع سريع للكاشير، قارئ باركود، درج نقدية. 2) 'إدارة المخزون' — مخازن متعددة، جرد، تحويلات، حركة مخزون. 3) 'المشتريات' — أوامر شراء، فواتير، مدفوعات موردين. 4) 'المحاسبة' — قيود، ميزان مراجعة، ميزانية، تدفقات نقدية، VAT. 5) 'التقارير' — تقارير مبيعات، تحليلات، مصفوفة أداء. 6) 'ميزات متقدمة' — باقات، تركيبات، نقاط ولاء، بحث شامل. Each card has an icon (material-icons), title, and 3-4 bullet points. Use --primary for icons."
+      "task_brief": "Split layout, RTL. Right side: text. Left side: screenshot. Title: 'لوحة التحكم الرئيسية'. Content: 'نظرة شاملة على أداء المتجر في صفحة واحدة'. Bullets: '• مبيعات اليوم مع نسبة التغيير', '• آخر الفواتير مع روابط سريعة', '• تنبيهات المخزون المنخفض', '• إجراءات سريعة (بيع، شراء، جرد)', '• رسوم بيانية تفاعلية'. Right side: show screenshots/02-dashboard.png with rounded corners and shadow effect. Caption below image: 'لوحة التحكم — نظرة سريعة على المتجر'."
     },
     {
       "title": "نقاط البيع (POS)",
       "layout": "split text+image",
       "output_path": "/home/z/my-project/download/slides/slide_03.html",
-      "task_brief": "Split layout, RTL. Left side: text. Right side: image. Title: 'نقاط البيع — POS'. Content: 'وضعان للكاشير: الوضع العادي والوضع السريع'. Bullets: '• بحث فوري بالاسم أو الباركود', '• بطاقات منتجات بصور كبيرة', '• سلة مبسطة مع التحكم بالكمية', '• أزرار دفع سريعة (نقدي/بطاقة)', '• قارئ باركود عالمي (USB HID)', '• فتح درج النقدية (ESC/POS)', '• طباعة إيصال حراري 80mm', '• دعم تلقائي للطابعة الحرارية'. Stats badges: '2 أوضاع' '8 ميزات'. Image: https://sfile.chatglm.cn/images-ppt/8796d5e2ac1b.png on the right side, rounded corners."
+      "task_brief": "Split layout, RTL. Left side: text. Right side: screenshot. Title: 'نقاط البيع — POS'. Content: 'وضعان للكاشير: الوضع العادي والوضع السريع'. Bullets: '• بحث فوري بالاسم أو الباركود', '• بطاقات منتجات بصور كبيرة', '• سلة مبسطة مع التحكم بالكمية', '• أزرار دفع سريعة (نقدي/بطاقة)', '• قارئ باركود عالمي (USB HID)', '• فتح درج النقدية (ESC/POS)', '• طباعة إيصال حراري 80mm', '• دعم تلقائي للطابعة'. Right side: show screenshots/03-pos.png with rounded corners. Stats badges: '2 أوضاع' '8 ميزات'."
     },
     {
       "title": "إدارة المخزون",
       "layout": "split text+image",
       "output_path": "/home/z/my-project/download/slides/slide_04.html",
-      "task_brief": "Split layout, RTL. Right side: text. Left side: image. Title: 'إدارة المخزون'. Content: 'نظام مخزون متعدد المخازن مع تتبع كامل'. Bullets: '• مخازن متعددة مع كميات مستقلة', '• Product.quantity = مجموع كل المخازن', '• جرد دوري وجرد أعمى (Spot Check)', '• تحويلات بين المخازن', '• تقرير حركة المخزون الكامل', '• تنبيهات نقص المخزون التلقائية', '• باركود لكل منتج (13 رقم حسب التصنيف)'. Stats: '3+ مخازن' '8 أنواع حركة'. Image: https://sfile.chatglm.cn/images-ppt/833c1738f097.png on the left, rounded."
+      "task_brief": "Split layout, RTL. Right side: text. Left side: screenshot. Title: 'إدارة المخزون'. Content: 'نظام مخزون متعدد المخازن مع تتبع كامل'. Bullets: '• مخازن متعددة مع كميات مستقلة', '• Product.quantity = مجموع كل المخازن', '• جرد دوري وجرد أعمى (Spot Check)', '• تحويلات بين المخازن', '• تقرير حركة المخزون الكامل', '• تنبيهات نقص المخزون التلقائية', '• باركود لكل منتج (13 رقم حسب التصنيف)'. Left side: show screenshots/04-inventory.png with rounded corners. Stats: '3+ مخازن' '8 أنواع حركة'."
     },
     {
       "title": "المحاسبة والمالية",
-      "layout": "stats grid",
+      "layout": "split text+image",
       "output_path": "/home/z/my-project/download/slides/slide_05.html",
-      "task_brief": "Stats grid layout, RTL. Title: 'المحاسبة والمالية'. Subtitle: 'نظام محاسبي مزدوج القيد متكامل'. 4 stat cards in a row: '17 حساب' (شجرة الحسابات), 'قيد مزدوج' (Double Entry), 'VAT' (تقرير ضريبة القيمة المضافة), '6 قوائم' (مالية). Below: 2 columns. Left: 'القيود المحاسبية' with bullets: قيود تلقائية عند البيع/الشراء، ميزان المراجعة، دفتر الأستاذ العام. Right: 'القوائم المالية' with bullets: الميزانية العمومية، قائمة التدفقات النقدية، كشف حساب العميل/المورد، تقرير VAT. Use --primary for stat numbers, --accent for highlights."
+      "task_brief": "Split layout, RTL. Left side: text. Right side: screenshot. Title: 'المحاسبة والمالية'. Content: 'نظام محاسبي مزدوج القيد متكامل'. Bullets: '• شجرة الحسابات (17 حساب)', '• قيود تلقائية عند البيع/الشراء', '• ميزان المراجعة', '• دفتر الأستاذ العام', '• الميزانية العمومية', '• قائمة التدفقات النقدية', '• كشف حساب العميل/المورد', '• تقرير ضريبة القيمة المضافة (VAT)'. Right side: show screenshots/05-accounting.png with rounded corners. Stats badges: '17 حساب' 'قيد مزدوج' '6 قوائم'."
     },
     {
       "title": "التقارير والتحليلات",
       "layout": "split text+image",
       "output_path": "/home/z/my-project/download/slides/slide_06.html",
-      "task_brief": "Split layout, RTL. Left: text. Right: image. Title: 'التقارير والتحليلات'. Content: 'تحليلات شاملة لأداء المتجر'. Bullets: '• تقرير المبيعات مع فلاتر مرنة', '• تحليلات المبيعات (5 أنواع)', '• مصفوفة أداء الأقسام والمنتجات', '• الأكثر مبيعًا والأصناف الراكدة', '• نسبة الربحية والتكاليف', '• طباعة التقارير (جداول فقط)', '• تصدير PDF و Excel'. Stats: '5 تحليلات' 'PDF+Excel'. Image: https://sfile.chatglm.cn/images-ppt/20391e57e7f5.jpg on the right."
+      "task_brief": "Split layout, RTL. Right side: text. Left side: screenshot. Title: 'التقارير والتحليلات'. Content: 'تحليلات شاملة لأداء المتجر'. Bullets: '• تقرير المبيعات مع فلاتر مرنة', '• تحليلات المبيعات (5 أنواع)', '• مصفوفة أداء الأقسام والمنتجات', '• الأكثر مبيعًا والأصناف الراكدة', '• نسبة الربحية والتكاليف', '• طباعة التقارير (جداول فقط)', '• تصدير PDF و Excel'. Left side: show screenshots/06-analytics.png with rounded corners. Stats: '5 تحليلات' 'PDF+Excel'."
     },
     {
-      "title": "الميزات المتقدمة",
+      "title": "لوحة المالك والميزات المتقدمة",
       "layout": "bento grid",
       "output_path": "/home/z/my-project/download/slides/slide_07.html",
-      "task_brief": "Bento grid, RTL. Title: 'ميزات متقدمة'. 6 cards: 1) 'الباقات (Bundles)' icon=package — 'منتجات تُباع معًا بسعر مخفّض. حساب التكلفة والربح والخصم تلقائيًا.' 2) 'التركيبات (Compositions)' icon=flask — 'خلط مكونات خام لإنتاج منتج جديد. مثال: 5جم عود + 3جم بخور = عود ملكي 8جم.' 3) 'نقاط الولاء' icon=star — 'نقاط لكل عميل، طبقات BRONZE/SILVER/GOLD، منح تلقائي عند البيع.' 4) 'بحث شامل (Ctrl+K)' icon=search — 'بحث فوري في المنتجات، العملاء، الموردين، الفواتير، أوامر الشراء.' 5) 'نظام التنبيهات' icon=bell — 'تنبيهات نقص مخزون، مدفوعات متأخرة، ورديات مفتوحة، نسبة حذف مرتفعة.' 6) 'لوحة المالك' icon=crown — 'نظرة شاملة على الأعمال: مبيعات، أرباح، مخزون، مستحقات.' Each card has icon, title, description."
+      "task_brief": "Bento grid, RTL. Title: 'لوحة المالك والميزات المتقدمة'. Top section: show screenshots/07-owner-dashboard.png as a wide hero image (full width, rounded corners, max height 280px). Below: 4 small cards in a row: 1) 'الباقات (Bundles)' icon=package — 'منتجات تُباع معًا بسعر مخفّض' 2) 'التركيبات' icon=flask — 'خلط مكونات خام لإنتاج منتج جديد' 3) 'نقاط الولاء' icon=star — 'نقاط + طبقات BRONZE/SILVER/GOLD' 4) 'بحث شامل (Ctrl+K)' icon=search — 'بحث فوري في كل النظام'. Also show screenshots/09-bundles.png as a small thumbnail next to the bundles card."
     },
     {
       "title": "الأمان والصلاحيات",
       "layout": "comparison",
       "output_path": "/home/z/my-project/download/slides/slide_08.html",
-      "task_brief": "Comparison/table layout, RTL. Title: 'الأمان والصلاحيات'. Subtitle: '7 أدوار مع صلاحيات دقيقة'. Table with 7 rows: OWNER (المالك) — كل الصلاحيات + لوحة المالك. ADMIN (مدير النظام) — كل الصفحات. MANAGER (مدير) — المبيعات، التقارير، الورديات، المستخدمون. ACCOUNTANT (محاسب) — المحاسبة، التقارير، الموردين. WAREHOUSE (أمين مخزن) — المخزون، المشتريات، الموردين. SALES (موظف مبيعات) — POS، الفواتير، العملاء. CASHIER (كاشير) — POS فقط + الورديات. Below: security features: '• كلمات مرور مشفرة (bcrypt)', '• سجل تدقيق كامل (Audit Log)', '• قفل صفوف المخزون (SELECT FOR UPDATE)', '• حماية API routes بالأدوار'. Use green checkmarks for each role."
+      "task_brief": "Comparison/table layout, RTL. Title: 'الأمان والصلاحيات'. Subtitle: '7 أدوار مع صلاحيات دقيقة'. Table with 7 rows: OWNER (المالك) — كل الصلاحيات + لوحة المالك. ADMIN (مدير النظام) — كل الصفحات. MANAGER (مدير) — المبيعات، التقارير، الورديات، المستخدمون. ACCOUNTANT (محاسب) — المحاسبة، التقارير، الموردين. WAREHOUSE (أمين مخزن) — المخزون، المشتريات، الموردين. SALES (موظف مبيعات) — POS، الفواتير، العملاء. CASHIER (كاشير) — POS فقط + الورديات. Below: security features: '• كلمات مرور مشفرة (bcrypt)', '• سجل تدقيق كامل (Audit Log)', '• قفل صفوف المخزون (SELECT FOR UPDATE)', '• حماية API routes بالأدوار'. Also show screenshots/08-settings.png as a small thumbnail on the right."
     },
     {
       "title": "التقنيات والأرقام",
       "layout": "stats",
       "output_path": "/home/z/my-project/download/slides/slide_09.html",
-      "task_brief": "Stats layout, RTL. Title: 'التقنيات والأرقام'. 6 big stat numbers in a 3x2 grid: '38' نموذج قاعدة بيانات, '90+' API route, '20+' صفحة, '7' أدوار, '11' اختبار آلي, '13' Pull Request. Below: tech stack badges in a row: 'Next.js 16', 'TypeScript 5', 'Prisma ORM', 'Supabase PostgreSQL', 'Tailwind CSS 4', 'shadcn/ui', 'TanStack Query', 'NextAuth.js', 'Vitest'. Each badge has a subtle background. Use --primary for numbers, --accent for badges."
+      "task_brief": "Stats layout, RTL. Title: 'التقنيات والأرقام'. 6 big stat numbers in a 3x2 grid: '38' نموذج قاعدة بيانات, '90+' API route, '20+' صفحة, '7' أدوار, '11' اختبار آلي, '13' Pull Request. Below: tech stack badges in a row: 'Next.js 16', 'TypeScript 5', 'Prisma ORM', 'Supabase PostgreSQL', 'Tailwind CSS 4', 'shadcn/ui', 'TanStack Query', 'NextAuth.js', 'Vitest'. Each badge has a subtle background. Use --primary for numbers, --accent for badges. Also show screenshots/10-reports.png as a wide thumbnail at the bottom."
     },
     {
       "title": "شكرًا لكم",
       "layout": "closing",
       "output_path": "/home/z/my-project/download/slides/slide_10.html",
-      "task_brief": "Closing slide, RTL. Centered. Big title: 'شكرًا لكم'. Subtitle: 'KWPOS — نظام إدارة المبيعات والمخازن والمشتريات'. Below: 'متوفر كتطبيق هاتف (PWA) — يعمل على الآيباد والهاتف والكمبيوتر'. Contact info placeholder: 'GitHub: a3laaw/kwpos | Vercel: kwpos.vercel.app'. Use gradient background from --primary to --dark. White text. Add decorative elements (accent circles or lines). Footer bar at bottom."
+      "task_brief": "Closing slide, RTL. Centered. Big title: 'شكرًا لكم'. Subtitle: 'KWPOS — نظام إدارة المبيعات والمخازن والمشتريات'. Below: 'متوفر كتطبيق هاتف (PWA) — يعمل على الآيباد والهاتف والكمبيوتر'. Contact info: 'GitHub: a3laaw/kwpos | Vercel: kwpos.vercel.app'. Use gradient background from --primary to --dark. White text. Add decorative elements (accent circles or lines). Footer bar at bottom."
     }
   ]
 }

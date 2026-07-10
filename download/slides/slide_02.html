@@ -2,168 +2,132 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<title>نظرة عامة على النظام</title>
-<link rel="stylesheet" href="global.css">
+<title>لوحة التحكم الرئيسية — KWPOS</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<link rel="stylesheet" href="global.css">
 <style>
-  .heading { font-family: 'Cairo', sans-serif; }
-  .body { font-family: 'Tajawal', sans-serif; }
-  .bento-card {
-    background: linear-gradient(180deg, #ffffff 0%, #f8faf9 100%);
-    border-radius: 18px;
-    padding: 20px 22px;
-    border: 1px solid #e5e7eb;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 1px 3px rgba(46,98,55,0.04);
+  body { margin: 0; padding: 0; background: #e9ebeb; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+  .font-heading { font-family: 'Cairo', sans-serif; }
+  .font-body { font-family: 'Tajawal', sans-serif; }
+  .shot-img {
+    border-radius: 16px;
+    box-shadow: 0 30px 60px -20px rgba(46,98,55,0.30), 0 8px 25px -8px rgba(0,0,0,0.18);
+    object-fit: cover;
+    object-position: top center;
   }
-  .bento-card::before {
-    content: '';
-    position: absolute;
-    top: 0; right: 0;
-    width: 5px; height: 100%;
-    background: linear-gradient(180deg, #2E6237 0%, #4a8a55 100%);
+  .bullet-row {
+    display: flex; align-items: flex-start; gap: 14px;
+    padding: 10px 14px; border-radius: 12px;
+    background: #f8faf9; border: 1px solid #eef1ef;
+    transition: all .2s;
   }
-  .bento-card::after {
-    content: '';
-    position: absolute;
-    bottom: -34px; left: -34px;
-    width: 110px; height: 110px;
-    background: radial-gradient(circle, rgba(223,193,150,0.22) 0%, transparent 70%);
-    pointer-events: none;
+  .bullet-ico {
+    flex-shrink: 0; width: 32px; height: 32px;
+    border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    background: rgba(46,98,55,0.10);
   }
-  .icon-circle {
-    width: 48px; height: 48px;
-    border-radius: 13px;
-    background: linear-gradient(135deg, rgba(46,98,55,0.14) 0%, rgba(46,98,55,0.05) 100%);
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-  }
-  .bullet-dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: #DFC196;
-    margin-top: 9px;
-    flex-shrink: 0;
-  }
-  .pattern-bg {
-    position: absolute;
-    inset: 0;
-    background-image: radial-gradient(rgba(46,98,55,0.045) 1.5px, transparent 1.5px);
-    background-size: 22px 22px;
-    pointer-events: none;
+  .ghost-num {
+    font-family: 'Cairo', sans-serif; font-weight: 900;
+    color: rgba(46,98,55,0.05); font-size: 280px; line-height: 1; letter-spacing: -8px;
   }
 </style>
 </head>
 <body>
-<div class="slide slide-rtl relative" dir="rtl">
-  <div class="pattern-bg" data-decor aria-hidden="true"></div>
+<div class="slide slide-rtl relative" dir="rtl" style="width:1280px;height:720px;overflow:hidden;background:#ffffff;">
+  <!-- Decorative -->
+  <div data-decor aria-hidden="true" class="absolute inset-0 pointer-events-none">
+    <div class="absolute -top-32 -left-32 w-[420px] h-[420px] rounded-full" style="background: radial-gradient(circle, rgba(46,98,55,0.07), transparent 70%);"></div>
+    <div class="ghost-num absolute -bottom-16 -left-8 select-none">02</div>
+  </div>
 
-  <!-- Header -->
-  <div class="relative px-16 pt-10 pb-6 flex items-end justify-between z-10">
-    <div>
+  <!-- Top header -->
+  <div class="absolute top-0 right-0 left-0 px-14 py-6 flex items-center justify-between z-20">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, #2E6237, #1a2e1d);">
+        <span class="material-icons text-white" style="font-size: 22px;">storefront</span>
+      </div>
+      <span class="font-heading font-bold text-base" style="color: var(--primary);">KWPOS</span>
+    </div>
+    <div class="flex items-center gap-2 text-sm" style="color: var(--muted);">
+      <span class="font-body font-semibold">02 / 10</span>
+      <span style="width:1px;height:14px;background:#d1d5db;"></span>
+      <span class="font-body">لوحة التحكم</span>
+    </div>
+  </div>
+
+  <!-- Main content -->
+  <div class="absolute inset-0 pt-24 pb-14 px-14 flex items-center gap-12 z-10">
+    <!-- Right: Text content -->
+    <div class="flex-1 flex flex-col justify-center" style="max-width: 540px;">
       <div class="flex items-center gap-2 mb-3">
-        <span class="bg-[#2E6237] text-white text-xs font-bold px-2.5 py-1 rounded-md heading">02</span>
-        <span class="text-[#8a6d3b] heading text-sm font-bold tracking-wide">نظرة شاملة على المنظومة</span>
+        <span class="font-body font-bold text-sm" style="color: var(--accent); letter-spacing: 4px;">DASHBOARD</span>
+        <div class="h-px flex-1" style="background: var(--accent); opacity: 0.6;"></div>
       </div>
-      <h1 class="text-[#2E6237] heading text-5xl font-extrabold">نظرة عامة على النظام</h1>
+      <h1 class="font-heading font-black leading-tight mb-3" style="font-size: 44px; color: var(--dark);">
+        لوحة التحكم <span style="color: var(--primary);">الرئيسية</span>
+      </h1>
+      <p class="font-body leading-relaxed mb-5" style="font-size: 16px; color: var(--muted);">
+        نظرة شاملة على أداء المتجر في صفحة واحدة
+      </p>
+
+      <div class="flex flex-col gap-2.5">
+        <div class="bullet-row">
+          <div class="bullet-ico"><span class="material-icons" style="font-size: 18px; color: var(--primary);">today</span></div>
+          <div>
+            <p class="font-body font-semibold text-[15px]" style="color: var(--dark);">مبيعات اليوم مع نسبة التغيير</p>
+            <p class="font-body text-xs" style="color: var(--muted);">مقارنة فورية مع الأمس</p>
+          </div>
+        </div>
+        <div class="bullet-row">
+          <div class="bullet-ico"><span class="material-icons" style="font-size: 18px; color: var(--primary);">receipt_long</span></div>
+          <div>
+            <p class="font-body font-semibold text-[15px]" style="color: var(--dark);">آخر الفواتير مع روابط سريعة</p>
+            <p class="font-body text-xs" style="color: var(--muted);">وصول مباشر لتفاصيل الفاتورة</p>
+          </div>
+        </div>
+        <div class="bullet-row">
+          <div class="bullet-ico"><span class="material-icons" style="font-size: 18px; color: var(--primary);">warning</span></div>
+          <div>
+            <p class="font-body font-semibold text-[15px]" style="color: var(--dark);">تنبيهات المخزون المنخفض</p>
+            <p class="font-body text-xs" style="color: var(--muted);">إشعار فوري عند تجاوز الحد الأدنى</p>
+          </div>
+        </div>
+        <div class="bullet-row">
+          <div class="bullet-ico"><span class="material-icons" style="font-size: 18px; color: var(--primary);">bolt</span></div>
+          <div>
+            <p class="font-body font-semibold text-[15px]" style="color: var(--dark);">إجراءات سريعة (بيع، شراء، جرد)</p>
+            <p class="font-body text-xs" style="color: var(--muted);">أزرار اختصار للأعمال اليومية</p>
+          </div>
+        </div>
+        <div class="bullet-row">
+          <div class="bullet-ico"><span class="material-icons" style="font-size: 18px; color: var(--primary);">insights</span></div>
+          <div>
+            <p class="font-body font-semibold text-[15px]" style="color: var(--dark);">رسوم بيانية تفاعلية</p>
+            <p class="font-body text-xs" style="color: var(--muted);">عرض مرئي للمبيعات والأداء</p>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="flex items-center gap-2 text-[#2E6237] bg-[#f8faf9] border border-[#e5e7eb] px-4 py-2.5 rounded-xl">
-      <span class="material-icons" style="font-size: 22px;">grid_view</span>
-      <span class="heading font-bold text-base">6 وحدات أساسية</span>
-    </div>
-  </div>
 
-  <!-- 3x2 grid -->
-  <div class="relative px-16 pb-10 z-10">
-    <div class="grid grid-cols-3 gap-5">
-
-      <!-- Card 1: POS -->
-      <div class="bento-card">
-        <div class="flex items-center gap-3 mb-3">
-          <div class="icon-circle"><span class="material-icons" style="font-size: 26px; color: #2E6237;">point_of_sale</span></div>
-          <h3 class="heading text-xl font-bold text-[#1a2e1d]">نقاط البيع (POS)</h3>
+    <!-- Left: Screenshot -->
+    <div class="flex-shrink-0" style="width: 580px;">
+      <div class="relative">
+        <div data-decor aria-hidden="true" class="absolute -top-4 -right-4 w-20 h-20 rounded-2xl rotate-6" style="background: var(--accent); opacity: 0.45;"></div>
+        <img src="screenshots/02-dashboard.png" alt="لوحة التحكم الرئيسية" class="shot-img relative z-10 w-full" style="height: 470px;">
+        <!-- Caption -->
+        <div class="mt-4 flex items-center justify-between gap-3 px-2">
+          <div class="flex items-center gap-2">
+            <span class="material-icons" style="font-size: 16px; color: var(--primary);">image</span>
+            <p class="font-body font-medium text-[13px]" style="color: var(--dark);">لوحة التحكم — نظرة سريعة على المتجر</p>
+          </div>
+          <span class="font-body text-[11px] px-2 py-1 rounded" style="background: rgba(46,98,55,0.08); color: var(--primary);">DASHBOARD</span>
         </div>
-        <ul class="body text-[15px] text-[#1a2e1d] space-y-1.5">
-          <li class="flex items-start gap-2.5"><span class="bullet-dot"></span><span>بيع سريع</span></li>
-          <li class="flex items-start gap-2.5"><span class="bullet-dot"></span><span>وضع سريع للكاشير</span></li>
-          <li class="flex items-start gap-2.5"><span class="bullet-dot"></span><span>قارئ باركود</span></li>
-          <li class="flex items-start gap-2.5"><span class="bullet-dot"></span><span>درج نقدية</span></li>
-        </ul>
       </div>
-
-      <!-- Card 2: Inventory -->
-      <div class="bento-card">
-        <div class="flex items-center gap-3 mb-3">
-          <div class="icon-circle"><span class="material-icons" style="font-size: 26px; color: #2E6237;">inventory_2</span></div>
-          <h3 class="heading text-xl font-bold text-[#1a2e1d]">إدارة المخزون</h3>
-        </div>
-        <ul class="body text-[15px] text-[#1a2e1d] space-y-1.5">
-          <li class="flex items-start gap-2.5"><span class="bullet-dot"></span><span>مخازن متعددة</span></li>
-          <li class="flex items-start gap-2.5"><span class="bullet-dot"></span><span>جرد</span></li>
-          <li class="flex items-start gap-2.5"><span class="bullet-dot"></span><span>تحويلات</span></li>
-          <li class="flex items-start gap-2.5"><span class="bullet-dot"></span><span>حركة مخزون</span></li>
-        </ul>
-      </div>
-
-      <!-- Card 3: Purchases -->
-      <div class="bento-card">
-        <div class="flex items-center gap-3 mb-3">
-          <div class="icon-circle"><span class="material-icons" style="font-size: 26px; color: #2E6237;">shopping_cart</span></div>
-          <h3 class="heading text-xl font-bold text-[#1a2e1d]">المشتريات</h3>
-        </div>
-        <ul class="body text-[15px] text-[#1a2e1d] space-y-1.5">
-          <li class="flex items-start gap-2.5"><span class="bullet-dot"></span><span>أوامر شراء</span></li>
-          <li class="flex items-start gap-2.5"><span class="bullet-dot"></span><span>فواتير</span></li>
-          <li class="flex items-start gap-2.5"><span class="bullet-dot"></span><span>مدفوعات موردين</span></li>
-        </ul>
-      </div>
-
-      <!-- Card 4: Accounting -->
-      <div class="bento-card">
-        <div class="flex items-center gap-3 mb-3">
-          <div class="icon-circle"><span class="material-icons" style="font-size: 26px; color: #2E6237;">account_balance</span></div>
-          <h3 class="heading text-xl font-bold text-[#1a2e1d]">المحاسبة</h3>
-        </div>
-        <ul class="body text-[15px] text-[#1a2e1d] space-y-1.5">
-          <li class="flex items-start gap-2.5"><span class="bullet-dot"></span><span>قيود</span></li>
-          <li class="flex items-start gap-2.5"><span class="bullet-dot"></span><span>ميزان مراجعة</span></li>
-          <li class="flex items-start gap-2.5"><span class="bullet-dot"></span><span>ميزانية، تدفقات نقدية</span></li>
-          <li class="flex items-start gap-2.5"><span class="bullet-dot"></span><span>VAT</span></li>
-        </ul>
-      </div>
-
-      <!-- Card 5: Reports -->
-      <div class="bento-card">
-        <div class="flex items-center gap-3 mb-3">
-          <div class="icon-circle"><span class="material-icons" style="font-size: 26px; color: #2E6237;">bar_chart</span></div>
-          <h3 class="heading text-xl font-bold text-[#1a2e1d]">التقارير</h3>
-        </div>
-        <ul class="body text-[15px] text-[#1a2e1d] space-y-1.5">
-          <li class="flex items-start gap-2.5"><span class="bullet-dot"></span><span>تقارير مبيعات</span></li>
-          <li class="flex items-start gap-2.5"><span class="bullet-dot"></span><span>تحليلات</span></li>
-          <li class="flex items-start gap-2.5"><span class="bullet-dot"></span><span>مصفوفة أداء</span></li>
-        </ul>
-      </div>
-
-      <!-- Card 6: Advanced features -->
-      <div class="bento-card">
-        <div class="flex items-center gap-3 mb-3">
-          <div class="icon-circle"><span class="material-icons" style="font-size: 26px; color: #2E6237;">workspace_premium</span></div>
-          <h3 class="heading text-xl font-bold text-[#1a2e1d]">ميزات متقدمة</h3>
-        </div>
-        <ul class="body text-[15px] text-[#1a2e1d] space-y-1.5">
-          <li class="flex items-start gap-2.5"><span class="bullet-dot"></span><span>باقات</span></li>
-          <li class="flex items-start gap-2.5"><span class="bullet-dot"></span><span>تركيبات</span></li>
-          <li class="flex items-start gap-2.5"><span class="bullet-dot"></span><span>نقاط ولاء</span></li>
-          <li class="flex items-start gap-2.5"><span class="bullet-dot"></span><span>بحث شامل</span></li>
-        </ul>
-      </div>
-
     </div>
   </div>
 
+  <!-- Footer gradient bar -->
   <div class="footer-bar"></div>
 </div>
 </body>
