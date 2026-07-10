@@ -2,204 +2,170 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<title>KWPOS — الخطوة 2: العملية الذكية</title>
+<title>KWPOS — الخطوة 2</title>
 <link rel="stylesheet" href="global.css">
-<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 <style>
-  body { background: #e5e7eb; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-  .slide { font-family: 'Tajawal', sans-serif; }
-  .heading { font-family: 'Cairo', sans-serif; }
+  body { margin:0; background:#e9eef0; display:flex; justify-content:center; align-items:center; min-height:100vh; }
   .step-pill {
-    background: linear-gradient(135deg, #2E6237 0%, #1a2e1d 100%);
-    color: white;
-    box-shadow: 0 4px 14px rgba(46,98,55,0.25);
+    background:linear-gradient(135deg, #2E6237 0%, #1a2e1d 100%);
+    color:#fff; padding:5px 12px; border-radius:20px;
+    font-family:'Cairo',sans-serif; font-size:11px; font-weight:700;
+    display:inline-flex; align-items:center; gap:6px;
   }
-  .shot-frame {
-    border: 2px solid #DFC196;
-    background: #f8faf9;
-    padding: 8px;
-    border-radius: 14px;
-    box-shadow: 0 18px 40px rgba(0,0,0,0.18), 0 6px 14px rgba(46,98,55,0.08);
+  .step-dots { display:flex; gap:5px; }
+  .step-dot { width:24px; height:5px; border-radius:3px; background:#d1d5db; }
+  .step-dot.active { background:linear-gradient(90deg, #2E6237, #DFC196); }
+  .step-dot.done { background:#2E6237; }
+
+  .screenshot-frame {
+    border:6px solid #ffffff;
+    border-radius:14px;
+    box-shadow: 0 24px 50px -16px rgba(46,98,55,0.35), 0 8px 20px -8px rgba(26,46,29,0.12);
+    outline: 2px solid rgba(46,98,55,0.12);
+    overflow:hidden; position:relative;
   }
-  .shot-frame img {
-    border-radius: 8px;
-    width: 100%;
-    height: 460px;
-    object-fit: cover;
-    object-position: top center;
+  .ghost-num {
+    position:absolute; font-family:'Cairo',sans-serif; font-weight:900; font-size:200px;
+    color: rgba(46,98,55,0.04); line-height:1; user-select:none;
   }
-  .step-card {
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.04);
-    transition: all .2s;
+  .step-row {
+    display:flex; align-items:flex-start; gap:10px;
+    background:#ffffff; border:1px solid #e8efe9; border-radius:11px;
+    padding:9px 11px;
+    box-shadow:0 4px 10px -6px rgba(46,98,55,0.10);
   }
   .step-num {
-    background: linear-gradient(135deg, #2E6237 0%, #4a8a55 100%);
-    color: white;
-    width: 30px; height: 30px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-family: 'Cairo', sans-serif;
-    font-weight: 700;
-    font-size: 15px;
-    box-shadow: 0 3px 8px rgba(46,98,55,0.3);
-    flex-shrink: 0;
+    width:28px; height:28px; border-radius:9px; flex-shrink:0;
+    background:linear-gradient(135deg, #2E6237, #1a2e1d);
+    color:#DFC196; font-family:'Cairo',sans-serif; font-weight:900; font-size:13px;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 4px 10px -4px rgba(46,98,55,0.4);
   }
-  .stat-chip {
-    background: white;
-    border: 1.5px solid #DFC196;
-    border-radius: 999px;
-    padding: 8px 18px;
-    box-shadow: 0 4px 12px rgba(223,193,150,0.25);
-  }
-  .stat-chip .num {
-    font-family: 'Cairo', sans-serif;
-    font-weight: 800;
-    color: #2E6237;
-    font-size: 18px;
-  }
-  .stat-chip .lbl {
-    color: #6b7280;
-    font-size: 13px;
-    font-weight: 500;
-  }
-  .blob {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(60px);
-    opacity: 0.18;
-    pointer-events: none;
+  .stat-mini {
+    background:linear-gradient(135deg, #DFC196 0%, #c9a87a 100%);
+    color:#1a2e1d; border-radius:10px; padding:6px 10px;
+    font-family:'Cairo',sans-serif; font-weight:800; font-size:13px;
+    display:inline-flex; align-items:center; gap:6px;
+    box-shadow:0 4px 10px -4px rgba(223,193,150,0.5);
   }
 </style>
 </head>
 <body>
-<div class="slide slide-rtl relative" style="width:1280px;height:720px;overflow:hidden;background:#ffffff;">
+<div class="slide slide-rtl relative" style="width:1280px; height:720px; overflow:hidden; background:#ffffff;">
 
-  <!-- Decorative background blobs -->
-  <div class="blob" data-decor aria-hidden="true" style="background:#2E6237;width:340px;height:340px;top:-120px;left:-100px;"></div>
-  <div class="blob" data-decor aria-hidden="true" style="background:#DFC196;width:280px;height:280px;bottom:-120px;right:-90px;"></div>
+  <div class="ghost-num" data-decor style="top:60px; left:40px;">06</div>
 
-  <!-- Top step bar -->
-  <div class="absolute top-0 right-0 left-0 flex items-center justify-between px-12 py-5" style="background:linear-gradient(90deg,rgba(46,98,55,0.04),rgba(223,193,150,0.06));border-bottom:1px solid #e5e7eb;">
+  <!-- Top bar -->
+  <div class="px-16 pt-8 pb-3 flex items-center justify-between">
     <div class="flex items-center gap-3">
-      <span class="material-icons" style="color:#2E6237;font-size:22px;">storefront</span>
-      <span class="heading font-bold" style="color:#1a2e1d;font-size:16px;">استعراض عمل النظام</span>
+      <span style="font-family:'Tajawal',sans-serif; font-size:13px; font-weight:700; color:#6b7280; letter-spacing:1px;">استعراض عمل النظام</span>
+      <div style="height:1px; width:60px; background:#d1d5db;"></div>
+      <span class="step-pill">
+        <span class="material-icons" style="font-size:13px;">layers</span>
+        الخطوة 2 من 3
+      </span>
     </div>
-    <div class="flex items-center gap-2">
-      <div class="step-pill heading font-bold px-4 py-1.5 rounded-full text-sm">الخطوة 2 من 3</div>
-      <div class="flex items-center gap-1">
-        <span class="w-2 h-2 rounded-full" style="background:#DFC196;"></span>
-        <span class="w-2 h-2 rounded-full" style="background:#2E6237;"></span>
-        <span class="w-2 h-2 rounded-full" style="background:#DFC196;"></span>
-      </div>
+    <div class="step-dots">
+      <div class="step-dot done"></div>
+      <div class="step-dot active"></div>
+      <div class="step-dot"></div>
     </div>
   </div>
 
   <!-- Title -->
-  <div class="absolute right-12 left-12" style="top:72px;">
-    <h1 class="heading font-black" style="color:#2E6237;font-size:28px;line-height:1.3;">
-      نقاط البيع — معالجة فورية وذكية
+  <div class="px-16 pb-3">
+    <h1 style="font-family:'Cairo',sans-serif; font-size:30px; font-weight:900; color:#2E6237; line-height:1.2;">
+      نقاط البيع الذكية <span style="color:#DFC196; font-weight:900;">— معالجة فورية وذكية</span>
     </h1>
-    <div class="flex items-center gap-2 mt-1">
-      <div style="width:48px;height:3px;background:#DFC196;border-radius:2px;"></div>
-      <span style="color:#6b7280;font-size:13px;font-weight:500;">من مسح الباركود إلى طباعة الإيصال في &lt; 5 ثوانٍ</span>
+  </div>
+
+  <!-- Body: LEFT 40% steps, RIGHT 60% screenshot -->
+  <div class="px-16 grid gap-6" style="grid-template-columns: 1fr 60%;">
+
+    <!-- LEFT: numbered steps -->
+    <div class="flex flex-col gap-2.5">
+      <div style="background:linear-gradient(135deg, rgba(46,98,55,0.06), rgba(223,193,150,0.08)); border:1px solid #d6e6da; border-radius:14px; padding:11px 14px;">
+        <div class="flex items-center gap-2">
+          <span class="material-icons" style="color:#2E6237; font-size:18px;">auto_awesome</span>
+          <span style="font-family:'Cairo',sans-serif; font-size:13px; font-weight:700; color:#2E6237;">معالجة ذكية للبيانات في كل خطوة من عملية البيع</span>
+        </div>
+      </div>
+
+      <div class="step-row">
+        <div class="step-num">1</div>
+        <div>
+          <div style="font-family:'Cairo',sans-serif; font-size:13px; font-weight:700; color:#1a2e1d;">مسح الباركود</div>
+          <div style="font-family:'Tajawal',sans-serif; font-size:11.5px; color:#6b7280; margin-top:1px;">بحث فوري وإضافة للسلة</div>
+        </div>
+      </div>
+
+      <div class="step-row">
+        <div class="step-num">2</div>
+        <div>
+          <div style="font-family:'Cairo',sans-serif; font-size:13px; font-weight:700; color:#1a2e1d;">حساب تلقائي</div>
+          <div style="font-family:'Tajawal',sans-serif; font-size:11.5px; color:#6b7280; margin-top:1px;">ضريبة لكل منتج + خصم + رسوم توصيل</div>
+        </div>
+      </div>
+
+      <div class="step-row">
+        <div class="step-num">3</div>
+        <div>
+          <div style="font-family:'Cairo',sans-serif; font-size:13px; font-weight:700; color:#1a2e1d;">خصم المخزون</div>
+          <div style="font-family:'Tajawal',sans-serif; font-size:11.5px; color:#6b7280; margin-top:1px;">تحديث لحظي للكميات + قفل صفوف</div>
+        </div>
+      </div>
+
+      <div class="step-row">
+        <div class="step-num">4</div>
+        <div>
+          <div style="font-family:'Cairo',sans-serif; font-size:13px; font-weight:700; color:#1a2e1d;">إنشاء قيد محاسبي</div>
+          <div style="font-family:'Tajawal',sans-serif; font-size:11.5px; color:#6b7280; margin-top:1px;">مزدوج القيد تلقائيًا</div>
+        </div>
+      </div>
+
+      <div class="step-row">
+        <div class="step-num">5</div>
+        <div>
+          <div style="font-family:'Cairo',sans-serif; font-size:13px; font-weight:700; color:#1a2e1d;">منح نقاط ولاء</div>
+          <div style="font-family:'Tajawal',sans-serif; font-size:11.5px; color:#6b7280; margin-top:1px;">تلقائيًا للعميل</div>
+        </div>
+      </div>
+
+      <div class="step-row">
+        <div class="step-num" style="background:linear-gradient(135deg, #DFC196, #c9a87a); color:#1a2e1d;">6</div>
+        <div>
+          <div style="font-family:'Cairo',sans-serif; font-size:13px; font-weight:700; color:#1a2e1d;">طباعة إيصال</div>
+          <div style="font-family:'Tajawal',sans-serif; font-size:11.5px; color:#6b7280; margin-top:1px;">حراري 80mm فورًا</div>
+        </div>
+      </div>
+
+      <!-- Stat mini bar -->
+      <div class="flex gap-2 mt-1">
+        <span class="stat-mini"><span class="material-icons" style="font-size:14px;">timer</span>&lt; 5 ثوانٍ</span>
+        <span class="stat-mini"><span class="material-icons" style="font-size:14px;">verified</span>0 أخطاء</span>
+        <span class="stat-mini"><span class="material-icons" style="font-size:14px;">account_balance</span>قيد تلقائي</span>
+      </div>
+    </div>
+
+    <!-- RIGHT: large screenshot -->
+    <div class="flex flex-col items-center">
+      <div class="screenshot-frame" style="width:100%;">
+        <img src="screenshots/04-pos-sales.png" alt="POS" style="display:block; width:100%; max-height:500px; object-fit:cover;">
+      </div>
+      <div class="flex items-center gap-2 mt-3" style="font-family:'Tajawal',sans-serif;">
+        <span class="material-icons" style="font-size:14px; color:#DFC196;">photo_camera</span>
+        <span style="font-size:12px; color:#6b7280;">لقطة شاشة حقيقية — نقاط البيع (POS)</span>
+      </div>
     </div>
   </div>
 
-  <!-- Main content area -->
-  <div class="absolute right-12 left-12 flex gap-6" style="top:148px;">
-
-    <!-- LEFT (60%) — Screenshot -->
-    <div style="width:60%;">
-      <div class="shot-frame">
-        <img src="screenshots/03-pos.png" alt="نقاط البيع KWPOS">
-      </div>
-      <div class="flex items-center justify-center gap-2 mt-2">
-        <span class="material-icons" style="color:#2E6237;font-size:14px;">photo_camera</span>
-        <span style="color:#6b7280;font-size:12px;font-weight:500;">لقطة شاشة حقيقية — نقاط البيع (POS)</span>
-      </div>
-    </div>
-
-    <!-- RIGHT (40%) — Description + numbered steps -->
-    <div style="width:40%;">
-      <div class="heading font-bold mb-3" style="color:#1a2e1d;font-size:15px;">
-        معالجة ذكية للبيانات في كل خطوة من عملية البيع.
-      </div>
-
-      <div class="flex flex-col gap-2">
-        <div class="step-card flex items-start gap-2.5 p-2.5">
-          <div class="step-num heading">1</div>
-          <div>
-            <div class="heading font-bold" style="color:#2E6237;font-size:13px;">مسح الباركود</div>
-            <div style="color:#4b5563;font-size:12px;line-height:1.4;">بحث فوري وإضافة للسلة</div>
-          </div>
-        </div>
-
-        <div class="step-card flex items-start gap-2.5 p-2.5">
-          <div class="step-num heading">2</div>
-          <div>
-            <div class="heading font-bold" style="color:#2E6237;font-size:13px;">حساب تلقائي</div>
-            <div style="color:#4b5563;font-size:12px;line-height:1.4;">ضريبة لكل منتج + خصم + رسوم توصيل</div>
-          </div>
-        </div>
-
-        <div class="step-card flex items-start gap-2.5 p-2.5">
-          <div class="step-num heading">3</div>
-          <div>
-            <div class="heading font-bold" style="color:#2E6237;font-size:13px;">خصم المخزون</div>
-            <div style="color:#4b5563;font-size:12px;line-height:1.4;">تحديث لحظي للكميات + قفل صفوف</div>
-          </div>
-        </div>
-
-        <div class="step-card flex items-start gap-2.5 p-2.5">
-          <div class="step-num heading">4</div>
-          <div>
-            <div class="heading font-bold" style="color:#2E6237;font-size:13px;">إنشاء قيد محاسبي</div>
-            <div style="color:#4b5563;font-size:12px;line-height:1.4;">مزدوج القيد تلقائيًا</div>
-          </div>
-        </div>
-
-        <div class="step-card flex items-start gap-2.5 p-2.5">
-          <div class="step-num heading">5</div>
-          <div>
-            <div class="heading font-bold" style="color:#2E6237;font-size:13px;">منح نقاط ولاء</div>
-            <div style="color:#4b5563;font-size:12px;line-height:1.4;">تلقائيًا للعميل</div>
-          </div>
-        </div>
-
-        <div class="step-card flex items-start gap-2.5 p-2.5">
-          <div class="step-num heading">6</div>
-          <div>
-            <div class="heading font-bold" style="color:#2E6237;font-size:13px;">طباعة إيصال</div>
-            <div style="color:#4b5563;font-size:12px;line-height:1.4;">حراري 80mm فورًا</div>
-          </div>
-        </div>
-      </div>
-    </div>
+  <!-- Footer -->
+  <div class="absolute bottom-0 right-0 left-0 flex items-center justify-between px-16 py-2.5">
+    <span style="font-family:'Tajawal',sans-serif; font-size:11px; color:#9ca3af;">KWPOS — نقاط البيع</span>
+    <span style="font-family:'Cairo',sans-serif; font-size:11px; font-weight:700; color:#2E6237;">06 / 09</span>
   </div>
-
-  <!-- Bottom stats bar -->
-  <div class="absolute right-12 left-12 flex items-center justify-center gap-4" style="bottom:32px;">
-    <div class="stat-chip flex items-center gap-2">
-      <span class="material-icons" style="color:#2E6237;font-size:18px;">bolt</span>
-      <span class="num">&lt; 5 ثوانٍ</span>
-      <span class="lbl">زمن المعالجة</span>
-    </div>
-    <div class="stat-chip flex items-center gap-2">
-      <span class="material-icons" style="color:#2E6237;font-size:18px;">verified</span>
-      <span class="num">0 أخطاء</span>
-      <span class="lbl">بدقة محاسبية</span>
-    </div>
-    <div class="stat-chip flex items-center gap-2">
-      <span class="material-icons" style="color:#2E6237;font-size:18px;">receipt_long</span>
-      <span class="num">قيد تلقائي</span>
-      <span class="lbl">عند كل عملية</span>
-    </div>
-  </div>
-
   <div class="footer-bar"></div>
 </div>
 </body>

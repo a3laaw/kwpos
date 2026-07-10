@@ -2,225 +2,155 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<title>KWPOS — استعراض عمل النظام — الخطوة 1</title>
+<title>KWPOS — الخطوة 1</title>
 <link rel="stylesheet" href="global.css">
-<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 <style>
-  body { margin:0; background:#f1f5f4; display:flex; justify-content:center; align-items:center; min-height:100vh; }
-  .slide-showcase {
-    background:
-      radial-gradient(circle at 100% 0%, rgba(46,98,55,0.06) 0%, transparent 45%),
-      radial-gradient(circle at 0% 100%, rgba(223,193,150,0.10) 0%, transparent 45%),
-      #ffffff;
-  }
-  .h-title { font-family:'Cairo'; font-weight:800; color:#2E6237; }
+  body { margin:0; background:#e9eef0; display:flex; justify-content:center; align-items:center; min-height:100vh; }
   .step-pill {
-    background: linear-gradient(135deg, #2E6237 0%, #1a2e1d 100%);
-    color:#ffffff;
-    border-radius: 24px;
-    padding: 6px 14px;
-    font-family:'Cairo';
-    font-weight:700;
-    font-size:12px;
-    box-shadow: 0 4px 12px rgba(46,98,55,0.25);
+    background:linear-gradient(135deg, #2E6237 0%, #1a2e1d 100%);
+    color:#fff; padding:5px 12px; border-radius:20px;
+    font-family:'Cairo',sans-serif; font-size:11px; font-weight:700;
+    display:inline-flex; align-items:center; gap:6px;
   }
-  .step-dots {
-    display:flex; align-items:center; gap:6px;
-  }
-  .step-dot {
-    width:8px; height:8px; border-radius:50%;
-    background:#e5e7eb;
-  }
-  .step-dot.active {
-    background:#2E6237;
-    width:24px; border-radius:4px;
-  }
+  .step-dots { display:flex; gap:5px; }
+  .step-dot { width:24px; height:5px; border-radius:3px; background:#d1d5db; }
+  .step-dot.active { background:linear-gradient(90deg, #2E6237, #DFC196); }
+
   .screenshot-frame {
-    border-radius: 12px;
+    border:6px solid #ffffff;
+    border-radius:14px;
+    box-shadow: 0 24px 50px -16px rgba(46,98,55,0.35), 0 8px 20px -8px rgba(26,46,29,0.12);
+    outline: 2px solid rgba(46,98,55,0.12);
     overflow:hidden;
-    border: 3px solid #2E6237;
-    box-shadow:
-      0 24px 50px -10px rgba(46,98,55,0.30),
-      0 10px 24px -8px rgba(0,0,0,0.18);
-    background:#ffffff;
     position:relative;
   }
   .screenshot-frame::before {
-    content:"";
-    position:absolute; top:-3px; right:-3px; bottom:-3px; left:-3px;
-    border-radius: 12px;
-    background: linear-gradient(135deg, rgba(46,98,55,0.15), rgba(223,193,150,0.15));
-    z-index:-1;
+    content:''; position:absolute; inset:0; border-radius:8px;
+    box-shadow: inset 0 0 0 1px rgba(46,98,55,0.08);
+    pointer-events:none; z-index:2;
   }
-  .screenshot-frame img {
-    display:block; width:100%; height:100%;
-    object-fit: cover; object-position: top center;
+  .ghost-num {
+    position:absolute; font-family:'Cairo',sans-serif; font-weight:900; font-size:200px;
+    color: rgba(46,98,55,0.04); line-height:1; user-select:none;
   }
-  .browser-bar {
-    background: linear-gradient(180deg, #f8faf9 0%, #eef2f0 100%);
-    border-bottom: 1px solid #e5e7eb;
-    padding: 6px 12px;
-    display:flex; align-items:center; gap:8px;
+  .bullet-card {
+    background:#ffffff; border:1px solid #e8efe9; border-radius:12px;
+    padding:12px 14px; display:flex; align-items:flex-start; gap:12px;
+    box-shadow:0 4px 10px -6px rgba(46,98,55,0.10);
   }
-  .dot { width:9px; height:9px; border-radius:50%; }
-  .url-bar {
-    background:#ffffff;
-    border:1px solid #e5e7eb;
-    border-radius:6px;
-    padding:3px 10px;
-    font-family:'Tajawal'; font-weight:500; font-size:10px;
-    color:#6b7280;
-    margin-right:6px;
-    flex:1;
-    text-align:left;
-    direction:ltr;
-  }
-  .info-card {
-    background:#ffffff;
-    border-radius:14px;
-    padding:18px 20px;
-    border:1px solid #e5e7eb;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.04);
-  }
-  .bullet-row {
-    display:flex; align-items:flex-start; gap:10px;
-    font-family:'Tajawal'; font-weight:500; font-size:13px;
-    color:#374151; line-height:1.5;
-    padding:7px 0;
-    border-bottom: 1px dashed #eef2f0;
-  }
-  .bullet-row:last-child { border-bottom:none; }
   .bullet-icon {
-    width:22px; height:22px; border-radius:6px;
-    background: rgba(46,98,55,0.10);
+    width:32px; height:32px; border-radius:9px;
+    background:rgba(46,98,55,0.08);
     display:flex; align-items:center; justify-content:center;
-    margin-top:1px; flex-shrink:0;
-  }
-  .bullet-icon .material-icons { color:#2E6237; font-size:14px; }
-  .label-tag {
-    background: linear-gradient(135deg, #2E6237, #1a2e1d);
-    color:#ffffff;
-    padding:5px 12px;
-    border-radius:8px;
-    font-family:'Cairo'; font-weight:700; font-size:11px;
-    display:inline-flex; align-items:center; gap:5px;
-    box-shadow: 0 4px 10px rgba(46,98,55,0.25);
+    flex-shrink:0;
   }
 </style>
 </head>
 <body>
-<div class="slide slide-showcase slide-rtl" style="width:1280px; height:720px; position:relative; overflow:hidden;" dir="rtl">
+<div class="slide slide-rtl relative" style="width:1280px; height:720px; overflow:hidden; background:#ffffff;">
 
-  <!-- Top accent bar -->
-  <div data-decor style="position:absolute; top:0; right:0; left:0; height:6px; background:linear-gradient(90deg, #2E6237 0%, #4a8a55 50%, #DFC196 100%);"></div>
+  <div class="ghost-num" data-decor style="top:60px; left:40px;">05</div>
 
-  <!-- Decorative -->
-  <div data-decor aria-hidden="true" style="position:absolute; top:30px; left:50px; font-family:'Cairo'; font-weight:900; font-size:120px; color:rgba(46,98,55,0.04); line-height:1;">1</div>
-
-  <!-- Top step indicator bar -->
-  <div style="padding:24px 60px 0 60px;">
-    <div class="flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div class="step-pill flex items-center gap-2">
-          <span class="material-icons" style="font-size:14px; color:#DFC196;">play_circle</span>
-          <span>استعراض عمل النظام</span>
-        </div>
-        <div class="step-dots">
-          <div class="step-dot active"></div>
-          <div class="step-dot"></div>
-          <div class="step-dot"></div>
-        </div>
-      </div>
-      <div class="flex items-center gap-2">
-        <span style="font-family:'Tajawal'; font-weight:600; font-size:12px; color:#6b7280;">الخطوة</span>
-        <span style="font-family:'Cairo'; font-weight:800; font-size:14px; color:#2E6237;">1</span>
-        <span style="font-family:'Tajawal'; font-weight:500; font-size:12px; color:#9ca3af;">من 3</span>
-      </div>
+  <!-- Top bar: step indicator -->
+  <div class="px-16 pt-8 pb-3 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <span style="font-family:'Tajawal',sans-serif; font-size:13px; font-weight:700; color:#6b7280; letter-spacing:1px;">استعراض عمل النظام</span>
+      <div style="height:1px; width:60px; background:#d1d5db;"></div>
+      <span class="step-pill">
+        <span class="material-icons" style="font-size:13px;">layers</span>
+        الخطوة 1 من 3
+      </span>
+    </div>
+    <div class="step-dots">
+      <div class="step-dot active"></div>
+      <div class="step-dot"></div>
+      <div class="step-dot"></div>
     </div>
   </div>
 
   <!-- Title -->
-  <div style="padding:14px 60px 0 60px;">
-    <h1 class="h-title" style="font-size:28px; line-height:1.25;">لوحة التحكم الرئيسية — رؤية 360° لمتجرك</h1>
+  <div class="px-16 pb-3">
+    <h1 style="font-family:'Cairo',sans-serif; font-size:30px; font-weight:900; color:#2E6237; line-height:1.2;">
+      لوحة التحكم الرئيسية <span style="color:#DFC196; font-weight:900;">— رؤية 360° لمتجرك</span>
+    </h1>
   </div>
 
-  <!-- Main content area -->
-  <div style="padding:18px 60px 0 60px; display:flex; gap:24px;">
+  <!-- Body: LEFT 60% screenshot, RIGHT 40% description -->
+  <div class="px-16 grid gap-6" style="grid-template-columns: 60% 1fr; margin-top:6px;">
 
-    <!-- LEFT SIDE (60%) - Screenshot -->
-    <div style="width:60%;">
-      <div class="screenshot-frame" style="height:430px;">
-        <!-- Browser-style top bar -->
-        <div class="browser-bar">
-          <div class="dot" style="background:#ef4444;"></div>
-          <div class="dot" style="background:#f59e0b;"></div>
-          <div class="dot" style="background:#22c55e;"></div>
-          <div class="url-bar">kwpos.vercel.app/dashboard</div>
-          <span class="material-icons" style="color:#9ca3af; font-size:14px;">refresh</span>
-        </div>
-        <div style="height: calc(100% - 28px);">
-          <img src="screenshots/02-dashboard.png" alt="لقطة شاشة حقيقية — لوحة التحكم KWPOS">
-        </div>
+    <!-- LEFT: large screenshot -->
+    <div class="flex flex-col items-center">
+      <div class="screenshot-frame" style="width:100%;">
+        <img src="screenshots/01-dashboard.png" alt="Dashboard" style="display:block; width:100%; max-height:500px; object-fit:cover;">
       </div>
-      <!-- Label below -->
-      <div class="flex items-center justify-center mt-3">
-        <span class="label-tag">
-          <span class="material-icons" style="font-size:14px; color:#DFC196;">verified</span>
-          لقطة شاشة حقيقية — لوحة التحكم
-        </span>
+      <div class="flex items-center gap-2 mt-3" style="font-family:'Tajawal',sans-serif;">
+        <span class="material-icons" style="font-size:14px; color:#DFC196;">photo_camera</span>
+        <span style="font-size:12px; color:#6b7280;">لقطة شاشة حقيقية — لوحة التحكم</span>
       </div>
     </div>
 
-    <!-- RIGHT SIDE (40%) - Description + Bullets -->
-    <div style="width:40%; display:flex; flex-direction:column; gap:14px;">
-
-      <!-- Description card -->
-      <div class="info-card" style="background:linear-gradient(135deg, #f8faf9 0%, #ffffff 100%); border-right:4px solid #2E6237;">
+    <!-- RIGHT: description + bullets -->
+    <div class="flex flex-col gap-3">
+      <div style="background:linear-gradient(135deg, rgba(46,98,55,0.06), rgba(223,193,150,0.08)); border:1px solid #d6e6da; border-radius:14px; padding:14px 16px;">
         <div class="flex items-center gap-2 mb-2">
           <span class="material-icons" style="color:#2E6237; font-size:20px;">dashboard</span>
-          <h3 style="font-family:'Cairo'; font-weight:700; font-size:14px; color:#2E6237;">رؤية شاملة</h3>
+          <span style="font-family:'Cairo',sans-serif; font-size:14px; font-weight:700; color:#2E6237;">نظرة عامة</span>
         </div>
-        <p style="font-family:'Tajawal'; font-weight:500; font-size:12.5px; color:#374151; line-height:1.55;">
+        <p style="font-family:'Tajawal',sans-serif; font-size:13px; color:#3f3f46; line-height:1.6;">
           لوحة تحكم ذكية تعرض كل ما تحتاجه في صفحة واحدة: مبيعات اليوم، آخر الفواتير، تنبيهات المخزون، رسوم بيانية تفاعلية، وإجراءات سريعة. صُممت لتمنحك نظرة فورية على صحة متجرك.
         </p>
       </div>
 
-      <!-- Bullets card -->
-      <div class="info-card">
-        <div class="flex items-center gap-2 mb-1">
-          <span class="material-icons" style="color:#DFC196; font-size:18px;">stars</span>
-          <h3 style="font-family:'Cairo'; font-weight:700; font-size:13px; color:#1a2e1d;">العناصر الرئيسية</h3>
-        </div>
+      <div class="bullet-card">
+        <div class="bullet-icon"><span class="material-icons" style="color:#2E6237; font-size:18px;">today</span></div>
         <div>
-          <div class="bullet-row">
-            <div class="bullet-icon"><span class="material-icons">trending_up</span></div>
-            <span>مبيعات اليوم مع نسبة التغيير</span>
-          </div>
-          <div class="bullet-row">
-            <div class="bullet-icon"><span class="material-icons">receipt</span></div>
-            <span>آخر الفواتير مع روابط</span>
-          </div>
-          <div class="bullet-row">
-            <div class="bullet-icon"><span class="material-icons">warning_amber</span></div>
-            <span>تنبيهات المخزون المنخفض</span>
-          </div>
-          <div class="bullet-row">
-            <div class="bullet-icon"><span class="material-icons">bar_chart</span></div>
-            <span>رسوم بيانية تفاعلية</span>
-          </div>
-          <div class="bullet-row">
-            <div class="bullet-icon"><span class="material-icons">bolt</span></div>
-            <span>أزرار إجراءات سريعة</span>
-          </div>
+          <div style="font-family:'Cairo',sans-serif; font-size:13px; font-weight:700; color:#1a2e1d;">مبيعات اليوم</div>
+          <div style="font-family:'Tajawal',sans-serif; font-size:12px; color:#6b7280; margin-top:2px;">مع نسبة التغيير اللحظية</div>
+        </div>
+      </div>
+
+      <div class="bullet-card">
+        <div class="bullet-icon"><span class="material-icons" style="color:#2E6237; font-size:18px;">receipt</span></div>
+        <div>
+          <div style="font-family:'Cairo',sans-serif; font-size:13px; font-weight:700; color:#1a2e1d;">آخر الفواتير</div>
+          <div style="font-family:'Tajawal',sans-serif; font-size:12px; color:#6b7280; margin-top:2px;">مع روابط للتفاصيل الكاملة</div>
+        </div>
+      </div>
+
+      <div class="bullet-card">
+        <div class="bullet-icon"><span class="material-icons" style="color:#2E6237; font-size:18px;">warning</span></div>
+        <div>
+          <div style="font-family:'Cairo',sans-serif; font-size:13px; font-weight:700; color:#1a2e1d;">تنبيهات المخزون المنخفض</div>
+          <div style="font-family:'Tajawal',sans-serif; font-size:12px; color:#6b7280; margin-top:2px;">فورية قبل النفاد</div>
+        </div>
+      </div>
+
+      <div class="bullet-card">
+        <div class="bullet-icon"><span class="material-icons" style="color:#2E6237; font-size:18px;">show_chart</span></div>
+        <div>
+          <div style="font-family:'Cairo',sans-serif; font-size:13px; font-weight:700; color:#1a2e1d;">رسوم بيانية تفاعلية</div>
+          <div style="font-family:'Tajawal',sans-serif; font-size:12px; color:#6b7280; margin-top:2px;">أداء يومي / أسبوعي / شهري</div>
+        </div>
+      </div>
+
+      <div class="bullet-card">
+        <div class="bullet-icon" style="background:rgba(223,193,150,0.25);"><span class="material-icons" style="color:#8a6d3b; font-size:18px;">bolt</span></div>
+        <div>
+          <div style="font-family:'Cairo',sans-serif; font-size:13px; font-weight:700; color:#1a2e1d;">أزرار إجراءات سريعة</div>
+          <div style="font-family:'Tajawal',sans-serif; font-size:12px; color:#6b7280; margin-top:2px;">وصول بنقرة واحدة</div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Footer accent -->
-  <div data-decor style="position:absolute; bottom:0; right:0; left:0; height:4px; background:linear-gradient(90deg, #2E6237, #4a8a55, #DFC196);"></div>
-
+  <!-- Footer -->
+  <div class="absolute bottom-0 right-0 left-0 flex items-center justify-between px-16 py-2.5">
+    <span style="font-family:'Tajawal',sans-serif; font-size:11px; color:#9ca3af;">KWPOS — لوحة التحكم</span>
+    <span style="font-family:'Cairo',sans-serif; font-size:11px; font-weight:700; color:#2E6237;">05 / 09</span>
+  </div>
+  <div class="footer-bar"></div>
 </div>
 </body>
 </html>
