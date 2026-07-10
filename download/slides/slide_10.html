@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>شكرًا لكم — KWPOS</title>
+  <link rel="stylesheet" href="global.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #e9eef0; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .heading { font-family: 'Cairo', sans-serif; }
+    .body { font-family: 'Tajawal', sans-serif; }
+  </style>
+</head>
+<body>
+  <div class="slide slide-rtl" dir="rtl" style="background: linear-gradient(135deg, var(--primary) 0%, #1a2e1d 100%);">
+    <!-- Decorative gradient blobs -->
+    <div data-decor class="absolute -top-40 -right-40 w-[520px] h-[520px] rounded-full" style="background: radial-gradient(circle, rgba(223,193,150,0.22), transparent 70%);"></div>
+    <div data-decor class="absolute -bottom-48 -left-48 w-[620px] h-[620px] rounded-full" style="background: radial-gradient(circle, rgba(223,193,150,0.14), transparent 70%);"></div>
+
+    <!-- Decorative accent dots -->
+    <div data-decor class="absolute top-24 left-28 w-3 h-3 rounded-full" style="background: var(--accent);"></div>
+    <div data-decor class="absolute top-44 left-44 w-2 h-2 rounded-full" style="background: var(--accent); opacity: 0.55;"></div>
+    <div data-decor class="absolute bottom-36 right-28 w-2.5 h-2.5 rounded-full" style="background: var(--accent); opacity: 0.7;"></div>
+    <div data-decor class="absolute bottom-52 right-44 w-1.5 h-1.5 rounded-full" style="background: var(--accent);"></div>
+    <div data-decor class="absolute top-32 right-1/2 w-1 h-1 rounded-full" style="background: var(--accent); opacity: 0.6;"></div>
+
+    <!-- Decorative thin lines -->
+    <div data-decor class="absolute top-0 bottom-0 right-1/3 w-px" style="background: rgba(223,193,150,0.10);"></div>
+    <div data-decor class="absolute top-0 bottom-0 left-1/3 w-px" style="background: rgba(223,193,150,0.10);"></div>
+
+    <!-- Centered content -->
+    <div class="absolute inset-0 flex flex-col items-center justify-center text-white px-16 text-center">
+      <!-- Logo mark -->
+      <div class="w-20 h-20 rounded-2xl flex items-center justify-center mb-7" style="background: rgba(223,193,150,0.14); border: 1.5px solid rgba(223,193,150,0.45);">
+        <span class="material-icons" style="color: var(--accent); font-size: 44px;">storefront</span>
+      </div>
+
+      <!-- Title -->
+      <h1 class="heading font-bold mb-4" style="font-size: 96px; letter-spacing: -2px; line-height: 1;">شكرًا لكم</h1>
+
+      <!-- Accent line -->
+      <div class="w-28 h-1 rounded-full mb-6" style="background: var(--accent);"></div>
+
+      <!-- Subtitle -->
+      <p class="heading text-xl font-semibold mb-3" style="color: rgba(255,255,255,0.95);">KWPOS — نظام إدارة المبيعات والمخازن والمشتريات</p>
+
+      <!-- Description -->
+      <p class="body text-base mb-10" style="color: rgba(255,255,255,0.78); max-width: 720px;">متوفر كتطبيق هاتف (PWA) — يعمل على الآيباد والهاتف والكمبيوتر</p>
+
+      <!-- Contact info -->
+      <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2.5 px-5 py-2.5 rounded-full" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(223,193,150,0.30);">
+          <span class="material-icons" style="color: var(--accent); font-size: 20px;">code</span>
+          <span class="body text-sm font-medium" style="color: white;">GitHub: a3laaw/kwpos</span>
+        </div>
+        <div class="flex items-center gap-2.5 px-5 py-2.5 rounded-full" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(223,193,150,0.30);">
+          <span class="material-icons" style="color: var(--accent); font-size: 20px;">language</span>
+          <span class="body text-sm font-medium" style="color: white;">Vercel: kwpos.vercel.app</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer bar -->
+    <div class="footer-bar"></div>
+  </div>
+</body>
+</html>

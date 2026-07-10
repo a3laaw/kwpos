@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>التقارير والتحليلات — KWPOS</title>
+  <link rel="stylesheet" href="global.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #e9eef0; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .heading { font-family: 'Cairo', sans-serif; }
+    .body { font-family: 'Tajawal', sans-serif; }
+  </style>
+</head>
+<body>
+  <div class="slide slide-rtl" dir="rtl">
+    <!-- Decorative background -->
+    <div data-decor class="absolute -top-40 -left-40 w-[440px] h-[440px] rounded-full" style="background: radial-gradient(circle, rgba(223,193,150,0.22), transparent 70%);"></div>
+    <div data-decor class="absolute -bottom-32 -right-32 w-[360px] h-[360px] rounded-full" style="background: radial-gradient(circle, rgba(46,98,55,0.10), transparent 70%);"></div>
+
+    <!-- Header -->
+    <header class="absolute top-12 right-16 left-16 flex items-start justify-between">
+      <div class="flex items-start gap-5">
+        <div class="w-1.5 h-16 rounded-full" style="background: var(--primary);"></div>
+        <div>
+          <div class="flex items-center gap-2 mb-1.5">
+            <span class="material-icons" style="color: var(--accent); font-size: 20px;">analytics</span>
+            <span class="body text-xs uppercase tracking-widest font-bold" style="color: var(--muted);">Reports &amp; Analytics</span>
+          </div>
+          <h1 class="heading text-4xl font-bold leading-tight" style="color: var(--primary);">التقارير والتحليلات</h1>
+          <p class="body text-lg mt-1.5" style="color: var(--muted);">تحليلات شاملة لأداء المتجر</p>
+        </div>
+      </div>
+      <div class="flex flex-col gap-2 items-end pt-1">
+        <span class="badge badge-primary text-[13px]"><span class="material-icons" style="font-size:14px;">insights</span> 5 تحليلات</span>
+        <span class="badge badge-accent text-[13px]"><span class="material-icons" style="font-size:14px;">file_download</span> PDF + Excel</span>
+      </div>
+    </header>
+
+    <!-- Content: image right, text left -->
+    <main class="absolute top-44 right-16 left-16 grid grid-cols-2 gap-10" style="height: 460px;">
+      <!-- Image (right in RTL = first child) -->
+      <div class="rounded-2xl overflow-hidden shadow-xl relative" style="border: 1px solid #e5e7eb;">
+        <img src="https://sfile.chatglm.cn/images-ppt/20391e57e7f5.jpg" class="w-full h-full object-cover" alt="لوحة التقارير والتحليلات">
+        <div data-decor class="absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-semibold heading" style="background: rgba(255,255,255,0.95); color: var(--primary);">لوحة التقارير</div>
+        <div data-decor class="absolute bottom-0 right-0 left-0" style="height: 110px; background: linear-gradient(to top, rgba(0,0,0,0.55), transparent);"></div>
+        <div class="absolute bottom-5 right-5 left-5 flex items-center justify-between text-white">
+          <div class="flex items-center gap-2 body text-sm">
+            <span class="material-icons" style="font-size: 18px; color: var(--accent);">trending_up</span>
+            <span>مصفوفة الأداء + تحليلات المبيعات</span>
+          </div>
+          <div class="flex items-center gap-1.5 body text-xs" style="color: rgba(255,255,255,0.85);">
+            <span class="w-1.5 h-1.5 rounded-full" style="background: var(--accent);"></span>
+            <span>LIVE</span>
+          </div>
+        </div>
+      </div>
+      <!-- Text (left) -->
+      <div class="flex flex-col justify-center">
+        <ul class="space-y-3.5 body text-[17px]" style="color: var(--dark);">
+          <li class="flex items-start gap-3">
+            <span class="material-icons mt-0.5" style="color: var(--primary); font-size: 22px;">check_circle</span>
+            <span>تقرير المبيعات مع فلاتر مرنة</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <span class="material-icons mt-0.5" style="color: var(--primary); font-size: 22px;">check_circle</span>
+            <span>تحليلات المبيعات (5 أنواع)</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <span class="material-icons mt-0.5" style="color: var(--primary); font-size: 22px;">check_circle</span>
+            <span>مصفوفة أداء الأقسام والمنتجات</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <span class="material-icons mt-0.5" style="color: var(--primary); font-size: 22px;">check_circle</span>
+            <span>الأكثر مبيعًا والأصناف الراكدة</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <span class="material-icons mt-0.5" style="color: var(--primary); font-size: 22px;">check_circle</span>
+            <span>نسبة الربحية والتكاليف</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <span class="material-icons mt-0.5" style="color: var(--primary); font-size: 22px;">check_circle</span>
+            <span>طباعة التقارير (جداول فقط)</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <span class="material-icons mt-0.5" style="color: var(--primary); font-size: 22px;">check_circle</span>
+            <span>تصدير PDF و Excel</span>
+          </li>
+        </ul>
+      </div>
+    </main>
+
+    <div class="footer-bar"></div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>إدارة المخزون</title>
+<link rel="stylesheet" href="global.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<style>
+  .heading { font-family: 'Cairo', sans-serif; }
+  .body { font-family: 'Tajawal', sans-serif; }
+  .pattern-bg {
+    position: absolute; inset: 0;
+    background-image: radial-gradient(rgba(46,98,55,0.04) 1.5px, transparent 1.5px);
+    background-size: 22px 22px;
+    pointer-events: none;
+  }
+  .image-frame {
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 12px 30px -10px rgba(46,98,55,0.25);
+    position: relative;
+  }
+  .image-frame::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(225deg, transparent 60%, rgba(46,98,55,0.18) 100%);
+    pointer-events: none;
+  }
+  .check-pill {
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    background: rgba(46,98,55,0.10);
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .stat-card {
+    background: linear-gradient(135deg, rgba(46,98,55,0.08) 0%, rgba(223,193,150,0.18) 100%);
+    border: 1px solid rgba(46,98,55,0.15);
+    border-radius: 14px;
+    padding: 14px 18px;
+    flex: 1;
+  }
+  .mono { font-family: 'Tajawal', monospace; }
+</style>
+</head>
+<body>
+<div class="slide slide-rtl relative" dir="rtl">
+  <div class="pattern-bg" data-decor aria-hidden="true"></div>
+
+  <!-- Header -->
+  <div class="relative px-16 pt-10 pb-5 flex items-end justify-between z-10">
+    <div>
+      <div class="flex items-center gap-2 mb-3">
+        <span class="bg-[#2E6237] text-white text-xs font-bold px-2.5 py-1 rounded-md heading">04</span>
+        <span class="text-[#8a6d3b] heading text-sm font-bold tracking-wide">وحدة المخزون</span>
+      </div>
+      <h1 class="text-[#2E6237] heading text-5xl font-extrabold">إدارة المخزون</h1>
+    </div>
+    <div class="flex items-center gap-2 text-[#2E6237] bg-[#f8faf9] border border-[#e5e7eb] px-4 py-2.5 rounded-xl">
+      <span class="material-icons" style="font-size: 22px;">inventory_2</span>
+      <span class="heading font-bold text-base">مخازن متعددة</span>
+    </div>
+  </div>
+
+  <!-- 2-col grid: text right (first DOM), image left (second DOM) -->
+  <div class="relative px-16 pb-10 z-10">
+    <div class="grid grid-cols-2 gap-8 items-stretch">
+
+      <!-- Text (right side in RTL) -->
+      <div class="flex flex-col" style="min-height: 480px;">
+        <p class="text-[#1a2e1d] body text-lg font-bold mb-4 leading-relaxed">
+          <span class="text-[#2E6237]">نظام مخزون متعدد المخازن</span> مع تتبع كامل
+        </p>
+        <ul class="body text-[15px] text-[#1a2e1d] space-y-2 mb-5">
+          <li class="flex items-start gap-2.5"><span class="check-pill"><span class="material-icons" style="font-size: 14px; color: #2E6237;">check</span></span><span>مخازن متعددة مع كميات مستقلة</span></li>
+          <li class="flex items-start gap-2.5"><span class="check-pill"><span class="material-icons" style="font-size: 14px; color: #2E6237;">check</span></span><span class="mono">Product.quantity</span>&nbsp;= مجموع كل المخازن</li>
+          <li class="flex items-start gap-2.5"><span class="check-pill"><span class="material-icons" style="font-size: 14px; color: #2E6237;">check</span></span><span>جرد دوري وجرد أعمى (Spot Check)</span></li>
+          <li class="flex items-start gap-2.5"><span class="check-pill"><span class="material-icons" style="font-size: 14px; color: #2E6237;">check</span></span><span>تحويلات بين المخازن</span></li>
+          <li class="flex items-start gap-2.5"><span class="check-pill"><span class="material-icons" style="font-size: 14px; color: #2E6237;">check</span></span><span>تقرير حركة المخزون الكامل</span></li>
+          <li class="flex items-start gap-2.5"><span class="check-pill"><span class="material-icons" style="font-size: 14px; color: #2E6237;">check</span></span><span>تنبيهات نقص المخزون التلقائية</span></li>
+          <li class="flex items-start gap-2.5"><span class="check-pill"><span class="material-icons" style="font-size: 14px; color: #2E6237;">check</span></span><span>باركود لكل منتج (13 رقم حسب التصنيف)</span></li>
+        </ul>
+
+        <!-- Stat badges -->
+        <div class="mt-auto flex items-center gap-3">
+          <div class="stat-card">
+            <div class="flex items-center gap-2">
+              <span class="material-icons" style="font-size: 22px; color: #2E6237;">warehouse</span>
+              <div>
+                <div class="heading text-2xl font-extrabold text-[#2E6237] leading-none">3+</div>
+                <div class="body text-xs text-[#1a2e1d] font-semibold mt-0.5">مخازن</div>
+              </div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="flex items-center gap-2">
+              <span class="material-icons" style="font-size: 22px; color: #8a6d3b;">swap_horiz</span>
+              <div>
+                <div class="heading text-2xl font-extrabold text-[#8a6d3b] leading-none">8</div>
+                <div class="body text-xs text-[#1a2e1d] font-semibold mt-0.5">أنواع حركة</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Image (left side in RTL) -->
+      <div class="image-frame" style="height: 480px;">
+        <img src="https://sfile.chatglm.cn/images-ppt/833c1738f097.png" alt="Inventory management" class="w-full h-full object-cover"/>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="footer-bar"></div>
+</div>
+</body>
+</html>

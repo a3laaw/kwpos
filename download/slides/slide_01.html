@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>KWPOS — نظام إدارة متكامل</title>
+<link rel="stylesheet" href="global.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<style>
+  .cover-image {
+    position: absolute; inset: 0;
+    background-image: url('https://sfile.chatglm.cn/images-ppt/6035bd255217.jpg');
+    background-size: cover; background-position: center;
+  }
+  .cover-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(26,46,29,0.97) 0%, rgba(46,98,55,0.93) 55%, rgba(46,98,55,0.80) 100%);
+  }
+  .pattern-dot {
+    position: absolute; inset: 0;
+    background-image: radial-gradient(rgba(223,193,150,0.20) 1.5px, transparent 1.5px);
+    background-size: 26px 26px;
+    opacity: 0.55;
+  }
+  .display-title {
+    font-family: 'Cairo', sans-serif;
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    background: linear-gradient(180deg, #ffffff 0%, #f0d9b8 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    text-shadow: 0 6px 32px rgba(0,0,0,0.18);
+  }
+  .heading { font-family: 'Cairo', sans-serif; }
+  .body { font-family: 'Tajawal', sans-serif; }
+  .stat-pill {
+    background: rgba(255,255,255,0.10);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.22);
+    padding: 9px 16px;
+    border-radius: 12px;
+    color: #ffffff;
+    font-weight: 700;
+    font-family: 'Tajawal', sans-serif;
+    font-size: 15px;
+  }
+  .gold-glow {
+    position: absolute;
+    width: 360px; height: 360px;
+    background: radial-gradient(circle, rgba(223,193,150,0.40) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .corner-mark {
+    position: absolute;
+    width: 56px; height: 56px;
+    border: 2px solid rgba(223,193,150,0.5);
+  }
+</style>
+</head>
+<body>
+<div class="slide slide-rtl relative" dir="rtl">
+  <div class="cover-image" data-decor aria-hidden="true"></div>
+  <div class="cover-overlay" data-decor aria-hidden="true"></div>
+  <div class="pattern-dot" data-decor aria-hidden="true"></div>
+  <div class="gold-glow" style="top: -140px; right: -100px;" data-decor aria-hidden="true"></div>
+  <div class="gold-glow" style="bottom: -120px; left: 25%; opacity: 0.55;" data-decor aria-hidden="true"></div>
+  <div class="corner-mark" style="top: 36px; left: 36px; border-right: none; border-bottom: none;" data-decor aria-hidden="true"></div>
+  <div class="corner-mark" style="bottom: 36px; right: 36px; border-left: none; border-top: none;" data-decor aria-hidden="true"></div>
+
+  <!-- Top bar: brand right, system indicator left -->
+  <div class="absolute top-0 right-0 left-0 flex items-center justify-between px-16 py-8 z-10">
+    <div class="flex items-center gap-3">
+      <div class="w-12 h-12 rounded-2xl bg-[#DFC196] flex items-center justify-center shadow-lg">
+        <span class="material-icons" style="font-size: 28px; color: #2E6237;">store</span>
+      </div>
+      <span class="text-white heading text-xl font-bold tracking-wide">KWPOS</span>
+    </div>
+    <div class="flex items-center gap-2 text-white/75 text-sm heading font-semibold">
+      <span class="material-icons" style="font-size: 18px;">verified_user</span>
+      نظام إدارة أعمال
+    </div>
+  </div>
+
+  <!-- Hero content (right-aligned) -->
+  <div class="absolute inset-0 flex items-center px-16 z-10">
+    <div class="ml-auto" style="max-width: 780px;">
+      <div class="text-right">
+        <div class="inline-flex items-center gap-2 bg-[#DFC196]/15 border border-[#DFC196]/40 text-[#DFC196] px-4 py-1.5 rounded-full text-sm font-bold mb-6 heading">
+          <span class="material-icons" style="font-size: 16px;">auto_awesome</span>
+          نظام متكامل لإدارة المتاجر
+        </div>
+      </div>
+      <h1 class="display-title text-[124px] leading-[0.95] mb-3 text-right">KWPOS</h1>
+      <p class="text-[#DFC196] heading text-3xl font-bold mb-3 text-right">نظام إدارة المبيعات والمخازن والمشتريات</p>
+      <p class="text-white/85 body text-xl leading-relaxed text-right" style="max-width: 720px; margin-right: 0; margin-left: auto;">نظام متكامل لإدارة المتاجر — نقاط بيع، مخزون، مشتريات، محاسبة، تقارير</p>
+    </div>
+  </div>
+
+  <!-- Bottom-left stats -->
+  <div class="absolute bottom-10 left-16 z-10">
+    <div class="flex items-center gap-2.5 body">
+      <span class="stat-pill">7 أدوار</span>
+      <span class="text-[#DFC196] text-xl font-bold">•</span>
+      <span class="stat-pill">20+ صفحة</span>
+      <span class="text-[#DFC196] text-xl font-bold">•</span>
+      <span class="stat-pill">90+ API</span>
+      <span class="text-[#DFC196] text-xl font-bold">•</span>
+      <span class="stat-pill">11 اختبار</span>
+    </div>
+  </div>
+
+  <div class="footer-bar"></div>
+</div>
+</body>
+</html>
