@@ -2,216 +2,236 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<title>الأمان والصلاحيات</title>
+<title>KWPOS — البنية التقنية وفلسفة التصميم</title>
 <link rel="stylesheet" href="global.css">
-<script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
 <style>
+  body { background: #e5e7eb; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  .slide { font-family: 'Tajawal', sans-serif; }
   .heading { font-family: 'Cairo', sans-serif; }
-  .body { font-family: 'Tajawal', sans-serif; }
-  .pattern-bg {
-    position: absolute; inset: 0;
-    background-image: radial-gradient(rgba(46,98,55,0.04) 1.5px, transparent 1.5px);
-    background-size: 22px 22px;
-    pointer-events: none;
-  }
-  .role-table {
+  .col-card {
+    background: white;
+    border-radius: 18px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.04);
     border: 1px solid #e5e7eb;
-    border-radius: 14px;
     overflow: hidden;
-    background: #fff;
   }
-  .role-row {
-    display: grid;
-    grid-template-columns: 110px 130px 1fr;
-    align-items: center;
-    padding: 8px 14px;
-    border-bottom: 1px solid #eef1f0;
-    transition: background .15s;
+  .col-header {
+    background: linear-gradient(135deg, rgba(46,98,55,0.08), rgba(223,193,150,0.1));
+    padding: 14px 20px;
+    border-bottom: 1px solid #e5e7eb;
   }
-  .role-row:last-child { border-bottom: none; }
-  .role-row.head {
-    background: #f8faf9;
-    padding: 10px 14px;
+  .tech-badge {
+    background: white;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 8px 10px;
+    transition: all .2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
   }
-  .role-row:not(.head):hover { background: #fafbfa; }
-  .role-tag {
-    display: inline-flex; align-items: center;
-    padding: 3px 9px;
-    border-radius: 6px;
+  .tech-badge .name {
     font-family: 'Cairo', sans-serif;
     font-weight: 700;
-    font-size: 11px;
-    letter-spacing: 0.4px;
-  }
-  .tag-owner { background: rgba(46,98,55,0.18); color: #2E6237; }
-  .tag-admin { background: rgba(46,98,55,0.12); color: #2E6237; }
-  .tag-manager { background: rgba(74,138,85,0.15); color: #2E6237; }
-  .tag-accountant { background: rgba(223,193,150,0.35); color: #8a6d3b; }
-  .tag-warehouse { background: rgba(223,193,150,0.30); color: #8a6d3b; }
-  .tag-sales { background: rgba(107,114,128,0.15); color: #4b5563; }
-  .tag-cashier { background: rgba(107,114,128,0.10); color: #6b7280; }
-  .role-name {
-    font-family: 'Cairo', sans-serif;
-    font-weight: 700;
+    color: #2E6237;
     font-size: 13px;
-    color: #1a2e1d;
   }
-  .role-perms {
-    font-family: 'Tajawal', sans-serif;
-    font-weight: 600;
-    font-size: 12.5px;
-    color: #1a2e1d;
-  }
-  .col-head {
-    font-family: 'Cairo', sans-serif;
-    font-weight: 700;
-    font-size: 11px;
+  .tech-badge .desc {
     color: #6b7280;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    font-size: 10.5px;
+    line-height: 1.3;
+    margin-top: 2px;
   }
-  .sec-card {
-    background: linear-gradient(160deg, #f8faf9 0%, #ffffff 100%);
+  .principle-card {
+    background: white;
     border: 1px solid #e5e7eb;
     border-radius: 12px;
-    padding: 10px 14px;
-    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.03);
   }
-  .sec-card .icon-chip {
-    width: 30px; height: 30px;
-    border-radius: 8px;
-    background: rgba(46,98,55,0.10);
-    display: inline-flex; align-items: center; justify-content: center;
+  .principle-icon {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #2E6237, #4a8a55);
+    display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
+    box-shadow: 0 3px 8px rgba(46,98,55,0.25);
   }
-  .thumb-frame {
-    border-radius: 12px;
-    overflow: hidden;
-    border: 1px solid #e5e7eb;
-    box-shadow: 0 8px 20px -6px rgba(46,98,55,0.18), 0 2px 6px -2px rgba(0,0,0,0.05);
-    background: #fff;
-  }
-  .thumb-frame img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-  .decor-blob {
+  .blob {
     position: absolute;
     border-radius: 50%;
-    filter: blur(70px);
-    opacity: 0.30;
+    filter: blur(60px);
+    opacity: 0.16;
     pointer-events: none;
+  }
+  .thumb {
+    border: 2px solid #DFC196;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+  }
+  .thumb img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
   }
 </style>
 </head>
 <body>
-<div class="slide slide-rtl relative" dir="rtl">
-  <div class="pattern-bg" data-decor aria-hidden="true"></div>
-  <div class="decor-blob" data-decor aria-hidden="true" style="width: 240px; height: 240px; background: #DFC196; bottom: -100px; right: -80px;"></div>
+<div class="slide slide-rtl relative" style="width:1280px;height:720px;overflow:hidden;background:#ffffff;">
 
-  <!-- Header -->
-  <div class="relative px-16 pt-9 pb-3 flex items-end justify-between z-10">
-    <div>
-      <div class="flex items-center gap-2 mb-2">
-        <span class="bg-[#2E6237] text-white text-xs font-bold px-2.5 py-1 rounded-md heading">08</span>
-        <span class="text-[#8a6d3b] heading text-sm font-bold tracking-wide">حماية وصول</span>
-      </div>
-      <h1 class="text-[#2E6237] heading text-4xl font-extrabold">الأمان والصلاحيات</h1>
-      <p class="text-[#1a2e1d] body text-base font-semibold mt-1">7 أدوار مع صلاحيات دقيقة</p>
+  <div class="blob" data-decor aria-hidden="true" style="background:#2E6237;width:320px;height:320px;top:-120px;right:-80px;"></div>
+  <div class="blob" data-decor aria-hidden="true" style="background:#DFC196;width:280px;height:280px;bottom:-100px;left:-80px;"></div>
+
+  <!-- Title -->
+  <div class="absolute right-12 left-12" style="top:32px;">
+    <div class="flex items-center gap-2 mb-1">
+      <span class="material-icons" style="color:#2E6237;font-size:20px;">architecture</span>
+      <span class="badge badge-primary heading">المعمارية والتصميم</span>
     </div>
-    <div class="flex items-center gap-2 text-[#2E6237] bg-[#f8faf9] border border-[#e5e7eb] px-4 py-2.5 rounded-xl">
-      <span class="material-icons" style="font-size: 22px;">shield</span>
-      <span class="heading font-bold text-base">RBAC</span>
+    <h1 class="heading font-black" style="color:#2E6237;font-size:28px;line-height:1.2;">
+      البنية التقنية وفلسفة التصميم
+    </h1>
+    <div class="flex items-center gap-2 mt-1">
+      <div style="width:48px;height:3px;background:#DFC196;border-radius:2px;"></div>
+      <span style="color:#6b7280;font-size:13px;font-weight:500;">حديثة، آمنة، وسريعة — صُممت لتجربة عربية احترافية</span>
     </div>
   </div>
 
-  <!-- 2-col layout: roles table right, settings thumbnail + security features left -->
-  <div class="relative px-16 pb-8 z-10">
-    <div class="grid grid-cols-3 gap-5 items-start">
+  <!-- Two columns -->
+  <div class="absolute right-12 left-12 flex gap-5" style="top:130px;">
 
-      <!-- Right (DOM 1): Roles table spanning 2 cols -->
-      <div class="col-span-2">
-        <div class="role-table">
-          <div class="role-row head">
-            <div class="col-head">الدور</div>
-            <div class="col-head">الاسم</div>
-            <div class="col-head">الصلاحيات</div>
+    <!-- LEFT COLUMN — Tech Stack -->
+    <div class="col-card" style="width:50%;height:530px;display:flex;flex-direction:column;">
+      <div class="col-header flex items-center gap-2">
+        <span class="material-icons" style="color:#2E6237;font-size:22px;">code</span>
+        <h2 class="heading font-bold" style="color:#2E6237;font-size:18px;">البنية التقنية</h2>
+      </div>
+
+      <div style="padding:14px 16px;flex:1;display:flex;flex-direction:column;">
+        <!-- Tech badges grid 3x3 -->
+        <div class="grid grid-cols-3 gap-2 mb-3">
+          <div class="tech-badge">
+            <div class="name">Next.js 16</div>
+            <div class="desc">إطار حديث سريع</div>
+          </div>
+          <div class="tech-badge">
+            <div class="name">TypeScript 5</div>
+            <div class="desc">أمان كامل للأنواع</div>
+          </div>
+          <div class="tech-badge">
+            <div class="name">Prisma ORM</div>
+            <div class="desc">طبقة بيانات آمنة</div>
+          </div>
+          <div class="tech-badge">
+            <div class="name">Supabase</div>
+            <div class="desc">PostgreSQL سحابية</div>
+          </div>
+          <div class="tech-badge">
+            <div class="name">Tailwind 4</div>
+            <div class="desc">تصميم متجاوب</div>
+          </div>
+          <div class="tech-badge">
+            <div class="name">shadcn/ui</div>
+            <div class="desc">مكونات احترافية</div>
+          </div>
+          <div class="tech-badge">
+            <div class="name">TanStack Query</div>
+            <div class="desc">إدارة حالة ذكية</div>
+          </div>
+          <div class="tech-badge">
+            <div class="name">NextAuth.js</div>
+            <div class="desc">مصادقة آمنة</div>
+          </div>
+          <div class="tech-badge">
+            <div class="name">Vitest</div>
+            <div class="desc">11 اختبار آلي</div>
+          </div>
+        </div>
+
+        <!-- Why these techs -->
+        <div style="background:#f8faf9;border-radius:10px;padding:10px 12px;border-right:3px solid #DFC196;flex:1;">
+          <div class="heading font-bold mb-1.5" style="color:#2E6237;font-size:13px;display:flex;align-items:center;gap:5px;">
+            <span class="material-icons" style="font-size:15px;">lightbulb</span>
+            لماذا هذه التقنيات؟
+          </div>
+          <ul class="space-y-1" style="color:#4b5563;font-size:11.5px;line-height:1.5;">
+            <li class="flex items-start gap-1.5">
+              <span style="color:#2E6237;font-weight:800;">•</span>
+              <span><b style="color:#1a2e1d;">Next.js 16</b> = أسرع إطار ويب، يدعم Server Components</span>
+            </li>
+            <li class="flex items-start gap-1.5">
+              <span style="color:#2E6237;font-weight:800;">•</span>
+              <span><b style="color:#1a2e1d;">PostgreSQL</b> = قاعدة بيانات مؤسسية تتحمل آلاف العمليات</span>
+            </li>
+            <li class="flex items-start gap-1.5">
+              <span style="color:#2E6237;font-weight:800;">•</span>
+              <span><b style="color:#1a2e1d;">PWA</b> = يعمل كتطبيق هاتف بدون متجر تطبيقات</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN — Design Philosophy -->
+    <div class="col-card" style="width:50%;height:530px;display:flex;flex-direction:column;">
+      <div class="col-header flex items-center gap-2">
+        <span class="material-icons" style="color:#2E6237;font-size:22px;">palette</span>
+        <h2 class="heading font-bold" style="color:#2E6237;font-size:18px;">فلسفة التصميم (UI/UX)</h2>
+      </div>
+
+      <div style="padding:14px 16px;flex:1;display:flex;flex-direction:column;">
+        <div class="flex flex-col gap-2 mb-3">
+          <div class="principle-card">
+            <div class="principle-icon"><span class="material-icons" style="color:white;font-size:20px;">touch_app</span></div>
+            <div>
+              <div class="heading font-bold" style="color:#2E6237;font-size:13px;">تصميم باللمس أولاً</div>
+              <div style="color:#4b5563;font-size:11.5px;line-height:1.4;">أزرار كبيرة، بطاقات منتجات بحجم مناسب للأجهزة اللوحية</div>
+            </div>
           </div>
 
-          <div class="role-row">
-            <span class="role-tag tag-owner">OWNER</span>
-            <span class="role-name">المالك</span>
-            <span class="role-perms">كل الصلاحيات + لوحة المالك</span>
+          <div class="principle-card">
+            <div class="principle-icon"><span class="material-icons" style="color:white;font-size:20px;">visibility</span></div>
+            <div>
+              <div class="heading font-bold" style="color:#2E6237;font-size:13px;">وضوح بصري</div>
+              <div style="color:#4b5563;font-size:11.5px;line-height:1.4;">تباين عالي (WCAG AA)، خطوط عربية واضحة (Cairo + Tajawal)</div>
+            </div>
           </div>
 
-          <div class="role-row">
-            <span class="role-tag tag-admin">ADMIN</span>
-            <span class="role-name">مدير النظام</span>
-            <span class="role-perms">كل الصفحات</span>
+          <div class="principle-card">
+            <div class="principle-icon"><span class="material-icons" style="color:white;font-size:20px;">speed</span></div>
+            <div>
+              <div class="heading font-bold" style="color:#2E6237;font-size:13px;">سرعة فائقة</div>
+              <div style="color:#4b5563;font-size:11.5px;line-height:1.4;">وضع سريع للكاشير، بحث فوري، استجابة &lt; 100ms</div>
+            </div>
           </div>
 
-          <div class="role-row">
-            <span class="role-tag tag-manager">MANAGER</span>
-            <span class="role-name">مدير</span>
-            <span class="role-perms">المبيعات، التقارير، الورديات، المستخدمون</span>
+          <div class="principle-card">
+            <div class="principle-icon"><span class="material-icons" style="color:white;font-size:20px;">devices</span></div>
+            <div>
+              <div class="heading font-bold" style="color:#2E6237;font-size:13px;">متجاوب بالكامل</div>
+              <div style="color:#4b5563;font-size:11.5px;line-height:1.4;">يعمل على الهاتف، الآيباد، والكمبيوتر بنفس الجودة</div>
+            </div>
           </div>
+        </div>
 
-          <div class="role-row">
-            <span class="role-tag tag-accountant">ACCOUNTANT</span>
-            <span class="role-name">محاسب</span>
-            <span class="role-perms">المحاسبة، التقارير، الموردين</span>
+        <!-- Thumbnail of settings -->
+        <div class="flex items-center gap-3 mt-auto" style="background:#f8faf9;border-radius:10px;padding:8px;">
+          <div class="thumb" style="width:120px;height:72px;flex-shrink:0;">
+            <img src="screenshots/08-settings.png" alt="إعدادات KWPOS">
           </div>
-
-          <div class="role-row">
-            <span class="role-tag tag-warehouse">WAREHOUSE</span>
-            <span class="role-name">أمين مخزن</span>
-            <span class="role-perms">المخزون، المشتريات، الموردين</span>
-          </div>
-
-          <div class="role-row">
-            <span class="role-tag tag-sales">SALES</span>
-            <span class="role-name">موظف مبيعات</span>
-            <span class="role-perms">POS، الفواتير، العملاء</span>
-          </div>
-
-          <div class="role-row">
-            <span class="role-tag tag-cashier">CASHIER</span>
-            <span class="role-name">كاشير</span>
-            <span class="role-perms">POS فقط + الورديات</span>
+          <div>
+            <div class="heading font-bold" style="color:#2E6237;font-size:12px;display:flex;align-items:center;gap:4px;">
+              <span class="material-icons" style="font-size:14px;">settings</span>
+              واجهة الإعدادات
+            </div>
+            <div style="color:#6b7280;font-size:10.5px;line-height:1.4;margin-top:2px;">تصميم موحد ومتجاوب عبر كل الصفحات</div>
           </div>
         </div>
       </div>
-
-      <!-- Left (DOM 2): Settings thumbnail + security features -->
-      <div class="flex flex-col gap-3">
-        <div class="thumb-frame" style="height: 130px;">
-          <img src="screenshots/08-settings.png" alt="إعدادات النظام">
-        </div>
-        <div class="body text-[11px] text-[#6b7280] font-semibold text-center -mt-1">إعدادات الأدوار والمستخدمين</div>
-
-        <div class="space-y-2 mt-1">
-          <div class="sec-card">
-            <div class="icon-chip"><span class="material-icons" style="font-size: 18px; color: #2E6237;">lock</span></div>
-            <div class="body text-[12px] font-bold text-[#1a2e1d] leading-tight">كلمات مرور مشفرة (bcrypt)</div>
-          </div>
-          <div class="sec-card">
-            <div class="icon-chip"><span class="material-icons" style="font-size: 18px; color: #2E6237;">history</span></div>
-            <div class="body text-[12px] font-bold text-[#1a2e1d] leading-tight">سجل تدقيق كامل (Audit Log)</div>
-          </div>
-          <div class="sec-card">
-            <div class="icon-chip"><span class="material-icons" style="font-size: 18px; color: #2E6237;">lock_outline</span></div>
-            <div class="body text-[12px] font-bold text-[#1a2e1d] leading-tight">قفل صفوف المخزون (SELECT FOR UPDATE)</div>
-          </div>
-          <div class="sec-card">
-            <div class="icon-chip"><span class="material-icons" style="font-size: 18px; color: #2E6237;">api</span></div>
-            <div class="body text-[12px] font-bold text-[#1a2e1d] leading-tight">حماية API routes بالأدوار</div>
-          </div>
-        </div>
-      </div>
-
     </div>
   </div>
 

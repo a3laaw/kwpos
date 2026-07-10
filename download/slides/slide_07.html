@@ -2,201 +2,198 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<title>لوحة المالك والميزات المتقدمة</title>
+<title>KWPOS — الخطوة 3: التقارير</title>
 <link rel="stylesheet" href="global.css">
-<script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
 <style>
+  body { background: #e5e7eb; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  .slide { font-family: 'Tajawal', sans-serif; }
   .heading { font-family: 'Cairo', sans-serif; }
-  .body { font-family: 'Tajawal', sans-serif; }
-  .pattern-bg {
-    position: absolute; inset: 0;
-    background-image: radial-gradient(rgba(46,98,55,0.04) 1.5px, transparent 1.5px);
-    background-size: 22px 22px;
-    pointer-events: none;
+  .step-pill {
+    background: linear-gradient(135deg, #2E6237 0%, #1a2e1d 100%);
+    color: white;
+    box-shadow: 0 4px 14px rgba(46,98,55,0.25);
   }
-  .hero-frame {
-    border-radius: 16px;
-    overflow: hidden;
-    border: 1px solid #e5e7eb;
-    box-shadow: 0 12px 30px -10px rgba(46,98,55,0.20), 0 4px 8px -2px rgba(0,0,0,0.05);
-    background: #fff;
-    position: relative;
-  }
-  .hero-frame img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-  .hero-tag {
-    position: absolute;
-    top: 14px; right: 14px;
-    background: rgba(46,98,55,0.92);
-    color: #fff;
-    padding: 6px 12px;
-    border-radius: 8px;
-    font-family: 'Cairo', sans-serif;
-    font-weight: 700;
-    font-size: 12px;
-    backdrop-filter: blur(4px);
-  }
-  .bento-card {
+  .shot-frame {
+    border: 2px solid #DFC196;
     background: #f8faf9;
-    border: 1px solid #e5e7eb;
+    padding: 8px;
     border-radius: 14px;
-    padding: 16px 18px;
-    position: relative;
-    overflow: hidden;
-    height: 100%;
+    box-shadow: 0 18px 40px rgba(0,0,0,0.18), 0 6px 14px rgba(46,98,55,0.08);
   }
-  .bento-card::before {
-    content: '';
-    position: absolute;
-    top: 0; right: 0;
-    width: 4px; height: 100%;
-    background: linear-gradient(180deg, #2E6237 0%, #4a8a55 100%);
+  .shot-frame img {
+    border-radius: 8px;
+    width: 100%;
+    height: 460px;
+    object-fit: cover;
+    object-position: top center;
   }
-  .bento-card.accent::before { background: linear-gradient(180deg, #DFC196 0%, #f0d9b8 100%); }
-  .bento-card .icon-chip {
-    width: 38px; height: 38px;
-    border-radius: 10px;
-    background: rgba(46,98,55,0.10);
-    display: inline-flex; align-items: center; justify-content: center;
+  .feat-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.04);
+    padding: 11px 13px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .feat-icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, rgba(46,98,55,0.12), rgba(223,193,150,0.18));
+    display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
   }
-  .bento-card.accent .icon-chip { background: rgba(223,193,150,0.30); }
-  .bundle-thumb {
-    border-radius: 8px;
-    overflow: hidden;
-    border: 1px solid #e5e7eb;
-    box-shadow: 0 4px 10px -2px rgba(0,0,0,0.10);
+  .stat-chip {
+    background: white;
+    border: 1.5px solid #DFC196;
+    border-radius: 999px;
+    padding: 8px 18px;
+    box-shadow: 0 4px 12px rgba(223,193,150,0.25);
   }
-  .bundle-thumb img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-  .loyalty-tier {
-    display: inline-flex; align-items: center; gap: 3px;
-    padding: 2px 7px;
-    border-radius: 6px;
+  .stat-chip .num {
     font-family: 'Cairo', sans-serif;
-    font-weight: 700;
-    font-size: 9px;
+    font-weight: 800;
+    color: #2E6237;
+    font-size: 18px;
   }
-  .tier-bronze { background: rgba(205,127,50,0.18); color: #cd7f32; }
-  .tier-silver { background: rgba(169,169,169,0.20); color: #6e6e6e; }
-  .tier-gold { background: rgba(223,193,150,0.35); color: #8a6d3b; }
-  .kbd {
-    display: inline-flex; align-items: center;
-    padding: 2px 7px;
-    border-radius: 5px;
-    background: #fff;
-    border: 1px solid #d1d5db;
-    box-shadow: 0 1px 0 #d1d5db;
-    font-family: 'Tajawal', monospace;
-    font-weight: 700;
-    font-size: 10px;
-    color: #1a2e1d;
+  .stat-chip .lbl {
+    color: #6b7280;
+    font-size: 13px;
+    font-weight: 500;
   }
-  .decor-blob {
+  .blob {
     position: absolute;
     border-radius: 50%;
-    filter: blur(70px);
-    opacity: 0.30;
+    filter: blur(60px);
+    opacity: 0.18;
     pointer-events: none;
   }
 </style>
 </head>
 <body>
-<div class="slide slide-rtl relative" dir="rtl">
-  <div class="pattern-bg" data-decor aria-hidden="true"></div>
-  <div class="decor-blob" data-decor aria-hidden="true" style="width: 260px; height: 260px; background: #DFC196; top: -100px; left: -60px;"></div>
+<div class="slide slide-rtl relative" style="width:1280px;height:720px;overflow:hidden;background:#ffffff;">
 
-  <!-- Header -->
-  <div class="relative px-16 pt-9 pb-3 flex items-end justify-between z-10">
-    <div>
-      <div class="flex items-center gap-2 mb-2">
-        <span class="bg-[#2E6237] text-white text-xs font-bold px-2.5 py-1 rounded-md heading">07</span>
-        <span class="text-[#8a6d3b] heading text-sm font-bold tracking-wide">للمالك فقط</span>
+  <div class="blob" data-decor aria-hidden="true" style="background:#2E6237;width:340px;height:340px;top:-120px;right:-100px;"></div>
+  <div class="blob" data-decor aria-hidden="true" style="background:#DFC196;width:280px;height:280px;bottom:-120px;left:-90px;"></div>
+
+  <!-- Top step bar -->
+  <div class="absolute top-0 right-0 left-0 flex items-center justify-between px-12 py-5" style="background:linear-gradient(90deg,rgba(46,98,55,0.04),rgba(223,193,150,0.06));border-bottom:1px solid #e5e7eb;">
+    <div class="flex items-center gap-3">
+      <span class="material-icons" style="color:#2E6237;font-size:22px;">storefront</span>
+      <span class="heading font-bold" style="color:#1a2e1d;font-size:16px;">استعراض عمل النظام</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <div class="step-pill heading font-bold px-4 py-1.5 rounded-full text-sm">الخطوة 3 من 3</div>
+      <div class="flex items-center gap-1">
+        <span class="w-2 h-2 rounded-full" style="background:#DFC196;"></span>
+        <span class="w-2 h-2 rounded-full" style="background:#DFC196;"></span>
+        <span class="w-2 h-2 rounded-full" style="background:#2E6237;"></span>
       </div>
-      <h1 class="text-[#2E6237] heading text-4xl font-extrabold">لوحة المالك والميزات المتقدمة</h1>
-    </div>
-    <div class="flex items-center gap-2 text-[#2E6237] bg-[#f8faf9] border border-[#e5e7eb] px-4 py-2.5 rounded-xl">
-      <span class="material-icons" style="font-size: 22px;">workspace_premium</span>
-      <span class="heading font-bold text-base">ميزات احترافية</span>
-    </div>
-  </div>
-
-  <!-- Hero image -->
-  <div class="relative px-16 pb-4 z-10">
-    <div class="hero-frame" style="height: 270px;">
-      <img src="screenshots/07-owner-dashboard.png" alt="لوحة المالك">
-      <div class="hero-tag">لوحة المالك — Owner Dashboard</div>
     </div>
   </div>
 
-  <!-- 4 bento cards row -->
-  <div class="relative px-16 pb-8 z-10">
-    <div class="grid grid-cols-4 gap-4">
+  <!-- Title -->
+  <div class="absolute right-12 left-12" style="top:72px;">
+    <h1 class="heading font-black" style="color:#2E6237;font-size:28px;line-height:1.3;">
+      النتائج والتقارير الذكية
+    </h1>
+    <div class="flex items-center gap-2 mt-1">
+      <div style="width:48px;height:3px;background:#DFC196;border-radius:2px;"></div>
+      <span style="color:#6b7280;font-size:13px;font-weight:500;">رؤية عميقة لأداء متجرك بضغطة زر</span>
+    </div>
+  </div>
 
-      <!-- Card 1: Bundles (with thumbnail) -->
-      <div class="bento-card">
-        <div class="flex items-center gap-2.5 mb-2">
-          <div class="icon-chip"><span class="material-icons" style="font-size: 22px; color: #2E6237;">inventory_2</span></div>
-          <h3 class="heading text-base font-extrabold text-[#1a2e1d] leading-tight">الباقات</h3>
-        </div>
-        <div class="bundle-thumb mb-2" style="height: 56px;">
-          <img src="screenshots/09-bundles.png" alt="الباقات">
-        </div>
-        <p class="body text-[12px] text-[#1a2e1d] font-semibold leading-snug">منتجات تُباع معًا بسعر مخفّض</p>
-        <div class="body text-[10px] text-[#8a6d3b] font-bold mt-1">Bundles</div>
+  <!-- Main content area -->
+  <div class="absolute right-12 left-12 flex gap-6" style="top:148px;">
+
+    <!-- LEFT (40%) — Description + bullets -->
+    <div style="width:40%;">
+      <div class="heading font-bold mb-3" style="color:#1a2e1d;font-size:15px;">
+        مخرجات ذكية تمنحك رؤية عميقة لأداء متجرك.
       </div>
 
-      <!-- Card 2: التركيبات -->
-      <div class="bento-card">
-        <div class="flex items-center gap-2.5 mb-2">
-          <div class="icon-chip"><span class="material-icons" style="font-size: 22px; color: #2E6237;">science</span></div>
-          <h3 class="heading text-base font-extrabold text-[#1a2e1d] leading-tight">التركيبات</h3>
+      <div class="flex flex-col gap-2">
+        <div class="feat-card">
+          <div class="feat-icon"><span class="material-icons" style="color:#2E6237;font-size:18px;">bar_chart</span></div>
+          <div>
+            <div class="heading font-bold" style="color:#2E6237;font-size:13px;">تقرير المبيعات الشامل</div>
+            <div style="color:#4b5563;font-size:12px;line-height:1.4;">مع فلاتر مرنة</div>
+          </div>
         </div>
-        <div class="flex items-center justify-center" style="height: 56px;">
-          <span class="material-icons" style="font-size: 44px; color: rgba(46,98,55,0.30);">blender</span>
-        </div>
-        <p class="body text-[12px] text-[#1a2e1d] font-semibold leading-snug">خلط مكونات خام لإنتاج منتج جديد</p>
-        <div class="body text-[10px] text-[#8a6d3b] font-bold mt-1">Formulations</div>
-      </div>
 
-      <!-- Card 3: نقاط الولاء -->
-      <div class="bento-card accent">
-        <div class="flex items-center gap-2.5 mb-2">
-          <div class="icon-chip accent"><span class="material-icons" style="font-size: 22px; color: #8a6d3b;">star</span></div>
-          <h3 class="heading text-base font-extrabold text-[#1a2e1d] leading-tight">نقاط الولاء</h3>
+        <div class="feat-card">
+          <div class="feat-icon"><span class="material-icons" style="color:#2E6237;font-size:18px;">trending_up</span></div>
+          <div>
+            <div class="heading font-bold" style="color:#2E6237;font-size:13px;">تحليلات المبيعات</div>
+            <div style="color:#4b5563;font-size:12px;line-height:1.4;">5 أنواع (نظرة عامة، الأكثر مبيعًا، الراكدة، التكاليف، الربحية)</div>
+          </div>
         </div>
-        <div class="flex items-center gap-1.5 mb-2" style="height: 56px;">
-          <span class="loyalty-tier tier-bronze">BRONZE</span>
-          <span class="loyalty-tier tier-silver">SILVER</span>
-          <span class="loyalty-tier tier-gold">GOLD</span>
-        </div>
-        <p class="body text-[12px] text-[#1a2e1d] font-semibold leading-snug">نقاط + طبقات BRONZE/SILVER/GOLD</p>
-      </div>
 
-      <!-- Card 4: بحث شامل -->
-      <div class="bento-card">
-        <div class="flex items-center gap-2.5 mb-2">
-          <div class="icon-chip"><span class="material-icons" style="font-size: 22px; color: #2E6237;">search</span></div>
-          <h3 class="heading text-base font-extrabold text-[#1a2e1d] leading-tight">بحث شامل</h3>
+        <div class="feat-card">
+          <div class="feat-icon"><span class="material-icons" style="color:#2E6237;font-size:18px;">grid_view</span></div>
+          <div>
+            <div class="heading font-bold" style="color:#2E6237;font-size:13px;">مصفوفة أداء الأقسام</div>
+            <div style="color:#4b5563;font-size:12px;line-height:1.4;">هامش الربح + معدل الدوران</div>
+          </div>
         </div>
-        <div class="flex items-center justify-center gap-1.5" style="height: 56px;">
-          <span class="kbd">Ctrl</span>
-          <span class="text-[#6b7280] font-bold text-sm">+</span>
-          <span class="kbd">K</span>
-        </div>
-        <p class="body text-[12px] text-[#1a2e1d] font-semibold leading-snug">بحث فوري في كل النظام</p>
-        <div class="body text-[10px] text-[#8a6d3b] font-bold mt-1">Global Search</div>
-      </div>
 
+        <div class="feat-card">
+          <div class="feat-icon"><span class="material-icons" style="color:#2E6237;font-size:18px;">receipt_long</span></div>
+          <div>
+            <div class="heading font-bold" style="color:#2E6237;font-size:13px;">تقرير VAT</div>
+            <div style="color:#4b5563;font-size:12px;line-height:1.4;">تلقائي بدون ازدواج</div>
+          </div>
+        </div>
+
+        <div class="feat-card">
+          <div class="feat-icon"><span class="material-icons" style="color:#2E6237;font-size:18px;">file_download</span></div>
+          <div>
+            <div class="heading font-bold" style="color:#2E6237;font-size:13px;">تصدير PDF + Excel</div>
+            <div style="color:#4b5563;font-size:12px;line-height:1.4;">بضغطة زر</div>
+          </div>
+        </div>
+
+        <div class="feat-card">
+          <div class="feat-icon"><span class="material-icons" style="color:#2E6237;font-size:18px;">print</span></div>
+          <div>
+            <div class="heading font-bold" style="color:#2E6237;font-size:13px;">طباعة الجداول فقط</div>
+            <div style="color:#4b5563;font-size:12px;line-height:1.4;">نظيفة واحترافية</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT (60%) — Screenshot -->
+    <div style="width:60%;">
+      <div class="shot-frame">
+        <img src="screenshots/06-analytics.png" alt="التحليلات والتقارير KWPOS">
+      </div>
+      <div class="flex items-center justify-center gap-2 mt-2">
+        <span class="material-icons" style="color:#2E6237;font-size:14px;">photo_camera</span>
+        <span style="color:#6b7280;font-size:12px;font-weight:500;">لقطة شاشة حقيقية — التحليلات والتقارير</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom stats bar -->
+  <div class="absolute right-12 left-12 flex items-center justify-center gap-4" style="bottom:32px;">
+    <div class="stat-chip flex items-center gap-2">
+      <span class="material-icons" style="color:#2E6237;font-size:18px;">analytics</span>
+      <span class="num">5 تحليلات</span>
+      <span class="lbl">شاملة</span>
+    </div>
+    <div class="stat-chip flex items-center gap-2">
+      <span class="material-icons" style="color:#2E6237;font-size:18px;">file_export</span>
+      <span class="num">PDF + Excel</span>
+      <span class="lbl">تصدير فوري</span>
+    </div>
+    <div class="stat-chip flex items-center gap-2">
+      <span class="material-icons" style="color:#2E6237;font-size:18px;">verified</span>
+      <span class="num">VAT جاهز</span>
+      <span class="lbl">بدون ازدواج</span>
     </div>
   </div>
 

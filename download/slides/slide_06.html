@@ -2,161 +2,201 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<title>التقارير والتحليلات</title>
+<title>KWPOS — الخطوة 2: العملية الذكية</title>
 <link rel="stylesheet" href="global.css">
-<script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
 <style>
+  body { background: #e5e7eb; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  .slide { font-family: 'Tajawal', sans-serif; }
   .heading { font-family: 'Cairo', sans-serif; }
-  .body { font-family: 'Tajawal', sans-serif; }
-  .pattern-bg {
-    position: absolute; inset: 0;
-    background-image: radial-gradient(rgba(46,98,55,0.04) 1.5px, transparent 1.5px);
-    background-size: 22px 22px;
-    pointer-events: none;
+  .step-pill {
+    background: linear-gradient(135deg, #2E6237 0%, #1a2e1d 100%);
+    color: white;
+    box-shadow: 0 4px 14px rgba(46,98,55,0.25);
   }
-  .bullet-row {
-    display: flex; align-items: center; gap: 10px;
-    padding: 9px 14px;
-    background: #ffffff;
-    border: 1px solid #eef1f0;
-    border-radius: 10px;
+  .shot-frame {
+    border: 2px solid #DFC196;
+    background: #f8faf9;
+    padding: 8px;
+    border-radius: 14px;
+    box-shadow: 0 18px 40px rgba(0,0,0,0.18), 0 6px 14px rgba(46,98,55,0.08);
+  }
+  .shot-frame img {
+    border-radius: 8px;
+    width: 100%;
+    height: 460px;
+    object-fit: cover;
+    object-position: top center;
+  }
+  .step-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.04);
     transition: all .2s;
   }
-  .bullet-row .dot {
-    width: 7px; height: 7px;
+  .step-num {
+    background: linear-gradient(135deg, #2E6237 0%, #4a8a55 100%);
+    color: white;
+    width: 30px; height: 30px;
     border-radius: 50%;
-    background: #DFC196;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Cairo', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    box-shadow: 0 3px 8px rgba(46,98,55,0.3);
     flex-shrink: 0;
   }
-  .stat-pill {
-    display: inline-flex; align-items: center; gap: 8px;
-    padding: 8px 14px;
-    border-radius: 12px;
-    background: #f8faf9;
-    border: 1px solid #e5e7eb;
+  .stat-chip {
+    background: white;
+    border: 1.5px solid #DFC196;
+    border-radius: 999px;
+    padding: 8px 18px;
+    box-shadow: 0 4px 12px rgba(223,193,150,0.25);
   }
-  .stat-pill.accent {
-    background: rgba(223,193,150,0.18);
-    border-color: rgba(223,193,150,0.45);
+  .stat-chip .num {
+    font-family: 'Cairo', sans-serif;
+    font-weight: 800;
+    color: #2E6237;
+    font-size: 18px;
   }
-  .screenshot-frame {
-    border-radius: 16px;
-    overflow: hidden;
-    border: 1px solid #e5e7eb;
-    box-shadow: 0 10px 30px -8px rgba(46,98,55,0.18), 0 4px 8px -2px rgba(0,0,0,0.06);
-    background: #fff;
+  .stat-chip .lbl {
+    color: #6b7280;
+    font-size: 13px;
+    font-weight: 500;
   }
-  .screenshot-frame img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-  .icon-chip {
-    width: 36px; height: 36px;
-    border-radius: 10px;
-    background: rgba(46,98,55,0.10);
-    display: inline-flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-  }
-  .icon-chip.accent { background: rgba(223,193,150,0.30); }
-  .decor-blob {
+  .blob {
     position: absolute;
     border-radius: 50%;
     filter: blur(60px);
-    opacity: 0.35;
+    opacity: 0.18;
     pointer-events: none;
   }
 </style>
 </head>
 <body>
-<div class="slide slide-rtl relative" dir="rtl">
-  <div class="pattern-bg" data-decor aria-hidden="true"></div>
-  <div class="decor-blob" data-decor aria-hidden="true" style="width: 280px; height: 280px; background: #DFC196; top: -120px; left: -80px;"></div>
+<div class="slide slide-rtl relative" style="width:1280px;height:720px;overflow:hidden;background:#ffffff;">
 
-  <!-- Header -->
-  <div class="relative px-16 pt-10 pb-3 flex items-end justify-between z-10">
-    <div>
-      <div class="flex items-center gap-2 mb-3">
-        <span class="bg-[#2E6237] text-white text-xs font-bold px-2.5 py-1 rounded-md heading">06</span>
-        <span class="text-[#8a6d3b] heading text-sm font-bold tracking-wide">تحليلات وبيانات</span>
-      </div>
-      <h1 class="text-[#2E6237] heading text-5xl font-extrabold">التقارير والتحليلات</h1>
-      <p class="text-[#1a2e1d] body text-lg font-semibold mt-2">تحليلات شاملة لأداء المتجر</p>
+  <!-- Decorative background blobs -->
+  <div class="blob" data-decor aria-hidden="true" style="background:#2E6237;width:340px;height:340px;top:-120px;left:-100px;"></div>
+  <div class="blob" data-decor aria-hidden="true" style="background:#DFC196;width:280px;height:280px;bottom:-120px;right:-90px;"></div>
+
+  <!-- Top step bar -->
+  <div class="absolute top-0 right-0 left-0 flex items-center justify-between px-12 py-5" style="background:linear-gradient(90deg,rgba(46,98,55,0.04),rgba(223,193,150,0.06));border-bottom:1px solid #e5e7eb;">
+    <div class="flex items-center gap-3">
+      <span class="material-icons" style="color:#2E6237;font-size:22px;">storefront</span>
+      <span class="heading font-bold" style="color:#1a2e1d;font-size:16px;">استعراض عمل النظام</span>
     </div>
-    <div class="flex items-center gap-2 text-[#2E6237] bg-[#f8faf9] border border-[#e5e7eb] px-4 py-2.5 rounded-xl">
-      <span class="material-icons" style="font-size: 22px;">insights</span>
-      <span class="heading font-bold text-base">رؤى عميقة</span>
+    <div class="flex items-center gap-2">
+      <div class="step-pill heading font-bold px-4 py-1.5 rounded-full text-sm">الخطوة 2 من 3</div>
+      <div class="flex items-center gap-1">
+        <span class="w-2 h-2 rounded-full" style="background:#DFC196;"></span>
+        <span class="w-2 h-2 rounded-full" style="background:#2E6237;"></span>
+        <span class="w-2 h-2 rounded-full" style="background:#DFC196;"></span>
+      </div>
     </div>
   </div>
 
-  <!-- 2 column body: text right, screenshot left -->
-  <div class="relative px-16 pb-8 z-10">
-    <div class="grid grid-cols-2 gap-8 items-stretch">
+  <!-- Title -->
+  <div class="absolute right-12 left-12" style="top:72px;">
+    <h1 class="heading font-black" style="color:#2E6237;font-size:28px;line-height:1.3;">
+      نقاط البيع — معالجة فورية وذكية
+    </h1>
+    <div class="flex items-center gap-2 mt-1">
+      <div style="width:48px;height:3px;background:#DFC196;border-radius:2px;"></div>
+      <span style="color:#6b7280;font-size:13px;font-weight:500;">من مسح الباركود إلى طباعة الإيصال في &lt; 5 ثوانٍ</span>
+    </div>
+  </div>
 
-      <!-- Right column: text & bullets -->
-      <div class="flex flex-col justify-center">
-        <div class="flex items-center gap-2 mb-4">
-          <div class="stat-pill">
-            <span class="material-icons" style="font-size: 18px; color: #2E6237;">analytics</span>
-            <span class="heading font-extrabold text-[#2E6237] text-base">5 تحليلات</span>
-          </div>
-          <div class="stat-pill accent">
-            <span class="material-icons" style="font-size: 18px; color: #8a6d3b;">file_download</span>
-            <span class="heading font-extrabold text-[#8a6d3b] text-base">PDF + Excel</span>
+  <!-- Main content area -->
+  <div class="absolute right-12 left-12 flex gap-6" style="top:148px;">
+
+    <!-- LEFT (60%) — Screenshot -->
+    <div style="width:60%;">
+      <div class="shot-frame">
+        <img src="screenshots/03-pos.png" alt="نقاط البيع KWPOS">
+      </div>
+      <div class="flex items-center justify-center gap-2 mt-2">
+        <span class="material-icons" style="color:#2E6237;font-size:14px;">photo_camera</span>
+        <span style="color:#6b7280;font-size:12px;font-weight:500;">لقطة شاشة حقيقية — نقاط البيع (POS)</span>
+      </div>
+    </div>
+
+    <!-- RIGHT (40%) — Description + numbered steps -->
+    <div style="width:40%;">
+      <div class="heading font-bold mb-3" style="color:#1a2e1d;font-size:15px;">
+        معالجة ذكية للبيانات في كل خطوة من عملية البيع.
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <div class="step-card flex items-start gap-2.5 p-2.5">
+          <div class="step-num heading">1</div>
+          <div>
+            <div class="heading font-bold" style="color:#2E6237;font-size:13px;">مسح الباركود</div>
+            <div style="color:#4b5563;font-size:12px;line-height:1.4;">بحث فوري وإضافة للسلة</div>
           </div>
         </div>
 
-        <div class="space-y-2.5">
-          <div class="bullet-row body text-[14px] text-[#1a2e1d] font-semibold">
-            <span class="dot"></span>
-            <span>تقرير المبيعات مع فلاتر مرنة</span>
+        <div class="step-card flex items-start gap-2.5 p-2.5">
+          <div class="step-num heading">2</div>
+          <div>
+            <div class="heading font-bold" style="color:#2E6237;font-size:13px;">حساب تلقائي</div>
+            <div style="color:#4b5563;font-size:12px;line-height:1.4;">ضريبة لكل منتج + خصم + رسوم توصيل</div>
           </div>
-          <div class="bullet-row body text-[14px] text-[#1a2e1d] font-semibold">
-            <span class="dot"></span>
-            <span>تحليلات المبيعات (5 أنواع)</span>
+        </div>
+
+        <div class="step-card flex items-start gap-2.5 p-2.5">
+          <div class="step-num heading">3</div>
+          <div>
+            <div class="heading font-bold" style="color:#2E6237;font-size:13px;">خصم المخزون</div>
+            <div style="color:#4b5563;font-size:12px;line-height:1.4;">تحديث لحظي للكميات + قفل صفوف</div>
           </div>
-          <div class="bullet-row body text-[14px] text-[#1a2e1d] font-semibold">
-            <span class="dot"></span>
-            <span>مصفوفة أداء الأقسام والمنتجات</span>
+        </div>
+
+        <div class="step-card flex items-start gap-2.5 p-2.5">
+          <div class="step-num heading">4</div>
+          <div>
+            <div class="heading font-bold" style="color:#2E6237;font-size:13px;">إنشاء قيد محاسبي</div>
+            <div style="color:#4b5563;font-size:12px;line-height:1.4;">مزدوج القيد تلقائيًا</div>
           </div>
-          <div class="bullet-row body text-[14px] text-[#1a2e1d] font-semibold">
-            <span class="dot"></span>
-            <span>الأكثر مبيعًا والأصناف الراكدة</span>
+        </div>
+
+        <div class="step-card flex items-start gap-2.5 p-2.5">
+          <div class="step-num heading">5</div>
+          <div>
+            <div class="heading font-bold" style="color:#2E6237;font-size:13px;">منح نقاط ولاء</div>
+            <div style="color:#4b5563;font-size:12px;line-height:1.4;">تلقائيًا للعميل</div>
           </div>
-          <div class="bullet-row body text-[14px] text-[#1a2e1d] font-semibold">
-            <span class="dot"></span>
-            <span>نسبة الربحية والتكاليف</span>
-          </div>
-          <div class="bullet-row body text-[14px] text-[#1a2e1d] font-semibold">
-            <span class="dot"></span>
-            <span>طباعة التقارير (جداول فقط)</span>
-          </div>
-          <div class="bullet-row body text-[14px] text-[#1a2e1d] font-semibold">
-            <span class="dot"></span>
-            <span>تصدير PDF و Excel</span>
+        </div>
+
+        <div class="step-card flex items-start gap-2.5 p-2.5">
+          <div class="step-num heading">6</div>
+          <div>
+            <div class="heading font-bold" style="color:#2E6237;font-size:13px;">طباعة إيصال</div>
+            <div style="color:#4b5563;font-size:12px;line-height:1.4;">حراري 80mm فورًا</div>
           </div>
         </div>
       </div>
+    </div>
+  </div>
 
-      <!-- Left column: screenshot -->
-      <div class="flex flex-col gap-3">
-        <div class="screenshot-frame" style="height: 420px;">
-          <img src="screenshots/06-analytics.png" alt="التقارير والتحليلات">
-        </div>
-        <div class="flex items-center justify-between gap-3">
-          <div class="flex items-center gap-2 text-[#2E6237]">
-            <div class="icon-chip"><span class="material-icons" style="font-size: 20px;">table_chart</span></div>
-            <span class="body font-bold text-sm text-[#1a2e1d]">جداول تفصيلية قابلة للتصفية</span>
-          </div>
-          <div class="flex items-center gap-2 text-[#8a6d3b]">
-            <div class="icon-chip accent"><span class="material-icons" style="font-size: 20px;">picture_as_pdf</span></div>
-            <span class="body font-bold text-sm text-[#1a2e1d]">تصدير احترافي</span>
-          </div>
-        </div>
-      </div>
-
+  <!-- Bottom stats bar -->
+  <div class="absolute right-12 left-12 flex items-center justify-center gap-4" style="bottom:32px;">
+    <div class="stat-chip flex items-center gap-2">
+      <span class="material-icons" style="color:#2E6237;font-size:18px;">bolt</span>
+      <span class="num">&lt; 5 ثوانٍ</span>
+      <span class="lbl">زمن المعالجة</span>
+    </div>
+    <div class="stat-chip flex items-center gap-2">
+      <span class="material-icons" style="color:#2E6237;font-size:18px;">verified</span>
+      <span class="num">0 أخطاء</span>
+      <span class="lbl">بدقة محاسبية</span>
+    </div>
+    <div class="stat-chip flex items-center gap-2">
+      <span class="material-icons" style="color:#2E6237;font-size:18px;">receipt_long</span>
+      <span class="num">قيد تلقائي</span>
+      <span class="lbl">عند كل عملية</span>
     </div>
   </div>
 
