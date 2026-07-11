@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
+import { canSeeCost, canManagePricing } from "@/lib/permissions"
 import { computeEffectivePrice } from "@/lib/pricing"
 import type { Role } from "@/lib/types"
 
@@ -22,6 +23,7 @@ export async function GET() {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
 
+  const seeCost = canSeeCost(user.role as Role)
   const now = new Date()
 
   // ── Auto-expire: close promotions past their endAt ──
@@ -97,7 +99,7 @@ export async function GET() {
       name: p.name,
       barcode: p.barcode ?? null,
       categoryName: p.category?.name ?? null,
-      costPrice: Number(p.costPrice),
+      costPrice: seeCost ? Number(p.costPrice) : 0,
       salePrice: Number(p.salePrice),
       wholesalePrice: Number(p.wholesalePrice),
       corporatePrice: Number(p.corporatePrice),
@@ -137,7 +139,8 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  if (!hasRole(user.role, ["OWNER", "ADMIN" as Role])) {
+  // Pricing changes: OWNER / ADMIN / MANAGER (managerial pricing authority).
+  if (!canManagePricing(user.role as Role)) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 })
   }
 

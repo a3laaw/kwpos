@@ -11,7 +11,9 @@ export const dynamic = "force-dynamic"
 export async function GET(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  if (!hasRole(user.role, ["OWNER", "ADMIN" as Role, "SALES" as Role])) {
+  // Dashboard is available to OWNER, ADMIN, MANAGER only.
+  // SALES, ACCOUNTANT, WAREHOUSE, CASHIER don't have the dashboard view.
+  if (!hasRole(user.role, ["OWNER", "ADMIN", "MANAGER"] as Role[])) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 })
   }
 

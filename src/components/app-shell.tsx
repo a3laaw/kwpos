@@ -55,14 +55,15 @@ export function AppShell({
 
   // Ensure the current view is allowed for the role; otherwise redirect.
   // CASHIER → goes directly to POS (no dashboard).
-  // Other roles → default to dashboard.
-  // IMPORTANT: check against the ROLE-SPECIFIC allowed views, not all nav
-  // items — otherwise a persisted view from a previous higher-privilege
-  // session (e.g. "users") would still render for a lower-privilege role.
+  // Other roles → default to dashboard if allowed, else their first
+  // allowed view (e.g. ACCOUNTANT → accounting, WAREHOUSE → inventory).
   React.useEffect(() => {
     const allowed = ROLE_PERMISSIONS[user.role].views
     if (!allowed.includes(view)) {
-      setView(user.role === "CASHIER" ? "sales" : "dashboard")
+      const fallback = allowed.includes("dashboard")
+        ? "dashboard"
+        : allowed[0] ?? "sales"
+      setView(fallback)
     }
   }, [view, setView, user.role])
 

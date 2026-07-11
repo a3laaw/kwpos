@@ -20,17 +20,35 @@ import {
 import { useAuditLogs, useVoidRate } from "@/hooks/use-api"
 import { useT } from "@/components/i18n-context"
 import { useFmt } from "@/components/currency-context"
+import { useUser } from "@/components/user-context"
 import { cn } from "@/lib/utils"
 
 export function AuditView() {
   const t = useT()
   const fmt = useFmt()
+  const currentUser = useUser()
   const [actionFilter, setActionFilter] = React.useState("all")
+
+  // Defense-in-depth: audit logs are OWNER / ADMIN only. MANAGER no longer
+  // has this view, but guard anyway in case of persisted-view leaks.
+  const canViewAudit = currentUser.role === "OWNER" || currentUser.role === "ADMIN"
 
   const { data: logsData, isLoading, isError, refetch } = useAuditLogs(
     actionFilter !== "all" ? { action: actionFilter } : undefined
   )
   const { data: voidRateData } = useVoidRate()
+
+  if (!canViewAudit) {
+    return (
+      <div className="space-y-5">
+        <EmptyState
+          icon={<Lock className="h-7 w-7" />}
+          title={t.noAccess}
+          description={t.noAccessDesc}
+        />
+      </div>
+    )
+  }
 
   const logs = logsData?.items ?? []
   const voidRows = voidRateData?.rows ?? []

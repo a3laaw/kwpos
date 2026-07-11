@@ -25,7 +25,24 @@ export function hasRole(userRole: Role | undefined, allowed: Role[]): boolean {
   return allowed.includes(userRole)
 }
 
-/** Role permissions map used by both server and client. */
+/** Role permissions map used by both server and client.
+ *
+ * Each role is STRICTLY scoped to its own domain:
+ *
+ *  OWNER     — full access (everything)
+ *  ADMIN     — full system management (everything except ownerDashboard)
+ *  MANAGER   — operational management (sales, inventory, customers, shifts,
+ *              exchanges, pricing, bundles, spotcheck, analytics, reports)
+ *              NO users, NO audit, NO accounting, NO settings, NO integrations
+ *  ACCOUNTANT— financial only (accounting, reports, invoices, customers,
+ *              suppliers, analytics). NO dashboard, NO sales, NO inventory
+ *  WAREHOUSE — inventory operations (inventory, purchases, suppliers,
+ *              spotcheck, bundles, compositions). NO dashboard, NO sales
+ *  SALES     — front-line sales (POS, invoices, customers, inventory view,
+ *              shifts, exchanges). NO pricing, NO bundles mgmt, NO analytics,
+ *              NO reports, NO dashboard
+ *  CASHIER   — POS only (sales, shifts)
+ */
 export const ROLE_PERMISSIONS: Record<Role, {
   label: string
   views: import("@/lib/types").AppView[]
@@ -50,34 +67,36 @@ export const ROLE_PERMISSIONS: Record<Role, {
   },
   MANAGER: {
     label: "مدير",
+    // Operational management — NO user management, NO audit logs, NO
+    // accounting, NO system settings, NO integrations.
     views: [
-      "dashboard", "managerDashboard", "sales", "invoices", "reports", "inventory", "customers",
-      "analytics", "shifts", "exchanges", "users", "audit",
+      "dashboard", "managerDashboard", "sales", "invoices", "reports",
+      "inventory", "customers", "analytics", "shifts", "exchanges",
+      "pricing", "bundles", "spotcheck",
     ],
   },
   ACCOUNTANT: {
     label: "محاسب",
-    views: [
-      "dashboard", "reports", "accounting", "customers", "suppliers",
-      "invoices", "analytics",
-    ],
+    // Financial scope only — NO dashboard (sales-focused), NO sales POS,
+    // NO inventory management.
+    views: ["accounting", "reports", "invoices", "customers", "suppliers", "analytics"],
   },
   WAREHOUSE: {
     label: "أمين مخزن",
-    views: ["dashboard", "inventory", "purchases", "suppliers", "spotcheck", "bundles", "compositions"],
+    // Inventory operations only — NO dashboard, NO sales, NO customers.
+    views: ["inventory", "purchases", "suppliers", "spotcheck", "bundles", "compositions"],
   },
   SALES: {
     label: "موظف مبيعات",
-    // SALES can sell, look up invoices, manage customers (add/edit), see
-    // stock levels (NOT cost), process exchanges, sell bundles, and use
-    // pricing. They do NOT get "analytics" or "reports" — those expose
-    // cost/margin/profitability figures.
-    views: ["dashboard", "sales", "invoices", "inventory", "customers", "shifts", "exchanges", "pricing", "bundles"],
+    // Front-line sales — sell, look up invoices, add/edit customers, view
+    // stock levels (NOT cost), process exchanges, manage own shifts.
+    // NO pricing management, NO bundle management, NO analytics, NO
+    // reports, NO dashboard (company analytics).
+    views: ["sales", "invoices", "inventory", "customers", "shifts", "exchanges"],
   },
   CASHIER: {
     label: "كاشير",
-    // CASHIER operates the POS only. No dashboard (which shows sales
-    // analytics), no reports, no analytics — just sell + close their shift.
+    // POS only — sell + close shift. Nothing else.
     views: ["sales", "shifts"],
   },
 }

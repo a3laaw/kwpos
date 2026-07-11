@@ -92,11 +92,9 @@ export function UsersView() {
     }
   }
 
-  // Defense-in-depth client-side guard. The sidebar already hides this view
-  // from non-admin roles, and the API rejects them, but if the persisted
-  // view ever lands a disallowed role here we show a clear "no access"
-  // panel instead of rendering the admin UI.
-  const canManageUsers = currentUser.role === "OWNER" || currentUser.role === "ADMIN" || currentUser.role === "MANAGER"
+  // Defense-in-depth client-side guard. User management is OWNER / ADMIN
+  // only. MANAGER manages operations, not user accounts.
+  const canManageUsers = currentUser.role === "OWNER" || currentUser.role === "ADMIN"
 
   if (!canManageUsers) {
     return (
