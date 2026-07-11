@@ -1649,7 +1649,7 @@ export interface UserItem {
   id: string
   email: string
   name: string
-  role: "ADMIN" | "SALES" | "WAREHOUSE"
+  role: "OWNER" | "ADMIN" | "MANAGER" | "ACCOUNTANT" | "SALES" | "CASHIER" | "WAREHOUSE"
   createdAt: string
   updatedAt: string
 }

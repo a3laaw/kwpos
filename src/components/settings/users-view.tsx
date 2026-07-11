@@ -32,6 +32,9 @@ import {
   Trash2,
   Loader2,
   Shield,
+  ShieldCheck,
+  Crown,
+  Calculator,
   ShoppingCart,
   Warehouse as WarehouseIcon,
 } from "lucide-react"
@@ -47,8 +50,12 @@ import { useUser } from "@/components/user-context"
 import { cn } from "@/lib/utils"
 
 const ROLE_META: Record<string, { icon: typeof Shield; color: string }> = {
+  OWNER: { icon: Crown, color: "bg-amber-500/15 text-amber-700 border-amber-300" },
   ADMIN: { icon: Shield, color: "bg-rose-500/15 text-rose-600 border-rose-300" },
+  MANAGER: { icon: ShieldCheck, color: "bg-blue-500/15 text-blue-600 border-blue-300" },
+  ACCOUNTANT: { icon: Calculator, color: "bg-purple-500/15 text-purple-600 border-purple-300" },
   SALES: { icon: ShoppingCart, color: "bg-sky-500/15 text-sky-600 border-sky-300" },
+  CASHIER: { icon: ShoppingCart, color: "bg-emerald-500/15 text-emerald-600 border-emerald-300" },
   WAREHOUSE: { icon: WarehouseIcon, color: "bg-amber-500/15 text-amber-600 border-amber-300" },
 }
 
@@ -146,7 +153,7 @@ export function UsersView() {
                         <td className="py-3 px-4 text-center">
                           <Badge variant="outline" className={cn("gap-1", meta.color)}>
                             <RoleIcon className="h-3 w-3" />
-                            {u.role === "ADMIN" ? (t.roleAdmin || "Admin") : u.role === "SALES" ? (t.roleSales || "Sales") : (t.roleWarehouse || "Warehouse")}
+                            {u.role === "OWNER" ? (t.roleOwner || "المالك") : u.role === "ADMIN" ? (t.roleAdmin || "مدير النظام") : u.role === "MANAGER" ? (t.roleManager || "مدير") : u.role === "ACCOUNTANT" ? (t.roleAccountant || "محاسب") : u.role === "CASHIER" ? (t.roleCashier || "كاشير") : u.role === "SALES" ? (t.roleSales || "موظف مبيعات") : (t.roleWarehouse || "أمين مخزن")}
                           </Badge>
                         </td>
                         <td className="py-3 px-4 text-center text-xs text-muted-foreground hidden md:table-cell">
@@ -281,9 +288,13 @@ function UserDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ADMIN">{t.roleAdmin || "Administrator"}</SelectItem>
-                <SelectItem value="SALES">{t.roleSales || "Sales Clerk"}</SelectItem>
-                <SelectItem value="WAREHOUSE">{t.roleWarehouse || "Warehouse Keeper"}</SelectItem>
+                <SelectItem value="OWNER">{t.roleOwner || "المالك"}</SelectItem>
+                <SelectItem value="ADMIN">{t.roleAdmin || "مدير النظام"}</SelectItem>
+                <SelectItem value="MANAGER">{t.roleManager || "مدير"}</SelectItem>
+                <SelectItem value="ACCOUNTANT">{t.roleAccountant || "محاسب"}</SelectItem>
+                <SelectItem value="WAREHOUSE">{t.roleWarehouse || "أمين مخزن"}</SelectItem>
+                <SelectItem value="SALES">{t.roleSales || "موظف مبيعات"}</SelectItem>
+                <SelectItem value="CASHIER">{t.roleCashier || "كاشير"}</SelectItem>
               </SelectContent>
             </Select>
           </div>
