@@ -81,6 +81,8 @@ function initials(name: string) {
 export function ExpressPosView({ user, onToggleMode }: ExpressPosViewProps) {
   const fmt = useFmt()
   const t = useT()
+  // Only ADMIN/MANAGER/OWNER can apply manual discounts in the cart.
+  const canDiscount = user.role === "ADMIN" || user.role === "MANAGER" || user.role === "OWNER"
   // Express Mode = always RETAIL tier (no tier selector UI).
   const pos = usePOS({ forceRetailTier: true })
   const {
@@ -636,6 +638,7 @@ export function ExpressPosView({ user, onToggleMode }: ExpressPosViewProps) {
               customerFound={customerFound}
               discount={discount}
               setDiscount={setDiscount}
+              canDiscount={canDiscount}
               deliveryEnabled={deliveryEnabled}
               setDeliveryEnabled={setDeliveryEnabled}
               driverName={driverName}
@@ -938,6 +941,7 @@ interface MoreOptionsProps {
   customerFound: { name: string; address: string; type?: import("@/lib/types").CustomerTier } | null
   discount: string
   setDiscount: (v: string) => void
+  canDiscount: boolean
   deliveryEnabled: boolean
   setDeliveryEnabled: (v: boolean) => void
   driverName: string
@@ -954,6 +958,7 @@ function MoreOptions(props: MoreOptionsProps) {
     customerName, setCustomerName,
     customerPhone, setCustomerPhone, customerFound,
     discount, setDiscount,
+    canDiscount,
     deliveryEnabled, setDeliveryEnabled,
     driverName, setDriverName,
     deliveryFee, setDeliveryFee,
@@ -1001,19 +1006,21 @@ function MoreOptions(props: MoreOptionsProps) {
             />
           </div>
         </div>
-        <div className="grid grid-cols-1 gap-2">
-          <div>
-            <Label className="text-[10px] text-muted-foreground">{t.expressDiscount} ({fmt.symbol})</Label>
-            <Input
-              type="number"
-              min={0}
-              className="h-8 text-xs tabular-nums"
-              value={discount}
-              onChange={(e) => setDiscount(e.target.value)}
-              onFocus={(e) => e.target.select()}
-            />
+        {canDiscount ? (
+          <div className="grid grid-cols-1 gap-2">
+            <div>
+              <Label className="text-[10px] text-muted-foreground">{t.expressDiscount} ({fmt.symbol})</Label>
+              <Input
+                type="number"
+                min={0}
+                className="h-8 text-xs tabular-nums"
+                value={discount}
+                onChange={(e) => setDiscount(e.target.value)}
+                onFocus={(e) => e.target.select()}
+              />
+            </div>
           </div>
-        </div>
+        ) : null}
         {/* Delivery */}
         <div className="rounded-md border border-border/70 p-2 space-y-2">
           <label className="flex items-center justify-between cursor-pointer">

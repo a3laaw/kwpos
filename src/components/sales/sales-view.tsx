@@ -113,7 +113,11 @@ export function SalesView() {
 function StandardSalesView({ onToggleMode }: { onToggleMode: () => void }) {
   const fmt = useFmt()
   const t = useT()
+  const user = useUser()
   const pos = usePOS()
+  // Only ADMIN/MANAGER can apply manual discounts in the cart.
+  // SALES/CASHIER get discounts only from the pricing/promotions screen.
+  const canDiscount = user.role === "ADMIN" || user.role === "MANAGER" || user.role === "OWNER"
   const {
     q, setQ,
     categoryId, setCategoryId,
@@ -689,10 +693,12 @@ function StandardSalesView({ onToggleMode }: { onToggleMode: () => void }) {
                     </div>
 
                     <div className="grid grid-cols-1 gap-2">
-                      <div>
-                        <Label htmlFor="disc" className="text-[10px] text-muted-foreground">{t.discount} ({fmt.symbol})</Label>
-                        <Input id="disc" type="number" min={0} className="h-7 text-xs tabular-nums" value={discount} onChange={(e) => setDiscount(e.target.value)} />
-                      </div>
+                      {canDiscount ? (
+                        <div>
+                          <Label htmlFor="disc" className="text-[10px] text-muted-foreground">{t.discount} ({fmt.symbol})</Label>
+                          <Input id="disc" type="number" min={0} className="h-7 text-xs tabular-nums" value={discount} onChange={(e) => setDiscount(e.target.value)} />
+                        </div>
+                      ) : null}
                     </div>
 
                     <div className="space-y-1 text-xs">
