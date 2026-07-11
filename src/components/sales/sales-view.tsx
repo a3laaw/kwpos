@@ -47,6 +47,7 @@ import {
   Play,
   History,
   Zap,
+  PackageOpen,
 } from "lucide-react"
 import {
   Dialog,
@@ -139,7 +140,8 @@ function StandardSalesView({ onToggleMode }: { onToggleMode: () => void }) {
     confirmOpen, setConfirmOpen,
     cartPage, setCartPage,
     parkedListOpen, setParkedListOpen,
-    products, categories,
+    products, categories, bundles,
+    addBundleToCart,
     isLoading,
     parkedItems,
     createMut,
@@ -258,6 +260,46 @@ function StandardSalesView({ onToggleMode }: { onToggleMode: () => void }) {
             </div>
           ) : null}
 
+          {/* Active bundles — shown above product grid when no search/filter */}
+          {!q && !categoryId && bundles.length > 0 ? (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-primary flex items-center gap-1">
+                <PackageOpen className="h-3.5 w-3.5" />
+                {t.navBundles}
+              </p>
+              <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-2">
+                {bundles.map((b) => (
+                  <button
+                    key={b.id}
+                    onClick={() => addBundleToCart(b)}
+                    className={cn(
+                      "group relative flex flex-col overflow-hidden rounded-lg border border-emerald-400/40 bg-emerald-50/30 transition-all hover:border-emerald-500/60 hover:shadow-sm"
+                    )}
+                  >
+                    <div className="relative h-20 w-full bg-muted/40 overflow-hidden flex items-center justify-center">
+                      {b.imageUrl ? (
+                        <img src={b.imageUrl} alt={b.name} className="h-full w-full object-contain group-hover:scale-105 transition-transform" />
+                      ) : (
+                        <PackageOpen className="h-7 w-7 text-emerald-600" />
+                      )}
+                      <span className="absolute top-0.5 right-0.5 inline-flex items-center gap-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-bold px-1.5 py-0.5">
+                        
+                        {t.bundleSeasonal || "باقة"}
+                      </span>
+                    </div>
+                    <div className="p-1.5 text-start flex-1 flex flex-col gap-0.5">
+                      <p className="font-medium text-xs leading-tight truncate" title={b.name}>{b.name}</p>
+                      <div className="flex items-center justify-between mt-auto">
+                        <span className="font-bold tabular-nums text-xs text-emerald-700">{fmt.currency(b.salePrice)}</span>
+                        <span className="text-[10px] text-muted-foreground">{b.items?.length || 0} أصناف</span>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           {isLoading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
               {Array.from({ length: 8 }).map((_, i) => (
@@ -305,7 +347,7 @@ function StandardSalesView({ onToggleMode }: { onToggleMode: () => void }) {
                       ) : null}
                       {promoActive ? (
                         <span className="absolute top-0.5 right-0.5 inline-flex items-center gap-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-bold px-1 py-0.5">
-                          <Tag className="h-2 w-2" />
+                          
                           {t.promo}
                         </span>
                       ) : null}

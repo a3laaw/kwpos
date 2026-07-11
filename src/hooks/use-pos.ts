@@ -14,6 +14,7 @@ import {
   useFetchSuspendedSale,
   useActivePromotions,
 } from "@/hooks/use-api"
+import { useBundles } from "@/hooks/use-bundles"
 import { useFmt } from "@/components/currency-context"
 import { useT } from "@/components/i18n-context"
 import { printThermalReceipt } from "@/lib/print"
@@ -190,6 +191,10 @@ export function usePOS(opts?: UsePOSOptions) {
   const products = data?.items ?? []
   const categories = categoriesData?.items ?? []
 
+  // ── Active bundles (for POS display) ──
+  const { data: bundlesData } = useBundles(undefined, true)
+  const bundles = bundlesData?.items ?? []
+
   // ── Auto-lookup customer by phone (debounced) ──
   const debouncedPhone = React.useDeferredValue(customerPhone)
   React.useEffect(() => {
@@ -274,6 +279,59 @@ export function usePOS(opts?: UsePOSOptions) {
     for (const it of cart) m.set(it.product.id, (m.get(it.product.id) || 0) + it.quantity)
     return m
   }, [cart])
+
+  // ── Add a bundle to cart ──
+  // The bundle is added as a virtual cart item: we create a fake Product
+  // with the bundle's salePrice as the unitPrice. At checkout, each
+  // component's stock is decremented (handled by the sales API via
+  // the items array). The bundle itself is a single line in the cart.
+  function addBundleToCart(bundle: { id: string; name: string; salePrice: number; imageUrl?: string | null; items: Array<{ productId: string; quantity: number; product?: { name: string; quantity: number } }> }) {
+    // Check all components have enough stock
+    for (const item of bundle.items) {
+      const product = products.find((p) => p.id === item.productId)
+      if (product) {
+        const inCartQty = inCart.get(item.productId) || 0
+        const available = product.quantity - inCartQty
+        if (available < item.quantity) {
+          toast.error(t.qtyUnavailable || "الكمية غير متوفرة", {
+            description: `${product.name}: ${available} متاح، الباقة تحتاج ${item.quantity}`,
+          })
+          return
+        }
+      }
+    }
+
+    // Add bundle as a virtual product in the cart
+    const virtualProduct: Product = {
+      id: `bundle-${bundle.id}`,
+      name: `📦 ${bundle.name}`,
+      barcode: null,
+      quantity: 999, // bundles don't have a stock limit
+      salePrice: bundle.salePrice,
+      costPrice: 0,
+      wholesalePrice: bundle.salePrice,
+      corporatePrice: bundle.salePrice,
+      taxRate: 0,
+      unit: "باقة",
+      imageUrl: bundle.imageUrl || null,
+    } as Product
+
+    setCart((c) => {
+      const ex = c.find((it) => it.product.id === virtualProduct.id)
+      if (ex) {
+        return c.map((it) =>
+          it.product.id === virtualProduct.id
+            ? { ...it, quantity: it.quantity + 1 }
+            : it
+        )
+      }
+      const newIndex = c.length
+      const newPage = Math.floor(newIndex / ITEMS_PER_CART_PAGE)
+      setCartPage(newPage)
+      return [...c, { product: virtualProduct, quantity: 1 }]
+    })
+    toast.success(t.productAdded || "تمت الإضافة", { description: bundle.name })
+  }
 
   function addToCart(p: Product) {
     if (p.quantity <= 0) {
@@ -541,7 +599,7 @@ export function usePOS(opts?: UsePOSOptions) {
     cartPage, setCartPage,
     parkedListOpen, setParkedListOpen,
     // data
-    products, categories,
+    products, categories, bundles,
     isLoading,
     activePromos,
     parkedItems,
@@ -566,6 +624,7 @@ export function usePOS(opts?: UsePOSOptions) {
     hasActivePromo,
     // cart mutations
     addToCart,
+    addBundleToCart,
     changeQty,
     setQty,
     removeItem,
