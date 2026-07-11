@@ -52,12 +52,15 @@ export function AppShell({
     useAppStore.persist.rehydrate()
   }, [])
 
-  // Ensure the current view is allowed for the role; otherwise reset to dashboard.
-  // Runs after rehydration so the persisted (possibly stale) view is validated.
+  // Ensure the current view is allowed for the role; otherwise redirect.
+  // CASHIER → goes directly to POS (no dashboard).
+  // Other roles → default to dashboard.
   React.useEffect(() => {
     const allowed = NAV_ITEMS.map((n) => n.view)
-    if (!allowed.includes(view)) setView("dashboard")
-  }, [view, setView])
+    if (!allowed.includes(view)) {
+      setView(user.role === "CASHIER" ? "sales" : "dashboard")
+    }
+  }, [view, setView, user.role])
 
   const t = useT()
   const meta = VIEW_META[view]

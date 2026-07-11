@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import {
-  ClipboardCheck, Search, Loader2, TrendingDown, TrendingUp, Trash2, CheckCircle2,
+  ClipboardCheck, Search, Loader2, TrendingDown, TrendingUp, Trash2, CheckCircle2, Printer,
 } from "lucide-react"
 import {
   useProducts, useWarehouses, useStockTakes, useCreateStockTake, useApproveStockTake,
@@ -102,6 +102,90 @@ export function StockTakeTab() {
     { shortage: 0, surplus: 0 }
   )
 
+  // ── Stage 1: Print stock count sheet (paper for physical count) ──
+  function handlePrintCountSheet() {
+    if (products.length === 0) {
+      toast.error("لا توجد منتجات")
+      return
+    }
+    const whName = warehouses.find((w) => w.id === warehouseId)?.name || "كل المخازن"
+    const dateStr = new Intl.DateTimeFormat("ar-KW-u-nu-latn", {
+      year: "numeric", month: "long", day: "numeric",
+    }).format(new Date())
+
+    const rows = products.map((p: any, i: number) => `
+      <tr>
+        <td class="num">${i + 1}</td>
+        <td class="name">${p.name}</td>
+        <td class="barcode">${p.barcode || "—"}</td>
+        <td class="system">${p.quantity}</td>
+        <td class="actual"></td>
+        <td class="diff"></td>
+      </tr>`).join("")
+
+    const html = `<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="utf-8">
+<title>كشف جرد — ${whName}</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4; margin: 12mm; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: "Tajawal", sans-serif; color: #000; font-size: 11px; }
+  .header { text-align: center; margin-bottom: 6mm; border-bottom: 2px solid #2E6237; padding-bottom: 3mm; }
+  .header h1 { font-size: 20px; color: #2E6237; }
+  .header p { font-size: 11px; color: #555; margin-top: 2px; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th { background: #f0fdf4; color: #065f46; font-size: 10px; padding: 2mm; border-bottom: 2px solid #2E6237; }
+  thead th.num { width: 8mm; text-align: center; }
+  thead th.system, thead th.actual, thead th.diff { width: 20mm; text-align: center; }
+  thead th.barcode { width: 30mm; text-align: center; }
+  tbody td { padding: 2mm; border-bottom: 1px solid #ddd; font-size: 10px; }
+  tbody td.num, tbody td.system { text-align: center; }
+  tbody td.actual, tbody td.diff { text-align: center; height: 8mm; background: #fafafa; }
+  tbody td.barcode { text-align: center; font-family: monospace; font-size: 9px; }
+  .footer { margin-top: 6mm; text-align: center; font-size: 9px; color: #999; }
+  @media print { body { -webkit-print-color-adjust: exact; } }
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1>كشف جرد المخزون</h1>
+    <p>المخزن: ${whName} | التاريخ: ${dateStr}</p>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th class="num">#</th>
+        <th>الصنف</th>
+        <th class="barcode">الباركود</th>
+        <th class="system">الرصيد بالنظام</th>
+        <th class="actual">العد الفعلي</th>
+        <th class="diff">الفرق</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>
+  <div class="footer">
+    <p>تم إنشاء كشف الجرد: ${dateStr} — اطبع هذا الكشف، قم بالعد الفعلي، ثم أدخل الأرقام في النظام</p>
+  </div>
+</body>
+</html>`
+
+    const features = "width=900,height=700,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes"
+    const w = window.open("", "_blank", features)
+    if (!w) { alert("يرجى السماح بالنوافذ المنبثقة"); return }
+    w.document.open()
+    w.document.write(html)
+    w.document.close()
+    w.document.title = `كشف جرد — ${whName}`
+    const trigger = () => { w.focus(); w.print() }
+    if (w.document.fonts?.ready) {
+      w.document.fonts.ready.then(() => setTimeout(trigger, 200))
+    } else { setTimeout(trigger, 1200) }
+  }
+
   async function handleCreate() {
     if (lines.length === 0) {
       toast.error(t.stockTakeCreateFailed, { description: t.newStockTake })
@@ -168,6 +252,20 @@ export function StockTakeTab() {
               </div>
             </div>
           </Card>
+
+          {/* Stage 1: Print count sheet */}
+          <div className="rounded-lg border-2 border-dashed border-emerald-400/40 bg-emerald-50/20 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium text-emerald-700">المرحلة 1: طباعة كشف الجرد</p>
+                <p className="text-xs text-muted-foreground">اطبع كشف بكل المنتجات والرصيد الحالي للعد الفعلي يدويًا</p>
+              </div>
+              <Button variant="outline" className="gap-2 shrink-0" onClick={handlePrintCountSheet}>
+                <Printer className="h-4 w-4" />
+                طباعة كشف الجرد
+              </Button>
+            </div>
+          </div>
 
           {/* Barcode search */}
           <div className="relative">
@@ -267,6 +365,11 @@ export function StockTakeTab() {
                 <p>• {t.surplus} → {t.statementDebit} 1010 / {t.statementCredit} 4060</p>
               </div>
               <Separator />
+              {/* Stage 2: Close stock take online */}
+              <div className="rounded-lg border-2 border-dashed border-blue-400/40 bg-blue-50/20 p-3 text-center">
+                <p className="text-xs font-medium text-blue-700 mb-2">المرحلة 2: تقفيل الجرد على النظام</p>
+                <p className="text-[10px] text-muted-foreground mb-2">بعد إدخال الأرقام الفعلية، اضغط الزر أدناه لاعتماد الجرد وتعديل المخزون تلقائيًا</p>
+              </div>
               <Button onClick={handleCreate} disabled={lines.length === 0 || createMut.isPending} className="w-full gap-2">
                 {createMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardCheck className="h-4 w-4" />}
                 {t.newStockTake}
