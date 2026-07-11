@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { serializeProduct, serializeSale } from "@/lib/serialize"
 import { getCurrentUser, hasRole } from "@/lib/session"
+import { canSeeCost, stripProductCost } from "@/lib/permissions"
 import type { Role } from "@/lib/types"
 import type { DashboardStats } from "@/lib/types"
 
@@ -13,6 +14,8 @@ export async function GET(req: NextRequest) {
   if (!hasRole(user.role, ["OWNER", "ADMIN" as Role, "SALES" as Role])) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 })
   }
+
+  const seeCost = canSeeCost(user.role as Role)
 
   const { searchParams } = new URL(req.url)
   const from = searchParams.get("from")
@@ -195,12 +198,18 @@ export async function GET(req: NextRequest) {
     productsCount,
     lowStockCount,
     pendingPurchases,
-    inventoryValue: +inventoryValue.toFixed(2),
-    lowStockProducts: lowStockFull.map(serializeProduct),
+    // inventoryValue is Σ(quantity × costPrice) — hide for non-cost roles.
+    inventoryValue: seeCost ? +inventoryValue.toFixed(2) : 0,
+    // lowStockProducts include costPrice — strip for non-cost roles.
+    lowStockProducts: lowStockFull.map((p) =>
+      stripProductCost(serializeProduct(p), user.role as Role)
+    ),
     recentSales: recentSales.map(serializeSale),
     salesTrend,
     topProducts,
-    categoryDistribution,
+    // categoryDistribution is based on inventory value (cost-based) —
+    // hide for non-cost roles to avoid leaking cost info.
+    categoryDistribution: seeCost ? categoryDistribution : [],
   }
 
   return NextResponse.json(stats)

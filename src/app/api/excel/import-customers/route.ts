@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
-import { getCurrentUser } from "@/lib/session"
+import { getCurrentUser, hasRole } from "@/lib/session"
+import type { Role } from "@/lib/types"
 import * as XLSX from "xlsx"
 
 export const dynamic = "force-dynamic"
@@ -9,10 +10,17 @@ export const dynamic = "force-dynamic"
  * Import customers from an uploaded .xlsx/.csv file.
  * Expected columns: الاسم*, الهاتف, العنوان.
  * Matched by phone (if present) else by name; existing → updated, new → created.
+ *
+ * Bulk import is a data-management operation — restricted to OWNER / ADMIN /
+ * MANAGER. Front-line SALES / CASHIER can add customers one-by-one in the
+ * POS, but cannot bulk-import from an external file.
  */
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+  if (!hasRole(user.role, ["OWNER", "ADMIN", "MANAGER"] as Role[])) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 })
+  }
 
   const formData = await req.formData()
   const file = formData.get("file") as File | null

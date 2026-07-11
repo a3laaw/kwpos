@@ -68,10 +68,16 @@ export const ROLE_PERMISSIONS: Record<Role, {
   },
   SALES: {
     label: "موظف مبيعات",
-    views: ["dashboard", "sales", "invoices", "reports", "inventory", "customers", "analytics", "shifts", "exchanges", "pricing", "bundles"],
+    // SALES can sell, look up invoices, manage customers (add/edit), see
+    // stock levels (NOT cost), process exchanges, sell bundles, and use
+    // pricing. They do NOT get "analytics" or "reports" — those expose
+    // cost/margin/profitability figures.
+    views: ["dashboard", "sales", "invoices", "inventory", "customers", "shifts", "exchanges", "pricing", "bundles"],
   },
   CASHIER: {
     label: "كاشير",
-    views: ["dashboard", "sales", "shifts"],
+    // CASHIER operates the POS only. No dashboard (which shows sales
+    // analytics), no reports, no analytics — just sell + close their shift.
+    views: ["sales", "shifts"],
   },
 }

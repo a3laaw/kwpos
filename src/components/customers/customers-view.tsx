@@ -57,6 +57,13 @@ export function CustomersView() {
     user.role === "SALES"
   // Customer delete: OWNER / ADMIN / MANAGER only (central canDelete helper).
   const canDel = canDelete(user.role as Role)
+  // Excel import/export is a bulk data-management operation — restricted
+  // to OWNER / ADMIN / MANAGER. SALES can add customers one-by-one in the
+  // POS, but cannot bulk-import or export the customer database.
+  const canManageCustomers =
+    user.role === "OWNER" ||
+    user.role === "ADMIN" ||
+    user.role === "MANAGER"
   const [q, setQ] = React.useState("")
   const [dialogOpen, setDialogOpen] = React.useState(false)
   const [editing, setEditing] = React.useState<Customer | null>(null)
@@ -100,8 +107,8 @@ export function CustomersView() {
         ]}
         actions={
           <div className="flex items-center gap-2 flex-wrap">
-            <ExcelImportButton type="customers" />
-            <ExcelExportButton type="customers" />
+            {canManageCustomers ? <ExcelImportButton type="customers" /> : null}
+            {canManageCustomers ? <ExcelExportButton type="customers" /> : null}
             {canWrite ? (
               <Button onClick={openAdd} className="gap-2">
                 <Plus className="h-4 w-4" />

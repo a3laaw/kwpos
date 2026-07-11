@@ -142,7 +142,7 @@ export function InventoryView() {
         actions={
           <div className="flex items-center gap-2 flex-wrap">
             {canManage ? <ExcelImportButton type="products" /> : null}
-            <ExcelExportButton type="products" />
+            {canManage ? <ExcelExportButton type="products" /> : null}
             {products.length > 0 ? (
               <Button variant="outline" onClick={handlePrintBarcodes} className="gap-2">
                 <Barcode className="h-4 w-4" />
