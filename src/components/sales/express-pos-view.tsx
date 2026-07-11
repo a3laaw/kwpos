@@ -93,6 +93,7 @@ export function ExpressPosView({ user, onToggleMode }: ExpressPosViewProps) {
     paymentMethod, setPaymentMethod,
     customerName, setCustomerName,
     customerPhone, setCustomerPhone,
+    customerAddress, setCustomerAddress,
     customerFound,
     lastSale, setLastSale,
     autoPrint, toggleAutoPrint,
@@ -635,11 +636,13 @@ export function ExpressPosView({ user, onToggleMode }: ExpressPosViewProps) {
               setCustomerName={setCustomerName}
               customerPhone={customerPhone}
               setCustomerPhone={setCustomerPhone}
+              customerAddress={customerAddress}
+              setCustomerAddress={setCustomerAddress}
               customerFound={customerFound}
+              deliveryEnabled={deliveryEnabled}
               discount={discount}
               setDiscount={setDiscount}
               canDiscount={canDiscount}
-              deliveryEnabled={deliveryEnabled}
               setDeliveryEnabled={setDeliveryEnabled}
               driverName={driverName}
               setDriverName={setDriverName}
@@ -938,11 +941,13 @@ interface MoreOptionsProps {
   setCustomerName: (v: string) => void
   customerPhone: string
   setCustomerPhone: (v: string) => void
+  customerAddress: string
+  setCustomerAddress: (v: string) => void
   customerFound: { name: string; address: string; type?: import("@/lib/types").CustomerTier } | null
+  deliveryEnabled: boolean
   discount: string
   setDiscount: (v: string) => void
   canDiscount: boolean
-  deliveryEnabled: boolean
   setDeliveryEnabled: (v: boolean) => void
   driverName: string
   setDriverName: (v: string) => void
@@ -956,10 +961,12 @@ function MoreOptions(props: MoreOptionsProps) {
   const [open, setOpen] = React.useState(false)
   const {
     customerName, setCustomerName,
-    customerPhone, setCustomerPhone, customerFound,
+    customerPhone, setCustomerPhone,
+    customerAddress, setCustomerAddress,
+    customerFound,
+    deliveryEnabled, setDeliveryEnabled,
     discount, setDiscount,
     canDiscount,
-    deliveryEnabled, setDeliveryEnabled,
     driverName, setDriverName,
     deliveryFee, setDeliveryFee,
     fmt,
@@ -1036,7 +1043,19 @@ function MoreOptions(props: MoreOptionsProps) {
             />
           </label>
           {deliveryEnabled ? (
-            <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-2">
+              {/* Address — required when delivery is enabled */}
+              <div>
+                <Label className="text-[10px] text-muted-foreground">{t.expressAddress || "العنوان"} *</Label>
+                <Input
+                  type="text"
+                  className="h-8 text-xs"
+                  placeholder={t.addressPlaceholder || "المدينة - الحي - الشارع"}
+                  value={customerAddress}
+                  onChange={(e) => setCustomerAddress(e.target.value)}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label className="text-[10px] text-muted-foreground">{t.expressDriverName}</Label>
                 <Input
@@ -1060,6 +1079,7 @@ function MoreOptions(props: MoreOptionsProps) {
                   onChange={(e) => setDeliveryFee(e.target.value)}
                   onFocus={(e) => e.target.select()}
                 />
+              </div>
               </div>
             </div>
           ) : null}

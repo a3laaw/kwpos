@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json()
-  const { customerName, customerPhone, items, taxRate, discount, paymentMethod, deliveryFee, driverName } = body || {}
+  const { customerName, customerPhone, customerAddress, items, taxRate, discount, paymentMethod, deliveryFee, driverName } = body || {}
 
   if (!Array.isArray(items) || items.length === 0) {
     return NextResponse.json({ error: "items-required" }, { status: 400 })
@@ -87,12 +87,16 @@ export async function POST(req: NextRequest) {
     if (existing) {
       customerId = existing.id
       if (!resolvedName) resolvedName = existing.name
+      // Update address if provided and customer doesn't have one
+      if (customerAddress?.trim() && !existing.address) {
+        await db.customer.update({ where: { id: existing.id }, data: { address: customerAddress.trim() } })
+      }
     } else {
       const created = await db.customer.create({
         data: {
           name: resolvedName || "عميل نقدي",
           phone,
-          address: "",
+          address: customerAddress?.trim() || "",
         },
       })
       customerId = created.id

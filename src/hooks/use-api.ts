@@ -275,6 +275,7 @@ export function useCreateSale() {
     mutationFn: (body: {
       customerName?: string
       customerPhone?: string
+      customerAddress?: string
       items: { productId: string; quantity: number; unitPrice: number }[]
       taxRate: number
       discount: number

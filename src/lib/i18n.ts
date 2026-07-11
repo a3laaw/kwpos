@@ -1387,6 +1387,9 @@ export interface Dict {
   expressCustomerPhone: string
   expressCustomerName: string
   expressDiscount: string
+  expressAddress: string
+  posPhoneRequired: string
+  posAddressRequired: string
   expressTaxRate: string
   expressDelivery: string
   expressDriverName: string
@@ -3245,6 +3248,9 @@ export const DICTS: Record<Locale, Dict> = {
     expressCustomerPhone: "هاتف العميل",
     expressCustomerName: "اسم العميل",
     expressDiscount: "خصم",
+    expressAddress: "العنوان",
+    posPhoneRequired: "رقم الهاتف مطلوب",
+    posAddressRequired: "العنوان مطلوب للتوصيل",
     expressTaxRate: "نسبة الضريبة %",
     expressDelivery: "طلب توصيل",
     expressDriverName: "اسم السائق",
@@ -5091,6 +5097,9 @@ export const DICTS: Record<Locale, Dict> = {
     expressCustomerPhone: "Customer phone",
     expressCustomerName: "Customer name",
     expressDiscount: "Discount",
+    expressAddress: "Address",
+    posPhoneRequired: "Phone number is required",
+    posAddressRequired: "Address is required for delivery",
     expressTaxRate: "Tax %",
     expressDelivery: "Delivery",
     expressDriverName: "Driver name",

@@ -68,6 +68,7 @@ export function usePOS(opts?: UsePOSOptions) {
   const [paymentMethod, setPaymentMethod] = React.useState<"CASH" | "CARD" | "TRANSFER">("CASH")
   const [customerName, setCustomerName] = React.useState("")
   const [customerPhone, setCustomerPhone] = React.useState("")
+  const [customerAddress, setCustomerAddress] = React.useState("")
   const [customerFound, setCustomerFound] = React.useState<{ name: string; address: string; type?: CustomerTier } | null>(null)
   const [lastSale, setLastSale] = React.useState<Sale | null>(null)
 
@@ -444,6 +445,16 @@ export function usePOS(opts?: UsePOSOptions) {
       toast.error(t.cartEmpty)
       return
     }
+    // Phone is required — perfume shop needs customer database
+    if (!customerPhone.trim()) {
+      toast.error(t.posPhoneRequired || "رقم الهاتف مطلوب")
+      return
+    }
+    // Address is required only when delivery is enabled
+    if (deliveryEnabled && !customerAddress.trim()) {
+      toast.error(t.posAddressRequired || "العنوان مطلوب للتوصيل")
+      return
+    }
     setConfirmOpen(true)
   }
 
@@ -453,6 +464,7 @@ export function usePOS(opts?: UsePOSOptions) {
       const sale = await createMut.mutateAsync({
         customerName: customerName.trim() || undefined,
         customerPhone: customerPhone.trim() || undefined,
+        customerAddress: customerAddress.trim() || undefined,
         items: cart.map((it) => ({
           productId: it.product.id,
           quantity: it.quantity,
@@ -516,6 +528,7 @@ export function usePOS(opts?: UsePOSOptions) {
     paymentMethod, setPaymentMethod,
     customerName, setCustomerName,
     customerPhone, setCustomerPhone,
+    customerAddress, setCustomerAddress,
     customerFound,
     lastSale, setLastSale,
     autoPrint, toggleAutoPrint,

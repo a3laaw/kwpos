@@ -127,6 +127,7 @@ function StandardSalesView({ onToggleMode }: { onToggleMode: () => void }) {
     paymentMethod, setPaymentMethod,
     customerName, setCustomerName,
     customerPhone, setCustomerPhone,
+    customerAddress, setCustomerAddress,
     customerFound,
     lastSale, setLastSale,
     autoPrint, toggleAutoPrint,
@@ -665,7 +666,19 @@ function StandardSalesView({ onToggleMode }: { onToggleMode: () => void }) {
                         />
                       </label>
                       {deliveryEnabled ? (
-                        <div className="grid grid-cols-2 gap-2 pt-1">
+                        <div className="space-y-2 pt-1">
+                          {/* Address — required when delivery is enabled */}
+                          <div>
+                            <Label className="text-[10px] text-muted-foreground">{t.expressAddress || "العنوان"} *</Label>
+                            <Input
+                              type="text"
+                              className="h-7 text-xs"
+                              placeholder={t.addressPlaceholder || "المدينة - الحي - الشارع"}
+                              value={customerAddress}
+                              onChange={(e) => setCustomerAddress(e.target.value)}
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
                           <div>
                             <Label className="text-[10px] text-muted-foreground">{t.driverName}</Label>
                             <Input
@@ -688,6 +701,7 @@ function StandardSalesView({ onToggleMode }: { onToggleMode: () => void }) {
                               onChange={(e) => setDeliveryFee(e.target.value)}
                             />
                           </div>
+                        </div>
                         </div>
                       ) : null}
                     </div>
