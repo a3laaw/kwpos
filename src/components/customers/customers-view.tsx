@@ -42,7 +42,7 @@ import { useFmt } from "@/components/currency-context"
 import { useT } from "@/components/i18n-context"
 import { useUser } from "@/components/user-context"
 import { canDelete } from "@/lib/permissions"
-import type { Role } from "@/lib/types"
+import type { Role, Customer } from "@/lib/types"
 
 export function CustomersView() {
   const fmt = useFmt()

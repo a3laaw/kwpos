@@ -226,7 +226,7 @@ export function AnalyticsView() {
           ) : null}
 
           {/* Report content */}
-          {tab === "overview" ? <OverviewTab data={data} fmt={fmt} t={t} onNavigate={setTab} /> : null}
+          {tab === "overview" ? <OverviewTab data={data} fmt={fmt} t={t} onNavigate={setTab} seeCost={seeCost} /> : null}
           {tab === "top" ? <TopSellingTab data={data.topSelling} fmt={fmt} t={t} /> : null}
           {tab === "stagnant" ? <StagnantTab data={data.stagnant} fmt={fmt} t={t} /> : null}
           {tab === "cost" ? <CostTab expensive={data.mostExpensive} cheapest={data.cheapest} fmt={fmt} t={t} /> : null}
@@ -243,11 +243,13 @@ function OverviewTab({
   fmt,
   t,
   onNavigate,
+  seeCost,
 }: {
   data: any
   fmt: ReturnType<typeof useFmt>
   t: ReturnType<typeof useT>
   onNavigate: (k: ReportKey) => void
+  seeCost: boolean
 }) {
   const totalRevenue = data.topSelling.reduce((s: number, d: ProductAnalytics) => s + d.grossVolume, 0)
   const totalQty = data.topSelling.reduce((s: number, d: ProductAnalytics) => s + d.quantitySold, 0)
