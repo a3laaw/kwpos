@@ -564,6 +564,11 @@ export function usePOS(opts?: UsePOSOptions) {
         toast.error(t.stockInsufficient, {
           description: t.posStockInsufficientDesc.replace("{name}", name),
         })
+      } else if (err?.message?.startsWith("stock-frozen")) {
+        const productName = err.message.split(":")[1] || "هذا الصنف"
+        toast.error("الصنف مجمّد للجرد", {
+          description: `${productName} تحت الجرد حاليًا — لا يمكن بيعه حتى اعتماد الجرد`,
+        })
       } else {
         toast.error(t.checkoutFailed, { description: err?.message })
       }

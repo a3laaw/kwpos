@@ -54,6 +54,14 @@ export async function POST(
       // Bump stock per item — StockItem upsert + recompute Product.quantity
       // from StockItems (no direct increment on Product.quantity).
       for (const it of inv.items) {
+        // ── Inventory freeze: check if product is under active stock take ──
+        const frozenItem = await tx.stockTakeItem.findFirst({
+          where: { productId: it.productId, stockTake: { status: "DRAFT" } },
+        })
+        if (frozenItem) {
+          throw new Error(`stock-frozen:${it.productId}`)
+        }
+
         if (inv.warehouseId) {
           await tx.stockItem.upsert({
             where: {

@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import {
-  ClipboardCheck, Search, Loader2, TrendingDown, TrendingUp, Trash2, CheckCircle2, Printer,
+  ClipboardCheck, Search, Loader2, TrendingDown, TrendingUp, Trash2, CheckCircle2, Printer, Save,
 } from "lucide-react"
 import {
   useProducts, useWarehouses, useStockTakes, useCreateStockTake, useApproveStockTake,
@@ -186,6 +186,33 @@ export function StockTakeTab() {
     } else { setTimeout(trigger, 1200) }
   }
 
+  // ── Save draft (Stage 2a): save actual quantities without approving ──
+  // This allows the worker to save progress and come back later for large
+  // inventories that take days to count.
+  const [draftId, setDraftId] = React.useState<string | null>(null)
+  const [saveDraftMut] = React.useState({ isPending: false })
+
+  async function handleSaveDraft() {
+    if (lines.length === 0) {
+      toast.error("لا توجد أصناف للحفظ")
+      return
+    }
+    try {
+      const res = await createMut.mutateAsync({
+        warehouseId: warehouseId || undefined,
+        note: (note.trim() || "") + " [مسودة]",
+        items: lines.map((l) => ({
+          productId: l.productId,
+          actualQty: Number(l.actualQty) || 0,
+        })),
+      })
+      setDraftId(res.id)
+      toast.success("تم حفظ المسودة", { description: `${res.takeNo} — يمكنك العودة لاحقًا لإكمال الجرد` })
+    } catch (err: any) {
+      toast.error("فشل حفظ المسودة", { description: String(err?.message || err) })
+    }
+  }
+
   async function handleCreate() {
     if (lines.length === 0) {
       toast.error(t.stockTakeCreateFailed, { description: t.newStockTake })
@@ -203,6 +230,7 @@ export function StockTakeTab() {
       toast.success(t.stockTakeCreated, { description: res.takeNo })
       setLines([])
       setNote("")
+      setDraftId(null)
       // Auto-open approve dialog for the just-created take
       setApproveTarget(res.id)
     } catch (err: any) {
@@ -368,11 +396,21 @@ export function StockTakeTab() {
               {/* Stage 2: Close stock take online */}
               <div className="rounded-lg border-2 border-dashed border-blue-400/40 bg-blue-50/20 p-3 text-center">
                 <p className="text-xs font-medium text-blue-700 mb-2">المرحلة 2: تقفيل الجرد على النظام</p>
-                <p className="text-[10px] text-muted-foreground mb-2">بعد إدخال الأرقام الفعلية، اضغط الزر أدناه لاعتماد الجرد وتعديل المخزون تلقائيًا</p>
+                <p className="text-[10px] text-muted-foreground mb-2">بعد إدخال الأرقام الفعلية، اضغط زر الحفظ كمسودة أو الاعتماد النهائي</p>
               </div>
+              {/* Save draft — for large inventories that take days */}
+              <Button variant="outline" onClick={handleSaveDraft} disabled={lines.length === 0 || createMut.isPending} className="w-full gap-2">
+                {createMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                حفظ كمسودة
+              </Button>
+              {draftId ? (
+                <p className="text-[10px] text-center text-muted-foreground">
+                  تم حفظ المسودة — يمكن العودة لها لاحقًا من قائمة الجرد
+                </p>
+              ) : null}
               <Button onClick={handleCreate} disabled={lines.length === 0 || createMut.isPending} className="w-full gap-2">
                 {createMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardCheck className="h-4 w-4" />}
-                {t.newStockTake}
+                {t.newStockTake} (اعتماد نهائي)
               </Button>
             </CardContent>
           </Card>

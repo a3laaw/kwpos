@@ -142,6 +142,17 @@ export async function POST(req: NextRequest) {
       const product = await tx.product.findUnique({ where: { id: productId } })
       if (!product) throw new Error("product-not-found:" + productId)
 
+      // ── Inventory freeze: check if this product is under active stock take ──
+      const activeStockTakeItem = await tx.stockTakeItem.findFirst({
+        where: {
+          productId,
+          stockTake: { status: "DRAFT" },
+        },
+      })
+      if (activeStockTakeItem) {
+        throw new Error(`stock-frozen:${product.name}`)
+      }
+
       // Check + decrement StockItem for this warehouse (with row locking)
       const ok = await decrementStockItem(tx, productId, warehouseId, qty)
       if (!ok) {
