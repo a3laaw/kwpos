@@ -274,6 +274,14 @@ export async function POST(req: NextRequest) {
     }
 
     return { sale, total, afterDiscount, taxAmount }
+  }, {
+    // The sale transaction does a lot of work: stock validation + decrement,
+    // sale creation, journal entry, audit log, loyalty points. On Supabase
+    // with connection_limit=1, queries are sequential and can exceed the
+    // default 5s timeout. Increase to 30s to avoid "Transaction already
+    // closed" errors.
+    timeout: 30000,
+    maxWait: 15000,
   }).catch((e: any) => {
     return { __error: e?.message || "sale-failed" }
   })

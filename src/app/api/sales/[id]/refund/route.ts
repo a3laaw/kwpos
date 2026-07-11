@@ -201,6 +201,9 @@ export async function POST(
     })
 
     return result
+  }, {
+    timeout: 30000,
+    maxWait: 15000,
   }).catch((e: any) => ({ __error: e?.message || "refund-failed" }))
 
   if (updated && (updated as any).__error) {

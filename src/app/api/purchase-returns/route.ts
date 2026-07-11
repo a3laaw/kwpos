@@ -224,6 +224,9 @@ export async function POST(req: NextRequest) {
     })
 
     return { purchaseReturn, journalEntryId }
+  }, {
+    timeout: 30000,
+    maxWait: 15000,
   }).catch((e: any) => ({ __error: e?.message || "purchase-return-failed" }))
 
   if ((created as any).__error) {

@@ -195,6 +195,9 @@ export async function POST(req: NextRequest) {
     })
 
     return created.id
+  }, {
+    timeout: 30000,
+    maxWait: 15000,
   }).catch((e: any) => ({ __error: e?.message || "supplier-payment-failed" }))
 
   if (result && (result as any).__error) {

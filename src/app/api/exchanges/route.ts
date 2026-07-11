@@ -385,6 +385,9 @@ export async function POST(req: NextRequest) {
     })
 
     return created
+  }, {
+    timeout: 30000,
+    maxWait: 15000,
   }).catch((e: any) => ({ __error: e?.message || "exchange-failed" }))
 
   if (result && (result as any).__error) {
