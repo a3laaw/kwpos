@@ -241,33 +241,6 @@ export function LoginScreen({ country }: { country?: CountryConfig }) {
                 </Button>
               </form>
 
-              <div className="relative my-6">
-                <Separator />
-                <span className="absolute inset-0 -top-3 mx-auto w-fit bg-card px-3 text-xs text-muted-foreground">
-                  {t.demoAccounts} — {t.logTapToFill}
-                </span>
-              </div>
-
-              <div className="grid gap-2">
-                {demoAccounts.map((a) => (
-                  <button
-                    key={a.email}
-                    type="button"
-                    onClick={() => quickFill(a.email)}
-                    className="flex items-center gap-3 rounded-lg border border-border/70 bg-card px-3 py-2.5 text-start transition hover:border-primary/40 hover:bg-accent/50"
-                  >
-                    <span className={`flex h-9 w-9 items-center justify-center rounded-lg bg-muted ${a.tone}`}>
-                      <a.icon className="h-4 w-4" />
-                    </span>
-                    <span className="flex-1 min-w-0">
-                      <span className="block text-sm font-medium">{a.role}</span>
-                      <span className="block text-xs text-muted-foreground font-mono truncate" dir="ltr">
-                        {a.email}
-                      </span>
-                    </span>
-                  </button>
-                ))}
-              </div>
             </CardContent>
           </Card>
         </div>
