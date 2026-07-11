@@ -3576,8 +3576,8 @@ export const DICTS: Record<Locale, Dict> = {
     auditDesc: "مراقبة الحركات المشبوهة للكاشير، نسب الحذف، والإجراءات الاستثنائية",
 
     // Bundles (الباقات)
-    navBundles: "الباقات والعرضات",
-    bundlesTitle: "الباقات والعرضات",
+    navBundles: "الباقات والعروض",
+    bundlesTitle: "الباقات والعروض",
     bundlesDesc: "إنشاء باقات ومنتجات تُباع معًا بسعر مخفّض — مثال: عطر + بخور + مبخرة",
     bundleAddNew: "إضافة باقة",
     bundleEditTitle: "تعديل الباقة",

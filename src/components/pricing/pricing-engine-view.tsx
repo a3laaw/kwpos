@@ -65,6 +65,7 @@ import {
   type BelowCostWarning,
 } from "@/hooks/use-api"
 import { cn } from "@/lib/utils"
+import { useModuleTab } from "@/lib/module-tab-store"
 
 /* ───────────────────────────── Helpers ────────────────────────────── */
 
@@ -1084,7 +1085,7 @@ function AuditLogTab() {
 
 export function PricingEngineView() {
   const t = useT()
-  const [tab, setTab] = React.useState<"prices" | "promotions" | "audit">("prices")
+  const [tab, setTab] = useModuleTab("pricing", "prices") as ["prices" | "promotions" | "audit", (v: string) => void]
   const PRC_TAB_BREADCRUMB: Record<"prices" | "promotions" | "audit", keyof import("@/lib/i18n").Dict> = {
     prices: "priceManagement",
     promotions: "promotionsAndDiscounts",
@@ -1102,40 +1103,6 @@ export function PricingEngineView() {
           { labelKey: PRC_TAB_BREADCRUMB[tab] },
         ]}
       />
-
-      {/* Tab switcher */}
-      <div className="flex items-center gap-1 p-1 bg-muted/50 rounded-lg w-fit">
-        <button
-          onClick={() => setTab("prices")}
-          className={cn(
-            "flex items-center gap-1.5 rounded-md py-1.5 px-3 text-xs font-medium transition-all",
-            tab === "prices" ? "bg-background text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          <Tags className="h-3.5 w-3.5" />
-          {t.priceManagement}
-        </button>
-        <button
-          onClick={() => setTab("promotions")}
-          className={cn(
-            "flex items-center gap-1.5 rounded-md py-1.5 px-3 text-xs font-medium transition-all",
-            tab === "promotions" ? "bg-background text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          <Percent className="h-3.5 w-3.5" />
-          {t.promotionsAndDiscounts}
-        </button>
-        <button
-          onClick={() => setTab("audit")}
-          className={cn(
-            "flex items-center gap-1.5 rounded-md py-1.5 px-3 text-xs font-medium transition-all",
-            tab === "audit" ? "bg-background text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          <History className="h-3.5 w-3.5" />
-          {t.changeLog}
-        </button>
-      </div>
 
       {tab === "prices" && <PriceManagementTab />}
       {tab === "promotions" && <PromotionsTab />}
