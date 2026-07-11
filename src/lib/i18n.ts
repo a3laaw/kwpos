@@ -429,6 +429,7 @@ export interface Dict {
   loginTitle: string
   loginDesc: string
   email: string
+  emailOrUsername: string
   password: string
   login: string
   loggingIn: string
@@ -2292,6 +2293,7 @@ export const DICTS: Record<Locale, Dict> = {
     loginTitle: "تسجيل الدخول",
     loginDesc: "أدخل بيانات حسابك للوصول إلى لوحة التحكم",
     email: "البريد الإلكتروني",
+    emailOrUsername: "البريد أو اسم المستخدم",
     password: "كلمة المرور",
     login: "دخول",
     loggingIn: "جارٍ الدخول...",
@@ -4144,6 +4146,7 @@ export const DICTS: Record<Locale, Dict> = {
     loginTitle: "Sign in",
     loginDesc: "Enter your credentials to access the dashboard",
     email: "Email",
+    emailOrUsername: "Email or Username",
     password: "Password",
     login: "Sign in",
     loggingIn: "Signing in...",

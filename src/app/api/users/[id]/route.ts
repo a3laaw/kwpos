@@ -8,15 +8,13 @@ import type { Role } from "@/lib/types"
 export const dynamic = "force-dynamic"
 
 /**
- * Password strength validation.
- * Rules: min 8 chars, at least 1 uppercase, 1 lowercase, 1 digit.
+ * Password strength validation (SIMPLIFIED).
+ * Rule: min 4 characters. No uppercase/lowercase/digit complexity requirements —
+ * the shop owner wants simple passwords for staff accounts.
  * Returns an error code (string) when invalid, or null when valid.
  */
 function validatePasswordStrength(pwd: string): string | null {
-  if (typeof pwd !== "string" || pwd.length < 8) return "password-too-short"
-  if (!/[A-Z]/.test(pwd)) return "password-no-uppercase"
-  if (!/[a-z]/.test(pwd)) return "password-no-lowercase"
-  if (!/[0-9]/.test(pwd)) return "password-no-digit"
+  if (typeof pwd !== "string" || pwd.length < 4) return "password-too-short"
   return null
 }
 

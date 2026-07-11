@@ -37,21 +37,47 @@ export const authOptions: NextAuthOptions = {
     CredentialsProvider({
       name: "credentials",
       credentials: {
-        email: { label: "Email", type: "email" },
+        email: { label: "Email or Username", type: "text" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null
 
-        // ── Normal DB auth (fail-closed: no fallback) ──
-        // Authentication requires a live database connection. There is no
-        // hardcoded fallback admin — if the DB is unreachable, login fails
-        // (fail-closed) rather than granting access with a known password.
-        const email = credentials.email.toLowerCase().trim()
+        // ── Login by EMAIL or USERNAME ──
+        // The user can type either their email (admin@demo.com) or just
+        // their username (admin, sales, cashier...). We try email first,
+        // then fall back to matching by the `email` local-part (before @)
+        // or by the `name` field. This simplifies login for front-line
+        // staff who may not remember their email.
+        const input = credentials.email.trim()
+        const inputLower = input.toLowerCase()
+
         try {
-          const user = await db.user.findUnique({
-            where: { email },
+          // 1) Try exact email match
+          let user = await db.user.findUnique({
+            where: { email: inputLower },
           })
+
+          // 2) Try matching the local-part of an email (e.g. "admin"
+          //    matches "admin@demo.com")
+          if (!user) {
+            user = await db.user.findFirst({
+              where: {
+                email: { startsWith: inputLower + "@", mode: "insensitive" },
+              },
+            })
+          }
+
+          // 3) Try matching by name (case-insensitive) — allows typing
+          //    the display name like "أحمد" or "admin"
+          if (!user) {
+            user = await db.user.findFirst({
+              where: {
+                name: { equals: input, mode: "insensitive" },
+              },
+            })
+          }
+
           if (!user) return null
           const ok = await bcrypt.compare(credentials.password, user.passwordHash)
           if (!ok) return null

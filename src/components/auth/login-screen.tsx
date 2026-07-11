@@ -113,7 +113,11 @@ export function LoginScreen({ country }: { country?: CountryConfig }) {
   }
 
   function quickFill(em: string) {
-    setEmail(em)
+    // For convenience, pre-fill the username field with the local-part
+    // of the email (e.g. "admin" instead of "admin@demo.com") so the
+    // user sees that username login is supported.
+    const username = em.includes("@") ? em.split("@")[0] : em
+    setEmail(username)
     setPassword("")
   }
 
@@ -199,15 +203,15 @@ export function LoginScreen({ country }: { country?: CountryConfig }) {
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">{t.email}</Label>
+                  <Label htmlFor="email">{t.emailOrUsername || t.email}</Label>
                   <Input
                     id="email"
-                    type="email"
+                    type="text"
                     dir="ltr"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    autoComplete="email"
+                    placeholder="admin"
+                    autoComplete="username"
                     required
                     className="text-end"
                   />
