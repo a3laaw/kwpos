@@ -66,6 +66,7 @@ import {
 } from "@/hooks/use-api"
 import { cn } from "@/lib/utils"
 import { useModuleTab } from "@/lib/module-tab-store"
+import { BundlesView } from "@/components/bundles/bundles-view"
 
 /* ───────────────────────────── Helpers ────────────────────────────── */
 
@@ -1085,10 +1086,11 @@ function AuditLogTab() {
 
 export function PricingEngineView() {
   const t = useT()
-  const [tab, setTab] = useModuleTab("pricing", "prices") as ["prices" | "promotions" | "audit", (v: string) => void]
-  const PRC_TAB_BREADCRUMB: Record<"prices" | "promotions" | "audit", keyof import("@/lib/i18n").Dict> = {
+  const [tab, setTab] = useModuleTab("pricing", "prices") as ["prices" | "promotions" | "bundles" | "audit", (v: string) => void]
+  const PRC_TAB_BREADCRUMB: Record<"prices" | "promotions" | "bundles" | "audit", keyof import("@/lib/i18n").Dict> = {
     prices: "priceManagement",
     promotions: "promotionsAndDiscounts",
+    bundles: "navBundles",
     audit: "changeLog",
   }
   return (
@@ -1106,6 +1108,7 @@ export function PricingEngineView() {
 
       {tab === "prices" && <PriceManagementTab />}
       {tab === "promotions" && <PromotionsTab />}
+      {tab === "bundles" && <BundlesView />}
       {tab === "audit" && <AuditLogTab />}
     </div>
   )

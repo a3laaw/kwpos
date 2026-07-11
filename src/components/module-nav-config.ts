@@ -4,6 +4,7 @@ import {
   Boxes, Warehouse as WarehouseIcon, ClipboardCheck, ArrowRightLeft,
   ShoppingCart, FileText, Tags, History, Percent as PercentIcon,
   TrendingUp, Coins, ArrowDown, ArrowLeftRight as MovementIcon, BookOpen,
+  PackageOpen,
 } from "lucide-react"
 import type { Dict } from "@/lib/i18n"
 
@@ -106,6 +107,7 @@ export const MODULE_NAV: Partial<Record<string, MegaMenuGroup[]>> = {
       items: [
         { value: "prices", labelKey: "priceManagement" as keyof Dict, icon: Tags },
         { value: "promotions", labelKey: "promotionsAndDiscounts" as keyof Dict, icon: PercentIcon },
+        { value: "bundles", labelKey: "navBundles" as keyof Dict, icon: PackageOpen },
         { value: "audit", labelKey: "changeLog" as keyof Dict, icon: History },
       ],
     },

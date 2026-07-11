@@ -83,7 +83,6 @@ export const NAV_ENTRIES: NavEntry[] = [
       { view: "suppliers", labelKey: "navSuppliers", icon: Truck },
       { view: "pricing", labelKey: "navPricing", icon: Tags },
       { view: "spotcheck", labelKey: "navSpotCheck", icon: ClipboardCheck },
-      { view: "bundles", labelKey: "navBundles", icon: PackageOpen },
       { view: "compositions", labelKey: "navCompositions", icon: FlaskConical },
     ],
   },
