@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
 
-  const isManager = hasRole(user.role, ["ADMIN" as Role, "MANAGER" as Role])
+  const isManager = hasRole(user.role, ["OWNER", "ADMIN" as Role, "MANAGER" as Role])
   const isWarehouse = hasRole(user.role, ["WAREHOUSE" as Role])
   const isAccountant = hasRole(user.role, ["ACCOUNTANT" as Role])
   const canSeeInventory = isManager || isWarehouse

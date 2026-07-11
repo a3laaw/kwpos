@@ -12,7 +12,7 @@ export async function GET(
 ) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  if (!hasRole(user.role, ["ADMIN" as Role, "SALES" as Role])) {
+  if (!hasRole(user.role, ["OWNER", "ADMIN" as Role, "SALES" as Role])) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 })
   }
 

@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic"
 export async function GET(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  if (!hasRole(user.role, ["ADMIN" as Role])) {
+  if (!hasRole(user.role, ["OWNER", "ADMIN" as Role])) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 })
   }
 
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
 
   const internalSecret = req.headers.get("x-audit-internal")
   const isInternal = internalSecret === AUDIT_INTERNAL_SECRET
-  const isAdmin = hasRole(user.role, ["ADMIN" as Role])
+  const isAdmin = hasRole(user.role, ["OWNER", "ADMIN" as Role])
 
   if (!isInternal && !isAdmin) {
     return NextResponse.json(

@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic"
 export async function GET() {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  if (!hasRole(user.role, ["ADMIN" as Role])) {
+  if (!hasRole(user.role, ["OWNER", "ADMIN" as Role])) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 })
   }
 

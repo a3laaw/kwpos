@@ -26,7 +26,7 @@ export async function PUT(
 ) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  if (!hasRole(user.role, ["ADMIN", "WAREHOUSE" as Role])) {
+  if (!hasRole(user.role, ["OWNER", "ADMIN", "WAREHOUSE" as Role])) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 })
   }
   const { id } = await params
@@ -157,7 +157,7 @@ export async function DELETE(
 ) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  if (!hasRole(user.role, ["ADMIN", "WAREHOUSE" as Role])) {
+  if (!hasRole(user.role, ["OWNER", "ADMIN", "WAREHOUSE" as Role])) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 })
   }
   const { id } = await params

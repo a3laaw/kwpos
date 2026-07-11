@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
-import { getCurrentUser } from "@/lib/session"
+import { getCurrentUser, hasRole } from "@/lib/session"
 import type { JournalEntry, JournalLine } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
@@ -21,7 +21,7 @@ function serializeLine(l: any): JournalLine {
 export async function GET(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  if (user.role !== "ADMIN") return NextResponse.json({ error: "forbidden" }, { status: 403 })
+  if (!hasRole(user.role, ["OWNER", "ADMIN", "ACCOUNTANT" as any])) return NextResponse.json({ error: "forbidden" }, { status: 403 })
 
   const { searchParams } = new URL(req.url)
   const sourceType = searchParams.get("sourceType") || undefined

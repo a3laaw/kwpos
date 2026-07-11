@@ -87,7 +87,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  if (!hasRole(user.role, ["ADMIN", "WAREHOUSE" as Role])) {
+  if (!hasRole(user.role, ["OWNER", "ADMIN", "WAREHOUSE" as Role])) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 })
   }
 
@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
   // ── Server-side balance validation ──
   // Compute outstanding balance: invoices - payments - returns
   const outstandingBalance = await getSupplierBalance(supplierId)
-  const isAdmin = hasRole(user.role, ["ADMIN" as Role])
+  const isAdmin = hasRole(user.role, ["OWNER", "ADMIN" as Role])
   const override = body?.override === true && isAdmin
 
   if (amt > outstandingBalance + 0.001 && !override) {

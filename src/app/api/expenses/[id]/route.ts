@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
-import { getCurrentUser } from "@/lib/session"
+import { getCurrentUser, hasRole } from "@/lib/session"
 
 export const dynamic = "force-dynamic"
 
@@ -10,7 +10,7 @@ export async function DELETE(
 ) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  if (user.role !== "ADMIN") return NextResponse.json({ error: "forbidden" }, { status: 403 })
+  if (!hasRole(user.role, ["OWNER", "ADMIN", "ACCOUNTANT" as any])) return NextResponse.json({ error: "forbidden" }, { status: 403 })
 
   const { id } = await params
   const exp = await db.expenseTransaction.findUnique({ where: { id } })

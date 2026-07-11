@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   // Admin & Sales can create exchanges; Warehouse cannot
-  if (!hasRole(user.role, ["ADMIN", "SALES" as Role])) {
+  if (!hasRole(user.role, ["OWNER", "ADMIN", "SALES" as Role])) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 })
   }
 
