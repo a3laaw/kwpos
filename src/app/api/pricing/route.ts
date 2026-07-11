@@ -24,13 +24,32 @@ export async function GET() {
 
   const now = new Date()
 
+  // ── Auto-expire: close promotions past their endAt ──
+  await db.promotion.updateMany({
+    where: {
+      isActive: true,
+      endAt: { lt: now },
+    },
+    data: { isActive: false },
+  })
+
+  // ── Auto-activate: start promotions whose startAt has arrived ──
+  await db.promotion.updateMany({
+    where: {
+      isActive: false,
+      startAt: { lte: now },
+      endAt: { gte: now },
+    },
+    data: { isActive: true },
+  })
+
   const [products, allActivePromos] = await Promise.all([
     db.product.findMany({
       include: { category: true },
       orderBy: { name: "asc" },
     }),
     db.promotion.findMany({
-      where: { isActive: true },
+      where: { isActive: true, startAt: { lte: now }, endAt: { gte: now } },
       orderBy: { startAt: "asc" },
     }),
   ])

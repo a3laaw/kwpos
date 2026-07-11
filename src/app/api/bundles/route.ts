@@ -24,6 +24,28 @@ export async function GET(req: NextRequest) {
   const q = searchParams.get("q")?.trim() || undefined
   const active = searchParams.get("active")
 
+  // ── Auto-expire: close bundles past their endDate ──
+  // Run on every GET so expired bundles are deactivated automatically
+  // without needing a cron job.
+  const now = new Date()
+  await db.bundle.updateMany({
+    where: {
+      isActive: true,
+      endDate: { lt: now },
+    },
+    data: { isActive: false },
+  })
+
+  // ── Auto-activate: start bundles whose startDate has arrived ──
+  await db.bundle.updateMany({
+    where: {
+      isActive: false,
+      startDate: { lte: now },
+      endDate: { gte: now },
+    },
+    data: { isActive: true },
+  })
+
   const where: { name?: { contains: string; mode: "insensitive" }; isActive?: boolean } = {}
   if (q) where.name = { contains: q, mode: "insensitive" }
   if (active === "true") where.isActive = true
