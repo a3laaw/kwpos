@@ -1018,6 +1018,7 @@ export interface PricingItem {
   salePrice: number
   wholesalePrice: number
   corporatePrice: number
+  taxRate: number
   activePromotion: {
     id: string
     productId: string

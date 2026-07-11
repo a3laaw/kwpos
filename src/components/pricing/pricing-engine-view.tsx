@@ -400,6 +400,7 @@ function PriceManagementTab() {
                     <TableHead className="text-start">{t.colBarcode}</TableHead>
                     <TableHead className="text-start">{t.colCategory}</TableHead>
                     <TableHead className="text-center">{t.colCostPrice}</TableHead>
+                    <TableHead className="text-center">{t.taxPercent || "ضريبة %"}</TableHead>
                     <TableHead className="text-center">{t.tierRetail}</TableHead>
                     <TableHead className="text-center">{t.tierWholesale}</TableHead>
                     <TableHead className="text-center">{t.tierCorporate}</TableHead>
@@ -420,6 +421,26 @@ function PriceManagementTab() {
                         <TableCell className="text-xs text-muted-foreground">{it.categoryName || "—"}</TableCell>
                         <TableCell className="text-center tabular-nums text-muted-foreground">
                           {fmt.currency(it.costPrice)}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Input
+                            type="number"
+                            min={0}
+                            max={100}
+                            step="1"
+                            className="h-8 text-xs tabular-nums w-16 text-center"
+                            value={it.taxRate || 0}
+                            onChange={(e) => {
+                              // Update product tax rate via API
+                              const rate = Math.max(0, Math.min(100, Number(e.target.value) || 0))
+                              fetch(`/api/products/${it.id}`, {
+                                method: "PUT",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ taxRate: rate }),
+                              }).catch(() => {})
+                            }}
+                            title="نسبة الضريبة %"
+                          />
                         </TableCell>
                         {(["RETAIL", "WHOLESALE", "CORPORATE"] as PriceTier[]).map((tier) => {
                           const key = `${it.id}:${tier}`
@@ -1082,6 +1103,39 @@ export function PricingEngineView() {
         ]}
       />
 
+      {/* Tab switcher */}
+      <div className="flex items-center gap-1 p-1 bg-muted/50 rounded-lg w-fit">
+        <button
+          onClick={() => setTab("prices")}
+          className={cn(
+            "flex items-center gap-1.5 rounded-md py-1.5 px-3 text-xs font-medium transition-all",
+            tab === "prices" ? "bg-background text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <Tags className="h-3.5 w-3.5" />
+          {t.priceManagement}
+        </button>
+        <button
+          onClick={() => setTab("promotions")}
+          className={cn(
+            "flex items-center gap-1.5 rounded-md py-1.5 px-3 text-xs font-medium transition-all",
+            tab === "promotions" ? "bg-background text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <Percent className="h-3.5 w-3.5" />
+          {t.promotionsAndDiscounts}
+        </button>
+        <button
+          onClick={() => setTab("audit")}
+          className={cn(
+            "flex items-center gap-1.5 rounded-md py-1.5 px-3 text-xs font-medium transition-all",
+            tab === "audit" ? "bg-background text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <History className="h-3.5 w-3.5" />
+          {t.changeLog}
+        </button>
+      </div>
 
       {tab === "prices" && <PriceManagementTab />}
       {tab === "promotions" && <PromotionsTab />}
