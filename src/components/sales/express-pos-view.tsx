@@ -636,8 +636,6 @@ export function ExpressPosView({ user, onToggleMode }: ExpressPosViewProps) {
               customerFound={customerFound}
               discount={discount}
               setDiscount={setDiscount}
-              taxRate={taxRate}
-              setTaxRate={setTaxRate}
               deliveryEnabled={deliveryEnabled}
               setDeliveryEnabled={setDeliveryEnabled}
               driverName={driverName}
@@ -661,7 +659,7 @@ export function ExpressPosView({ user, onToggleMode }: ExpressPosViewProps) {
               ) : null}
               {taxVal > 0 ? (
                 <div className="flex justify-between text-muted-foreground">
-                  <span>{t.tax} ({taxRate}%)</span>
+                  <span>{t.tax}</span>
                   <span className="tabular-nums">{fmt.currency(taxVal)}</span>
                 </div>
               ) : null}
@@ -881,7 +879,7 @@ export function ExpressPosView({ user, onToggleMode }: ExpressPosViewProps) {
                       </div>
                     ) : null}
                     <div className="flex justify-between text-muted-foreground">
-                      <span>{t.tax} ({lastSale.taxRate}%)</span>
+                      <span>{t.tax}</span>
                       <span className="tabular-nums">{fmt.currency(lastSale.taxAmount)}</span>
                     </div>
                     <Separator />
@@ -929,8 +927,9 @@ export function ExpressPosView({ user, onToggleMode }: ExpressPosViewProps) {
 }
 
 /* ── More Options collapsible section ──
- * Customer phone, discount, tax, delivery, driver. Hidden by default to keep
- * the express view uncluttered; expanded on demand for non-rush sales. */
+ * Customer phone, discount, delivery, driver. Hidden by default to keep
+ * the express view uncluttered; expanded on demand for non-rush sales.
+ * Note: tax rate is per-product (set in product/pricing screen), not in cart. */
 interface MoreOptionsProps {
   customerName: string
   setCustomerName: (v: string) => void
@@ -939,8 +938,6 @@ interface MoreOptionsProps {
   customerFound: { name: string; address: string; type?: import("@/lib/types").CustomerTier } | null
   discount: string
   setDiscount: (v: string) => void
-  taxRate: string
-  setTaxRate: (v: string) => void
   deliveryEnabled: boolean
   setDeliveryEnabled: (v: boolean) => void
   driverName: string
@@ -957,7 +954,6 @@ function MoreOptions(props: MoreOptionsProps) {
     customerName, setCustomerName,
     customerPhone, setCustomerPhone, customerFound,
     discount, setDiscount,
-    taxRate, setTaxRate,
     deliveryEnabled, setDeliveryEnabled,
     driverName, setDriverName,
     deliveryFee, setDeliveryFee,
@@ -1005,7 +1001,7 @@ function MoreOptions(props: MoreOptionsProps) {
             />
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 gap-2">
           <div>
             <Label className="text-[10px] text-muted-foreground">{t.expressDiscount} ({fmt.symbol})</Label>
             <Input
@@ -1014,17 +1010,6 @@ function MoreOptions(props: MoreOptionsProps) {
               className="h-8 text-xs tabular-nums"
               value={discount}
               onChange={(e) => setDiscount(e.target.value)}
-              onFocus={(e) => e.target.select()}
-            />
-          </div>
-          <div>
-            <Label className="text-[10px] text-muted-foreground">{t.expressTaxRate}</Label>
-            <Input
-              type="number"
-              min={0}
-              className="h-8 text-xs tabular-nums"
-              value={taxRate}
-              onChange={(e) => setTaxRate(e.target.value)}
               onFocus={(e) => e.target.select()}
             />
           </div>

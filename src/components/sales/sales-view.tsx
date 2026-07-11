@@ -688,14 +688,10 @@ function StandardSalesView({ onToggleMode }: { onToggleMode: () => void }) {
                       ) : null}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 gap-2">
                       <div>
                         <Label htmlFor="disc" className="text-[10px] text-muted-foreground">{t.discount} ({fmt.symbol})</Label>
                         <Input id="disc" type="number" min={0} className="h-7 text-xs tabular-nums" value={discount} onChange={(e) => setDiscount(e.target.value)} />
-                      </div>
-                      <div>
-                        <Label htmlFor="tax" className="text-[10px] text-muted-foreground">{t.taxPercent}</Label>
-                        <Input id="tax" type="number" min={0} className="h-7 text-xs tabular-nums" value={taxRate} onChange={(e) => setTaxRate(e.target.value)} />
                       </div>
                     </div>
 
@@ -712,7 +708,7 @@ function StandardSalesView({ onToggleMode }: { onToggleMode: () => void }) {
                       ) : null}
                       {taxVal > 0 ? (
                         <div className="flex justify-between text-muted-foreground">
-                          <span>{t.tax} ({taxRate}%)</span>
+                          <span>{t.tax}</span>
                           <span className="tabular-nums">{fmt.currency(taxVal)}</span>
                         </div>
                       ) : null}
@@ -821,7 +817,7 @@ function StandardSalesView({ onToggleMode }: { onToggleMode: () => void }) {
                       </div>
                     ) : null}
                     <div className="flex justify-between text-muted-foreground">
-                      <span>{t.tax} ({lastSale.taxRate}%)</span>
+                      <span>{t.tax}</span>
                       <span className="tabular-nums">{fmt.currency(lastSale.taxAmount)}</span>
                     </div>
                     <Separator />

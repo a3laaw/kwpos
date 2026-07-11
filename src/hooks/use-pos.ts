@@ -64,7 +64,7 @@ export function usePOS(opts?: UsePOSOptions) {
   const [categoryId, setCategoryId] = React.useState("")
   const [cart, setCart] = React.useState<CartItem[]>([])
   const [discount, setDiscount] = React.useState("0")
-  const [taxRate, setTaxRate] = React.useState(String(fmt.taxRate))
+  const [taxRate, setTaxRate] = React.useState("0")
   const [paymentMethod, setPaymentMethod] = React.useState<"CASH" | "CARD" | "TRANSFER">("CASH")
   const [customerName, setCustomerName] = React.useState("")
   const [customerPhone, setCustomerPhone] = React.useState("")
