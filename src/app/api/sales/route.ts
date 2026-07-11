@@ -184,7 +184,7 @@ export async function POST(req: NextRequest) {
           ? paymentMethod
           : "CASH") as "CASH" | "CARD" | "TRANSFER",
         userId: user.id,
-        items: { create: itemsData },
+        items: { create: itemsData.map(({ lineTaxRate, ...rest }) => rest) },
       },
       include: { user: true, items: { include: { product: true } } },
     })
