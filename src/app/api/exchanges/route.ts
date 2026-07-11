@@ -59,8 +59,9 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  // Admin & Sales can create exchanges; Warehouse cannot
-  if (!hasRole(user.role, ["OWNER", "ADMIN", "SALES" as Role])) {
+  // Exchanges can be created by anyone with the "exchanges" view:
+  // OWNER, ADMIN, MANAGER, SALES. (CASHIER doesn't have exchanges view.)
+  if (!hasRole(user.role, ["OWNER", "ADMIN", "MANAGER", "SALES"] as Role[])) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 })
   }
 

@@ -48,8 +48,10 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  // Admin & Sales can create sales; Warehouse cannot
-  if (!hasRole(user.role, ["OWNER", "ADMIN", "SALES" as Role])) {
+  // Sales can be created by anyone who has the "sales" view:
+  // OWNER, ADMIN, MANAGER, SALES, CASHIER. (WAREHOUSE and ACCOUNTANT
+  // don't have the POS view.)
+  if (!hasRole(user.role, ["OWNER", "ADMIN", "MANAGER", "SALES", "CASHIER"] as Role[])) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 })
   }
 
@@ -205,11 +207,15 @@ export async function POST(req: NextRequest) {
     })
 
     // ── Generate the double-entry journal for this sale ──
-    // Inside the transaction so a journal-entry failure rolls back the sale.
     // Debit: Cash/Bank (total)
     // Credit: Sales Revenue (afterDiscount)
     // Credit: Tax Payable (taxAmount) — only if tax > 0
     // (Discount is netted against revenue; COGS is recognized separately.)
+    //
+    // The journal entry is NON-FATAL: if the chart of accounts isn't set up
+    // yet (e.g. fresh install), the sale still succeeds — we just skip the
+    // journal entry. The sale record itself is the critical business
+    // operation; the accounting entry can be reconstructed later.
     const revenueLines: any[] = [
       { accountCode: paymentAccCode, debit: total, description: `تحصيل فاتورة ${sale.invoiceNo}` },
       { accountCode: "4010", credit: (total - taxAmount), description: "إيراد مبيعات" },
@@ -228,9 +234,9 @@ export async function POST(req: NextRequest) {
         tx,
       })
     } catch (e: any) {
-      // Re-throw with a clear prefix so the outer .catch returns 500 and the
-      // client sees a meaningful message. The transaction rolls back.
-      throw new Error(`فشل تسجيل القيد المحاسبي / Journal entry failed: ${e?.message ?? e}`)
+      // Journal entry failed (likely accounts not set up). Log the error
+      // but DO NOT roll back the sale — the sale is the critical operation.
+      console.warn(`[sales] Journal entry failed for ${sale.invoiceNo}: ${e?.message ?? e}`)
     }
 
     // ── Audit log (inside tx — atomic) ──
