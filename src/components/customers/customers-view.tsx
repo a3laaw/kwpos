@@ -40,11 +40,21 @@ import {
 import { useCustomers, useDeleteCustomer } from "@/hooks/use-api"
 import { useFmt } from "@/components/currency-context"
 import { useT } from "@/components/i18n-context"
+import { useUser } from "@/components/user-context"
 import type { Customer } from "@/lib/types"
+
+/** Roles allowed to perform destructive actions (delete) on customers. */
+const CUSTOMER_DELETE_ROLES = ["OWNER", "ADMIN", "MANAGER"] as const
+/** Roles allowed to create / edit customers. SALES needs this to register
+ *  walk-in customers during a sale. */
+const CUSTOMER_WRITE_ROLES = ["OWNER", "ADMIN", "MANAGER", "SALES"] as const
 
 export function CustomersView() {
   const fmt = useFmt()
   const t = useT()
+  const user = useUser()
+  const canWrite = (CUSTOMER_WRITE_ROLES as readonly string[]).includes(user.role)
+  const canDelete = (CUSTOMER_DELETE_ROLES as readonly string[]).includes(user.role)
   const [q, setQ] = React.useState("")
   const [dialogOpen, setDialogOpen] = React.useState(false)
   const [editing, setEditing] = React.useState<Customer | null>(null)
@@ -90,10 +100,12 @@ export function CustomersView() {
           <div className="flex items-center gap-2 flex-wrap">
             <ExcelImportButton type="customers" />
             <ExcelExportButton type="customers" />
-            <Button onClick={openAdd} className="gap-2">
-              <Plus className="h-4 w-4" />
-              {t.cusAddCustomer}
-            </Button>
+            {canWrite ? (
+              <Button onClick={openAdd} className="gap-2">
+                <Plus className="h-4 w-4" />
+                {t.cusAddCustomer}
+              </Button>
+            ) : null}
           </div>
         }
       />
@@ -124,7 +136,7 @@ export function CustomersView() {
               title={q ? t.cusNoMatching : t.cusNoCustomers}
               description={q ? t.tryAnotherKeyword : t.cusAddFirstCustomer}
               action={
-                !q ? (
+                !q && canWrite ? (
                   <Button onClick={openAdd} className="gap-2">
                     <Plus className="h-4 w-4" />
                     {t.cusAddCustomer}
@@ -172,26 +184,32 @@ export function CustomersView() {
                       {fmt.date(c.createdAt)}
                     </TableCell>
                     <TableCell className="text-center">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => openEdit(c)} className="gap-2">
-                            <Pencil className="h-4 w-4" />
-                            {t.edit}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => setDeleteTarget(c)}
-                            className="gap-2 text-destructive focus:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            {t.delete}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      {canWrite || canDelete ? (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {canWrite ? (
+                              <DropdownMenuItem onClick={() => openEdit(c)} className="gap-2">
+                                <Pencil className="h-4 w-4" />
+                                {t.edit}
+                              </DropdownMenuItem>
+                            ) : null}
+                            {canDelete ? (
+                              <DropdownMenuItem
+                                onClick={() => setDeleteTarget(c)}
+                                className="gap-2 text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                {t.delete}
+                              </DropdownMenuItem>
+                            ) : null}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      ) : null}
                     </TableCell>
                   </TableRow>
                 ))}

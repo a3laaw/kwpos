@@ -92,6 +92,24 @@ export function UsersView() {
     }
   }
 
+  // Defense-in-depth client-side guard. The sidebar already hides this view
+  // from non-admin roles, and the API rejects them, but if the persisted
+  // view ever lands a disallowed role here we show a clear "no access"
+  // panel instead of rendering the admin UI.
+  const canManageUsers = currentUser.role === "OWNER" || currentUser.role === "ADMIN" || currentUser.role === "MANAGER"
+
+  if (!canManageUsers) {
+    return (
+      <div className="space-y-5">
+        <EmptyState
+          icon={<Shield className="h-7 w-7" />}
+          title={t.noAccess || "لا تملك صلاحية الوصول"}
+          description={t.noAccessDesc || "هذه الصفحة متاحة فقط للمالك ومدير النظام والمدير."}
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-5">
       <PageHeader

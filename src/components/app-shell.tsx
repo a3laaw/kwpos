@@ -3,7 +3,8 @@
 import * as React from "react"
 import { AppSidebar, MobileSidebar, Topbar } from "@/components/app-sidebar"
 import { useAppStore } from "@/lib/store"
-import { NAV_ITEMS, VIEW_META } from "@/components/nav-config"
+import { VIEW_META } from "@/components/nav-config"
+import { ROLE_PERMISSIONS } from "@/lib/session"
 import { useT } from "@/components/i18n-context"
 import { UserProvider, type SessionUser } from "@/components/user-context"
 import { CurrencyProvider } from "@/components/currency-context"
@@ -55,8 +56,11 @@ export function AppShell({
   // Ensure the current view is allowed for the role; otherwise redirect.
   // CASHIER → goes directly to POS (no dashboard).
   // Other roles → default to dashboard.
+  // IMPORTANT: check against the ROLE-SPECIFIC allowed views, not all nav
+  // items — otherwise a persisted view from a previous higher-privilege
+  // session (e.g. "users") would still render for a lower-privilege role.
   React.useEffect(() => {
-    const allowed = NAV_ITEMS.map((n) => n.view)
+    const allowed = ROLE_PERMISSIONS[user.role].views
     if (!allowed.includes(view)) {
       setView(user.role === "CASHIER" ? "sales" : "dashboard")
     }
@@ -65,6 +69,13 @@ export function AppShell({
   const t = useT()
   const meta = VIEW_META[view]
   const title = meta ? t[meta.titleKey] : t.dashboardTitle
+
+  // Defense-in-depth: never render a view the role is not allowed to see,
+  // even if the persisted store somehow holds a disallowed view. The
+  // useEffect above will correct the store, but until it runs (first paint)
+  // we render nothing for disallowed views instead of leaking the component.
+  const allowedViews = ROLE_PERMISSIONS[user.role].views
+  const isViewAllowed = allowedViews.includes(view)
 
   return (
     <CurrencyProvider country={country}>
@@ -75,6 +86,8 @@ export function AppShell({
           <div className="flex-1 flex flex-col min-w-0">
             <Topbar user={user} title={title} country={country} />
             <main className="flex-1 px-4 sm:px-6 py-6 w-full">
+              {!isViewAllowed ? null : (
+                <>
               {view === "dashboard" && <DashboardView />}
               {view === "ownerDashboard" && <OwnerDashboardView />}
               {view === "managerDashboard" && <ManagerDashboardView />}
@@ -97,6 +110,8 @@ export function AppShell({
               {view === "settings" && <SettingsView />}
               {view === "bundles" && <BundlesView />}
               {view === "compositions" && <CompositionsView />}
+                </>
+              )}
             </main>
             <footer className="mt-auto border-t border-border/70 bg-muted/30">
               <div className="w-full px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">

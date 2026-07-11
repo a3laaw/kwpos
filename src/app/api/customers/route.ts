@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
-import { getCurrentUser } from "@/lib/session"
+import { getCurrentUser, hasRole } from "@/lib/session"
 import { serializeCustomer } from "@/lib/serialize"
+import type { Role } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
 
@@ -30,9 +31,16 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ items: rows.map(serializeCustomer) })
 }
 
+/**
+ * POST /api/customers — create a customer.
+ * Allowed roles: OWNER, ADMIN, MANAGER, SALES (sales registers walk-in customers).
+ */
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+  if (!hasRole(user.role, ["OWNER", "ADMIN", "MANAGER", "SALES"] as Role[])) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 })
+  }
 
   const body = await req.json()
   const { name, phone, address, type } = body || {}
