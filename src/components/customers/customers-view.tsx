@@ -41,20 +41,22 @@ import { useCustomers, useDeleteCustomer } from "@/hooks/use-api"
 import { useFmt } from "@/components/currency-context"
 import { useT } from "@/components/i18n-context"
 import { useUser } from "@/components/user-context"
-import type { Customer } from "@/lib/types"
-
-/** Roles allowed to perform destructive actions (delete) on customers. */
-const CUSTOMER_DELETE_ROLES = ["OWNER", "ADMIN", "MANAGER"] as const
-/** Roles allowed to create / edit customers. SALES needs this to register
- *  walk-in customers during a sale. */
-const CUSTOMER_WRITE_ROLES = ["OWNER", "ADMIN", "MANAGER", "SALES"] as const
+import { canDelete } from "@/lib/permissions"
+import type { Role } from "@/lib/types"
 
 export function CustomersView() {
   const fmt = useFmt()
   const t = useT()
   const user = useUser()
-  const canWrite = (CUSTOMER_WRITE_ROLES as readonly string[]).includes(user.role)
-  const canDelete = (CUSTOMER_DELETE_ROLES as readonly string[]).includes(user.role)
+  // Customer write (add/edit): OWNER / ADMIN / MANAGER / SALES.
+  // SALES needs this to register walk-in customers during a sale.
+  const canWrite =
+    user.role === "OWNER" ||
+    user.role === "ADMIN" ||
+    user.role === "MANAGER" ||
+    user.role === "SALES"
+  // Customer delete: OWNER / ADMIN / MANAGER only (central canDelete helper).
+  const canDel = canDelete(user.role as Role)
   const [q, setQ] = React.useState("")
   const [dialogOpen, setDialogOpen] = React.useState(false)
   const [editing, setEditing] = React.useState<Customer | null>(null)
@@ -184,7 +186,7 @@ export function CustomersView() {
                       {fmt.date(c.createdAt)}
                     </TableCell>
                     <TableCell className="text-center">
-                      {canWrite || canDelete ? (
+                      {canWrite || canDel ? (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -198,7 +200,7 @@ export function CustomersView() {
                                 {t.edit}
                               </DropdownMenuItem>
                             ) : null}
-                            {canDelete ? (
+                            {canDel ? (
                               <DropdownMenuItem
                                 onClick={() => setDeleteTarget(c)}
                                 className="gap-2 text-destructive focus:text-destructive"

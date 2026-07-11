@@ -45,6 +45,8 @@ import {
   Barcode,
 } from "lucide-react"
 import { useUser } from "@/components/user-context"
+import { canDelete, canManageProducts, canSeeCost } from "@/lib/permissions"
+import type { Role } from "@/lib/types"
 import { printBarcodeLabels } from "@/lib/print"
 import { useModuleTab } from "@/lib/module-tab-store"
 import { WarehouseManager } from "@/components/inventory/warehouse-manager"
@@ -79,7 +81,9 @@ export function InventoryView() {
   const { data: cats } = useCategories()
   const deleteMut = useDeleteProduct()
 
-  const canManage = user.role === "ADMIN" || user.role === "WAREHOUSE"
+  const canManage = canManageProducts(user.role as Role)
+  const canDeleteProduct = canDelete(user.role as Role)
+  const seeCost = canSeeCost(user.role as Role)
 
   const products = data?.items ?? []
 
@@ -234,7 +238,7 @@ export function InventoryView() {
                   <TableHead className="hidden sm:table-cell">{t.colCategory}</TableHead>
                   <TableHead className="text-center">{t.colQty}</TableHead>
                   <TableHead className="hidden lg:table-cell text-center">{t.colReorderLevel}</TableHead>
-                  <TableHead className="text-center hidden sm:table-cell">{t.colCostPrice}</TableHead>
+                  {seeCost ? <TableHead className="text-center hidden sm:table-cell">{t.colCostPrice}</TableHead> : null}
                   <TableHead className="text-center">{t.colSalePrice}</TableHead>
                   {canManage ? <TableHead className="w-12 text-center"></TableHead> : null}
                 </TableRow>
@@ -272,13 +276,15 @@ export function InventoryView() {
                       <TableCell className="hidden lg:table-cell text-center tabular-nums text-muted-foreground">
                         {fmt.number(p.reorderLevel)}
                       </TableCell>
-                      <TableCell className="hidden sm:table-cell text-center tabular-nums text-muted-foreground">
-                        {fmt.currency(p.costPrice)}
-                      </TableCell>
+                      {seeCost ? (
+                        <TableCell className="hidden sm:table-cell text-center tabular-nums text-muted-foreground">
+                          {fmt.currency(p.costPrice)}
+                        </TableCell>
+                      ) : null}
                       <TableCell className="text-center tabular-nums font-semibold">
                         {fmt.currency(p.salePrice)}
                       </TableCell>
-                      {canManage ? (
+                      {canManage || canDeleteProduct ? (
                         <TableCell className="text-center">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -287,17 +293,21 @@ export function InventoryView() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => openEdit(p)} className="gap-2">
-                                <Pencil className="h-4 w-4" />
-                                {t.edit}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => setDeleteTarget(p)}
-                                className="gap-2 text-destructive focus:text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                                {t.delete}
-                              </DropdownMenuItem>
+                              {canManage ? (
+                                <DropdownMenuItem onClick={() => openEdit(p)} className="gap-2">
+                                  <Pencil className="h-4 w-4" />
+                                  {t.edit}
+                                </DropdownMenuItem>
+                              ) : null}
+                              {canDeleteProduct ? (
+                                <DropdownMenuItem
+                                  onClick={() => setDeleteTarget(p)}
+                                  className="gap-2 text-destructive focus:text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  {t.delete}
+                                </DropdownMenuItem>
+                              ) : null}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>

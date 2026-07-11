@@ -44,7 +44,9 @@ import { printReportOnly } from "@/lib/print"
 import { useAnalytics } from "@/hooks/use-api"
 import { useFmt } from "@/components/currency-context"
 import { useT } from "@/components/i18n-context"
-import type { ProductAnalytics } from "@/lib/types"
+import { useUser } from "@/components/user-context"
+import { canSeeCost } from "@/lib/permissions"
+import type { ProductAnalytics, Role } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { useModuleTab } from "@/lib/module-tab-store"
 
@@ -63,6 +65,8 @@ type ReportKey = "overview" | "top" | "stagnant" | "cost" | "margin"
 export function AnalyticsView() {
   const fmt = useFmt()
   const t = useT()
+  const user = useUser()
+  const seeCost = canSeeCost(user.role as Role)
   const [tab, setTab] = useModuleTab("analytics", "overview") as [ReportKey, (v: string) => void]
 
   const [from, setFrom] = React.useState(defaultFrom())
@@ -112,8 +116,10 @@ export function AnalyticsView() {
     { key: "overview", label: t.anlOverview, icon: LayoutGrid, kpi: "", hint: t.anlComprehensiveSummary, tone: "text-primary", iconBg: "bg-primary/10" },
     { key: "top", label: t.anlTopProducts, icon: TrendingUp, kpi: fmt.number(topQty), hint: t.anlUnitsSold, tone: "text-[#2E6237]", iconBg: "bg-[#2E6237]/10" },
     { key: "stagnant", label: t.anlStagnantItems, icon: PackageX, kpi: fmt.number(stagnantCount), hint: t.anlItemNeverSold, tone: "text-amber-600", iconBg: "bg-amber-500/10" },
-    { key: "cost", label: t.anlCost, icon: Coins, kpi: fmt.number(costCount), hint: t.anlItemAnalyzed, tone: "text-rose-600", iconBg: "bg-rose-500/10" },
-    { key: "margin", label: t.anlProfitability, icon: Percent, kpi: fmt.number(profitableCount), hint: t.anlProfitableItem, tone: "text-[#DFC196]", iconBg: "bg-[#DFC196]/10" },
+    ...(seeCost ? [
+      { key: "cost" as ReportKey, label: t.anlCost, icon: Coins, kpi: fmt.number(costCount), hint: t.anlItemAnalyzed, tone: "text-rose-600", iconBg: "bg-rose-500/10" },
+      { key: "margin" as ReportKey, label: t.anlProfitability, icon: Percent, kpi: fmt.number(profitableCount), hint: t.anlProfitableItem, tone: "text-[#DFC196]", iconBg: "bg-[#DFC196]/10" },
+    ] : []),
   ]
 
   const ANL_TAB_BREADCRUMB: Record<ReportKey, keyof import("@/lib/i18n").Dict> = {
@@ -316,8 +322,12 @@ function OverviewTab({
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <NavCard onClick={() => onNavigate("top")} icon={TrendingUp} title={t.anlTopProducts} desc={`${fmt.number(data.topSelling.length)}`} color="#2E6237" />
             <NavCard onClick={() => onNavigate("stagnant")} icon={PackageX} title={t.anlStagnantItems} desc={t.anlNeverSoldCount.replace("{count}", String(neverSold))} color="#f59e0b" />
-            <NavCard onClick={() => onNavigate("cost")} icon={Coins} title={t.anlCost} desc={`${fmt.number(data.mostExpensive.length)}`} color="#f43f5e" />
-            <NavCard onClick={() => onNavigate("margin")} icon={Percent} title={t.anlProfitability} desc={`${fmt.number(data.highestMargin.length)}`} color="#DFC196" />
+            {seeCost ? (
+              <NavCard onClick={() => onNavigate("cost")} icon={Coins} title={t.anlCost} desc={`${fmt.number(data.mostExpensive.length)}`} color="#f43f5e" />
+            ) : null}
+            {seeCost ? (
+              <NavCard onClick={() => onNavigate("margin")} icon={Percent} title={t.anlProfitability} desc={`${fmt.number(data.highestMargin.length)}`} color="#DFC196" />
+            ) : null}
           </div>
         </CardContent>
       </Card>

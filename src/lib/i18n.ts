@@ -415,6 +415,9 @@ export interface Dict {
   noUsers: string
   role: string
   you: string
+  noAccess: string
+  noAccessDesc: string
+  noExportPermission: string
 
   // Theme + language
   darkMode: string
@@ -2275,6 +2278,9 @@ export const DICTS: Record<Locale, Dict> = {
     noUsers: "لا يوجد مستخدمون",
     role: "الدور",
     you: "أنت",
+    noAccess: "لا تملك صلاحية الوصول",
+    noAccessDesc: "هذه الصفحة غير متاحة لدورك الوظيفي. تواصل مع المدير إذا كنت تعتقد أن هذا خطأ.",
+    noExportPermission: "لا تملك صلاحية تصدير هذه البيانات",
 
     // Theme + language
     darkMode: "الوضع الليلي",
@@ -4124,6 +4130,9 @@ export const DICTS: Record<Locale, Dict> = {
     noUsers: "No users",
     role: "Role",
     you: "You",
+    noAccess: "No access",
+    noAccessDesc: "This page is not available for your role. Contact the manager if you believe this is an error.",
+    noExportPermission: "You don't have permission to export this data",
 
     // Theme + language
     darkMode: "Dark mode",

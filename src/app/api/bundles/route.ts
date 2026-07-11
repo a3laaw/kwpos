@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
 import { serializeBundle } from "@/lib/serialize"
+import { stripBundleCost } from "@/lib/permissions"
 import { logAuditEvent } from "@/lib/audit"
 import type { Role } from "@/lib/types"
 
@@ -17,9 +18,11 @@ export const dynamic = "force-dynamic"
  *   - q        : case-insensitive name search
  *   - active   : "true" to filter isActive=true only
  *
- * No auth required — SALES staff need to see bundles in POS.
+ * Auth required — cost/profit fields are stripped for SALES/CASHIER.
  */
 export async function GET(req: NextRequest) {
+  const user = await getCurrentUser()
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   const { searchParams } = new URL(req.url)
   const q = searchParams.get("q")?.trim() || undefined
   const active = searchParams.get("active")
@@ -57,7 +60,9 @@ export async function GET(req: NextRequest) {
     orderBy: { createdAt: "desc" },
   })
 
-  return NextResponse.json({ items: bundles.map(serializeBundle) })
+  return NextResponse.json({
+    items: bundles.map((b) => stripBundleCost(serializeBundle(b), user.role as Role)),
+  })
 }
 
 /**

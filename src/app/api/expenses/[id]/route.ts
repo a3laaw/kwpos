@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
+import { canDelete } from "@/lib/permissions"
+import type { Role } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
 
@@ -10,7 +12,9 @@ export async function DELETE(
 ) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  if (!hasRole(user.role, ["OWNER", "ADMIN", "ACCOUNTANT" as any])) return NextResponse.json({ error: "forbidden" }, { status: 403 })
+  // Delete is a destructive operation → OWNER / ADMIN / MANAGER only.
+  // ACCOUNTANT can create/edit expenses but cannot delete them.
+  if (!canDelete(user.role as Role)) return NextResponse.json({ error: "forbidden" }, { status: 403 })
 
   const { id } = await params
   const exp = await db.expenseTransaction.findUnique({ where: { id } })

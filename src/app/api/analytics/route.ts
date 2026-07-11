@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { getCurrentUser } from "@/lib/session"
+import { canSeeCost } from "@/lib/permissions"
 import type { AnalyticsReport, ProductAnalytics } from "@/lib/types"
+import type { Role } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
 
@@ -23,9 +25,20 @@ function toAnalytics(p: any): ProductAnalytics {
   }
 }
 
+/**
+ * Zero-out cost / margin / marginPct for roles that can't see cost
+ * (SALES, CASHIER). They still see sale price, quantity sold, and gross
+ * volume — just not the profitability figures.
+ */
+function stripCostFields(r: ProductAnalytics): ProductAnalytics {
+  return { ...r, costPrice: 0, margin: 0, marginPct: 0 }
+}
+
 export async function GET(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+
+  const seeCost = canSeeCost(user.role as Role)
 
   const { searchParams } = new URL(req.url)
   const from = searchParams.get("from")
@@ -99,26 +112,32 @@ export async function GET(req: NextRequest) {
     .slice(0, 8)
     .map(({ _turnover, ...r }) => r)
 
-  // c) Most expensive by cost base
-  const mostExpensive = [...rows]
-    .sort((a, b) => b.costPrice - a.costPrice)
-    .slice(0, 8)
+  // c) Most expensive by cost base — cost-roles only
+  const mostExpensive = seeCost
+    ? [...rows].sort((a, b) => b.costPrice - a.costPrice).slice(0, 8)
+    : []
 
-  // d) Cheapest by cost base
-  const cheapest = [...rows]
-    .filter((r) => r.costPrice > 0)
-    .sort((a, b) => a.costPrice - b.costPrice)
-    .slice(0, 8)
+  // d) Cheapest by cost base — cost-roles only
+  const cheapest = seeCost
+    ? [...rows].filter((r) => r.costPrice > 0).sort((a, b) => a.costPrice - b.costPrice).slice(0, 8)
+    : []
 
-  // e) Highest margin by absolute difference (sale - cost)
-  const highestMargin = [...rows]
-    .filter((r) => r.costPrice > 0 && r.salePrice > 0)
-    .sort((a, b) => b.margin - a.margin)
-    .slice(0, 8)
+  // e) Highest margin by absolute difference (sale - cost) — cost-roles only
+  const highestMargin = seeCost
+    ? [...rows]
+        .filter((r) => r.costPrice > 0 && r.salePrice > 0)
+        .sort((a, b) => b.margin - a.margin)
+        .slice(0, 8)
+    : []
+
+  // Strip cost/margin fields from every row for non-cost roles.
+  // topSelling and stagnant still show (sales volume + stock), but with
+  // cost/margin zeroed out so profitability can't be inferred.
+  const mapRow = (r: ProductAnalytics) => (seeCost ? r : stripCostFields(r))
 
   const report: AnalyticsReport = {
-    topSelling,
-    stagnant,
+    topSelling: topSelling.map(mapRow),
+    stagnant: stagnant.map(mapRow),
     mostExpensive,
     cheapest,
     highestMargin,

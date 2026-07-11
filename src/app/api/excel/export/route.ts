@@ -1,22 +1,50 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { getCurrentUser } from "@/lib/session"
+import { canSeeCost, canSeeFinancials, canManageProducts } from "@/lib/permissions"
 import * as XLSX from "xlsx"
+import type { Role } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
 
 /**
- * Export data to .xlsx. `?type=sales|products|journal|pnl|customers|suppliers`
- * Optional `?from=&to=` for sales/journal/pnl.
+ * Export data to .xlsx. `?type=sales|products|journal|customers|suppliers`
+ * Optional `?from=&to=` for sales/journal.
+ *
+ * ── Role-based export permissions ──
+ *   sales      → financial roles only (OWNER/ADMIN/MANAGER/ACCOUNTANT)
+ *   journal    → financial roles only
+ *   products   → inventory/product-manage roles (OWNER/ADMIN/MANAGER/WAREHOUSE)
+ *                cost column is stripped for roles that can't see cost
+ *   customers  → any authenticated user (sales staff need the phone book)
+ *   suppliers  → inventory/financial roles (OWNER/ADMIN/MANAGER/WAREHOUSE/ACCOUNTANT)
  */
 export async function GET(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
 
+  const role = user.role as Role
+
   const { searchParams } = new URL(req.url)
   const type = searchParams.get("type") || "sales"
   const from = searchParams.get("from")
   const to = searchParams.get("to")
+
+  // ── Gate each export type by role ──
+  if (type === "sales" || type === "journal") {
+    if (!canSeeFinancials(role)) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 })
+    }
+  } else if (type === "products") {
+    if (!canManageProducts(role)) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 })
+    }
+  } else if (type === "suppliers") {
+    if (!canSeeFinancials(role) && !canManageProducts(role)) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 })
+    }
+  }
+  // "customers" export is allowed for any authenticated user.
 
   const dateFilter: any = {}
   if (from) dateFilter.gte = new Date(from)
@@ -52,15 +80,23 @@ export async function GET(req: NextRequest) {
   } else if (type === "products") {
     sheetName = "الأصناف"
     filename = "products.xlsx"
-    headerRow = ["الاسم", "الباركود", "الفئة", "الكمية", "حد الطلب", "سعر التكلفة", "سعر البيع", "الوحدة"]
+    // Cost column is included ONLY for roles that can see cost. SALES/CASHIER
+    // get an export without the cost column so financial data doesn't leak
+    // out via Excel — even though the export itself is already gated to
+    // product-manage roles, this is defense-in-depth.
+    const seeCost = canSeeCost(role)
+    headerRow = seeCost
+      ? ["الاسم", "الباركود", "الفئة", "الكمية", "حد الطلب", "سعر التكلفة", "سعر البيع", "الوحدة"]
+      : ["الاسم", "الباركود", "الفئة", "الكمية", "حد الطلب", "سعر البيع", "الوحدة"]
     const products = await db.product.findMany({
       include: { category: true },
       orderBy: { name: "asc" },
     })
-    dataRows = products.map((p) => [
-      p.name, p.barcode || "", p.category?.name || "",
-      p.quantity, p.reorderLevel, p.costPrice, p.salePrice, p.unit,
-    ])
+    dataRows = products.map((p) =>
+      seeCost
+        ? [p.name, p.barcode || "", p.category?.name || "", p.quantity, p.reorderLevel, p.costPrice, p.salePrice, p.unit]
+        : [p.name, p.barcode || "", p.category?.name || "", p.quantity, p.reorderLevel, p.salePrice, p.unit]
+    )
   } else if (type === "journal") {
     sheetName = "القيود"
     filename = "journal.xlsx"

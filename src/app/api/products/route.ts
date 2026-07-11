@@ -2,11 +2,16 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
 import { serializeProduct } from "@/lib/serialize"
+import { canSeeCost, stripProductCost } from "@/lib/permissions"
 import type { Role } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
 
 export async function GET(req: NextRequest) {
+  // Auth required — product data (esp. costPrice) must not leak to anonymous.
+  const user = await getCurrentUser()
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+
   const { searchParams } = new URL(req.url)
   const q = searchParams.get("q")?.trim() || ""
   const categoryId = searchParams.get("categoryId") || undefined
@@ -33,7 +38,10 @@ export async function GET(req: NextRequest) {
     orderBy: { name: "asc" },
   })
 
-  return NextResponse.json({ items: products.map(serializeProduct) })
+  // Strip costPrice for roles that can't see cost (SALES, CASHIER).
+  return NextResponse.json({
+    items: products.map((p) => stripProductCost(serializeProduct(p), user.role as Role)),
+  })
 }
 
 export async function POST(req: NextRequest) {
