@@ -1,14 +1,21 @@
 import { NextRequest, NextResponse } from "next/server"
-import { db } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
 import { serializeSale } from "@/lib/serialize"
-import { makeInvoiceNo } from "@/lib/format"
-import { createJournalEntry } from "@/lib/journal"
-import { logAuditEvent } from "@/lib/audit"
+import { resolveWarehouseId } from "@/lib/warehouse-resolver"
 import type { Role } from "@/lib/types"
+
+import { parseSaleInput } from "@/lib/sale/input"
+import { resolveOrCreateCustomer } from "@/lib/sale/customer-resolver"
+import { prefetchStockData, validateStockAvailability } from "@/lib/sale/stock-validator"
+import { buildDecrementPlan } from "@/lib/sale/decrement-planner"
+import { computeSaleTotals } from "@/lib/sale/totals"
+import { executeSaleTransaction } from "@/lib/sale/transaction"
+import { runPostSaleSideEffects } from "@/lib/sale/side-effects"
+import { db } from "@/lib/db"
 
 export const dynamic = "force-dynamic"
 
+/** GET /api/sales — list sales with pagination + search. */
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const q = searchParams.get("q")?.trim() || ""
@@ -45,352 +52,101 @@ export async function GET(req: NextRequest) {
   })
 }
 
+/**
+ * POST /api/sales — create a new sale.
+ *
+ * Orchestrator only — all business logic lives in @/lib/sale/*.
+ * Flow:
+ *   1. Authenticate + authorize
+ *   2. Parse + validate input
+ *   3. Resolve or create the customer
+ *   4. Resolve the warehouse (user's → body → default)
+ *   5. Prefetch stock data (parallel)
+ *   6. Validate stock availability
+ *   7. Build the multi-warehouse decrement plan
+ *   8. Compute totals (pure function)
+ *   9. Execute the transaction (stock decrement + sale create)
+ *  10. Run post-transaction side effects (non-fatal)
+ */
 export async function POST(req: NextRequest) {
+  // 1) Authenticate + authorize
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  // Sales can be created by anyone who has the "sales" view:
-  // OWNER, ADMIN, MANAGER, SALES, CASHIER. (WAREHOUSE and ACCOUNTANT
-  // don't have the POS view.)
   if (!hasRole(user.role, ["OWNER", "ADMIN", "MANAGER", "SALES", "CASHIER"] as Role[])) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 })
   }
 
-  // Verify the session user still exists in the DB (the session JWT may hold
-  // a stale user id after a re-seed). If not, tell the client to re-login.
+  // Defensive session check — the JWT may hold a stale user id after a re-seed
   const dbUser = await db.user.findUnique({ where: { id: user.id }, select: { id: true } })
-  if (!dbUser) {
-    return NextResponse.json({ error: "session-expired" }, { status: 401 })
-  }
+  if (!dbUser) return NextResponse.json({ error: "session-expired" }, { status: 401 })
 
+  // 2) Parse + validate input
   const body = await req.json()
-  const { customerName, customerPhone, customerAddress, items, taxRate, discount, paymentMethod, deliveryFee, driverName } = body || {}
-
-  if (!Array.isArray(items) || items.length === 0) {
-    return NextResponse.json({ error: "items-required" }, { status: 400 })
+  const parsed = parseSaleInput(body)
+  if (!parsed.ok) {
+    return NextResponse.json({ error: parsed.error }, { status: parsed.status })
   }
+  const input = parsed.input
 
-  // Cart-level taxRate is now optional — per-product taxRate takes priority.
-  // If cart-level taxRate is provided AND products don't have their own rate,
-  // fall back to the cart-level rate for backward compatibility.
-  const CART_TAX = Number(taxRate) || 0
-  const DISCOUNT = Math.max(0, Number(discount) || 0)
-  // Delivery fee (>= 0). A fee > 0 marks the sale as a delivery order.
-  const DELIVERY_FEE = Math.max(0, Number(deliveryFee) || 0)
-  const DRIVER_NAME = driverName?.trim() || null
+  // 3) Resolve or create the customer
+  const { customerId, resolvedName } = await resolveOrCreateCustomer({
+    name: input.customerName,
+    phone: input.customerPhone,
+    address: input.customerAddress,
+  })
 
-  // ── Link/register customer by phone (POS cash customer) ──
-  // If a phone number is provided, look up an existing customer by phone;
-  // otherwise create a new customer record so the sale is linked to the CRM.
-  let customerId: string | undefined
-  let resolvedName: string | null = customerName?.trim() || null
-  const phone = customerPhone?.trim() || ""
-  if (phone) {
-    const existing = await db.customer.findFirst({ where: { phone } })
-    if (existing) {
-      customerId = existing.id
-      if (!resolvedName) resolvedName = existing.name
-      // Update address if provided and customer doesn't have one
-      if (customerAddress?.trim() && !existing.address) {
-        await db.customer.update({ where: { id: existing.id }, data: { address: customerAddress.trim() } })
-      }
-    } else {
-      const created = await db.customer.create({
-        data: {
-          name: resolvedName || "عميل نقدي",
-          phone,
-          address: customerAddress?.trim() || "",
-        },
-      })
-      customerId = created.id
-    }
-  }
-
-  // Resolve the payment asset account (Cash for CASH, Bank for CARD/TRANSFER)
-  const paymentAccCode = paymentMethod === "CASH" ? "1010" : "1020"
-
-  // ── PRE-VALIDATION (outside transaction — fast, no locks) ──
-  // Pre-fetch all products, frozen items, stock items, and warehouse in
-  // parallel BEFORE starting the transaction. This keeps the transaction
-  // minimal (only stock decrement + sale create = N+2 queries).
-  const productIds = items
-    .map((it: any) => String(it.productId))
-    .filter(Boolean)
-
-  if (productIds.length === 0) {
-    return NextResponse.json({ error: "items-required" }, { status: 400 })
-  }
-
-  const [products, frozenItems, stockItems, userWh] = await Promise.all([
-    db.product.findMany({ where: { id: { in: productIds } } }),
-    db.stockTakeItem.findMany({
-      where: { productId: { in: productIds }, stockTake: { status: "DRAFT" } },
-      select: { productId: true },
-    }),
-    db.stockItem.findMany({ where: { productId: { in: productIds } } }),
-    // Resolve warehouse: user's assigned warehouse first, then body, then default
-    (user as any).warehouseId
-      ? db.warehouse.findUnique({ where: { id: (user as any).warehouseId }, select: { id: true, name: true } })
-      : (body as any).warehouseId
-        ? db.warehouse.findUnique({ where: { id: (body as any).warehouseId }, select: { id: true, name: true } })
-        : db.warehouse.findFirst({ where: { isActive: true }, orderBy: { createdAt: "asc" }, select: { id: true, name: true } }),
-  ])
-
-  const warehouseId = userWh?.id
+  // 4) Resolve the warehouse
+  const warehouseId = await resolveWarehouseId(user, input.warehouseId)
   if (!warehouseId) {
     return NextResponse.json({ error: "no-warehouse-available" }, { status: 400 })
   }
 
-  const productMap = new Map(products.map((p) => [p.id, p]))
-  const frozenProductIds = new Set(frozenItems.map((f) => f.productId))
+  // 5) Prefetch stock data (parallel — 3 queries)
+  const stockData = await prefetchStockData(input.productIds)
 
-  // ── Stock availability: check TOTAL across ALL warehouses ──
-  // The inventory view shows Product.quantity (sum of all StockItems).
-  // The sale should validate against this total, not just one warehouse.
-  // Decrement will start from the default warehouse and spill over to
-  // other warehouses if needed.
-  const totalStockByProduct = new Map<string, number>()
-  for (const si of stockItems) {
-    totalStockByProduct.set(
-      si.productId,
-      (totalStockByProduct.get(si.productId) || 0) + si.quantity
-    )
-  }
-  // Stock items grouped by product → list of { warehouseId, quantity }
-  const stockByProduct = new Map<string, Array<{ warehouseId: string; quantity: number }>>()
-  for (const si of stockItems) {
-    if (!stockByProduct.has(si.productId)) {
-      stockByProduct.set(si.productId, [])
-    }
-    stockByProduct.get(si.productId)!.push({ warehouseId: si.warehouseId, quantity: si.quantity })
+  // 6) Validate stock availability
+  const validation = validateStockAvailability(stockData, input.qtyByProduct)
+  if (!validation.ok) {
+    return NextResponse.json({ error: validation.error }, { status: validation.status })
   }
 
-  // Aggregate quantities per unique product (in case the same product
-  // appears multiple times in the cart)
-  const qtyByProduct = new Map<string, number>()
-  for (const it of items) {
-    const pid = String(it.productId)
-    const qty = Number(it.quantity)
-    if (!pid || qty <= 0) continue
-    qtyByProduct.set(pid, (qtyByProduct.get(pid) || 0) + qty)
+  // 7) Build the multi-warehouse decrement plan
+  const decrementPlan = buildDecrementPlan(input.qtyByProduct, stockData, warehouseId)
+
+  // 8) Compute totals (pure function, no DB)
+  const totals = computeSaleTotals(input.items, stockData.products, input)
+
+  // 9) Execute the transaction
+  const result = await executeSaleTransaction({
+    decrementPlan,
+    itemsData: totals.itemsData,
+    totals,
+    userId: user.id,
+    warehouseId,
+    customerId,
+    customerPhone: input.customerPhone,
+    resolvedName,
+    cartTax: input.cartTax,
+    paymentMethod: input.paymentMethod,
+    discount: input.discount,
+    deliveryFee: input.deliveryFee,
+    driverName: input.driverName,
+  })
+  if (!result.ok) {
+    return NextResponse.json({ error: result.error }, { status: result.status })
   }
 
-  // Validate stock availability against TOTAL stock (all warehouses)
-  for (const [pid, totalQty] of qtyByProduct) {
-    const product = productMap.get(pid)
-    if (!product) {
-      return NextResponse.json({ error: "product-not-found:" + pid }, { status: 400 })
-    }
-    if (frozenProductIds.has(pid)) {
-      return NextResponse.json({ error: `stock-frozen:${product.name}` }, { status: 400 })
-    }
-    const available = totalStockByProduct.get(pid) || 0
-    if (available < totalQty) {
-      return NextResponse.json(
-        { error: `stock-insufficient:${product.name}:available:${available}:requested:${totalQty}` },
-        { status: 400 }
-      )
-    }
-  }
-
-  // ── Compute decrement plan: which warehouse to decrement how much ──
-  // Start from the default warehouse, then spill over to other warehouses.
-  const decrementPlan = new Map<string, Array<{ warehouseId: string; qty: number }>>()
-  for (const [pid, totalQty] of qtyByProduct) {
-    const warehouses = stockByProduct.get(pid) || []
-    // Sort: default warehouse first, then others
-    warehouses.sort((a, b) => {
-      if (a.warehouseId === warehouseId) return -1
-      if (b.warehouseId === warehouseId) return 1
-      return b.quantity - a.quantity // then by largest stock
-    })
-    let remaining = totalQty
-    const plan: Array<{ warehouseId: string; qty: number }> = []
-    for (const wh of warehouses) {
-      if (remaining <= 0) break
-      const take = Math.min(wh.quantity, remaining)
-      if (take > 0) {
-        plan.push({ warehouseId: wh.warehouseId, qty: take })
-        remaining -= take
-      }
-    }
-    decrementPlan.set(pid, plan)
-  }
-
-  // Compute totals (outside transaction — pure math, no DB)
-  const itemsData: Array<{
-    productId: string
-    quantity: number
-    unitPrice: number
-    subtotal: number
-    lineTaxRate: number
-  }> = []
-  let subtotal = 0
-  let totalTaxFromProducts = 0
-  for (const it of items) {
-    const productId = String(it.productId)
-    const qty = Number(it.quantity)
-    const unitPrice = Number(it.unitPrice)
-    if (!productId || qty <= 0 || unitPrice < 0) {
-      return NextResponse.json({ error: "invalid-item" }, { status: 400 })
-    }
-    const product = productMap.get(productId)!
-    const lineSubtotal = +(qty * unitPrice).toFixed(3)
-    const lineTaxRate = Number((product as any).taxRate ?? CART_TAX)
-    const lineTax = +(lineSubtotal * (lineTaxRate / 100)).toFixed(3)
-    subtotal += lineSubtotal
-    totalTaxFromProducts += lineTax
-    itemsData.push({ productId, quantity: qty, unitPrice, subtotal: lineSubtotal, lineTaxRate })
-  }
-  const afterDiscount = Math.max(0, subtotal - DISCOUNT)
-  const taxAmount = totalTaxFromProducts > 0
-    ? totalTaxFromProducts
-    : +(afterDiscount * (CART_TAX / 100)).toFixed(3)
-  const total = +(afterDiscount + taxAmount + DELIVERY_FEE).toFixed(3)
-
-  // ── CORE TRANSACTION (minimal: stock decrement + sale create only) ──
-  // This is the ONLY code inside the transaction. It does:
-  //   1. Generate invoice number (1 query: sale.count)
-  //   2. Decrement StockItem for each unique product (N queries)
-  //   3. Create the Sale + SaleItems (1 query, nested)
-  // Total: N+2 queries (e.g. 5 products = 7 queries) — well within 10s.
-  // NO aggregate, NO product.quantity sync, NO journal, NO audit — those
-  // run AFTER the transaction commits.
-  const result = await db.$transaction(async (tx) => {
-    const count = await tx.sale.count()
-    const invoiceNo = makeInvoiceNo(count + 1)
-
-    // Decrement StockItem for each unique product, using the decrement
-    // plan (may span multiple warehouses if default doesn't have enough).
-    for (const [pid, plan] of decrementPlan) {
-      for (const step of plan) {
-        await tx.stockItem.update({
-          where: { productId_warehouseId: { productId: pid, warehouseId: step.warehouseId } },
-          data: { quantity: { decrement: step.qty } },
-        })
-      }
-    }
-
-    // Create the sale + items in ONE query (nested create)
-    const sale = await tx.sale.create({
-      data: {
-        invoiceNo,
-        customerName: resolvedName,
-        customerPhone: phone || null,
-        customerId: customerId || null,
-        subtotal: +subtotal.toFixed(3),
-        taxRate: totalTaxFromProducts > 0 ? 0 : CART_TAX,
-        taxAmount,
-        discount: DISCOUNT,
-        deliveryFee: DELIVERY_FEE,
-        driverName: DRIVER_NAME,
-        total,
-        paid: total,
-        paymentMethod: (["CASH", "CARD", "TRANSFER"].includes(paymentMethod)
-          ? paymentMethod
-          : "CASH") as "CASH" | "CARD" | "TRANSFER",
-        userId: user.id,
-        items: { create: itemsData.map(({ lineTaxRate, ...rest }) => rest) },
-      },
-      include: { user: true, items: { include: { product: true } } },
-    })
-
-    return { sale }
-  }, {
-    timeout: 10000,
-    maxWait: 5000,
-  }).catch((e: any) => {
-    return { __error: e?.message || "sale-failed" }
+  // 10) Run post-transaction side effects (non-fatal)
+  await runPostSaleSideEffects({
+    sale: result.sale,
+    qtyByProduct: input.qtyByProduct,
+    totals,
+    userId: user.id,
+    userName: user.name,
+    customerId,
+    resolvedName,
+    paymentMethod: input.paymentMethod,
   })
 
-  if (result && (result as any).__error) {
-    const msg = (result as any).__error as string
-    const status = msg.startsWith("stock-insufficient") || msg.startsWith("product-not-found") || msg.startsWith("invalid-item")
-      ? 400
-      : 500
-    return NextResponse.json({ error: msg }, { status })
-  }
-
-  const { sale } = result as any
-
-  // ── POST-TRANSACTION: Product.quantity sync (non-fatal) ──
-  // Recompute Product.quantity as SUM(StockItem.quantity) for each affected
-  // product. Runs OUTSIDE the transaction to keep it fast.
-  try {
-    for (const pid of qtyByProduct.keys()) {
-      const agg = await db.stockItem.aggregate({
-        where: { productId: pid },
-        _sum: { quantity: true },
-      })
-      await db.product.update({
-        where: { id: pid },
-        data: { quantity: agg._sum.quantity ?? 0 },
-      })
-    }
-  } catch (e: any) {
-    console.warn(`[sales] Product.quantity sync failed for ${sale.invoiceNo}: ${e?.message ?? e}`)
-  }
-
-  // ── POST-TRANSACTION: Journal entry (non-fatal) ──
-  try {
-    const revenueLines: any[] = [
-      { accountCode: paymentAccCode, debit: total, description: `تحصيل فاتورة ${sale.invoiceNo}` },
-      { accountCode: "4010", credit: (total - taxAmount), description: "إيراد مبيعات" },
-    ]
-    if (taxAmount > 0) {
-      revenueLines.push({ accountCode: "2010", credit: taxAmount, description: "ضريبة مستحقة" })
-    }
-    await createJournalEntry({
-      sourceType: "SALE",
-      sourceId: sale.id,
-      description: `قيد فاتورة مبيعات ${sale.invoiceNo}${resolvedName ? ` — ${resolvedName}` : ""}`,
-      date: new Date(),
-      lines: revenueLines,
-    })
-  } catch (e: any) {
-    console.warn(`[sales] Journal entry failed for ${sale.invoiceNo}: ${e?.message ?? e}`)
-  }
-
-  // ── POST-TRANSACTION: Audit log (non-fatal) ──
-  try {
-    await logAuditEvent({
-      userId: user.id,
-      userName: user.name,
-      action: "SALE_CREATED",
-      description: `فاتورة مبيعات ${sale.invoiceNo}`,
-      saleId: sale.id,
-    })
-  } catch (e: any) {
-    console.warn(`[sales] Audit log failed for ${sale.invoiceNo}: ${e?.message ?? e}`)
-  }
-
-  // ── POST-TRANSACTION: Loyalty points (non-fatal) ──
-  if (customerId) {
-    try {
-      const pointsEarned = Math.floor(afterDiscount)
-      if (pointsEarned > 0) {
-        const cust = await db.customer.findUnique({
-          where: { id: customerId },
-          select: { loyaltyPoints: true, loyaltyTier: true },
-        })
-        if (cust) {
-          const newPoints = cust.loyaltyPoints + pointsEarned
-          let newTier: string | null = cust.loyaltyTier
-          if (newPoints >= 10000) newTier = "GOLD"
-          else if (newPoints >= 5000) newTier = "SILVER"
-          else if (newPoints >= 1000) newTier = "BRONZE"
-          await db.customer.update({
-            where: { id: customerId },
-            data: {
-              loyaltyPoints: { increment: pointsEarned },
-              loyaltyTier: newTier,
-            },
-          })
-        }
-      }
-    } catch (e: any) {
-      console.warn(`[sales] Loyalty points failed for ${sale.invoiceNo}: ${e?.message ?? e}`)
-    }
-  }
-
-  return NextResponse.json(serializeSale(sale as any), { status: 201 })
+  return NextResponse.json(serializeSale(result.sale), { status: 201 })
 }
