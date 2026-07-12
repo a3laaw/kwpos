@@ -134,6 +134,27 @@ export async function POST(req: NextRequest) {
     let subtotal = 0
     let totalTaxFromProducts = 0
 
+    // ── Pre-fetch ALL products in ONE query (instead of N queries in the loop) ──
+    const productIds = items
+      .map((it: any) => String(it.productId))
+      .filter(Boolean)
+    const products = await tx.product.findMany({
+      where: { id: { in: productIds } },
+    })
+    const productMap = new Map(products.map((p) => [p.id, p]))
+
+    // ── Pre-fetch ALL frozen products in ONE query (instead of N queries) ──
+    // Inventory freeze: check if any cart product is under active stock take.
+    // One query for the whole cart instead of one per item.
+    const frozenItems = await tx.stockTakeItem.findMany({
+      where: {
+        productId: { in: productIds },
+        stockTake: { status: "DRAFT" },
+      },
+      select: { productId: true },
+    })
+    const frozenProductIds = new Set(frozenItems.map((f) => f.productId))
+
     for (const it of items) {
       const productId = String(it.productId)
       const qty = Number(it.quantity)
@@ -141,21 +162,15 @@ export async function POST(req: NextRequest) {
       if (!productId || qty <= 0 || unitPrice < 0) {
         throw new Error("invalid-item")
       }
-      const product = await tx.product.findUnique({ where: { id: productId } })
+      const product = productMap.get(productId)
       if (!product) throw new Error("product-not-found:" + productId)
 
-      // ── Inventory freeze: check if this product is under active stock take ──
-      const activeStockTakeItem = await tx.stockTakeItem.findFirst({
-        where: {
-          productId,
-          stockTake: { status: "DRAFT" },
-        },
-      })
-      if (activeStockTakeItem) {
+      // ── Inventory freeze check (uses pre-fetched set, no extra query) ──
+      if (frozenProductIds.has(productId)) {
         throw new Error(`stock-frozen:${product.name}`)
       }
 
-      // Check + decrement StockItem for this warehouse (with row locking)
+      // Check + decrement StockItem for this warehouse
       const ok = await decrementStockItem(tx, productId, warehouseId, qty)
       if (!ok) {
         throw new Error(`stock-insufficient:${product.name}:warehouse:${warehouseId}`)

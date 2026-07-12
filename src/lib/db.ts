@@ -19,27 +19,35 @@ const globalForPrisma = globalThis as unknown as {
 //      port 6543 → 5432 and stripping pgbouncer params
 //   3. This guarantees the client never uses transaction-mode pgbouncer.
 function getDirectDatasourceUrl(): string | undefined {
-  // 1) Prefer DIRECT_DATABASE_URL (should be port 5432, no pgbouncer)
-  const direct = process.env.DIRECT_DATABASE_URL
-  if (direct && direct.trim()) return direct.trim()
+  // Helper: convert any Supabase URL to a direct (non-pgbouncer) URL.
+  // This is critical because pgbouncer transaction mode breaks Prisma
+  // interactive transactions.
+  function toDirectUrl(rawUrl: string): string {
+    let fixed = rawUrl
+    // Replace port 6543 (pgbouncer transaction mode) → 5432 (session/direct)
+    fixed = fixed.replace(':6543', ':5432')
+    // Also handle 6543 without explicit port (rare)
+    // Strip ALL pgbouncer-related query params
+    fixed = fixed
+      .replace(/[?&]pgbouncer=true/g, '')
+      .replace(/[?&]connection_limit=\d+/g, '')
+      .replace(/[?&]statement_timeout=\d+/g, '')
+    // Clean up any orphan ? or & left after stripping
+    fixed = fixed.replace(/[?&]$/, '')
+    fixed = fixed.replace(/\?&/, '?')
+    fixed = fixed.replace(/&&/g, '&')
+    return fixed
+  }
 
-  // 2) Fall back to DATABASE_URL but convert it to a direct URL
+  // 1) Prefer DIRECT_DATABASE_URL — but convert it too, in case it was
+  //    accidentally set to the pgbouncer URL on Vercel.
+  const direct = process.env.DIRECT_DATABASE_URL
+  if (direct && direct.trim()) return toDirectUrl(direct.trim())
+
+  // 2) Fall back to DATABASE_URL (converted to direct)
   const dbUrl = process.env.DATABASE_URL
   if (!dbUrl) return undefined
-
-  // Replace port 6543 (pgbouncer transaction mode) → 5432 (session mode/direct)
-  let fixed = dbUrl.replace(':6543', ':5432')
-  // Strip pgbouncer params that break interactive transactions
-  fixed = fixed
-    .replace('?pgbouncer=true', '')
-    .replace('&pgbouncer=true', '')
-    .replace('pgbouncer=true&', '')
-    .replace(/pgbouncer=true$/, '')
-    .replace('?connection_limit=1', '')
-    .replace('&connection_limit=1', '')
-    .replace('connection_limit=1&', '')
-    .replace(/connection_limit=1$/, '')
-  return fixed
+  return toDirectUrl(dbUrl)
 }
 
 const datasourceUrl = getDirectDatasourceUrl()
