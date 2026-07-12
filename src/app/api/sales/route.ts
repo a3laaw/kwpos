@@ -123,17 +123,6 @@ export async function POST(req: NextRequest) {
       throw new Error("no-warehouse-available")
     }
 
-    // Validate each product + decrement stock atomically
-    const itemsData: Array<{
-      productId: string
-      quantity: number
-      unitPrice: number
-      subtotal: number
-      lineTaxRate: number
-    }> = []
-    let subtotal = 0
-    let totalTaxFromProducts = 0
-
     // ── Pre-fetch ALL products in ONE query (instead of N queries in the loop) ──
     const productIds = items
       .map((it: any) => String(it.productId))
@@ -144,8 +133,6 @@ export async function POST(req: NextRequest) {
     const productMap = new Map(products.map((p) => [p.id, p]))
 
     // ── Pre-fetch ALL frozen products in ONE query (instead of N queries) ──
-    // Inventory freeze: check if any cart product is under active stock take.
-    // One query for the whole cart instead of one per item.
     const frozenItems = await tx.stockTakeItem.findMany({
       where: {
         productId: { in: productIds },
@@ -155,6 +142,78 @@ export async function POST(req: NextRequest) {
     })
     const frozenProductIds = new Set(frozenItems.map((f) => f.productId))
 
+    // ── Pre-fetch ALL StockItems for the cart products in ONE query ──
+    // Instead of N findUnique queries inside the loop.
+    const stockItems = await tx.stockItem.findMany({
+      where: {
+        productId: { in: productIds },
+        warehouseId,
+      },
+    })
+    const stockItemMap = new Map(stockItems.map((s) => [s.productId, s]))
+
+    // Aggregate quantities per product (in case the same product appears
+    // multiple times in the cart, e.g. two lines of the same perfume).
+    const qtyByProduct = new Map<string, number>()
+    for (const it of items) {
+      const pid = String(it.productId)
+      const qty = Number(it.quantity)
+      if (!pid || qty <= 0) continue
+      qtyByProduct.set(pid, (qtyByProduct.get(pid) || 0) + qty)
+    }
+
+    // Validate stock availability for all products BEFORE decrementing.
+    // This avoids partial decrements if one product is insufficient.
+    for (const [pid, totalQty] of qtyByProduct) {
+      const product = productMap.get(pid)
+      if (!product) throw new Error("product-not-found:" + pid)
+      if (frozenProductIds.has(pid)) {
+        throw new Error(`stock-frozen:${product.name}`)
+      }
+      const si = stockItemMap.get(pid)
+      if (!si || si.quantity < totalQty) {
+        throw new Error(`stock-insufficient:${product.name}:warehouse:${warehouseId}`)
+      }
+    }
+
+    // ── Decrement ALL StockItems in ONE batch query ──
+    // Prisma doesn't support bulk updateMany with different values per row,
+    // but we can use a single updateMany with a computed WHERE clause.
+    // For simplicity + correctness, we do one update per unique product
+    // (same as before but only for UNIQUE product IDs, not per cart line).
+    for (const [pid, totalQty] of qtyByProduct) {
+      await tx.stockItem.update({
+        where: { productId_warehouseId: { productId: pid, warehouseId } },
+        data: { quantity: { decrement: totalQty } },
+      })
+    }
+
+    // ── Recompute Product.quantity for ALL affected products ──
+    // One aggregate per product (no way to batch this in Prisma), but only
+    // for UNIQUE product IDs.
+    for (const pid of qtyByProduct.keys()) {
+      const agg = await tx.stockItem.aggregate({
+        where: { productId: pid },
+        _sum: { quantity: true },
+      })
+      await tx.product.update({
+        where: { id: pid },
+        data: { quantity: agg._sum.quantity ?? 0 },
+      })
+    }
+
+    // Build itemsData for the sale record (one line per cart item, even if
+    // the same product appears multiple times).
+    const itemsData: Array<{
+      productId: string
+      quantity: number
+      unitPrice: number
+      subtotal: number
+      lineTaxRate: number
+    }> = []
+    let subtotal = 0
+    let totalTaxFromProducts = 0
+
     for (const it of items) {
       const productId = String(it.productId)
       const qty = Number(it.quantity)
@@ -162,21 +221,8 @@ export async function POST(req: NextRequest) {
       if (!productId || qty <= 0 || unitPrice < 0) {
         throw new Error("invalid-item")
       }
-      const product = productMap.get(productId)
-      if (!product) throw new Error("product-not-found:" + productId)
-
-      // ── Inventory freeze check (uses pre-fetched set, no extra query) ──
-      if (frozenProductIds.has(productId)) {
-        throw new Error(`stock-frozen:${product.name}`)
-      }
-
-      // Check + decrement StockItem for this warehouse
-      const ok = await decrementStockItem(tx, productId, warehouseId, qty)
-      if (!ok) {
-        throw new Error(`stock-insufficient:${product.name}:warehouse:${warehouseId}`)
-      }
+      const product = productMap.get(productId)!
       const lineSubtotal = +(qty * unitPrice).toFixed(3)
-      // Per-product tax rate — fall back to cart-level rate for backward compat
       const lineTaxRate = Number((product as any).taxRate ?? CART_TAX)
       const lineTax = +(lineSubtotal * (lineTaxRate / 100)).toFixed(3)
       subtotal += lineSubtotal
@@ -193,10 +239,7 @@ export async function POST(req: NextRequest) {
     // Delivery fee is added AFTER tax (it's a service charge, not taxable).
     const total = +(afterDiscount + taxAmount + DELIVERY_FEE).toFixed(3)
 
-    // Sync Product.quantity as aggregate of all StockItems
-    for (const it of itemsData) {
-      await updateProductQuantityFromStockItems(tx, it.productId)
-    }
+    // Product.quantity was already synced above (batch aggregate per product).
 
     const sale = await tx.sale.create({
       data: {
