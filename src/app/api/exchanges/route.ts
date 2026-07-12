@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db, incrementStockItem, decrementStockItem, updateProductQuantityFromStockItems } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
-import { createJournalEntry } from "@/lib/journal"
+import { safeCreateJournalEntry } from "@/lib/journal"
 import { serializeExchange } from "@/lib/serialize"
 import { logAuditEvent } from "@/lib/audit"
 import { resolveWarehouseId } from "@/lib/warehouse-resolver"
@@ -211,10 +211,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "no-warehouse-available" }, { status: 400 })
   }
 
-  const result = await db.$transaction(async (tx) => {
-    // Generate the next exchangeNo (EXC-00001, EXC-00002, ...).
-    const count = await tx.exchangeSale.count()
-    const exchangeNo = `EXC-${String(count + 1).padStart(5, "0")}`
+  let result: any
+  try {
+    result = await db.$transaction(async (tx) => {
+      // Generate the next exchangeNo (EXC-00001, EXC-00002, ...).
+      const count = await tx.exchangeSale.count()
+      const exchangeNo = `EXC-${String(count + 1).padStart(5, "0")}`
 
     // Resolve each line's product, mutate inventory, build the line payload,
     // and (for returns) increment the matching SaleItem.returnedQty.
@@ -336,40 +338,34 @@ export async function POST(req: NextRequest) {
       include: { user: true, lines: { include: { product: true } } },
     })
 
-    // ── Journal entry for exchange net cash impact (inside tx — atomic) ──
+    // ── Journal entry for exchange net cash impact (inside tx — non-fatal) ──
     if (Math.abs(netAmount) > 0.001) {
-      try {
-        const paymentAccCode = PAY === "CASH" ? "1010" : "1020"
-        if (netAmount > 0) {
-          // Customer pays the difference: debit Cash/Bank, credit Sales Revenue
-          await createJournalEntry({
-            tx,
-            sourceType: "SALE",
-            sourceId: created.id,
-            description: `قيد تبديل ${created.exchangeNo} — تحصيل الفرق`,
-            date: new Date(),
-            lines: [
-              { accountCode: paymentAccCode, debit: +netAmount.toFixed(3), description: `تحصيل فرق تبديل ${created.exchangeNo}` },
-              { accountCode: "4010", credit: +netAmount.toFixed(3), description: `إيراد فرق تبديل ${created.exchangeNo}` },
-            ],
-          })
-        } else {
-          // Customer receives refund: debit Sales Returns, credit Cash/Bank
-          const refundAmt = Math.abs(netAmount)
-          await createJournalEntry({
-            tx,
-            sourceType: "SALE",
-            sourceId: created.id,
-            description: `قيد تبديل ${created.exchangeNo} — رد الفرق`,
-            date: new Date(),
-            lines: [
-              { accountCode: "5060", debit: +refundAmt.toFixed(3), description: `مرتجع فرق تبديل ${created.exchangeNo}` },
-              { accountCode: paymentAccCode, credit: +refundAmt.toFixed(3), description: `رد فرق تبديل ${created.exchangeNo}` },
-            ],
-          })
-        }
-      } catch (e: any) {
-        throw new Error(`فشل تسجيل القيد المحاسبي / Journal entry failed: ${e?.message ?? e}`)
+      const paymentAccCode = PAY === "CASH" ? "1010" : "1020"
+      if (netAmount > 0) {
+        // Customer pays the difference: debit Cash/Bank, credit Sales Revenue
+        await safeCreateJournalEntry(tx, {
+          sourceType: "SALE",
+          sourceId: created.id,
+          description: `قيد تبديل ${created.exchangeNo} — تحصيل الفرق`,
+          date: new Date(),
+          lines: [
+            { accountCode: paymentAccCode, debit: +netAmount.toFixed(3), description: `تحصيل فرق تبديل ${created.exchangeNo}` },
+            { accountCode: "4010", credit: +netAmount.toFixed(3), description: `إيراد فرق تبديل ${created.exchangeNo}` },
+          ],
+        }, `Exchange ${created.exchangeNo} net-charge journal`)
+      } else {
+        // Customer receives refund: debit Sales Returns, credit Cash/Bank
+        const refundAmt = Math.abs(netAmount)
+        await safeCreateJournalEntry(tx, {
+          sourceType: "SALE",
+          sourceId: created.id,
+          description: `قيد تبديل ${created.exchangeNo} — رد الفرق`,
+          date: new Date(),
+          lines: [
+            { accountCode: "5060", debit: +refundAmt.toFixed(3), description: `مرتجع فرق تبديل ${created.exchangeNo}` },
+            { accountCode: paymentAccCode, credit: +refundAmt.toFixed(3), description: `رد فرق تبديل ${created.exchangeNo}` },
+          ],
+        }, `Exchange ${created.exchangeNo} refund journal`)
       }
     }
 
@@ -382,15 +378,13 @@ export async function POST(req: NextRequest) {
       description: `تبديل ${created.exchangeNo}`,
     })
 
-    return created
-  }, {
-    timeout: 10000,
-    maxWait: 5000,
-  }).catch((e: any) => ({ __error: e?.message || "exchange-failed" }))
-
-  if (result && (result as any).__error) {
-    const msg = (result as any).__error as string
-    // Classify the thrown error so the client gets the right HTTP status.
+      return created
+    }, {
+      timeout: 10000,
+      maxWait: 5000,
+    })
+  } catch (e: any) {
+    const msg = e?.message || "exchange-failed"
     const isClientError =
       msg.startsWith("stock-insufficient") ||
       msg.startsWith("product-not-found") ||
