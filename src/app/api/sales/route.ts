@@ -139,10 +139,27 @@ export async function POST(req: NextRequest) {
 
   const productMap = new Map(products.map((p) => [p.id, p]))
   const frozenProductIds = new Set(frozenItems.map((f) => f.productId))
-  // Stock items for THIS warehouse only
-  const stockItemMap = new Map(
-    stockItems.filter((s) => s.warehouseId === warehouseId).map((s) => [s.productId, s])
-  )
+
+  // ── Stock availability: check TOTAL across ALL warehouses ──
+  // The inventory view shows Product.quantity (sum of all StockItems).
+  // The sale should validate against this total, not just one warehouse.
+  // Decrement will start from the default warehouse and spill over to
+  // other warehouses if needed.
+  const totalStockByProduct = new Map<string, number>()
+  for (const si of stockItems) {
+    totalStockByProduct.set(
+      si.productId,
+      (totalStockByProduct.get(si.productId) || 0) + si.quantity
+    )
+  }
+  // Stock items grouped by product → list of { warehouseId, quantity }
+  const stockByProduct = new Map<string, Array<{ warehouseId: string; quantity: number }>>()
+  for (const si of stockItems) {
+    if (!stockByProduct.has(si.productId)) {
+      stockByProduct.set(si.productId, [])
+    }
+    stockByProduct.get(si.productId)!.push({ warehouseId: si.warehouseId, quantity: si.quantity })
+  }
 
   // Aggregate quantities per unique product (in case the same product
   // appears multiple times in the cart)
@@ -154,7 +171,7 @@ export async function POST(req: NextRequest) {
     qtyByProduct.set(pid, (qtyByProduct.get(pid) || 0) + qty)
   }
 
-  // Validate stock availability (outside transaction — fast)
+  // Validate stock availability against TOTAL stock (all warehouses)
   for (const [pid, totalQty] of qtyByProduct) {
     const product = productMap.get(pid)
     if (!product) {
@@ -163,13 +180,37 @@ export async function POST(req: NextRequest) {
     if (frozenProductIds.has(pid)) {
       return NextResponse.json({ error: `stock-frozen:${product.name}` }, { status: 400 })
     }
-    const si = stockItemMap.get(pid)
-    if (!si || si.quantity < totalQty) {
+    const available = totalStockByProduct.get(pid) || 0
+    if (available < totalQty) {
       return NextResponse.json(
-        { error: `stock-insufficient:${product.name}:warehouse:${warehouseId}` },
+        { error: `stock-insufficient:${product.name}:available:${available}:requested:${totalQty}` },
         { status: 400 }
       )
     }
+  }
+
+  // ── Compute decrement plan: which warehouse to decrement how much ──
+  // Start from the default warehouse, then spill over to other warehouses.
+  const decrementPlan = new Map<string, Array<{ warehouseId: string; qty: number }>>()
+  for (const [pid, totalQty] of qtyByProduct) {
+    const warehouses = stockByProduct.get(pid) || []
+    // Sort: default warehouse first, then others
+    warehouses.sort((a, b) => {
+      if (a.warehouseId === warehouseId) return -1
+      if (b.warehouseId === warehouseId) return 1
+      return b.quantity - a.quantity // then by largest stock
+    })
+    let remaining = totalQty
+    const plan: Array<{ warehouseId: string; qty: number }> = []
+    for (const wh of warehouses) {
+      if (remaining <= 0) break
+      const take = Math.min(wh.quantity, remaining)
+      if (take > 0) {
+        plan.push({ warehouseId: wh.warehouseId, qty: take })
+        remaining -= take
+      }
+    }
+    decrementPlan.set(pid, plan)
   }
 
   // Compute totals (outside transaction — pure math, no DB)
@@ -215,12 +256,15 @@ export async function POST(req: NextRequest) {
     const count = await tx.sale.count()
     const invoiceNo = makeInvoiceNo(count + 1)
 
-    // Decrement StockItem for each unique product
-    for (const [pid, totalQty] of qtyByProduct) {
-      await tx.stockItem.update({
-        where: { productId_warehouseId: { productId: pid, warehouseId } },
-        data: { quantity: { decrement: totalQty } },
-      })
+    // Decrement StockItem for each unique product, using the decrement
+    // plan (may span multiple warehouses if default doesn't have enough).
+    for (const [pid, plan] of decrementPlan) {
+      for (const step of plan) {
+        await tx.stockItem.update({
+          where: { productId_warehouseId: { productId: pid, warehouseId: step.warehouseId } },
+          data: { quantity: { decrement: step.qty } },
+        })
+      }
     }
 
     // Create the sale + items in ONE query (nested create)
