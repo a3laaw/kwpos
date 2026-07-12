@@ -212,74 +212,11 @@ export async function POST(req: NextRequest) {
     // Credit: Tax Payable (taxAmount) — only if tax > 0
     // (Discount is netted against revenue; COGS is recognized separately.)
     //
-    // The journal entry is NON-FATAL: if the chart of accounts isn't set up
-    // yet (e.g. fresh install), the sale still succeeds — we just skip the
-    // journal entry. The sale record itself is the critical business
-    // operation; the accounting entry can be reconstructed later.
-    const revenueLines: any[] = [
-      { accountCode: paymentAccCode, debit: total, description: `تحصيل فاتورة ${sale.invoiceNo}` },
-      { accountCode: "4010", credit: (total - taxAmount), description: "إيراد مبيعات" },
-    ]
-    if (taxAmount > 0) {
-      // Use accounts payable (2010) as a simple tax-collected account
-      revenueLines.push({ accountCode: "2010", credit: taxAmount, description: "ضريبة مستحقة" })
-    }
-    try {
-      await createJournalEntry({
-        sourceType: "SALE",
-        sourceId: sale.id,
-        description: `قيد فاتورة مبيعات ${sale.invoiceNo}${resolvedName ? ` — ${resolvedName}` : ""}`,
-        date: new Date(),
-        lines: revenueLines,
-        tx,
-      })
-    } catch (e: any) {
-      // Journal entry failed (likely accounts not set up). Log the error
-      // but DO NOT roll back the sale — the sale is the critical operation.
-      console.warn(`[sales] Journal entry failed for ${sale.invoiceNo}: ${e?.message ?? e}`)
-    }
-
-    // ── Audit log (inside tx — atomic) ──
-    await logAuditEvent({
-      tx,
-      userId: user.id,
-      userName: user.name,
-      action: "SALE_CREATED",
-      description: `فاتورة مبيعات ${sale.invoiceNo}`,
-      saleId: sale.id,
-    })
-
-    // ── Loyalty points (inside tx — atomic) ──
-    // Earn 1 point per currency unit spent (excluding tax + delivery).
-    // Points are only awarded when a customer is linked.
-    if (customerId) {
-      const pointsEarned = Math.floor(afterDiscount) // 1 point per 1 currency unit
-      if (pointsEarned > 0) {
-        const cust = await tx.customer.findUnique({ where: { id: customerId }, select: { loyaltyPoints: true, loyaltyTier: true } })
-        if (cust) {
-          const newPoints = cust.loyaltyPoints + pointsEarned
-          let newTier: string | null = cust.loyaltyTier
-          if (newPoints >= 10000) newTier = "GOLD"
-          else if (newPoints >= 5000) newTier = "SILVER"
-          else if (newPoints >= 1000) newTier = "BRONZE"
-          await tx.customer.update({
-            where: { id: customerId },
-            data: {
-              loyaltyPoints: { increment: pointsEarned },
-              loyaltyTier: newTier,
-            },
-          })
-        }
-      }
-    }
-
+    // NOTE: Journal entry, audit log, and loyalty points are run AFTER the
+    // transaction commits (not inside tx) to keep the transaction fast.
+    // They are non-fatal — if they fail, the sale still succeeds.
     return { sale, total, afterDiscount, taxAmount }
   }, {
-    // The sale transaction does multiple operations (stock validation +
-    // decrement, sale creation, journal entry, audit log, loyalty points).
-    // The default 5s timeout can be exceeded on Supabase with
-    // connection_limit=1. 10s is enough for a normal sale while preventing
-    // long-hanging requests.
     timeout: 10000,
     maxWait: 5000,
   }).catch((e: any) => {
@@ -294,7 +231,73 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: msg }, { status })
   }
 
-  const { sale } = result as any
+  const { sale, total, afterDiscount, taxAmount } = result as any
+
+  // ── Post-transaction operations (non-fatal) ──
+  // These run AFTER the sale is committed. If they fail, the sale still
+  // succeeds — we just log a warning. This keeps the transaction fast.
+
+  // 1. Journal entry (double-entry accounting)
+  const revenueLines: any[] = [
+    { accountCode: paymentAccCode, debit: total, description: `تحصيل فاتورة ${sale.invoiceNo}` },
+    { accountCode: "4010", credit: (total - taxAmount), description: "إيراد مبيعات" },
+  ]
+  if (taxAmount > 0) {
+    revenueLines.push({ accountCode: "2010", credit: taxAmount, description: "ضريبة مستحقة" })
+  }
+  try {
+    await createJournalEntry({
+      sourceType: "SALE",
+      sourceId: sale.id,
+      description: `قيد فاتورة مبيعات ${sale.invoiceNo}${resolvedName ? ` — ${resolvedName}` : ""}`,
+      date: new Date(),
+      lines: revenueLines,
+    })
+  } catch (e: any) {
+    console.warn(`[sales] Journal entry failed for ${sale.invoiceNo}: ${e?.message ?? e}`)
+  }
+
+  // 2. Audit log
+  try {
+    await logAuditEvent({
+      userId: user.id,
+      userName: user.name,
+      action: "SALE_CREATED",
+      description: `فاتورة مبيعات ${sale.invoiceNo}`,
+      saleId: sale.id,
+    })
+  } catch (e: any) {
+    console.warn(`[sales] Audit log failed for ${sale.invoiceNo}: ${e?.message ?? e}`)
+  }
+
+  // 3. Loyalty points (1 point per currency unit, only if customer linked)
+  if (customerId) {
+    try {
+      const pointsEarned = Math.floor(afterDiscount)
+      if (pointsEarned > 0) {
+        const cust = await db.customer.findUnique({
+          where: { id: customerId },
+          select: { loyaltyPoints: true, loyaltyTier: true },
+        })
+        if (cust) {
+          const newPoints = cust.loyaltyPoints + pointsEarned
+          let newTier: string | null = cust.loyaltyTier
+          if (newPoints >= 10000) newTier = "GOLD"
+          else if (newPoints >= 5000) newTier = "SILVER"
+          else if (newPoints >= 1000) newTier = "BRONZE"
+          await db.customer.update({
+            where: { id: customerId },
+            data: {
+              loyaltyPoints: { increment: pointsEarned },
+              loyaltyTier: newTier,
+            },
+          })
+        }
+      }
+    } catch (e: any) {
+      console.warn(`[sales] Loyalty points failed for ${sale.invoiceNo}: ${e?.message ?? e}`)
+    }
+  }
 
   return NextResponse.json(serializeSale(sale as any), { status: 201 })
 }
