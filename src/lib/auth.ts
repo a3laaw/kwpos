@@ -63,7 +63,7 @@ export const authOptions: NextAuthOptions = {
           if (!user) {
             user = await db.user.findFirst({
               where: {
-                email: { startsWith: inputLower + "@", mode: "insensitive" },
+                email: { startsWith: inputLower + "@" },
               },
             })
           }
@@ -73,7 +73,7 @@ export const authOptions: NextAuthOptions = {
           if (!user) {
             user = await db.user.findFirst({
               where: {
-                name: { equals: input, mode: "insensitive" },
+                name: { equals: input },
               },
             })
           }

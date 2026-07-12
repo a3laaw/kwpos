@@ -43,8 +43,18 @@ export async function GET(req: NextRequest) {
     if (!canSeeFinancials(role) && !canManageProducts(role)) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 })
     }
+  } else if (type === "customers") {
+    // Customer export: OWNER/ADMIN/MANAGER/SALES/CASHIER can export
+    // (they need the phone book for POS). WAREHOUSE/ACCOUNTANT should
+    // not export customer data — it's not their domain.
+    if (!canSeeFinancials(role) && !canManageProducts(role)) {
+      // Allow SALES and CASHIER even though they're not financial/product-manage
+      // Check explicitly:
+      if (role !== "SALES" && role !== "CASHIER") {
+        return NextResponse.json({ error: "forbidden" }, { status: 403 })
+      }
+    }
   }
-  // "customers" export is allowed for any authenticated user.
 
   const dateFilter: any = {}
   if (from) dateFilter.gte = new Date(from)
