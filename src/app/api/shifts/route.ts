@@ -206,7 +206,8 @@ export async function PATCH(req: NextRequest) {
           })
         }
       } catch (e: any) {
-        throw new Error(`فشل تسجيل القيد المحاسبي / Journal entry failed: ${e?.message ?? e}`)
+        // Journal entry is non-fatal — the shift close still succeeds.
+        console.warn(`[shifts] Journal entry failed for ${shift.shiftNo}: ${e?.message ?? e}`)
       }
     }
 

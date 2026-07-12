@@ -211,7 +211,8 @@ export async function POST(req: NextRequest) {
         tx,
       })
     } catch (e: any) {
-      throw new Error(`فشل تسجيل القيد المحاسبي / Journal entry failed: ${e?.message ?? e}`)
+      // Journal entry is non-fatal — the purchase return still succeeds.
+      console.warn(`[purchase-returns] Journal entry failed for ${returnNo}: ${e?.message ?? e}`)
     }
 
     // ── Audit log (inside tx — atomic) ──

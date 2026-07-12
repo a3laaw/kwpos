@@ -11,15 +11,28 @@ import { db } from "@/lib/db"
  * When `tx` is not provided, falls back to the global `db` client.
  */
 
-let entrySeqCache: number | null = null
-
+/**
+ * Generate a unique journal entry number.
+ *
+ * Uses a timestamp + random suffix to guarantee uniqueness across:
+ * - Concurrent requests (Vercel serverless runs multiple instances)
+ * - Server restarts (no in-memory cache that resets)
+ * - Deleted entries (count() would undercount)
+ *
+ * Format: JE-YYYYMMDDHHmmss-XXXX (e.g. JE-20260712143025-a1b2)
+ */
 async function nextEntryNo(tx?: any): Promise<string> {
-  const client = (tx || db) as typeof db
-  if (entrySeqCache === null) {
-    entrySeqCache = await client.journalEntry.count()
-  }
-  entrySeqCache += 1
-  return `JE-${String(entrySeqCache).padStart(5, "0")}`
+  const now = new Date()
+  const ts = now.getFullYear().toString() +
+    String(now.getMonth() + 1).padStart(2, "0") +
+    String(now.getDate()).padStart(2, "0") +
+    String(now.getHours()).padStart(2, "0") +
+    String(now.getMinutes()).padStart(2, "0") +
+    String(now.getSeconds()).padStart(2, "0")
+  // Random 4-char suffix to avoid collision when two entries are created
+  // in the same second.
+  const suffix = Math.random().toString(36).slice(2, 6).toUpperCase()
+  return `JE-${ts}-${suffix}`
 }
 
 function round(v: number, decimals = 3): number {
