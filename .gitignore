@@ -62,7 +62,6 @@ next-env.d.ts
 # Local config
 local-*
 .claude
-.z-ai-config
 test
 prompt
 

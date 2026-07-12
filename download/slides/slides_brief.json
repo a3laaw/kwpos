@@ -15,7 +15,7 @@
       "title": "شريحة الواجهة والترحيب",
       "layout": "cover",
       "output_path": "/home/z/my-project/download/slides/slide_01.html",
-      "task_brief": "Cover slide, RTL Arabic, full bleed. LEFT SIDE (60%): Big bold title 'KWPOS' in green (#2E6237) 72px. Below: 'نظام إدارة المبيعات والمخازن والمشتريات' in 24px. Tagline in gold accent box: 'النظام العربي الأول المدعوم بالذكاء الاصطناعي لإدارة المتاجر'. Three stat pills at bottom: '🚀 90+ API' '📱 PWA — يعمل على كل الأجهزة' '🔒 7 أدوار بأمان كامل'. RIGHT SIDE (40%): Show screenshots/01-login.png with rounded corners 16px, shadow, slightly tilted. Background: subtle green gradient. Footer: 'KWPOS 2026 — العرض التقديمي الرسمي'."
+      "task_brief": "Cover slide, RTL Arabic, full bleed. LEFT SIDE (60%): Big bold title 'KWPOS' in green (#2E6237) 72px. Below: 'نظام إدارة المبيعات والمخازن والمشتريات' in 24px. Tagline in gold accent box: 'النظام العربي المتكامل لإدارة المتاجر'. Three stat pills at bottom: '🚀 90+ API' '📱 PWA — يعمل على كل الأجهزة' '🔒 7 أدوار بأمان كامل'. RIGHT SIDE (40%): Show screenshots/01-login.png with rounded corners 16px, shadow, slightly tilted. Background: subtle green gradient. Footer: 'KWPOS 2026 — العرض التقديمي الرسمي'."
     },
     {
       "title": "المشكلة في القطاع",
@@ -24,10 +24,10 @@
       "task_brief": "Problem slide, RTL. Title at top: 'تحديات تواجه أصحاب المتاجر اليوم' in 32px green. Subtitle: '3 مشاكل رئيسية تعيق نمو أعمالك'. Three large problem cards in a row, each with a red/orange warning icon: CARD 1: icon=warning, title 'إدارة مخزون فوضوية', text 'مخازن متعددة بدون تتبع موحد • أخطاء في الجرد يدويًا • نفاد مفاجئ للأصناف الأكثر مبيعًا • لا توجد تنبيهات لنقص المخزون'. CARD 2: icon=warning, title 'بيانات مالية مبعثرة', text 'مبيعات ومشتريات بدون قيود محاسبية • لا توجد رؤية واضحة للأرباح • صعوبة في إعداد تقارير VAT • أخطاء في حساب المستحقات'. CARD 3: icon=warning, title 'بطء في نقاط البيع', text 'طوابير طويلة بسبب بطء الكاشير • لا دعم لقارئ الباركود • صعوبة في التبديل والمرتجعات • لا طباعة فورية للإيصالات'. Each card has white background, red-tinted left border, shadow. Bottom bar: 'KWPOS يحل هذه المشاكل الثلاث — دعنا نوضح كيف ←'"
     },
     {
-      "title": "الحل الذكي",
+      "title": "الحل المتكامل",
       "layout": "solution",
       "output_path": "/home/z/my-project/download/slides/slide_03.html",
-      "task_brief": "Solution slide, RTL. Title: 'الحل الذكي — نظام متكامل بمعالجة فورية' in 32px green. Subtitle: 'كيف يحل KWPOS المشاكل الثلاث بذكاء وسرعة'. Three solution cards matching the problems, each with green checkmark icon: CARD 1: icon=check_circle, title 'مخزون ذكي موحد', text 'تتبع لحظي لكل مخزن على حدة • Product.quantity = مجموع آلي • تنبيهات تلقائية لنقص المخزون • باركود ذكي (13 رقم حسب التصنيف) • جرد أعمى + جرد دوري • تحويلات بين المخازن بضغطة زر'. CARD 2: icon=check_circle, title 'محاسبة مزدوجة القيد', text 'قيود محاسبية تلقائية عند كل عملية • ميزان مراجعة فوري • ميزانية عمومية + تدفقات نقدية • تقرير VAT جاهز • كشف حساب لكل عميل ومورد • 17 حساب جاهز'. CARD 3: icon=check_circle, title 'POS فائق السرعة', text 'وضعان: عادي وسريع (Express) • قارئ باركود عالمي • درج نقدية (ESC/POS) • طباعة حرارية فورية • بحث فوري بالاسم/الباركود • دفع بنقرة واحدة'. Cards have green left border, white background, shadow. Each has a small stat badge: '0 خطأ' '17 حساب' '< 5 ثوانٍ'."
+      "task_brief": "Solution slide, RTL. Title: 'الحل المتكامل — نظام متكامل بمعالجة فورية' in 32px green. Subtitle: 'كيف يحل KWPOS المشاكل الثلاث بسرعة وكفاءة'. Three solution cards matching the problems, each with green checkmark icon: CARD 1: icon=check_circle, title 'مخزون موحد بدقة', text 'تتبع لحظي لكل مخزن على حدة • Product.quantity = مجموع آلي • تنبيهات تلقائية لنقص المخزون • باركود تلقائي (13 رقم حسب التصنيف) • جرد أعمى + جرد دوري • تحويلات بين المخازن بضغطة زر'. CARD 2: icon=check_circle, title 'محاسبة مزدوجة القيد', text 'قيود محاسبية تلقائية عند كل عملية • ميزان مراجعة فوري • ميزانية عمومية + تدفقات نقدية • تقرير VAT جاهز • كشف حساب لكل عميل ومورد • 17 حساب جاهز'. CARD 3: icon=check_circle, title 'POS فائق السرعة', text 'وضعان: عادي وسريع (Express) • قارئ باركود عالمي • درج نقدية (ESC/POS) • طباعة حرارية فورية • بحث فوري بالاسم/الباركود • دفع بنقرة واحدة'. Cards have green left border, white background, shadow. Each has a small stat badge: '0 خطأ' '17 حساب' '< 5 ثوانٍ'."
     },
     {
       "title": "الميزات الوظيفية",
@@ -63,7 +63,7 @@
       "title": "الخاتمة والدعوة لاتخاذ إجراء",
       "layout": "closing CTA",
       "output_path": "/home/z/my-project/download/slides/slide_09.html",
-      "task_brief": "Closing CTA slide, RTL. Full gradient background from #2E6237 to #1a2e1d. Centered white text. Big title: 'جاهز لإدارة متجرك بذكاء؟' in 48px white bold. Subtitle: 'KWPOS — النظام العربي المتكامل لإدارة المبيعات والمخازن والمشتريات' in 20px white/gold. Below: three CTA buttons (styled as cards): 1) '🚀 جرّب النظام الآن' — 'kwpos.vercel.app', 2) '📦 الكود المفتوح' — 'github.com/a3laaw/kwpos', 3) '📱 ثبّت كتطبيق' — 'PWA — Add to Home Screen'. Bottom section: 'متوفر كتطبيق هاتف (PWA) — يعمل على الآيباد والهاتف والكمبيوتر'. Footer: 'KWPOS © 2026 — صُمم بذكاء، يعمل بسرعة، يؤمن بالكامل'. Add decorative gold accent circles in background corners."
+      "task_brief": "Closing CTA slide, RTL. Full gradient background from #2E6237 to #1a2e1d. Centered white text. Big title: 'جاهز لإدارة متجرك باحترافية؟' in 48px white bold. Subtitle: 'KWPOS — النظام العربي المتكامل لإدارة المبيعات والمخازن والمشتريات' in 20px white/gold. Below: three CTA buttons (styled as cards): 1) '🚀 جرّب النظام الآن' — 'kwpos.vercel.app', 2) '📦 الكود المفتوح' — 'github.com/a3laaw/kwpos', 3) '📱 ثبّت كتطبيق' — 'PWA — Add to Home Screen'. Bottom section: 'متوفر كتطبيق هاتف (PWA) — يعمل على الآيباد والهاتف والكمبيوتر'. Footer: 'KWPOS © 2026 — صُمم باحترافية، يعمل بسرعة، يؤمن بالكامل'. Add decorative gold accent circles in background corners."
     }
   ]
 }
