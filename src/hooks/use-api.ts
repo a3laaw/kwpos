@@ -1650,6 +1650,7 @@ export interface UserItem {
   email: string
   name: string
   role: "OWNER" | "ADMIN" | "MANAGER" | "ACCOUNTANT" | "SALES" | "CASHIER" | "WAREHOUSE"
+  warehouseId?: string | null
   createdAt: string
   updatedAt: string
 }

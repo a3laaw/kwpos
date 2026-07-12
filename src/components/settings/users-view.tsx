@@ -235,7 +235,7 @@ function UserDialog({
       setEmail(user.email)
       setPassword("")
       setRole(user.role)
-      setWarehouseId((user as any).warehouseId || "")
+      setWarehouseId(user.warehouseId || "")
     } else {
       setName("")
       setEmail("")
