@@ -69,7 +69,15 @@ export const db =
     ...(datasourceUrl ? { datasourceUrl } : {}),
   })
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db
+// ALWAYS cache the Prisma client in globalThis — even in production.
+// On Vercel serverless, each function invocation would otherwise create
+// a NEW PrismaClient (and a new DB connection pool), causing:
+//   - Intermittent "no products" / "login fails" errors (connection races)
+//   - Connection pool exhaustion on Supabase
+//   - Slow cold starts (PrismaClient init is expensive)
+// Caching in globalThis lets the same client survive across invocations
+// within the same serverless function instance.
+globalForPrisma.prisma = db
 
 /* ─── Warehouse inventory helpers ──────────────────────────────────── */
 
