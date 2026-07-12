@@ -123,7 +123,7 @@ export async function POST(req: NextRequest) {
       throw new Error("no-warehouse-available")
     }
 
-    // Lock & validate each product via StockItem (SELECT FOR UPDATE)
+    // Validate each product + decrement stock atomically
     const itemsData: Array<{
       productId: string
       quantity: number

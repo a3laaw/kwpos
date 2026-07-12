@@ -282,8 +282,7 @@ export async function POST(req: NextRequest) {
           }
         }
       } else {
-        // Validate + decrement the StockItem for this warehouse (with row
-        // locking via SELECT FOR UPDATE inside decrementStockItem).
+        // Validate + decrement the StockItem for this warehouse.
         const ok = await decrementStockItem(tx, productId, warehouseId, qty)
         if (!ok) {
           throw new Error(`stock-insufficient:${product.name}:warehouse:${warehouseId}`)

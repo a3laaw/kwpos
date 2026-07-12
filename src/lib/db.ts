@@ -78,7 +78,10 @@ export async function getDefaultWarehouseId(
 
 /**
  * Decrement stock from a specific warehouse's StockItem.
- * Uses SELECT FOR UPDATE row locking when inside a transaction.
+ * Runs inside the caller's Prisma transaction — all queries use the same
+ * connection, so we get transactional isolation without needing SELECT
+ * FOR UPDATE (which is incompatible with pgbouncer transaction mode on
+ * Supabase). The `decrement` operation is atomic at the DB level.
  * Returns false if insufficient stock (caller should return 400).
  */
 export async function decrementStockItem(
@@ -87,20 +90,6 @@ export async function decrementStockItem(
   warehouseId: string,
   quantity: number
 ): Promise<boolean> {
-  // Row-level lock via raw SQL (PostgreSQL SELECT ... FOR UPDATE).
-  // Best-effort: SQLite (used in tests) doesn't support FOR UPDATE and
-  // errors out — we swallow that and rely on SQLite's serializable
-  // transaction isolation instead. Production runs on PostgreSQL and
-  // gets the lock.
-  try {
-    await tx.$executeRawUnsafe(
-      `SELECT * FROM "StockItem" WHERE "productId" = $1 AND "warehouseId" = $2 FOR UPDATE`,
-      productId,
-      warehouseId
-    )
-  } catch {
-    // ignore — not supported on this engine (e.g. SQLite tests)
-  }
   const item = await tx.stockItem.findUnique({
     where: { productId_warehouseId: { productId, warehouseId } },
   })

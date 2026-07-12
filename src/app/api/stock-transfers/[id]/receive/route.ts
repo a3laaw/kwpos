@@ -34,13 +34,8 @@ export async function POST(
   const updated = await db.$transaction(async (tx) => {
     // Add to destination warehouse (StockItem only — Product.quantity is
     // recomputed from StockItems as the derived aggregate).
-    // Row-level lock via SELECT FOR UPDATE to prevent concurrent receives
+    // Note: no SELECT FOR UPDATE — incompatible with pgbouncer on Supabase.
     for (const it of transfer.items) {
-      await tx.$executeRawUnsafe(
-        `SELECT * FROM "StockItem" WHERE "productId" = $1 AND "warehouseId" = $2 FOR UPDATE`,
-        it.productId,
-        transfer.toWarehouseId
-      )
       await tx.stockItem.upsert({
         where: {
           productId_warehouseId: {

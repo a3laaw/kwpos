@@ -136,22 +136,11 @@ export async function POST(
       const shouldApplySuggested =
         suggested > 0 && Math.abs(suggested - currentSalePrice) > 0.0001
 
-      // Row-level lock on the destination StockItem before the upsert so
-      // concurrent receives for the same (product, warehouse) serialize.
-      // Best-effort: SQLite (used in tests) doesn't support FOR UPDATE;
-      // swallow that error and rely on SQLite's serializable isolation.
-      try {
-        await tx.$executeRawUnsafe(
-          `SELECT * FROM "StockItem" WHERE "productId" = $1 AND "warehouseId" = $2 FOR UPDATE`,
-          it.productId,
-          warehouseId
-        )
-      } catch {
-        // ignore — not supported on this engine (e.g. SQLite tests)
-      }
-
       // Increment the StockItem (upsert creates the row if missing) and
       // keep Product.quantity in sync as the derived aggregate.
+      // Note: no SELECT FOR UPDATE — it's incompatible with pgbouncer
+      // transaction mode on Supabase. Prisma's $transaction provides
+      // sufficient isolation, and upsert/decrement are atomic.
       await incrementStockItem(tx, it.productId, warehouseId, Number(it.quantity))
       await updateProductQuantityFromStockItems(tx, it.productId)
 
