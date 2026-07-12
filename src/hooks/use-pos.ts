@@ -19,9 +19,16 @@ import { useFmt } from "@/components/currency-context"
 import { useT } from "@/components/i18n-context"
 import { printThermalReceipt } from "@/lib/print"
 import type { Product, Sale, CustomerTier } from "@/lib/types"
-import { effectivePrice } from "@/lib/types"
-import { computeEffectivePrice, promotionAppliesTo } from "@/lib/pricing"
 import type { SaleConfirmSummary } from "@/components/sales/sale-confirm-dialog"
+
+import { usePricing } from "@/hooks/use-pricing"
+import { useCustomerLookup } from "@/hooks/use-customer-lookup"
+import {
+  buildCartSnapshot,
+  restoreCartItemsFromSnapshot,
+  computePOSTotals,
+  handleSaleError,
+} from "@/hooks/pos-helpers"
 
 export interface CartItem {
   product: Product
@@ -29,25 +36,21 @@ export interface CartItem {
 }
 
 export interface UsePOSOptions {
-  /**
-   * When true (Express Mode), the customer tier is forced to RETAIL
-   * regardless of CRM lookup or tierOverride. Express Mode has no tier
-   * selector UI, so we always charge retail price.
-   */
   forceRetailTier?: boolean
 }
 
 /**
  * Shared POS business-logic hook.
  *
- * Owns all cart / pricing / checkout state and logic. Both the standard
- * SalesView and the ExpressPosView consume this hook so they share the
- * EXACT same business logic (stock validation, journal entries, receipt
- * printing, tax calculation, etc.). The two views are only different
- * PRESENTATIONS of the same logic.
+ * Orchestrator only — pricing, customer lookup, totals, error handling,
+ * and cart snapshot logic live in extracted hooks/functions:
+ *   - usePricing          → priceFor, basePriceFor, hasActivePromo
+ *   - useCustomerLookup   → debounced phone → customer auto-search
+ *   - computePOSTotals    → pure totals computation
+ *   - buildCartSnapshot   → pure snapshot builder
+ *   - handleSaleError     → table-driven error handling
  *
- * Behavior is identical to the previous inline implementation in
- * sales-view.tsx — this is a pure extraction, not a re-implementation.
+ * This keeps the hook focused on state management + orchestration.
  */
 export function usePOS(opts?: UsePOSOptions) {
   const fmt = useFmt()
@@ -60,7 +63,7 @@ export function usePOS(opts?: UsePOSOptions) {
     TRANSFER: t.transfer,
   }
 
-  // ── Core cart + checkout state ──
+  // ── Core cart state ──
   const [q, setQ] = React.useState("")
   const [categoryId, setCategoryId] = React.useState("")
   const [cart, setCart] = React.useState<CartItem[]>([])
@@ -70,96 +73,60 @@ export function usePOS(opts?: UsePOSOptions) {
   const [customerName, setCustomerName] = React.useState("")
   const [customerPhone, setCustomerPhone] = React.useState("")
   const [customerAddress, setCustomerAddress] = React.useState("")
-  const [customerFound, setCustomerFound] = React.useState<{ name: string; address: string; type?: CustomerTier } | null>(null)
   const [lastSale, setLastSale] = React.useState<Sale | null>(null)
 
-  // ── Auto-print toggle (persisted in localStorage) ──
-  const [autoPrint, setAutoPrint] = React.useState<boolean>(false)
+  // ── Auto-print (persisted) ──
+  const [autoPrint, setAutoPrint] = React.useState(false)
   React.useEffect(() => {
-    try {
-      setAutoPrint(localStorage.getItem("posAutoPrint") === "true")
-    } catch {
-      setAutoPrint(false)
-    }
+    try { setAutoPrint(localStorage.getItem("posAutoPrint") === "true") } catch { setAutoPrint(false) }
   }, [])
   const toggleAutoPrint = React.useCallback((on: boolean) => {
     setAutoPrint(on)
-    try {
-      localStorage.setItem("posAutoPrint", on ? "true" : "false")
-    } catch {
-      // ignore localStorage failures (private mode, etc.)
-    }
+    try { localStorage.setItem("posAutoPrint", on ? "true" : "false") } catch {}
   }, [])
 
-  // ── Delivery service ──
+  // ── Delivery ──
   const [deliveryEnabled, setDeliveryEnabled] = React.useState(false)
   const [driverName, setDriverName] = React.useState("")
   const [deliveryFee, setDeliveryFee] = React.useState("")
 
-  // ── Sale confirmation dialog ──
+  // ── Confirm dialog ──
   const [confirmOpen, setConfirmOpen] = React.useState(false)
 
   // ── Multi-tier pricing ──
   const [tierOverride, setTierOverride] = React.useState<CustomerTier | "">("")
+
+  // ── Customer lookup (extracted hook) ──
+  const { customerFound, setCustomerFound } = useCustomerLookup(customerPhone)
+
   const customerTier: CustomerTier = forceRetailTier
     ? "RETAIL"
     : tierOverride || customerFound?.type || "RETAIL"
+
+  // Sync customer name from lookup
+  React.useEffect(() => {
+    if (customerFound && !customerName) setCustomerName(customerFound.name)
+  }, [customerFound])
 
   // ── Active promotions ──
   const { data: activePromosData } = useActivePromotions()
   const activePromos = activePromosData.items
 
-  /** Effective unit price for a product under the current customer tier,
-   *  applying any active promotion whose scope includes this product. */
-  const priceFor = React.useCallback(
-    (p: Product) => {
-      if (activePromos.length === 0) {
-        return effectivePrice(p, customerTier)
-      }
-      const ap = computeEffectivePrice(
-        {
-          id: p.id,
-          categoryId: p.categoryId ?? null,
-          salePrice: p.salePrice,
-          wholesalePrice: p.wholesalePrice,
-          corporatePrice: p.corporatePrice,
-        },
-        customerTier,
-        activePromos.map((pr) => ({
-          id: pr.id,
-          productId: pr.productId,
-          scope: pr.scope,
-          categoryIds: pr.categoryIds,
-          discountType: pr.discountType,
-          discountValue: pr.discountValue,
-          startAt: pr.startAt,
-          endAt: pr.endAt,
-          isActive: pr.isActive,
-          note: pr.note,
-        }))
-      )
-      return ap.effectivePrice
-    },
-    [customerTier, activePromos]
-  )
+  // ── Pricing (extracted hook) ──
+  const { priceFor, basePriceFor, hasActivePromo } = usePricing(customerTier, activePromos)
 
-  /** Base tier price (no promo) — used to show a struck-through original
-   *  price next to the promo price on product cards / cart lines. */
-  const basePriceFor = React.useCallback(
-    (p: Product) => effectivePrice(p, customerTier),
-    [customerTier]
-  )
+  // ── Data fetching ──
+  const debouncedQ = React.useDeferredValue(q)
+  const { data, isLoading } = useProducts({ q: debouncedQ || undefined, categoryId: categoryId || undefined })
+  const { data: categoriesData } = useCategories()
+  const createMut = useCreateSale()
+  const { data: bundlesData } = useBundles(undefined, true)
 
-  /** Whether a product currently has an active promotion (drives the "عرض" badge). */
-  const hasActivePromo = React.useCallback(
-    (p: Product) =>
-      activePromos.some(
-        (pr) => pr.isActive && promotionAppliesTo(pr, p.id, p.categoryId ?? null)
-      ) && priceFor(p) < basePriceFor(p),
-    [activePromos, priceFor, basePriceFor]
-  )
+  const products = data?.items ?? []
+  const categories = categoriesData?.items ?? []
+  const bundles = bundlesData?.items ?? []
 
-  // ── Suspended / parked sales ──
+  // ── Parked sales ──
   const { data: parkedData } = useSuspendedSales()
   const parkMut = useParkSale()
   const resumeMut = useResumeSuspendedSale()
@@ -173,82 +140,24 @@ export function usePOS(opts?: UsePOSOptions) {
   const ITEMS_PER_CART_PAGE = 10
   const [cartPage, setCartPage] = React.useState(0)
   const cartTotalPages = Math.max(1, Math.ceil(cart.length / ITEMS_PER_CART_PAGE))
-
   React.useEffect(() => {
     if (cartPage >= cartTotalPages) setCartPage(Math.max(0, cartTotalPages - 1))
   }, [cartTotalPages, cartPage])
+  const cartPageItems = cart.slice(cartPage * ITEMS_PER_CART_PAGE, (cartPage + 1) * ITEMS_PER_CART_PAGE)
 
-  const cartPageItems = cart.slice(
-    cartPage * ITEMS_PER_CART_PAGE,
-    (cartPage + 1) * ITEMS_PER_CART_PAGE
-  )
+  // Quantity in cart per product
+  const inCart = React.useMemo(() => {
+    const m = new Map<string, number>()
+    for (const it of cart) m.set(it.product.id, (m.get(it.product.id) || 0) + it.quantity)
+    return m
+  }, [cart])
 
-  const debouncedQ = React.useDeferredValue(q)
-  const { data, isLoading } = useProducts({ q: debouncedQ || undefined, categoryId: categoryId || undefined })
-  const { data: categoriesData } = useCategories()
-  const createMut = useCreateSale()
-
-  const products = data?.items ?? []
-  const categories = categoriesData?.items ?? []
-
-  // ── Active bundles (for POS display) ──
-  const { data: bundlesData } = useBundles(undefined, true)
-  const bundles = bundlesData?.items ?? []
-
-  // ── Auto-lookup customer by phone (debounced) ──
-  const debouncedPhone = React.useDeferredValue(customerPhone)
-  React.useEffect(() => {
-    const phone = debouncedPhone.trim()
-    if (!phone || phone.length < 4) {
-      setCustomerFound(null)
-      return
-    }
-    let cancelled = false
-    fetch(`/api/customers?q=${encodeURIComponent(phone)}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (cancelled) return
-        const match = (data.items as any[])?.find((c) => c.phone === phone)
-        if (match) {
-          setCustomerFound({ name: match.name, address: match.address, type: (match.type as CustomerTier) || "RETAIL" })
-          setCustomerName(match.name)
-        } else {
-          setCustomerFound(null)
-        }
-      })
-      .catch(() => setCustomerFound(null))
-    return () => { cancelled = true }
-  }, [debouncedPhone])
-
-  // When a parked sale is fetched for resume, restore its cart snapshot.
+  // ── Restore parked sale (simplified using extracted function) ──
   React.useEffect(() => {
     if (!resumeData) return
     try {
-      const snap = JSON.parse(resumeData.cartJson) as {
-        items: { productId: string; name: string; barcode?: string | null; salePrice: number; wholesalePrice?: number; corporatePrice?: number; quantity: number; unit: string }[]
-        customerName?: string
-        customerPhone?: string
-        discount?: string
-        taxRate?: string
-        paymentMethod?: "CASH" | "CARD" | "TRANSFER"
-        deliveryEnabled?: boolean
-        driverName?: string
-        deliveryFee?: string
-      }
-      Promise.all(
-        snap.items.map((s) =>
-          fetch(`/api/products?q=${encodeURIComponent(s.barcode || s.name)}`)
-            .then((r) => r.json())
-            .then((d: any) => (d.items as any[])?.find((p) => p.id === s.productId) || null)
-            .catch(() => null)
-        )
-      ).then((prods) => {
-        const newCart: CartItem[] = []
-        prods.forEach((p, i) => {
-          if (!p) return
-          const snapQty = snap.items[i].quantity
-          newCart.push({ product: p as Product, quantity: Math.min(snapQty, (p as Product).quantity) })
-        })
+      const snap = JSON.parse(resumeData.cartJson)
+      restoreCartItemsFromSnapshot(snap).then((newCart) => {
         setCart(newCart)
         setCustomerName(snap.customerName || "")
         setCustomerPhone(snap.customerPhone || "")
@@ -262,36 +171,23 @@ export function usePOS(opts?: UsePOSOptions) {
         resumeMut.mutate(resumeData.id)
         setResumeId(null)
         toast.success(`${t.invoiceRestored} ${resumeData.holdNo}`, {
-          description: t.posResumeSuccessDesc
-            .replace("{count}", String(newCart.length))
+          description: (t as any).posResumeSuccessDesc
+            ?.replace("{count}", String(newCart.length))
             .replace("{total}", fmt.currency(Number(resumeData.total))),
         })
       })
     } catch {
-      toast.error(t.posResumeFailedToast)
+      toast.error((t as any).posResumeFailedToast || "فشل الاستئناف")
       setResumeId(null)
     }
   }, [resumeData])
 
-  // Quantity already in cart per product (for optimistic availability)
-  const inCart = React.useMemo(() => {
-    const m = new Map<string, number>()
-    for (const it of cart) m.set(it.product.id, (m.get(it.product.id) || 0) + it.quantity)
-    return m
-  }, [cart])
-
-  // ── Add a bundle to cart ──
-  // The bundle is added as a virtual cart item: we create a fake Product
-  // with the bundle's salePrice as the unitPrice. At checkout, each
-  // component's stock is decremented (handled by the sales API via
-  // the items array). The bundle itself is a single line in the cart.
+  // ── Cart mutations ──
   function addBundleToCart(bundle: { id: string; name: string; salePrice: number; imageUrl?: string | null; items: Array<{ productId: string; quantity: number; product?: { name: string; quantity: number } }> }) {
-    // Check all components have enough stock
     for (const item of bundle.items) {
       const product = products.find((p) => p.id === item.productId)
       if (product) {
-        const inCartQty = inCart.get(item.productId) || 0
-        const available = product.quantity - inCartQty
+        const available = product.quantity - (inCart.get(item.productId) || 0)
         if (available < item.quantity) {
           toast.error(t.qtyUnavailable || "الكمية غير متوفرة", {
             description: `${product.name}: ${available} متاح، الباقة تحتاج ${item.quantity}`,
@@ -300,33 +196,16 @@ export function usePOS(opts?: UsePOSOptions) {
         }
       }
     }
-
-    // Add bundle as a virtual product in the cart
     const virtualProduct: Product = {
-      id: `bundle-${bundle.id}`,
-      name: `📦 ${bundle.name}`,
-      barcode: null,
-      quantity: 999, // bundles don't have a stock limit
-      salePrice: bundle.salePrice,
-      costPrice: 0,
-      wholesalePrice: bundle.salePrice,
-      corporatePrice: bundle.salePrice,
-      taxRate: 0,
-      unit: "باقة",
-      imageUrl: bundle.imageUrl || null,
+      id: `bundle-${bundle.id}`, name: `📦 ${bundle.name}`, barcode: null,
+      quantity: 999, salePrice: bundle.salePrice, costPrice: 0,
+      wholesalePrice: bundle.salePrice, corporatePrice: bundle.salePrice,
+      taxRate: 0, unit: "باقة", imageUrl: bundle.imageUrl || null,
     } as Product
-
     setCart((c) => {
       const ex = c.find((it) => it.product.id === virtualProduct.id)
-      if (ex) {
-        return c.map((it) =>
-          it.product.id === virtualProduct.id
-            ? { ...it, quantity: it.quantity + 1 }
-            : it
-        )
-      }
-      const newIndex = c.length
-      const newPage = Math.floor(newIndex / ITEMS_PER_CART_PAGE)
+      if (ex) return c.map((it) => it.product.id === virtualProduct.id ? { ...it, quantity: it.quantity + 1 } : it)
+      const newPage = Math.floor(c.length / ITEMS_PER_CART_PAGE)
       setCartPage(newPage)
       return [...c, { product: virtualProduct, quantity: 1 }]
     })
@@ -336,67 +215,42 @@ export function usePOS(opts?: UsePOSOptions) {
   function addToCart(p: Product) {
     if (p.quantity <= 0) {
       toast.error(t.posItemUnavailable, {
-        description: t.posItemUnavailableDesc
-          .replace("{name}", p.name)
-          .replace("{qty}", fmt.number(p.quantity)),
+        description: (t as any).posItemUnavailableDesc?.replace("{name}", p.name).replace("{qty}", fmt.number(p.quantity)),
       })
       return
     }
     const inCartQty = inCart.get(p.id) || 0
     if (inCartQty >= p.quantity) {
       toast.error(t.qtyUnavailable, {
-        description: t.posQtyUnavailableDesc
-          .replace("{name}", p.name)
-          .replace("{qty}", fmt.number(p.quantity - inCartQty))
-          .replace("{unit}", p.unit),
+        description: (t as any).posQtyUnavailableDesc?.replace("{name}", p.name).replace("{qty}", fmt.number(p.quantity - inCartQty)).replace("{unit}", p.unit),
       })
       return
     }
     const existing = cart.find((it) => it.product.id === p.id)
-    if (!existing) {
-      const newIndex = cart.length
-      const newPage = Math.floor(newIndex / ITEMS_PER_CART_PAGE)
-      setCartPage(newPage)
-    }
+    if (!existing) setCartPage(Math.floor(cart.length / ITEMS_PER_CART_PAGE))
     setCart((c) => {
       const ex = c.find((it) => it.product.id === p.id)
-      if (ex) {
-        return c.map((it) =>
-          it.product.id === p.id ? { ...it, quantity: it.quantity + 1 } : it
-        )
-      }
+      if (ex) return c.map((it) => it.product.id === p.id ? { ...it, quantity: it.quantity + 1 } : it)
       return [...c, { product: p, quantity: 1 }]
     })
   }
 
   function changeQty(productId: string, delta: number) {
-    setCart((c) =>
-      c
-        .map((it) => {
-          if (it.product.id !== productId) return it
-          const next = it.quantity + delta
-          if (next > it.product.quantity) {
-            toast.error(t.qtyExceedsStock)
-            return it
-          }
-          return { ...it, quantity: next }
-        })
-        .filter((it) => it.quantity > 0)
-    )
+    setCart((c) => c.map((it) => {
+      if (it.product.id !== productId) return it
+      const next = it.quantity + delta
+      if (next > it.product.quantity) { toast.error(t.qtyExceedsStock); return it }
+      return { ...it, quantity: next }
+    }).filter((it) => it.quantity > 0))
   }
 
   function setQty(productId: string, qty: number) {
     const p = cart.find((it) => it.product.id === productId)?.product
     if (!p) return
-    if (qty > p.quantity) {
-      toast.error(t.qtyExceedsStock)
-      return
-    }
-    setCart((c) =>
-      qty <= 0
-        ? c.filter((it) => it.product.id !== productId)
-        : c.map((it) => (it.product.id === productId ? { ...it, quantity: qty } : it))
-    )
+    if (qty > p.quantity) { toast.error(t.qtyExceedsStock); return }
+    setCart((c) => qty <= 0
+      ? c.filter((it) => it.product.id !== productId)
+      : c.map((it) => it.product.id === productId ? { ...it, quantity: qty } : it))
   }
 
   function removeItem(productId: string) {
@@ -413,106 +267,59 @@ export function usePOS(opts?: UsePOSOptions) {
     setDeliveryFee("")
   }
 
-  const subtotal = cart.reduce((acc, it) => acc + priceFor(it.product) * it.quantity, 0)
-  const discountVal = Math.max(0, Math.min(Number(discount) || 0, subtotal))
-  const deliveryFeeVal = deliveryEnabled ? Math.max(0, Number(deliveryFee) || 0) : 0
-  const afterDiscount = Math.max(0, subtotal - discountVal)
-  const taxVal = +(afterDiscount * ((Number(taxRate) || 0) / 100)).toFixed(2)
-  const total = +(afterDiscount + taxVal + deliveryFeeVal).toFixed(2)
-  const itemCount = cart.reduce((a, b) => a + b.quantity, 0)
+  // ── Totals (extracted pure function) ──
+  const totals = computePOSTotals(cart, priceFor, discount, taxRate, deliveryEnabled, deliveryFee)
 
   const confirmSummary: SaleConfirmSummary | null = React.useMemo(
     () => ({
-      itemCount,
-      subtotal,
-      discount: discountVal,
-      taxAmount: taxVal,
+      itemCount: totals.itemCount,
+      subtotal: totals.subtotal,
+      discount: totals.discountVal,
+      taxAmount: totals.taxVal,
       taxRate: Number(taxRate) || 0,
-      deliveryFee: deliveryFeeVal,
+      deliveryFee: totals.deliveryFeeVal,
       driverName: deliveryEnabled ? driverName.trim() || null : null,
-      total,
+      total: totals.total,
       paymentMethod,
       customerName: customerName.trim() || null,
     }),
-    [itemCount, subtotal, discountVal, taxVal, taxRate, deliveryFeeVal, deliveryEnabled, driverName, total, paymentMethod, customerName]
+    [totals, taxRate, deliveryEnabled, driverName, paymentMethod, customerName]
   )
 
+  // ── Parked sales operations ──
   function parkCurrentCart() {
-    if (cart.length === 0) {
-      toast.error(t.posParkEmptyToast)
-      return
-    }
-    const snapshot = {
-      items: cart.map((it) => ({
-        productId: it.product.id,
-        name: it.product.name,
-        barcode: it.product.barcode,
-        salePrice: it.product.salePrice,
-        wholesalePrice: it.product.wholesalePrice,
-        corporatePrice: it.product.corporatePrice,
-        quantity: it.quantity,
-        unit: it.product.unit,
-      })),
-      customerName,
-      customerPhone,
-      discount,
-      taxRate,
-      paymentMethod,
-      deliveryEnabled,
-      driverName,
-      deliveryFee,
-    }
+    if (cart.length === 0) { toast.error((t as any).posParkEmptyToast || "السلة فارغة"); return }
+    const snapshot = buildCartSnapshot(cart, { customerName, customerPhone, discount, taxRate, paymentMethod, deliveryEnabled, driverName, deliveryFee })
     parkMut.mutate(
-      {
-        label: customerName.trim() || customerPhone.trim() || undefined,
-        cartJson: JSON.stringify(snapshot),
-        itemCount: itemCount,
-        total,
-      },
+      { label: customerName.trim() || customerPhone.trim() || undefined, cartJson: JSON.stringify(snapshot), itemCount: totals.itemCount, total: totals.total },
       {
         onSuccess: (res: any) => {
-          toast.success(t.invoiceParked, {
-            description: t.posInvoiceParkedDesc.replace("{holdNo}", res.holdNo),
-          })
+          toast.success(t.invoiceParked, { description: (t as any).posInvoiceParkedDesc?.replace("{holdNo}", res.holdNo) })
           clearCart()
         },
-        onError: () => toast.error(t.parkFailed),
+        onError: () => toast.error((t as any).parkFailed || "فشل التعليق"),
       }
     )
   }
 
   function resumeParked(id: string) {
     setParkedListOpen(false)
-    if (cart.length > 0) {
-      if (!confirm(t.posResumeCartReplaceConfirm)) {
-        return
-      }
-    }
+    if (cart.length > 0 && !confirm((t as any).posResumeCartReplaceConfirm || "استبدال السلة الحالية؟")) return
     setResumeId(id)
   }
 
   function discardParked(id: string, holdNo: string) {
-    if (!confirm(t.posDeleteParkedConfirm.replace("{holdNo}", holdNo))) return
+    if (!confirm((t as any).posDeleteParkedConfirm?.replace("{holdNo}", holdNo) || `حذف الفاتورة ${holdNo}؟`)) return
     discardMut.mutate(id, {
-      onSuccess: () => toast.success(t.posParkedDeletedToast.replace("{holdNo}", holdNo)),
+      onSuccess: () => toast.success((t as any).posParkedDeletedToast?.replace("{holdNo}", holdNo)),
     })
   }
 
+  // ── Checkout ──
   function handleCheckout() {
-    if (cart.length === 0) {
-      toast.error(t.cartEmpty)
-      return
-    }
-    // Phone is required — perfume shop needs customer database
-    if (!customerPhone.trim()) {
-      toast.error(t.posPhoneRequired || "رقم الهاتف مطلوب")
-      return
-    }
-    // Address is required only when delivery is enabled
-    if (deliveryEnabled && !customerAddress.trim()) {
-      toast.error(t.posAddressRequired || "العنوان مطلوب للتوصيل")
-      return
-    }
+    if (cart.length === 0) { toast.error(t.cartEmpty); return }
+    if (!customerPhone.trim()) { toast.error((t as any).posPhoneRequired || "رقم الهاتف مطلوب"); return }
+    if (deliveryEnabled && !customerAddress.trim()) { toast.error((t as any).posAddressRequired || "العنوان مطلوب للتوصيل"); return }
     setConfirmOpen(true)
   }
 
@@ -523,55 +330,25 @@ export function usePOS(opts?: UsePOSOptions) {
         customerName: customerName.trim() || undefined,
         customerPhone: customerPhone.trim() || undefined,
         customerAddress: customerAddress.trim() || undefined,
-        items: cart.map((it) => ({
-          productId: it.product.id,
-          quantity: it.quantity,
-          unitPrice: priceFor(it.product),
-        })),
+        items: cart.map((it) => ({ productId: it.product.id, quantity: it.quantity, unitPrice: priceFor(it.product) })),
         taxRate: Number(taxRate) || 0,
-        discount: discountVal,
+        discount: totals.discountVal,
         paymentMethod,
-        deliveryFee: deliveryFeeVal,
+        deliveryFee: totals.deliveryFeeVal,
         driverName: deliveryEnabled ? driverName.trim() || undefined : undefined,
       })
-      toast.success(t.saleCompleted, {
-        description: `${t.invoiceNo}: ${sale.invoiceNo}`,
-      })
+      toast.success(t.saleCompleted, { description: `${t.invoiceNo}: ${sale.invoiceNo}` })
       setLastSale(sale)
       clearCart()
       if (autoPrint) {
-        setTimeout(() => {
-          try {
-            printThermalReceipt(sale)
-          } catch {
-            // ignore — user can still click the manual print button
-          }
-        }, 500)
+        setTimeout(() => { try { printThermalReceipt(sale) } catch {} }, 500)
       }
     } catch (err: any) {
-      if (err?.message === "session-expired") {
-        toast.error(t.sessionExpired, {
-          description: t.pleaseRelogin,
-        })
-        setTimeout(() => {
-          signOut({ redirect: false }).then(() => window.location.reload())
-        }, 1500)
-        return
-      }
-      if (err?.message?.startsWith("stock-insufficient")) {
-        const parts = err.message.split(":")
-        const name = parts[2] || t.product
-        toast.error(t.stockInsufficient, {
-          description: t.posStockInsufficientDesc.replace("{name}", name),
-        })
-      } else if (err?.message?.startsWith("stock-frozen")) {
-        const productName = err.message.split(":")[1] || "هذا الصنف"
-        toast.error("الصنف مجمّد للجرد", {
-          description: `${productName} تحت الجرد حاليًا — لا يمكن بيعه حتى اعتماد الجرد`,
-        })
-      } else {
-        toast.error(t.checkoutFailed, { description: err?.message })
-      }
+      handleSaleError(err, t as any, {
+        toast,
+        signOut: () => signOut({ redirect: false }),
+        reload: () => window.location.reload(),
+      })
     } finally {
       setConfirmOpen(false)
     }
@@ -579,68 +356,34 @@ export function usePOS(opts?: UsePOSOptions) {
 
   return {
     // i18n + format
-    t,
-    fmt,
-    PAYMENT_LABELS,
+    t, fmt, PAYMENT_LABELS,
     // state
-    q, setQ,
-    categoryId, setCategoryId,
-    cart, setCart,
-    discount, setDiscount,
-    taxRate, setTaxRate,
+    q, setQ, categoryId, setCategoryId, cart, setCart,
+    discount, setDiscount, taxRate, setTaxRate,
     paymentMethod, setPaymentMethod,
-    customerName, setCustomerName,
-    customerPhone, setCustomerPhone,
+    customerName, setCustomerName, customerPhone, setCustomerPhone,
     customerAddress, setCustomerAddress,
-    customerFound,
-    lastSale, setLastSale,
+    customerFound, lastSale, setLastSale,
     autoPrint, toggleAutoPrint,
-    deliveryEnabled, setDeliveryEnabled,
-    driverName, setDriverName,
-    deliveryFee, setDeliveryFee,
-    tierOverride, setTierOverride,
-    customerTier,
-    confirmOpen, setConfirmOpen,
-    cartPage, setCartPage,
-    parkedListOpen, setParkedListOpen,
+    deliveryEnabled, setDeliveryEnabled, driverName, setDriverName, deliveryFee, setDeliveryFee,
+    tierOverride, setTierOverride, customerTier,
+    confirmOpen, setConfirmOpen, cartPage, setCartPage, parkedListOpen, setParkedListOpen,
     // data
-    products, categories, bundles,
-    isLoading,
-    activePromos,
-    parkedItems,
-    createMut,
-    parkMut,
+    products, categories, bundles, isLoading, activePromos, parkedItems, createMut, parkMut,
     // derived
-    inCart,
-    cartPageItems,
-    cartTotalPages,
-    ITEMS_PER_CART_PAGE,
-    subtotal,
-    discountVal,
-    deliveryFeeVal,
-    afterDiscount,
-    taxVal,
-    total,
-    itemCount,
+    inCart, cartPageItems, cartTotalPages, ITEMS_PER_CART_PAGE,
+    subtotal: totals.subtotal, discountVal: totals.discountVal,
+    deliveryFeeVal: totals.deliveryFeeVal, afterDiscount: totals.afterDiscount,
+    taxVal: totals.taxVal, total: totals.total, itemCount: totals.itemCount,
     confirmSummary,
     // pricing helpers
-    priceFor,
-    basePriceFor,
-    hasActivePromo,
+    priceFor, basePriceFor, hasActivePromo,
     // cart mutations
-    addToCart,
-    addBundleToCart,
-    changeQty,
-    setQty,
-    removeItem,
-    clearCart,
+    addToCart, addBundleToCart, changeQty, setQty, removeItem, clearCart,
     // parked sales
-    parkCurrentCart,
-    resumeParked,
-    discardParked,
+    parkCurrentCart, resumeParked, discardParked,
     // checkout
-    handleCheckout,
-    doConfirmSale,
+    handleCheckout, doConfirmSale,
   }
 }
 
