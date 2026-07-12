@@ -136,8 +136,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: result.error }, { status: result.status })
   }
 
-  // 10) Run post-transaction side effects (non-fatal)
-  await runPostSaleSideEffects({
+  // 10) Run post-transaction side effects (non-fatal, fire-and-forget).
+  // We do NOT await these — the response is returned immediately so the
+  // user sees "sale completed" fast. Vercel serverless keeps the function
+  // alive briefly after the response to finish background work.
+  runPostSaleSideEffects({
     sale: result.sale,
     qtyByProduct: input.qtyByProduct,
     totals,
@@ -146,7 +149,7 @@ export async function POST(req: NextRequest) {
     customerId,
     resolvedName,
     paymentMethod: input.paymentMethod,
-  })
+  }).catch(() => {/* errors are already logged inside */})
 
   return NextResponse.json(serializeSale(result.sale), { status: 201 })
 }
