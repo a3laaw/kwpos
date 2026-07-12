@@ -33,6 +33,7 @@ export async function GET() {
       email: true,
       name: true,
       role: true,
+      warehouseId: true,
       createdAt: true,
       updatedAt: true,
     },
@@ -44,6 +45,7 @@ export async function GET() {
       email: u.email,
       name: u.name,
       role: u.role,
+      warehouseId: u.warehouseId,
       createdAt: u.createdAt,
       updatedAt: u.updatedAt,
     })),
@@ -59,21 +61,31 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json()
-  const { email, name, password, role } = body || {}
+  const { email, name, password, role, warehouseId } = body || {}
 
   if (!email?.trim() || !name?.trim() || !password?.trim()) {
     return NextResponse.json({ error: "email-name-password-required" }, { status: 400 })
   }
 
-  // Password strength: min 8 chars, 1 upper, 1 lower, 1 digit
+  // Password strength: min 4 chars (simplified)
   const pwdError = validatePasswordStrength(password)
   if (pwdError) {
     return NextResponse.json({ error: pwdError }, { status: 400 })
   }
 
-  const validRoles = ["ADMIN", "SALES", "WAREHOUSE"]
+  const validRoles = ["OWNER", "ADMIN", "MANAGER", "ACCOUNTANT", "SALES", "WAREHOUSE", "CASHIER"]
   if (!validRoles.includes(role)) {
     return NextResponse.json({ error: "invalid-role" }, { status: 400 })
+  }
+
+  // Validate warehouseId if provided
+  let finalWarehouseId: string | null = null
+  if (warehouseId && warehouseId !== "none") {
+    const wh = await db.warehouse.findUnique({ where: { id: warehouseId }, select: { id: true } })
+    if (!wh) {
+      return NextResponse.json({ error: "invalid-warehouse" }, { status: 400 })
+    }
+    finalWarehouseId = wh.id
   }
 
   // Check for duplicate email
@@ -91,8 +103,9 @@ export async function POST(req: NextRequest) {
       name: name.trim(),
       passwordHash,
       role,
+      warehouseId: finalWarehouseId,
     },
-    select: { id: true, email: true, name: true, role: true, createdAt: true },
+    select: { id: true, email: true, name: true, role: true, warehouseId: true, createdAt: true },
   })
 
   // ── Audit log ──

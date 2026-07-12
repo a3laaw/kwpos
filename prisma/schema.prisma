@@ -21,6 +21,11 @@ model User {
   // POS Express Mode preference. Default true for SALES (fast cashier),
   // false for ADMIN (full-featured view). Toggled via the POS toolbar.
   posExpressMode Boolean @default(true)
+  // The warehouse this user is assigned to (for POS/cashier scope).
+  // When set, the POS shows stock from THIS warehouse only, and sales
+  // decrement from THIS warehouse. When null, uses the default warehouse.
+  warehouseId  String?
+  warehouse    Warehouse? @relation("UserWarehouse", fields: [warehouseId], references: [id], onDelete: SetNull)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -163,6 +168,7 @@ model Warehouse {
   stockTakes StockTake[]
   outgoingTransfers StockTransfer[] @relation("FromWarehouse")
   incomingTransfers StockTransfer[] @relation("ToWarehouse")
+  users     User[]     @relation("UserWarehouse")
 }
 
 // Per-warehouse stock levels (a product can exist in many warehouses)

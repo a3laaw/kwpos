@@ -43,6 +43,7 @@ import {
   useCreateUser,
   useUpdateUser,
   useDeleteUser,
+  useWarehouses,
   type UserItem,
 } from "@/hooks/use-api"
 import { useT } from "@/components/i18n-context"
@@ -217,6 +218,8 @@ function UserDialog({
 }) {
   const t = useT()
   const isEdit = !!user
+  const { data: warehousesData } = useWarehouses()
+  const warehouses = warehousesData?.items ?? []
   const createMut = useCreateUser()
   const updateMut = useUpdateUser(user?.id ?? "")
 
@@ -224,6 +227,7 @@ function UserDialog({
   const [email, setEmail] = React.useState("")
   const [password, setPassword] = React.useState("")
   const [role, setRole] = React.useState("SALES")
+  const [warehouseId, setWarehouseId] = React.useState<string>("")
 
   React.useEffect(() => {
     if (user) {
@@ -231,11 +235,13 @@ function UserDialog({
       setEmail(user.email)
       setPassword("")
       setRole(user.role)
+      setWarehouseId((user as any).warehouseId || "")
     } else {
       setName("")
       setEmail("")
       setPassword("")
       setRole("SALES")
+      setWarehouseId("")
     }
   }, [user, open])
 
@@ -254,10 +260,13 @@ function UserDialog({
       if (isEdit) {
         const payload: Record<string, string> = { name: name.trim(), email: email.trim(), role }
         if (password.trim()) payload.password = password
-        await updateMut.mutateAsync(payload)
+        if (warehouseId) payload.warehouseId = warehouseId === "none" ? "" : warehouseId
+        await updateMut.mutateAsync(payload as any)
         toast.success(t.productUpdated || "Updated")
       } else {
-        await createMut.mutateAsync({ name: name.trim(), email: email.trim(), password, role })
+        const payload: Record<string, string> = { name: name.trim(), email: email.trim(), password, role }
+        if (warehouseId && warehouseId !== "none") payload.warehouseId = warehouseId
+        await createMut.mutateAsync(payload as any)
         toast.success(t.productAdded || "Created")
       }
       onOpenChange(false)
@@ -313,6 +322,25 @@ function UserDialog({
                 <SelectItem value="CASHIER">{t.roleCashier || "كاشير"}</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>{"المخزن المخصص"}</Label>
+            <Select value={warehouseId} onValueChange={setWarehouseId}>
+              <SelectTrigger>
+                <SelectValue placeholder="— بدون مخزن محدد —" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">— بدون مخزن محدد (يستخدم الافتراضي) —</SelectItem>
+                {warehouses.map((w: any) => (
+                  <SelectItem key={w.id} value={w.id}>
+                    {w.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              عند تحديد مخزن، نقطة البيع (الكاشير) ستعرض المخزون من هذا المخزن فقط وتخصم منه.
+            </p>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>

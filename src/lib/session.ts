@@ -16,6 +16,7 @@ export async function getCurrentUser() {
     email?: string | null
     role: Role
     posExpressMode?: boolean
+    warehouseId?: string | null
   }
 }
 

@@ -1664,7 +1664,7 @@ export function useUsers() {
 export function useCreateUser() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (body: { email: string; name: string; password: string; role: string }) =>
+    mutationFn: (body: { email: string; name: string; password: string; role: string; warehouseId?: string }) =>
       jsend<UserItem>("/api/users", "POST", body),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] }),
   })

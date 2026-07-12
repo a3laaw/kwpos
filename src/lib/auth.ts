@@ -87,6 +87,7 @@ export const authOptions: NextAuthOptions = {
             name: user.name,
             role: user.role,
             posExpressMode: (user as any).posExpressMode,
+            warehouseId: (user as any).warehouseId,
           } as any
         } catch {
           return null
@@ -100,6 +101,7 @@ export const authOptions: NextAuthOptions = {
         token.id = (user as any).id
         token.role = (user as any).role
         token.posExpressMode = (user as any).posExpressMode
+        token.warehouseId = (user as any).warehouseId
       }
       return token
     },
@@ -108,6 +110,7 @@ export const authOptions: NextAuthOptions = {
         ;(session.user as any).id = token.id
         ;(session.user as any).role = token.role
         ;(session.user as any).posExpressMode = token.posExpressMode
+        ;(session.user as any).warehouseId = token.warehouseId
       }
       return session
     },

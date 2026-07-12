@@ -9,6 +9,7 @@ export interface SessionUser {
   email: string
   role: Role
   posExpressMode?: boolean
+  warehouseId?: string | null
 }
 
 const UserContext = React.createContext<SessionUser | null>(null)

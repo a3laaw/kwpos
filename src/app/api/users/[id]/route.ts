@@ -31,7 +31,7 @@ export async function PUT(
 
   const { id } = await params
   const body = await req.json()
-  const { email, name, password, role } = body || {}
+  const { email, name, password, role, warehouseId } = body || {}
 
   const existing = await db.user.findUnique({ where: { id } })
   if (!existing) {
@@ -49,7 +49,6 @@ export async function PUT(
   }
   if (name?.trim()) data.name = name.trim()
   if (password?.trim()) {
-    // Validate password strength before hashing
     const pwdError = validatePasswordStrength(password)
     if (pwdError) {
       return NextResponse.json({ error: pwdError }, { status: 400 })
@@ -57,17 +56,29 @@ export async function PUT(
     data.passwordHash = await bcrypt.hash(password, 10)
   }
   if (role) {
-    const validRoles = ["ADMIN", "SALES", "WAREHOUSE"]
+    const validRoles = ["OWNER", "ADMIN", "MANAGER", "ACCOUNTANT", "SALES", "WAREHOUSE", "CASHIER"]
     if (!validRoles.includes(role)) {
       return NextResponse.json({ error: "invalid-role" }, { status: 400 })
     }
     data.role = role
   }
+  // warehouseId: "none" → null (no assigned warehouse), string → set
+  if (warehouseId !== undefined) {
+    if (warehouseId === "none" || warehouseId === "") {
+      data.warehouseId = null
+    } else {
+      const wh = await db.warehouse.findUnique({ where: { id: warehouseId }, select: { id: true } })
+      if (!wh) {
+        return NextResponse.json({ error: "invalid-warehouse" }, { status: 400 })
+      }
+      data.warehouseId = wh.id
+    }
+  }
 
   const updated = await db.user.update({
     where: { id },
     data,
-    select: { id: true, email: true, name: true, role: true, createdAt: true, updatedAt: true },
+    select: { id: true, email: true, name: true, role: true, warehouseId: true, createdAt: true, updatedAt: true },
   })
 
   // ── Audit log ──

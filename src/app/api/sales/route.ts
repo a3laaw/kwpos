@@ -120,19 +120,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "items-required" }, { status: 400 })
   }
 
-  const [products, frozenItems, stockItems, defaultWh] = await Promise.all([
+  const [products, frozenItems, stockItems, userWh] = await Promise.all([
     db.product.findMany({ where: { id: { in: productIds } } }),
     db.stockTakeItem.findMany({
       where: { productId: { in: productIds }, stockTake: { status: "DRAFT" } },
       select: { productId: true },
     }),
     db.stockItem.findMany({ where: { productId: { in: productIds } } }),
-    (body as any).warehouseId
-      ? db.warehouse.findUnique({ where: { id: (body as any).warehouseId }, select: { id: true } })
-      : db.warehouse.findFirst({ where: { isActive: true }, orderBy: { createdAt: "asc" }, select: { id: true } }),
+    // Resolve warehouse: user's assigned warehouse first, then body, then default
+    (user as any).warehouseId
+      ? db.warehouse.findUnique({ where: { id: (user as any).warehouseId }, select: { id: true, name: true } })
+      : (body as any).warehouseId
+        ? db.warehouse.findUnique({ where: { id: (body as any).warehouseId }, select: { id: true, name: true } })
+        : db.warehouse.findFirst({ where: { isActive: true }, orderBy: { createdAt: "asc" }, select: { id: true, name: true } }),
   ])
 
-  const warehouseId = defaultWh?.id
+  const warehouseId = userWh?.id
   if (!warehouseId) {
     return NextResponse.json({ error: "no-warehouse-available" }, { status: 400 })
   }
