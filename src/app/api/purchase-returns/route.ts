@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db, decrementStockItem, updateProductQuantityFromStockItems, getDefaultWarehouseId } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
-import { createJournalEntry } from "@/lib/journal"
+import { safeCreateJournalEntry } from "@/lib/journal"
 import { logAuditEvent } from "@/lib/audit"
 import type { Role } from "@/lib/types"
 
@@ -193,27 +193,20 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    // ── Reversing journal entry (inside tx — atomic) ──
+    // ── Reversing journal entry (inside tx — non-fatal) ──
     // debit 2010 (AP — reduces what we owe supplier) /
-    // credit 1010 (Inventory — reduces asset). If this fails, the entire
-    // purchase return rolls back.
-    let journalEntryId: string | null = null
-    try {
-      journalEntryId = await createJournalEntry({
-        sourceType: "MANUAL",
-        sourceId: purchaseReturn.id,
-        description: `قيد مرتجع مشتريات ${returnNo} — ${po.supplier?.name ?? ""}`,
-        date: new Date(),
-        lines: [
-          { accountCode: "2010", debit: returnTotal, description: `مرتجع لمورد ${po.supplier?.name ?? ""}` },
-          { accountCode: "1010", credit: returnTotal, description: "خصم من المخزون (مرتجع مشتريات)" },
-        ],
-        tx,
-      })
-    } catch (e: any) {
-      // Journal entry is non-fatal — the purchase return still succeeds.
-      console.warn(`[purchase-returns] Journal entry failed for ${returnNo}: ${e?.message ?? e}`)
-    }
+    // credit 1010 (Inventory — reduces asset). Non-fatal: if it fails
+    // (e.g. accounts not set up), the purchase return still succeeds.
+    const journalEntryId = await safeCreateJournalEntry(tx, {
+      sourceType: "MANUAL",
+      sourceId: purchaseReturn.id,
+      description: `قيد مرتجع مشتريات ${returnNo} — ${po.supplier?.name ?? ""}`,
+      date: new Date(),
+      lines: [
+        { accountCode: "2010", debit: returnTotal, description: `مرتجع لمورد ${po.supplier?.name ?? ""}` },
+        { accountCode: "1010", credit: returnTotal, description: "خصم من المخزون (مرتجع مشتريات)" },
+      ],
+    }, `Purchase return ${returnNo} journal`)
 
     // ── Audit log (inside tx — atomic) ──
     await logAuditEvent({

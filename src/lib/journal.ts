@@ -124,3 +124,33 @@ export async function createJournalEntry(opts: {
 
   return entry.id
 }
+
+/**
+ * Non-fatal wrapper around createJournalEntry for use INSIDE a transaction.
+ *
+ * If the journal entry fails (e.g. account not set up), the error is
+ * logged as a warning and null is returned — the caller's transaction
+ * continues. This is the in-transaction equivalent of runInBackground().
+ *
+ * Use this when the journal entry is a side effect (not critical to the
+ * primary operation). For critical entries that MUST succeed or roll
+ * back, call createJournalEntry() directly.
+ */
+export async function safeCreateJournalEntry(
+  tx: any,
+  params: {
+    sourceType: "SALE" | "EXPENSE" | "PURCHASE" | "MANUAL"
+    sourceId?: string
+    description: string
+    date?: Date
+    lines: JELineInput[]
+  },
+  label: string
+): Promise<string | null> {
+  try {
+    return await createJournalEntry({ ...params, tx })
+  } catch (e: any) {
+    console.warn(`[journal] ${label} failed: ${e?.message ?? e}`)
+    return null
+  }
+}

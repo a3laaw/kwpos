@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { getCurrentUser } from "@/lib/session"
-import { createJournalEntry } from "@/lib/journal"
+import { safeCreateJournalEntry } from "@/lib/journal"
 import { logAuditEvent } from "@/lib/audit"
 
 export const dynamic = "force-dynamic"
@@ -177,37 +177,30 @@ export async function PATCH(req: NextRequest) {
 
     // Journal entry for cash variance (shortage = expense, overage = income)
     if (Math.abs(cashVariance) > 0.001) {
-      try {
-        if (cashVariance < 0) {
-          // Shortage: debit expense (5070), credit cash (1010)
-          await createJournalEntry({
-            tx,
-            sourceType: "MANUAL",
-            sourceId: shiftUpdated.id,
-            description: `عجز نقدية وردية ${shift.shiftNo}`,
-            date: new Date(),
-            lines: [
-              { accountCode: "5070", debit: r(Math.abs(cashVariance)), description: `عجز وردية ${shift.shiftNo}` },
-              { accountCode: "1010", credit: r(Math.abs(cashVariance)), description: `عجز نقدية` },
-            ],
-          })
-        } else {
-          // Overage: debit cash (1010), credit income (4060)
-          await createJournalEntry({
-            tx,
-            sourceType: "MANUAL",
-            sourceId: shiftUpdated.id,
-            description: `فائض نقدية وردية ${shift.shiftNo}`,
-            date: new Date(),
-            lines: [
-              { accountCode: "1010", debit: r(cashVariance), description: `فائض وردية ${shift.shiftNo}` },
-              { accountCode: "4060", credit: r(cashVariance), description: `فائض نقدية` },
-            ],
-          })
-        }
-      } catch (e: any) {
-        // Journal entry is non-fatal — the shift close still succeeds.
-        console.warn(`[shifts] Journal entry failed for ${shift.shiftNo}: ${e?.message ?? e}`)
+      if (cashVariance < 0) {
+        // Shortage: debit expense (5070), credit cash (1010)
+        await safeCreateJournalEntry(tx, {
+          sourceType: "MANUAL",
+          sourceId: shiftUpdated.id,
+          description: `عجز نقدية وردية ${shift.shiftNo}`,
+          date: new Date(),
+          lines: [
+            { accountCode: "5070", debit: r(Math.abs(cashVariance)), description: `عجز وردية ${shift.shiftNo}` },
+            { accountCode: "1010", credit: r(Math.abs(cashVariance)), description: `عجز نقدية` },
+          ],
+        }, `Shift ${shift.shiftNo} shortage journal`)
+      } else {
+        // Overage: debit cash (1010), credit income (4060)
+        await safeCreateJournalEntry(tx, {
+          sourceType: "MANUAL",
+          sourceId: shiftUpdated.id,
+          description: `فائض نقدية وردية ${shift.shiftNo}`,
+          date: new Date(),
+          lines: [
+            { accountCode: "1010", debit: r(cashVariance), description: `فائض وردية ${shift.shiftNo}` },
+            { accountCode: "4060", credit: r(cashVariance), description: `فائض نقدية` },
+          ],
+        }, `Shift ${shift.shiftNo} overage journal`)
       }
     }
 
