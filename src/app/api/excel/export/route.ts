@@ -96,16 +96,16 @@ export async function GET(req: NextRequest) {
     // product-manage roles, this is defense-in-depth.
     const seeCost = canSeeCost(role)
     headerRow = seeCost
-      ? ["الاسم", "الباركود", "الفئة", "الكمية", "حد الطلب", "سعر التكلفة", "سعر البيع", "الوحدة"]
-      : ["الاسم", "الباركود", "الفئة", "الكمية", "حد الطلب", "سعر البيع", "الوحدة"]
+      ? ["الاسم", "الباركود", "الفئة", "الكمية", "حد الطلب", "سعر التكلفة", "سعر البيع", "الوحدة", "رابط الصورة"]
+      : ["الاسم", "الباركود", "الفئة", "الكمية", "حد الطلب", "سعر البيع", "الوحدة", "رابط الصورة"]
     const products = await db.product.findMany({
       include: { category: true },
       orderBy: { name: "asc" },
     })
     dataRows = products.map((p) =>
       seeCost
-        ? [p.name, p.barcode || "", p.category?.name || "", p.quantity, p.reorderLevel, p.costPrice, p.salePrice, p.unit]
-        : [p.name, p.barcode || "", p.category?.name || "", p.quantity, p.reorderLevel, p.salePrice, p.unit]
+        ? [p.name, p.barcode || "", p.category?.name || "", p.quantity, p.reorderLevel, p.costPrice, p.salePrice, p.unit, p.imageUrl || ""]
+        : [p.name, p.barcode || "", p.category?.name || "", p.quantity, p.reorderLevel, p.salePrice, p.unit, p.imageUrl || ""]
     )
   } else if (type === "journal") {
     sheetName = "القيود"

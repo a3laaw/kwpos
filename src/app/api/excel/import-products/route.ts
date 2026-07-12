@@ -7,8 +7,15 @@ export const dynamic = "force-dynamic"
 
 /**
  * Import products from an uploaded .xlsx/.csv file.
- * Expected columns: الاسم, الباركود (optional), الفئة (optional, matched by name),
- * الكمية (optional), حد الطلب (optional), سعر التكلفة, سعر البيع, الوحدة (optional).
+ * Expected columns:
+ *   الاسم (required), الباركود (optional), الفئة (optional),
+ *   الكمية (optional), حد الطلب (optional),
+ *   سعر التكلفة, سعر البيع,
+ *   الوحدة (optional), رابط الصورة (optional).
+ *
+ * The "رابط الصورة" column accepts a direct image URL (https://...)
+ * that will be stored as the product's imageUrl.
+ *
  * Products are matched by barcode (if present) or name; existing → updated, new → created.
  */
 export async function POST(req: NextRequest) {
@@ -58,6 +65,8 @@ export async function POST(req: NextRequest) {
     const costPrice = Number(row["سعر التكلفة"] ?? row["cost"] ?? 0) || 0
     const salePrice = Number(row["سعر البيع"] ?? row["sale"] ?? 0) || 0
     const unit = String(row["الوحدة"] ?? row["unit"] ?? "قطعة").trim() || "قطعة"
+    // Image URL — direct link to an image (https://example.com/photo.jpg)
+    const imageUrl = String(row["رابط الصورة"] ?? row["imageUrl"] ?? row["image"] ?? "").trim() || null
 
     try {
       // Match by barcode first, then by name
@@ -75,12 +84,13 @@ export async function POST(req: NextRequest) {
             costPrice,
             salePrice,
             unit,
+            ...(imageUrl ? { imageUrl } : {}),
           },
         })
         updated++
       } else {
         await db.product.create({
-          data: { name, barcode, categoryId, quantity, reorderLevel, costPrice, salePrice, unit },
+          data: { name, barcode, categoryId, quantity, reorderLevel, costPrice, salePrice, unit, imageUrl },
         })
         created++
       }

@@ -25,6 +25,7 @@ function buildProductColumns(t: ReturnType<typeof useT>): ExcelColumn[] {
     { header: t.colCostPrice, key: "cost", width: 12 },
     { header: t.colSalePrice, key: "sale", width: 12 },
     { header: t.colUnit, key: "unit", width: 10 },
+    { header: "رابط الصورة", key: "imageUrl", width: 40 },
   ]
 }
 
