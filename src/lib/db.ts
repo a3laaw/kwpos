@@ -12,12 +12,37 @@ const globalForPrisma = globalThis as unknown as {
 // because each query may land on a different backend connection, causing
 // "Transaction not found / Transaction ID is invalid" errors.
 //
-// Fix: prefer the DIRECT connection (DIRECT_DATABASE_URL, port 5432) for
-// the Prisma client. Vercel serverless handles connection pooling at the
-// platform level, so we don't need pgbouncer. Falls back to DATABASE_URL
-// when DIRECT_DATABASE_URL isn't set (e.g. local SQLite development).
-const datasourceUrl =
-  process.env.DIRECT_DATABASE_URL || process.env.DATABASE_URL
+// Fix: ALWAYS use a direct/session-pooler connection (port 5432) for the
+// Prisma client. We:
+//   1. Prefer DIRECT_DATABASE_URL if set (port 5432)
+//   2. Otherwise derive a direct URL from DATABASE_URL by replacing
+//      port 6543 → 5432 and stripping pgbouncer params
+//   3. This guarantees the client never uses transaction-mode pgbouncer.
+function getDirectDatasourceUrl(): string | undefined {
+  // 1) Prefer DIRECT_DATABASE_URL (should be port 5432, no pgbouncer)
+  const direct = process.env.DIRECT_DATABASE_URL
+  if (direct && direct.trim()) return direct.trim()
+
+  // 2) Fall back to DATABASE_URL but convert it to a direct URL
+  const dbUrl = process.env.DATABASE_URL
+  if (!dbUrl) return undefined
+
+  // Replace port 6543 (pgbouncer transaction mode) → 5432 (session mode/direct)
+  let fixed = dbUrl.replace(':6543', ':5432')
+  // Strip pgbouncer params that break interactive transactions
+  fixed = fixed
+    .replace('?pgbouncer=true', '')
+    .replace('&pgbouncer=true', '')
+    .replace('pgbouncer=true&', '')
+    .replace(/pgbouncer=true$/, '')
+    .replace('?connection_limit=1', '')
+    .replace('&connection_limit=1', '')
+    .replace('connection_limit=1&', '')
+    .replace(/connection_limit=1$/, '')
+  return fixed
+}
+
+const datasourceUrl = getDirectDatasourceUrl()
 
 if (globalForPrisma.prisma) {
   const hasPI = typeof (globalForPrisma.prisma as any).purchaseInvoice !== "undefined"
@@ -33,7 +58,7 @@ export const db =
   globalForPrisma.prisma ??
   new PrismaClient({
     log: process.env.NODE_ENV === 'production' ? ['error', 'warn'] : ['query'],
-    datasourceUrl,
+    ...(datasourceUrl ? { datasourceUrl } : {}),
   })
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db
