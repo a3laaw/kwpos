@@ -4,13 +4,20 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-// Database connection is configured via the DATABASE_URL environment
-// variable (read by Prisma from prisma/schema.prisma). No hardcoded
-// credentials live in this file. Set DATABASE_URL + DIRECT_DATABASE_URL
-// in your environment (local .env, Vercel dashboard, etc.).
+// Database connection.
 //
-// Use the Supabase pooler (port 6543) with connection_limit=1 to
-// prevent pool exhaustion on Vercel serverless.
+// On Supabase + Vercel, DATABASE_URL points to the pgbouncer pooler
+// (port 6543, ?pgbouncer=true). Pgbouncer in transaction mode does NOT
+// support Prisma interactive transactions ($transaction(async (tx) => ...))
+// because each query may land on a different backend connection, causing
+// "Transaction not found / Transaction ID is invalid" errors.
+//
+// Fix: prefer the DIRECT connection (DIRECT_DATABASE_URL, port 5432) for
+// the Prisma client. Vercel serverless handles connection pooling at the
+// platform level, so we don't need pgbouncer. Falls back to DATABASE_URL
+// when DIRECT_DATABASE_URL isn't set (e.g. local SQLite development).
+const datasourceUrl =
+  process.env.DIRECT_DATABASE_URL || process.env.DATABASE_URL
 
 if (globalForPrisma.prisma) {
   const hasPI = typeof (globalForPrisma.prisma as any).purchaseInvoice !== "undefined"
@@ -26,6 +33,7 @@ export const db =
   globalForPrisma.prisma ??
   new PrismaClient({
     log: process.env.NODE_ENV === 'production' ? ['error', 'warn'] : ['query'],
+    datasourceUrl,
   })
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db
