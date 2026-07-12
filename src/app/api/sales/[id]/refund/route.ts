@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { db, incrementStockItem, updateProductQuantityFromStockItems, getDefaultWarehouseId } from "@/lib/db"
+import { db, incrementStockItem, updateProductQuantityFromStockItems } from "@/lib/db"
 import { getCurrentUser } from "@/lib/session"
 import { serializeSale } from "@/lib/serialize"
 import { createJournalEntry } from "@/lib/journal"
@@ -112,16 +112,24 @@ export async function POST(
 
   // ── Transaction: update inventory + sale items + sale + journal entries ──
   const paymentAccCode = sale.paymentMethod === "CASH" ? "1010" : "1020"
-  const updated = await db.$transaction(async (tx) => {
-    // Resolve warehouseId (Sale has no warehouseId — fall back to default).
-    let warehouseId = (sale as any).warehouseId as string | undefined
-    if (!warehouseId) {
-      warehouseId = (await getDefaultWarehouseId(tx)) || undefined
-    }
-    if (!warehouseId) {
-      throw new Error("no-warehouse-available")
-    }
+  // Resolve warehouseId BEFORE the transaction (user's warehouse first).
+  // This is used to restock returned items to the user's assigned warehouse.
+  const userWarehouseId = (user as any).warehouseId as string | undefined
+  let resolvedWarehouseId: string | undefined = userWarehouseId
+  if (!resolvedWarehouseId) {
+    const defaultWh = await db.warehouse.findFirst({
+      where: { isActive: true },
+      orderBy: { createdAt: "asc" },
+      select: { id: true },
+    })
+    resolvedWarehouseId = defaultWh?.id
+  }
+  if (!resolvedWarehouseId) {
+    return NextResponse.json({ error: "no-warehouse-available" }, { status: 400 })
+  }
+  const warehouseId = resolvedWarehouseId
 
+  const updated = await db.$transaction(async (tx) => {
     // Restore inventory — restock the matching StockItem for this warehouse
     // and keep Product.quantity in sync as the derived aggregate.
     for (const u of updates) {

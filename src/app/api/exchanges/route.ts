@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { db, incrementStockItem, decrementStockItem, updateProductQuantityFromStockItems, getDefaultWarehouseId } from "@/lib/db"
+import { db, incrementStockItem, decrementStockItem, updateProductQuantityFromStockItems } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
 import { createJournalEntry } from "@/lib/journal"
 import { serializeExchange } from "@/lib/serialize"
@@ -203,19 +203,31 @@ export async function POST(req: NextRequest) {
   const PAY = ["CASH", "CARD", "TRANSFER"].includes(paymentMethod) ? paymentMethod : "CASH"
 
   // ── 5. Run creation + stock mutation + returnedQty increment atomically ──
+  // Resolve warehouseId BEFORE the transaction (user's warehouse first).
+  const userWarehouseId = (user as any).warehouseId as string | undefined
+  let resolvedWarehouseId: string | undefined = userWarehouseId
+  if (!resolvedWarehouseId) {
+    const bodyWh = (body as any).warehouseId as string | undefined
+    if (bodyWh) {
+      resolvedWarehouseId = bodyWh
+    } else {
+      const defaultWh = await db.warehouse.findFirst({
+        where: { isActive: true },
+        orderBy: { createdAt: "asc" },
+        select: { id: true },
+      })
+      resolvedWarehouseId = defaultWh?.id
+    }
+  }
+  if (!resolvedWarehouseId) {
+    return NextResponse.json({ error: "no-warehouse-available" }, { status: 400 })
+  }
+  const warehouseId = resolvedWarehouseId
+
   const result = await db.$transaction(async (tx) => {
     // Generate the next exchangeNo (EXC-00001, EXC-00002, ...).
     const count = await tx.exchangeSale.count()
     const exchangeNo = `EXC-${String(count + 1).padStart(5, "0")}`
-
-    // Resolve warehouseId — ExchangeSale has none; fall back to default.
-    let warehouseId = (body as any).warehouseId as string | undefined
-    if (!warehouseId) {
-      warehouseId = (await getDefaultWarehouseId(tx)) || undefined
-    }
-    if (!warehouseId) {
-      throw new Error("no-warehouse-available")
-    }
 
     // Resolve each line's product, mutate inventory, build the line payload,
     // and (for returns) increment the matching SaleItem.returnedQty.
