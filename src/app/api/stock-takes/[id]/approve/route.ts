@@ -141,8 +141,8 @@ export async function POST(
 
     return result
   }, {
-    timeout: 30000,
-    maxWait: 15000,
+    timeout: 10000,
+    maxWait: 5000,
   }).catch((e: any) => ({ __error: e?.message || "stock-take-approve-failed" }))
 
   if ((updated as any).__error) {
