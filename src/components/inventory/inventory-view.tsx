@@ -175,16 +175,27 @@ export function InventoryView() {
             />
           </div>
           <Select value={categoryId} onValueChange={(v) => setCategoryId(v === "all" ? "" : v)}>
-            <SelectTrigger className="sm:w-48">
+            <SelectTrigger className="sm:w-56">
               <Filter className="h-4 w-4 ml-1 text-muted-foreground" />
               <SelectValue placeholder={t.allCategories} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t.allCategories}</SelectItem>
-              {(cats?.items ?? []).map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.name}
-                </SelectItem>
+              {(cats?.tree ?? []).map((root: any) => (
+                <React.Fragment key={root.id}>
+                  <SelectItem value={root.id} className="font-medium">
+                    {root.name}
+                  </SelectItem>
+                  {(root.children ?? []).map((child: any) => (
+                    <SelectItem key={child.id} value={child.id} className="ps-6">
+                      ↳ {child.name}
+                    </SelectItem>
+                  ))}
+                </React.Fragment>
+              ))}
+              {/* Fallback: flat list of categories that don't appear in the tree */}
+              {(cats?.items ?? []).filter((c: any) => !c.parentId && !(cats?.tree ?? []).some((t: any) => t.id === c.id)).map((c: any) => (
+                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>

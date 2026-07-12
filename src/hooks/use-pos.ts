@@ -118,12 +118,12 @@ export function usePOS(opts?: UsePOSOptions) {
   // ── Data fetching ──
   const debouncedQ = React.useDeferredValue(q)
   const { data, isLoading } = useProducts({ q: debouncedQ || undefined, categoryId: categoryId || undefined })
-  const { data: categoriesData } = useCategories()
+  const { data: catsData } = useCategories()
+  const categories = catsData?.items ?? []
   const createMut = useCreateSale()
   const { data: bundlesData } = useBundles(undefined, true)
 
   const products = data?.items ?? []
-  const categories = categoriesData?.items ?? []
   const bundles = bundlesData?.items ?? []
 
   // ── Parked sales ──
@@ -369,7 +369,7 @@ export function usePOS(opts?: UsePOSOptions) {
     tierOverride, setTierOverride, customerTier,
     confirmOpen, setConfirmOpen, cartPage, setCartPage, parkedListOpen, setParkedListOpen,
     // data
-    products, categories, bundles, isLoading, activePromos, parkedItems, createMut, parkMut,
+    products, categories, catsData, bundles, isLoading, activePromos, parkedItems, createMut, parkMut,
     // derived
     inCart, cartPageItems, cartTotalPages, ITEMS_PER_CART_PAGE,
     subtotal: totals.subtotal, discountVal: totals.discountVal,

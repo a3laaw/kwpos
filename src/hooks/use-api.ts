@@ -76,7 +76,7 @@ export function useProducts(params?: { q?: string; categoryId?: string; supplier
 }
 
 export function useCategories() {
-  return useQuery<{ items: Category[] }>({
+  return useQuery<{ items: Category[]; tree?: any[] }>({
     queryKey: ["categories"],
     queryFn: () => jget("/api/categories"),
   })

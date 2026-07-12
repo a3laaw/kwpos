@@ -3,6 +3,7 @@
 import * as React from "react"
 import { useRouter } from "next/navigation"
 import { PageHeader } from "@/components/shared/page-header"
+import { CategoryTree } from "@/components/shared/category-tree"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -140,7 +141,7 @@ function StandardSalesView({ onToggleMode }: { onToggleMode: () => void }) {
     confirmOpen, setConfirmOpen,
     cartPage, setCartPage,
     parkedListOpen, setParkedListOpen,
-    products, categories, bundles,
+    products, categories, catsData, bundles,
     addBundleToCart,
     isLoading,
     parkedItems,
@@ -219,45 +220,14 @@ function StandardSalesView({ onToggleMode }: { onToggleMode: () => void }) {
             />
           </div>
 
-          {/* Category filter cards */}
+          {/* Category filter — tree (collapsible) or flat buttons */}
           {categories.length > 0 ? (
-            <div className="flex gap-2 overflow-x-auto scrollbar-thin pb-1">
-              <button
-                onClick={() => setCategoryId("")}
-                className={cn(
-                  "shrink-0 flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-all border",
-                  !categoryId
-                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                    : "bg-card border-border/70 hover:border-primary/40 text-foreground"
-                )}
-              >
-                <LayoutGrid className="h-4 w-4" />
-                {t.all}
-              </button>
-              {categories.map((c) => {
-                const active = categoryId === c.id
-                const Icon = CATEGORY_ICONS[c.name] || Tag
-                return (
-                  <button
-                    key={c.id}
-                    onClick={() => setCategoryId(active ? "" : c.id)}
-                    className={cn(
-                      "shrink-0 flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-all border",
-                      active
-                        ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                        : "bg-card border-border/70 hover:border-primary/40 text-foreground"
-                    )}
-                  >
-                    {c.imageUrl ? (
-                      <img src={c.imageUrl} alt="" className="h-4 w-4 rounded object-cover" />
-                    ) : (
-                      <Icon className="h-4 w-4" />
-                    )}
-                    {c.name}
-                  </button>
-                )
-              })}
-            </div>
+            <CategoryTree
+              categories={(catsData?.tree ?? categories.map((c) => ({ id: c.id, name: c.name, imageUrl: c.imageUrl, children: [] }))) as any}
+              selectedId={categoryId}
+              onSelect={setCategoryId}
+              allLabel={t.all}
+            />
           ) : null}
 
           {/* Active bundles — shown above product grid when no search/filter */}

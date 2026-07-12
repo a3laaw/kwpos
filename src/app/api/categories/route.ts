@@ -7,8 +7,21 @@ import type { Role } from "@/lib/types"
 export const dynamic = "force-dynamic"
 
 export async function GET() {
-  const cats = await db.category.findMany({ orderBy: { name: "asc" } })
-  return NextResponse.json({ items: cats.map(serializeCategory) })
+  // Fetch all categories with their parent + children relations
+  const cats = await db.category.findMany({
+    orderBy: { name: "asc" },
+    include: {
+      children: { orderBy: { name: "asc" } },
+    },
+  })
+  // Build a tree: root categories (parentId = null) with nested children
+  const tree = cats
+    .filter((c) => !c.parentId)
+    .map((root) => ({
+      ...serializeCategory(root as any),
+      children: (root as any).children?.map((child: any) => serializeCategory(child)) ?? [],
+    }))
+  return NextResponse.json({ items: cats.map(serializeCategory), tree })
 }
 
 export async function POST(req: NextRequest) {
