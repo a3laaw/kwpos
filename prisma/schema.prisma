@@ -46,12 +46,15 @@ model User {
 }
 
 model Category {
-  id             String    @id @default(cuid())
-  name           String    @unique
-  code           String?   @unique // short code for display (e.g. "03")
-  barcodePrefix  Int?      // explicit barcode prefix digit (1-9). If null, uses order index.
+  id             String     @id @default(cuid())
+  name           String     @unique
+  code           String?    @unique // short code for display (e.g. "03")
+  barcodePrefix  Int?       // explicit barcode prefix digit (1-9). If null, uses order index.
   imageUrl       String?
-  createdAt      DateTime  @default(now())
+  parentId       String?    // parent category for nested categories (null = root)
+  parent         Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children       Category[] @relation("CategoryHierarchy")
+  createdAt      DateTime   @default(now())
   products       Product[]
 }
 

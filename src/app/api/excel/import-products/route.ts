@@ -16,8 +16,71 @@ export const dynamic = "force-dynamic"
  * The "رابط الصورة" column accepts a direct image URL (https://...)
  * that will be stored as the product's imageUrl.
  *
+ * The "الفئة" column supports NESTED categories using ">" as separator:
+ *   "عطور > عطور رجالية" → creates "عطور" (root) + "عطور رجالية" (child)
+ *   "عطور" → uses existing or creates as root category
+ * If a category doesn't exist, it's created automatically.
+ *
  * Products are matched by barcode (if present) or name; existing → updated, new → created.
  */
+
+/** Parse a category path like "عطور > عطور رجالية" and return [parent, child]. */
+function parseCategoryPath(raw: string): string[] {
+  // Split by ">" and trim each part
+  return raw
+    .split(">")
+    .map((s) => s.trim())
+    .filter(Boolean)
+}
+
+/** Resolve or create a category by path. Returns the leaf category ID. */
+async function resolveOrCreateCategory(
+  path: string[],
+  existingCats: Map<string, string> // name → id cache (updated in place)
+): Promise<string | null> {
+  if (path.length === 0) return null
+
+  let parentId: string | null = null
+  let currentId: string | null = null
+
+  for (const partName of path) {
+    // Check cache first
+    const cacheKey = parentId ? `${parentId}::${partName}` : partName
+    const cached = existingCats.get(cacheKey)
+    if (cached) {
+      currentId = cached
+      parentId = cached
+      continue
+    }
+
+    // Check DB: find by name AND parentId
+    const found: { id: string } | null = await db.category.findFirst({
+      where: { name: partName, parentId },
+      select: { id: true },
+    })
+
+    if (found) {
+      currentId = found.id
+      existingCats.set(cacheKey, found.id)
+    } else {
+      // Create new category
+      const newCat: { id: string } = await db.category.create({
+        data: {
+          name: partName,
+          parentId: parentId,
+        },
+        select: { id: true },
+      })
+      currentId = newCat.id
+      existingCats.set(cacheKey, newCat.id)
+    }
+
+    parentId = currentId
+  }
+
+  return currentId
+}
+
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
@@ -38,17 +101,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "empty-file" }, { status: 400 })
   }
 
-  // Preload categories + units for name-matching
-  const [categories, units] = await Promise.all([
-    db.category.findMany(),
-    db.unit.findMany(),
-  ])
-  const catByName = new Map(categories.map((c) => [c.name, c.id]))
+  // Preload units for name-matching
+  const units = await db.unit.findMany()
   const unitNames = new Set(units.map((u) => u.name))
+
+  // Category cache: maps "parentId::name" or just "name" → categoryId
+  // Preload all existing categories into the cache
+  const allCats = await db.category.findMany({ select: { id: true, name: true, parentId: true } })
+  const catCache = new Map<string, string>()
+  for (const c of allCats) {
+    const key = c.parentId ? `${c.parentId}::${c.name}` : c.name
+    catCache.set(key, c.id)
+  }
 
   let created = 0
   let updated = 0
   let skipped = 0
+  let catsCreated = 0
   const errors: string[] = []
 
   for (const row of rows) {
@@ -58,14 +127,24 @@ export async function POST(req: NextRequest) {
       continue
     }
     const barcode = String(row["الباركود"] ?? row["barcode"] ?? "").trim() || null
-    const categoryName = String(row["الفئة"] ?? row["category"] ?? "").trim()
-    const categoryId = categoryName ? catByName.get(categoryName) || null : null
+    const categoryRaw = String(row["الفئة"] ?? row["category"] ?? "").trim()
+
+    // Resolve or create category (supports "أب > ابن" nesting)
+    let categoryId: string | null = null
+    if (categoryRaw) {
+      const path = parseCategoryPath(categoryRaw)
+      const beforeCount = catCache.size
+      categoryId = await resolveOrCreateCategory(path, catCache)
+      if (catCache.size > beforeCount) {
+        catsCreated += (catCache.size - beforeCount)
+      }
+    }
+
     const quantity = Number(row["الكمية"] ?? row["quantity"] ?? 0) || 0
     const reorderLevel = Number(row["حد الطلب"] ?? row["reorder"] ?? 5) || 0
     const costPrice = Number(row["سعر التكلفة"] ?? row["cost"] ?? 0) || 0
     const salePrice = Number(row["سعر البيع"] ?? row["sale"] ?? 0) || 0
     const unit = String(row["الوحدة"] ?? row["unit"] ?? "قطعة").trim() || "قطعة"
-    // Image URL — direct link to an image (https://example.com/photo.jpg)
     const imageUrl = String(row["رابط الصورة"] ?? row["imageUrl"] ?? row["image"] ?? "").trim() || null
 
     try {
@@ -99,5 +178,13 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, total: rows.length, created, updated, skipped, errors: errors.slice(0, 10) })
+  return NextResponse.json({
+    ok: true,
+    total: rows.length,
+    created,
+    updated,
+    skipped,
+    catsCreated,
+    errors: errors.slice(0, 10),
+  })
 }
