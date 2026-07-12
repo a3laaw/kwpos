@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/session"
 import { serializeSale } from "@/lib/serialize"
 import { createJournalEntry } from "@/lib/journal"
 import { logAuditEvent } from "@/lib/audit"
+import { resolveWarehouseId } from "@/lib/warehouse-resolver"
 
 export const dynamic = "force-dynamic"
 
@@ -112,22 +113,12 @@ export async function POST(
 
   // ── Transaction: update inventory + sale items + sale + journal entries ──
   const paymentAccCode = sale.paymentMethod === "CASH" ? "1010" : "1020"
-  // Resolve warehouseId BEFORE the transaction (user's warehouse first).
+  // Resolve warehouseId BEFORE the transaction (shared helper — DRY).
   // This is used to restock returned items to the user's assigned warehouse.
-  const userWarehouseId = (user as any).warehouseId as string | undefined
-  let resolvedWarehouseId: string | undefined = userWarehouseId
-  if (!resolvedWarehouseId) {
-    const defaultWh = await db.warehouse.findFirst({
-      where: { isActive: true },
-      orderBy: { createdAt: "asc" },
-      select: { id: true },
-    })
-    resolvedWarehouseId = defaultWh?.id
-  }
-  if (!resolvedWarehouseId) {
+  const warehouseId = await resolveWarehouseId(user, null)
+  if (!warehouseId) {
     return NextResponse.json({ error: "no-warehouse-available" }, { status: 400 })
   }
-  const warehouseId = resolvedWarehouseId
 
   const updated = await db.$transaction(async (tx) => {
     // Restore inventory — restock the matching StockItem for this warehouse

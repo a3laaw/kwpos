@@ -4,6 +4,8 @@ import { getCurrentUser, hasRole } from "@/lib/session"
 import { createJournalEntry } from "@/lib/journal"
 import { serializeExchange } from "@/lib/serialize"
 import { logAuditEvent } from "@/lib/audit"
+import { resolveWarehouseId } from "@/lib/warehouse-resolver"
+import { coercePaymentMethod } from "@/lib/coercions"
 import type { Role } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
@@ -200,29 +202,14 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const PAY = ["CASH", "CARD", "TRANSFER"].includes(paymentMethod) ? paymentMethod : "CASH"
+  const PAY = coercePaymentMethod(paymentMethod)
 
   // ── 5. Run creation + stock mutation + returnedQty increment atomically ──
-  // Resolve warehouseId BEFORE the transaction (user's warehouse first).
-  const userWarehouseId = (user as any).warehouseId as string | undefined
-  let resolvedWarehouseId: string | undefined = userWarehouseId
-  if (!resolvedWarehouseId) {
-    const bodyWh = (body as any).warehouseId as string | undefined
-    if (bodyWh) {
-      resolvedWarehouseId = bodyWh
-    } else {
-      const defaultWh = await db.warehouse.findFirst({
-        where: { isActive: true },
-        orderBy: { createdAt: "asc" },
-        select: { id: true },
-      })
-      resolvedWarehouseId = defaultWh?.id
-    }
-  }
-  if (!resolvedWarehouseId) {
+  // Resolve warehouseId BEFORE the transaction (shared helper — DRY).
+  const warehouseId = await resolveWarehouseId(user, (body as any).warehouseId)
+  if (!warehouseId) {
     return NextResponse.json({ error: "no-warehouse-available" }, { status: 400 })
   }
-  const warehouseId = resolvedWarehouseId
 
   const result = await db.$transaction(async (tx) => {
     // Generate the next exchangeNo (EXC-00001, EXC-00002, ...).
