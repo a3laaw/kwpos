@@ -33,7 +33,7 @@ export async function PUT(
   if (!exists) return NextResponse.json({ error: "not-found" }, { status: 404 })
 
   // Build the update payload — only fields actually present in the body.
-  const data: { name?: string; code?: string | null; barcodePrefix?: number | null; imageUrl?: string | null } = {}
+  const data: { name?: string; code?: string | null; barcodePrefix?: number | null; imageUrl?: string | null; parentId?: string | null } = {}
   if (body.name !== undefined) {
     const name = String(body.name).trim()
     if (!name) return NextResponse.json({ error: "name-required" }, { status: 400 })
@@ -64,6 +64,25 @@ export async function PUT(
   }
   if (body.imageUrl !== undefined) {
     data.imageUrl = body.imageUrl ? String(body.imageUrl).trim() : null
+  }
+  if (body.parentId !== undefined) {
+    if (body.parentId === null || body.parentId === "") {
+      data.parentId = null
+    } else {
+      // Validate parent exists and isn't the same as this category
+      const parentId = String(body.parentId)
+      if (parentId === id) {
+        return NextResponse.json({ error: "cannot-be-own-parent" }, { status: 400 })
+      }
+      const parent = await db.category.findUnique({
+        where: { id: parentId },
+        select: { id: true },
+      })
+      if (!parent) {
+        return NextResponse.json({ error: "parent-not-found" }, { status: 400 })
+      }
+      data.parentId = parentId
+    }
   }
 
   const updated = await db.category.update({ where: { id }, data })

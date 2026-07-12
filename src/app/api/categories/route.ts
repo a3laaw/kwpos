@@ -54,8 +54,22 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Optional parentId for nested categories. If provided, validates
+  // that the parent exists.
+  let parentId: string | null = null
+  if (body?.parentId) {
+    const parent = await db.category.findUnique({
+      where: { id: String(body.parentId) },
+      select: { id: true },
+    })
+    if (!parent) {
+      return NextResponse.json({ error: "parent-not-found" }, { status: 400 })
+    }
+    parentId = parent.id
+  }
+
   const created = await db.category.create({
-    data: { name, code, barcodePrefix, imageUrl: body.imageUrl?.trim() || null },
+    data: { name, code, barcodePrefix, imageUrl: body.imageUrl?.trim() || null, parentId },
   })
   return NextResponse.json(serializeCategory(created as any), { status: 201 })
 }
