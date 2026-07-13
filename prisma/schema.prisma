@@ -2,8 +2,7 @@
 // (Sales, Inventory, Purchasing)
 
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["driverAdapters"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
