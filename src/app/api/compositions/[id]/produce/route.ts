@@ -186,6 +186,9 @@ export async function POST(
         produced: producedQty,
         unit: composition.yieldUnit,
       }
+    }, {
+      timeout: 15000,
+      maxWait: 5000,
     })
 
     return NextResponse.json({

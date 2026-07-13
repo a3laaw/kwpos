@@ -297,6 +297,9 @@ export async function POST(req: NextRequest) {
     }
 
     return inv
+  }, {
+    timeout: 15000,
+    maxWait: 5000,
   }).catch((e: any) => ({ __error: e?.message || "purchase-invoice-failed" }))
 
   if (created && (created as any).__error) {

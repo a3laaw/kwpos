@@ -212,6 +212,9 @@ export async function PUT(
         description: `تعديل تركيبة ${updated?.name}`,
       })
       return updated
+    }, {
+      timeout: 15000,
+      maxWait: 5000,
     })
 
     return NextResponse.json(serializeComposition(updated as any))

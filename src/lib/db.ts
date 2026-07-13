@@ -19,23 +19,49 @@ function getDatasourceUrl(): string | undefined {
   const direct = process.env.DIRECT_DATABASE_URL
   const dbUrl = process.env.DATABASE_URL
 
-  // PREFER the direct URL (port 5432) — supports transactions
+  // PREFER the direct URL (port 5432, no pgbouncer) — supports interactive
+  // transactions ($transaction) which are required for sales, exchanges,
+  // refunds, purchase invoices, stock transfers, etc.
   if (direct && direct.trim()) {
     let url = direct.trim()
-    // Add connection_limit=1 if not already present (prevents pool exhaustion)
+    // Add connection_limit=1 if not already present (prevents pool exhaustion
+    // on Supabase which limits direct connections to ~15).
     if (!url.includes('connection_limit=')) {
       url += (url.includes('?') ? '&' : '?') + 'connection_limit=1'
     }
     return url
   }
 
-  // Fall back to DATABASE_URL (strip pgbouncer params to make it direct)
+  // ── WARNING: DIRECT_DATABASE_URL is missing ───────────────────────────
+  // Interactive transactions will likely fail with "Transaction not found"
+  // because the fallback below points at the transaction-mode pooler (port
+  // 6543 with pgbouncer=true), which is INCOMPATIBLE with Prisma interactive
+  // transactions. The code attempts to strip pgbouncer params and switch
+  // to port 5432, but Supabase's port-5432 pooler is a *session-mode* pooler
+  // and still applies connection timeouts that can close long transactions.
+  // The correct fix is to set DIRECT_DATABASE_URL in Vercel to the direct
+  // host: postgresql://postgres:PASSWORD@db.PROJECT_REF.supabase.co:5432/postgres
+  if (process.env.NODE_ENV === 'production') {
+    console.warn(
+      '[db] WARNING: DIRECT_DATABASE_URL is not set. ' +
+      'Falling back to DATABASE_URL — Prisma interactive transactions ' +
+      '($transaction) may fail with "Transaction not found". ' +
+      'Set DIRECT_DATABASE_URL to the direct Supabase host ' +
+      '(db.PROJECT_REF.supabase.co:5432) without pgbouncer=true. ' +
+      'See DEPLOY.md for details.'
+    )
+  }
+
+  // Fall back to DATABASE_URL. We strip pgbouncer params and switch to port
+  // 5432 to give interactive transactions a chance, but this is NOT a
+  // guaranteed-correct direct connection — it's a best-effort fallback.
   if (dbUrl) {
     let url = dbUrl
-    // Convert pgbouncer URL to direct
+    // Convert pgbouncer pooler URL to direct-style URL
     url = url.replace(':6543', ':5432')
     url = url.replace(/[?&]pgbouncer=true/g, '')
     url = url.replace(/[?&]connection_limit=\d+/g, '')
+    url = url.replace(/[?&]pgbouncer=[^&]*/g, '')
     // Add connection_limit=1
     url += (url.includes('?') ? '&' : '?') + 'connection_limit=1'
     // Clean up

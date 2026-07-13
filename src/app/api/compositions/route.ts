@@ -170,6 +170,9 @@ export async function POST(req: NextRequest) {
         description: `إنشاء تركيبة ${composition.name}`,
       })
       return composition
+    }, {
+      timeout: 15000,
+      maxWait: 5000,
     })
     return NextResponse.json(serializeComposition(created as any), {
       status: 201,

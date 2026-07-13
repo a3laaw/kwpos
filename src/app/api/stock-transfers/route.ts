@@ -176,6 +176,9 @@ export async function POST(req: NextRequest) {
         })
         return created
       })
+    }, {
+      timeout: 15000,
+      maxWait: 5000,
     })
   } catch (e: any) {
     const msg = String(e?.message || e)

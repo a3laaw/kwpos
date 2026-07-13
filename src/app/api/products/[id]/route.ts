@@ -108,6 +108,9 @@ export async function PUT(
         where: { id },
         include: { category: true, supplier: true, defaultSupplier: true, stockItems: { include: { warehouse: true } } },
       })
+    }, {
+      timeout: 15000,
+      maxWait: 5000,
     })
 
     await logAuditEvent({
