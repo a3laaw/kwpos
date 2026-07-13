@@ -33,6 +33,7 @@ import {
   Pencil,
   Save,
   Search,
+  ChevronRight,
 } from "lucide-react"
 import { COUNTRIES, getCountryName } from "@/lib/countries"
 import { useCountry, useFmt } from "@/components/currency-context"
@@ -68,6 +69,7 @@ export function SettingsView() {
   const { locale } = useI18n()
   const updateMut = useUpdateSettings()
   const [selected, setSelected] = React.useState(active.code)
+  const [activeSection, setActiveSection] = React.useState<string | null>(null)
 
   async function handleSave() {
     if (selected === active.code) {
@@ -83,6 +85,15 @@ export function SettingsView() {
     }
   }
 
+  // Section definitions for the card-based navigation
+  const sections = [
+    { id: "company", icon: Tags, title: t.companyInfoTitle, desc: t.companyInfoDesc },
+    { id: "country", icon: Globe, title: t.setCountryAndCurrency, desc: t.setCountryPickerDesc },
+    { id: "hardware", icon: Printer, title: t.hardwareSettingsTitle || "إعدادات الأجهزة", desc: t.hardwareSettingsDesc || "الطابعة، درج النقدية، قارئ الباركود" },
+    { id: "categories", icon: Tags, title: t.setCategories, desc: t.setCategoriesDesc },
+    { id: "units", icon: Ruler, title: t.setUnitsTitle || "الوحدات", desc: t.setUnitsDesc || "وحدات القياس" },
+  ]
+
   return (
     <div className="space-y-5">
       <PageHeader
@@ -95,7 +106,7 @@ export function SettingsView() {
         ]}
       />
 
-      {/* Current config */}
+      {/* Current config summary */}
       <Card className="border-primary/30 bg-gradient-to-l from-primary/5 to-transparent">
         <CardContent className="p-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
           <ConfigCell icon={<Globe className="h-4 w-4" />} label={t.setCurrentCountryLabel} value={`${active.flag} ${getCountryName(active, locale)}`} />
@@ -105,61 +116,90 @@ export function SettingsView() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-5 lg:grid-cols-2">
-        {/* Company info — appears on invoices */}
-        <CompanyInfoCard />
+      {/* Card-based navigation grid */}
+      {!activeSection ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {sections.map((s) => {
+            const Icon = s.icon
+            return (
+              <button
+                key={s.id}
+                onClick={() => setActiveSection(s.id)}
+                className="group flex flex-col items-start gap-3 rounded-xl border border-border/70 bg-card p-5 text-start transition-all hover:border-primary/40 hover:shadow-md"
+              >
+                <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary group-hover:bg-primary/15 transition">
+                  <Icon className="h-6 w-6" />
+                </span>
+                <div className="min-w-0">
+                  <p className="font-semibold text-sm">{s.title}</p>
+                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{s.desc}</p>
+                </div>
+                <span className="text-xs text-primary font-medium mt-auto pt-2">
+                  {t.edit || "فتح"} ←
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      ) : (
+        /* Active section content */
+        <div className="space-y-4">
+          <button
+            onClick={() => setActiveSection(null)}
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition"
+          >
+            <ChevronRight className="h-4 w-4 rotate-180" />
+            {t.back || "رجوع"}
+          </button>
 
-        {/* Country picker */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Globe className="h-4 w-4 text-primary" />
-              {t.setCountryAndCurrency}
-            </CardTitle>
-            <CardDescription>{t.setCountryPickerDesc}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-2 sm:grid-cols-2 max-h-[300px] overflow-y-auto scrollbar-thin pr-1">
-              {COUNTRIES.map((c) => {
-                const isActive = c.code === selected
-                return (
-                  <button
-                    key={c.code}
-                    onClick={() => setSelected(c.code)}
-                    className={cn(
-                      "flex items-center gap-2 rounded-lg border p-2.5 text-start transition-all",
-                      isActive
-                        ? "border-primary bg-primary/5 ring-1 ring-primary/30"
-                        : "border-border/70 hover:border-primary/40 hover:bg-accent/40"
-                    )}
-                  >
-                    <span className="text-xl shrink-0">{c.flag}</span>
-                    <span className="flex-1 min-w-0">
-                      <span className="block font-medium text-sm truncate">{getCountryName(c, locale)}</span>
-                      <span className="block text-[10px] text-muted-foreground" dir="ltr">{c.currency} • {c.taxRate}%</span>
-                    </span>
-                    {isActive ? <CheckCircle2 className="h-4 w-4 text-primary shrink-0" /> : null}
-                  </button>
-                )
-              })}
-            </div>
-            <Separator className="my-3" />
-            <Button onClick={handleSave} disabled={updateMut.isPending || selected === active.code} className="w-full gap-2">
-              {updateMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-              {t.setSaveCountry}
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Units management */}
-        <UnitsManager />
-      </div>
-
-      {/* Hardware settings — printer, cash drawer, barcode scanner */}
-      <HardwareSettingsCard />
-
-      {/* Categories management */}
-      <CategoriesManager />
+          {activeSection === "company" && <CompanyInfoCard />}
+          {activeSection === "country" && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Globe className="h-4 w-4 text-primary" />
+                  {t.setCountryAndCurrency}
+                </CardTitle>
+                <CardDescription>{t.setCountryPickerDesc}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-2 sm:grid-cols-2 max-h-[300px] overflow-y-auto scrollbar-thin pr-1">
+                  {COUNTRIES.map((c) => {
+                    const isActive = c.code === selected
+                    return (
+                      <button
+                        key={c.code}
+                        onClick={() => setSelected(c.code)}
+                        className={cn(
+                          "flex items-center gap-2 rounded-lg border p-2.5 text-start transition-all",
+                          isActive
+                            ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                            : "border-border/70 hover:border-primary/40 hover:bg-accent/40"
+                        )}
+                      >
+                        <span className="text-xl shrink-0">{c.flag}</span>
+                        <span className="flex-1 min-w-0">
+                          <span className="block font-medium text-sm truncate">{getCountryName(c, locale)}</span>
+                          <span className="block text-[10px] text-muted-foreground" dir="ltr">{c.currency} • {c.taxRate}%</span>
+                        </span>
+                        {isActive ? <CheckCircle2 className="h-4 w-4 text-primary shrink-0" /> : null}
+                      </button>
+                    )
+                  })}
+                </div>
+                <Separator className="my-3" />
+                <Button onClick={handleSave} disabled={updateMut.isPending || selected === active.code} className="w-full gap-2">
+                  {updateMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                  {t.setSaveCountry}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+          {activeSection === "hardware" && <HardwareSettingsCard />}
+          {activeSection === "categories" && <CategoriesManager />}
+          {activeSection === "units" && <UnitsManager />}
+        </div>
+      )}
     </div>
   )
 }
