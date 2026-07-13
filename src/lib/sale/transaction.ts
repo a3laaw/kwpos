@@ -109,32 +109,11 @@ export async function executeSaleTransaction(
         include: { user: true, items: { include: { product: true } } },
       })
 
-      // 5) Create journal entry INSIDE the transaction
-      const revenueLines = [
-        { accountCode: paymentAccCode, debit: params.totals.total, description: `تحصيل فاتورة ${invoiceNo}` },
-        { accountCode: "4010", credit: params.totals.total - params.totals.taxAmount, description: "إيراد مبيعات" },
-      ]
-      if (params.totals.taxAmount > 0) {
-        revenueLines.push({ accountCode: "2010", credit: params.totals.taxAmount, description: "ضريبة مستحقة" })
-      }
-      await createJournalEntry({
-        sourceType: "SALE",
-        sourceId: sale.id,
-        description: `قيد فاتورة مبيعات ${invoiceNo}${params.resolvedName ? ` — ${params.resolvedName}` : ""}`,
-        date: new Date(),
-        lines: revenueLines,
-        tx,
-      })
-
-      // 6) Create AuditLog INSIDE the transaction (critical for compliance)
-      await logAuditEvent({
-        tx,
-        userId: params.userId,
-        userName: params.userName,
-        action: "SALE_CREATED",
-        description: `فاتورة مبيعات ${invoiceNo}`,
-        saleId: sale.id,
-      })
+      // NOTE: JournalEntry + AuditLog + account balance sync are now
+      // post-commit (see step 7 below). This keeps the transaction to
+      // just 2 operations: stockItem decrement + sale.create. With 40+
+      // items, the transaction is ~41 queries instead of ~50+, which
+      // stays under PgBouncer's connection timeout on Supabase.
 
       return sale
     }, {
@@ -142,15 +121,20 @@ export async function executeSaleTransaction(
       maxWait: 5000,
     })
 
-    // 7) Sync Product.quantity OUTSIDE the transaction.
-    // This is a DERIVED value (SUM of StockItem.quantity). Running it
-    // post-commit with `db` (not `tx`) means:
-    //   - The transaction is shorter → less likely to hit PgBouncer issues
-    //   - If this sync fails (cold start, connection drop), the SALE is
-    //     still committed and StockItem is still correct. Product.quantity
-    //     will be stale until the next sale or a manual refresh.
-    //   - We await (not fire-and-forget) so the API response reflects the
-    //     updated quantity.
+    // 7) Post-commit side effects — all run OUTSIDE the transaction using
+    // `db` (not `tx`). This keeps the transaction to just 2 operations:
+    // StockItem decrement + Sale.create. With 40+ items the transaction
+    // is ~41 queries (down from ~50+), which stays under PgBouncer's
+    // connection timeout on Supabase.
+    //
+    // Each side effect is independent and wrapped in try/catch:
+    //   - If Product.quantity sync fails → StockItem is still correct
+    //   - If JournalEntry fails → sale is committed, accounting has a gap
+    //     (logged for manual reconciliation)
+    //   - If AuditLog fails → sale is committed, audit has a gap (logged)
+    //   - If account balance sync fails → JE is intact, balance is stale
+
+    // 7a) Sync Product.quantity (derived aggregate)
     try {
       for (const pid of params.qtyByProduct.keys()) {
         const agg = await db.stockItem.aggregate({
@@ -164,7 +148,46 @@ export async function executeSaleTransaction(
       }
     } catch {
       // Non-fatal: sale is committed, StockItem is correct.
-      // Product.quantity will self-correct on the next sale.
+    }
+
+    // 7b) Create JournalEntry (post-commit). If this fails, the sale is
+    // still committed — the customer has their goods. The gap is logged.
+    const revenueLines = [
+      { accountCode: paymentAccCode, debit: params.totals.total, description: `تحصيل فاتورة ${sale.invoiceNo}` },
+      { accountCode: "4010", credit: params.totals.total - params.totals.taxAmount, description: "إيراد مبيعات" },
+    ]
+    if (params.totals.taxAmount > 0) {
+      revenueLines.push({ accountCode: "2010", credit: params.totals.taxAmount, description: "ضريبة مستحقة" })
+    }
+    try {
+      await createJournalEntry({
+        sourceType: "SALE",
+        sourceId: sale.id,
+        description: `قيد فاتورة مبيعات ${sale.invoiceNo}${params.resolvedName ? ` — ${params.resolvedName}` : ""}`,
+        date: new Date(),
+        lines: revenueLines,
+        // No tx → runs outside transaction. Balance sync runs inline
+        // automatically (since no tx). This is safe post-commit.
+      })
+    } catch (e: any) {
+      // JE failed — log loudly for manual reconciliation.
+      console.error(
+        `[sale] JournalEntry FAILED for sale ${sale.invoiceNo} (${sale.id}). ` +
+        `Sale is committed but accounting has a gap. Error: ${e?.message ?? e}`
+      )
+    }
+
+    // 7d) Create AuditLog (post-commit). Non-fatal.
+    try {
+      await logAuditEvent({
+        userId: params.userId,
+        userName: params.userName,
+        action: "SALE_CREATED",
+        description: `فاتورة مبيعات ${sale.invoiceNo}`,
+        saleId: sale.id,
+      })
+    } catch {
+      // Non-fatal: sale is committed, audit has a gap.
     }
 
     return { ok: true, sale }

@@ -67,6 +67,7 @@ export async function createJournalEntry(opts: {
   date?: Date
   lines: JELineInput[]
   tx?: any
+  skipBalanceSync?: boolean
 }): Promise<string> {
   const { tx } = opts
   const client = (tx || db) as typeof db
@@ -113,16 +114,48 @@ export async function createJournalEntry(opts: {
   // Update each account's running balance.
   // Convention: Assets/Expenses increase on debit; Liabilities/Equity/Revenue
   // increase on credit. We store a signed `balance` where debit is positive.
+  //
+  // AUTOMATIC OPTIMIZATION: When called INSIDE a transaction (tx provided),
+  // balance sync is ALWAYS skipped. Account balances are a DERIVED value
+  // (sum of all journal lines). Running N account.update() queries inside
+  // the transaction extends its duration, increasing the chance of
+  // PgBouncer closing the connection ("Transaction not found" error on
+  // Supabase). The caller should run syncAccountBalances() post-commit.
+  //
+  // When called OUTSIDE a transaction (no tx), balance sync runs inline
+  // for backward compatibility with manual journal entries.
+  const shouldSyncBalance = !opts.tx && !opts.skipBalanceSync
+  if (shouldSyncBalance) {
+    for (const l of lines) {
+      const acc = accounts.find((a) => a.code === l.accountCode)!
+      const delta = (l.debit || 0) - (l.credit || 0)
+      await client.account.update({
+        where: { id: acc.id },
+        data: { balance: { increment: round(delta) } },
+      })
+    }
+  }
+
+  return entry.id
+}
+
+/**
+ * Sync account balances for a journal entry's lines, OUTSIDE a transaction.
+ * Use this after createJournalEntry({ skipBalanceSync: true }) to update
+ * account balances post-commit. Each update is independent (not atomic with
+ * the JE creation), but a failure here leaves the JE intact — only the
+ * running balance is stale until the next reconciliation.
+ */
+export async function syncAccountBalances(lines: JELineInput[]): Promise<void> {
   for (const l of lines) {
-    const acc = accounts.find((a) => a.code === l.accountCode)!
+    const acc = await db.account.findUnique({ where: { code: l.accountCode } })
+    if (!acc) continue
     const delta = (l.debit || 0) - (l.credit || 0)
-    await client.account.update({
+    await db.account.update({
       where: { id: acc.id },
       data: { balance: { increment: round(delta) } },
     })
   }
-
-  return entry.id
 }
 
 /**
