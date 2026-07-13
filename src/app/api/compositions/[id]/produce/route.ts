@@ -190,14 +190,19 @@ export async function POST(
     })
 
     // Post-commit: sync Product.quantity OUTSIDE the transaction.
+    // Reload the composition to get the ingredient + output product IDs
+    // (the `composition` variable was scoped inside the transaction).
     try {
-      const pids = new Set<string>()
-      for (const ing of composition.ingredients) {
-        pids.add(ing.productId)
-      }
-      pids.add(composition.outputProductId)
-      for (const pid of pids) {
-        await updateProductQuantityFromStockItems(db, pid)
+      const comp = await db.composition.findUnique({
+        where: { id },
+        select: { outputProductId: true, ingredients: { select: { productId: true } } },
+      })
+      if (comp) {
+        const pids = new Set<string>(comp.ingredients.map((i: any) => i.productId))
+        pids.add(comp.outputProductId)
+        for (const pid of pids) {
+          await updateProductQuantityFromStockItems(db, pid)
+        }
       }
     } catch {
       // Non-fatal: production is committed, StockItem is correct.
