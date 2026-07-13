@@ -24,10 +24,11 @@ function getDatasourceUrl(): string | undefined {
   // refunds, purchase invoices, stock transfers, etc.
   if (direct && direct.trim()) {
     let url = direct.trim()
-    // Add connection_limit=1 if not already present (prevents pool exhaustion
-    // on Supabase which limits direct connections to ~15).
+    // Set connection_limit=3 — allows some parallelism for concurrent requests
+    // while staying under Supabase's connection limits. On Supabase free tier
+    // the pooler handles connection multiplexing, so this is safe.
     if (!url.includes('connection_limit=')) {
-      url += (url.includes('?') ? '&' : '?') + 'connection_limit=1'
+      url += (url.includes('?') ? '&' : '?') + 'connection_limit=3'
     }
     return url
   }

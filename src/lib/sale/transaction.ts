@@ -80,25 +80,68 @@ export async function executeSaleTransaction(
       invoiceNo = makeInvoiceNo(count + 1)
     }
 
-    // 2) Decrement StockItem — each is a single atomic SQL statement.
-    //    updateMany with `gte` check: if quantity < qty, 0 rows updated → throw.
-    //    No transaction needed — each update is independently atomic.
-    for (const [pid, steps] of params.decrementPlan) {
-      for (const step of steps) {
-        const updated = await db.stockItem.updateMany({
-          where: {
-            productId: pid,
-            warehouseId: step.warehouseId,
-            quantity: { gte: step.qty },
-          },
-          data: {
-            quantity: { decrement: step.qty },
-          },
-        })
-        if (updated.count !== 1) {
-          throw new Error(`stock-insufficient:concurrent:${pid}`)
+    // 2) Decrement StockItem — BATCH MODE: all items in ONE SQL query.
+    //    This replaces 40+ sequential queries with a single UPDATE...
+    //    FROM (VALUES ...) statement. On high-latency connections
+    //    (Vercel ↔ Supabase), this saves ~200ms × 40 = 8 seconds.
+    //
+    //    The `gte` check is built into the WHERE clause: rows with
+    //    insufficient stock simply don't match (0 rows for that item).
+    //    We compare the RETURNING set to the input set to detect
+    //    insufficient stock, then compensate + throw if needed.
+    const allSteps: Array<{ pid: string; wid: string; qty: number }> = []
+    for (const [pid, stepList] of params.decrementPlan) {
+      for (const step of stepList) {
+        allSteps.push({ pid, wid: step.warehouseId, qty: step.qty })
+      }
+    }
+
+    if (allSteps.length > 0) {
+      // Build parameterized SQL: UPDATE ... FROM (VALUES ($1,$2,$3), ($4,$5,$6), ...)
+      const placeholders = allSteps
+        .map((_, i) => `($${i * 3 + 1}::text, $${i * 3 + 2}::text, $${i * 3 + 3}::int)`)
+        .join(", ")
+      const sqlParams = allSteps.flatMap((s) => [s.pid, s.wid, s.qty])
+
+      const batchResult = await db.$queryRawUnsafe(
+        `
+        UPDATE "StockItem"
+        SET quantity = "StockItem".quantity - v.qty
+        FROM (VALUES ${placeholders}) AS v(pid, wid, qty)
+        WHERE "StockItem"."productId" = v.pid
+          AND "StockItem"."warehouseId" = v.wid
+          AND "StockItem".quantity >= v.qty
+        RETURNING "StockItem"."productId" AS pid, "StockItem"."warehouseId" AS wid
+        `,
+        ...sqlParams
+      ) as Array<{ pid: string; wid: string }>
+
+      // Check which steps succeeded (returned) vs failed (out of stock)
+      const succeededKeys = new Set(batchResult.map((r) => `${r.pid}::${r.wid}`))
+      const failedSteps = allSteps.filter((s) => !succeededKeys.has(`${s.pid}::${s.wid}`))
+
+      if (failedSteps.length > 0) {
+        // Some items were out of stock. Compensate: re-increment the items
+        // that WERE decremented (the succeeded ones).
+        const succeededSteps = allSteps.filter((s) => succeededKeys.has(`${s.pid}::${s.wid}`))
+        for (const s of succeededSteps) {
+          try {
+            await db.stockItem.update({
+              where: { productId_warehouseId: { productId: s.pid, warehouseId: s.wid } },
+              data: { quantity: { increment: s.qty } },
+            })
+          } catch (compErr: any) {
+            console.error(
+              `[sale] COMPENSATION FAILED for ${s.pid}/${s.wid}: ${compErr?.message ?? compErr}`
+            )
+          }
         }
-        decremented.push({ productId: pid, warehouseId: step.warehouseId, qty: step.qty })
+        throw new Error(`stock-insufficient:concurrent:${failedSteps[0].pid}`)
+      }
+
+      // All succeeded — track for compensation if sale.create fails later
+      for (const s of allSteps) {
+        decremented.push({ productId: s.pid, warehouseId: s.wid, qty: s.qty })
       }
     }
 
