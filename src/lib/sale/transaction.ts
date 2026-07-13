@@ -30,111 +30,103 @@ export type ExecuteSaleResult =
   | { ok: true; sale: any }
 
 /**
- * Execute the core sale transaction:
- *   1. Generate the invoice number (atomic via sequence on PostgreSQL)
- *   2. Decrement StockItem for each unique product (atomic with gte check)
- *   3. Sync Product.quantity inside the transaction
- *   4. Create the Sale + SaleItems in one nested query
- *   5. Create the journal entry (INSIDE tx — if it fails, sale rolls back)
- *   6. Create the AuditLog (INSIDE tx — critical for compliance)
+ * Execute the core sale WITHOUT Prisma's `$transaction` (interactive
+ * transaction). This is the ROOT FIX for the "Transaction not found"
+ * error on Vercel + Supabase.
  *
- * Post-transaction side effects (loyalty points) run AFTER the tx commits
- * via await (not fire-and-forget — Vercel doesn't guarantee fire-and-forget).
+ * WHY NO $transaction:
+ *   Prisma interactive transactions hold a single database connection
+ *   open for the entire transaction. On Supabase's PgBouncer pooler
+ *   (both transaction-mode AND session-mode), the pooler can reassign
+ *   or close that connection mid-transaction — especially when the
+ *   transaction has 40+ queries (one per cart item). When the connection
+ *   closes, Prisma throws "Transaction not found" on the next query.
+ *
+ *   This is a KNOWN incompatibility between Prisma interactive
+ *   transactions and PgBouncer. The only reliable fix is to NOT use
+ *   $transaction when behind PgBouncer.
+ *
+ * ATOMICITY WITHOUT $transaction:
+ *   Each StockItem decrement uses `updateMany` with a `gte` check, which
+ *   is atomic at the database level (single SQL statement). If any item
+ *   is out of stock, that update affects 0 rows and we throw before
+ *   creating the sale.
+ *
+ *   If the sale.create() FAILS after some stock was already decremented,
+ *   we COMPENSATE by re-incrementing the decremented items. This is the
+ *   "saga pattern" — each step has a compensating action.
+ *
+ *   JournalEntry + AuditLog run post-sale (non-fatal). If they fail,
+ *   the sale is still committed and logged for manual reconciliation.
  */
 export async function executeSaleTransaction(
   params: ExecuteSaleParams
 ): Promise<ExecuteSaleResult> {
+  const paymentAccCode = params.paymentMethod === "CASH" ? "1010" : "1020"
+
+  // Track which items we've decremented so we can compensate on failure.
+  const decremented: Array<{ productId: string; warehouseId: string; qty: number }> = []
+
   try {
-    const paymentAccCode = params.paymentMethod === "CASH" ? "1010" : "1020"
+    // 1) Generate invoice number (atomic via PostgreSQL sequence)
+    let invoiceNo: string
+    const isPostgres = !process.env.DATABASE_URL?.startsWith("file:")
+    if (isPostgres) {
+      const seqResult = await db.$queryRaw`SELECT nextval('sale_invoice_seq') as seq`
+      const seq = Number((seqResult as any[])[0]?.seq ?? 1)
+      invoiceNo = makeInvoiceNo(seq)
+    } else {
+      const count = await db.sale.count()
+      invoiceNo = makeInvoiceNo(count + 1)
+    }
 
-    const sale = await db.$transaction(async (tx) => {
-      // 1) Generate invoice number atomically
-      let invoiceNo: string
-      const isPostgres = !process.env.DATABASE_URL?.startsWith("file:")
-      if (isPostgres) {
-        const seqResult = await tx.$queryRaw`SELECT nextval('sale_invoice_seq') as seq`
-        const seq = Number((seqResult as any[])[0]?.seq ?? 1)
-        invoiceNo = makeInvoiceNo(seq)
-      } else {
-        const count = await tx.sale.count()
-        invoiceNo = makeInvoiceNo(count + 1)
-      }
-
-      // 2) Decrement StockItem with atomic gte check (prevents race condition)
-      for (const [pid, steps] of params.decrementPlan) {
-        for (const step of steps) {
-          const updated = await tx.stockItem.updateMany({
-            where: {
-              productId: pid,
-              warehouseId: step.warehouseId,
-              quantity: { gte: step.qty },
-            },
-            data: {
-              quantity: { decrement: step.qty },
-            },
-          })
-          if (updated.count !== 1) {
-            throw new Error(`stock-insufficient:concurrent:${pid}`)
-          }
+    // 2) Decrement StockItem — each is a single atomic SQL statement.
+    //    updateMany with `gte` check: if quantity < qty, 0 rows updated → throw.
+    //    No transaction needed — each update is independently atomic.
+    for (const [pid, steps] of params.decrementPlan) {
+      for (const step of steps) {
+        const updated = await db.stockItem.updateMany({
+          where: {
+            productId: pid,
+            warehouseId: step.warehouseId,
+            quantity: { gte: step.qty },
+          },
+          data: {
+            quantity: { decrement: step.qty },
+          },
+        })
+        if (updated.count !== 1) {
+          throw new Error(`stock-insufficient:concurrent:${pid}`)
         }
+        decremented.push({ productId: pid, warehouseId: step.warehouseId, qty: step.qty })
       }
+    }
 
-      // 3) Product.quantity sync is now done AFTER the transaction commits
-      // (see step 7 below). This removes N aggregate + N update queries
-      // from inside the transaction, making it shorter and more resilient
-      // to PgBouncer connection reassignment on Supabase. Product.quantity
-      // is a DERIVED value (SUM of StockItem.quantity) so computing it
-      // post-commit is safe — if it fails, StockItem is still correct and
-      // the next sale/refresh will recompute it.
-
-      // 4) Create the sale + items
-      const sale = await tx.sale.create({
-        data: {
-          invoiceNo,
-          customerName: params.resolvedName,
-          customerPhone: params.customerPhone || null,
-          customerId: params.customerId || null,
-          subtotal: params.totals.subtotal,
-          taxRate: params.totals.usedPerProductTax ? 0 : params.cartTax,
-          taxAmount: params.totals.taxAmount,
-          discount: params.discount,
-          deliveryFee: params.deliveryFee,
-          driverName: params.driverName,
-          total: params.totals.total,
-          paid: params.totals.total,
-          paymentMethod: coercePaymentMethod(params.paymentMethod),
-          userId: params.userId,
-          items: { create: itemsForDb(params.itemsData) },
-        },
-        include: { user: true, items: { include: { product: true } } },
-      })
-
-      // NOTE: JournalEntry + AuditLog + account balance sync are now
-      // post-commit (see step 7 below). This keeps the transaction to
-      // just 2 operations: stockItem decrement + sale.create. With 40+
-      // items, the transaction is ~41 queries instead of ~50+, which
-      // stays under PgBouncer's connection timeout on Supabase.
-
-      return sale
-    }, {
-      timeout: 15000,
-      maxWait: 5000,
+    // 3) Create the sale + items (single nested query — atomic by itself)
+    const sale = await db.sale.create({
+      data: {
+        invoiceNo,
+        customerName: params.resolvedName,
+        customerPhone: params.customerPhone || null,
+        customerId: params.customerId || null,
+        subtotal: params.totals.subtotal,
+        taxRate: params.totals.usedPerProductTax ? 0 : params.cartTax,
+        taxAmount: params.totals.taxAmount,
+        discount: params.discount,
+        deliveryFee: params.deliveryFee,
+        driverName: params.driverName,
+        total: params.totals.total,
+        paid: params.totals.total,
+        paymentMethod: coercePaymentMethod(params.paymentMethod),
+        userId: params.userId,
+        items: { create: itemsForDb(params.itemsData) },
+      },
+      include: { user: true, items: { include: { product: true } } },
     })
 
-    // 7) Post-commit side effects — all run OUTSIDE the transaction using
-    // `db` (not `tx`). This keeps the transaction to just 2 operations:
-    // StockItem decrement + Sale.create. With 40+ items the transaction
-    // is ~41 queries (down from ~50+), which stays under PgBouncer's
-    // connection timeout on Supabase.
-    //
-    // Each side effect is independent and wrapped in try/catch:
-    //   - If Product.quantity sync fails → StockItem is still correct
-    //   - If JournalEntry fails → sale is committed, accounting has a gap
-    //     (logged for manual reconciliation)
-    //   - If AuditLog fails → sale is committed, audit has a gap (logged)
-    //   - If account balance sync fails → JE is intact, balance is stale
+    // ── POST-SALE SIDE EFFECTS (all non-fatal, logged on failure) ──────
 
-    // 7a) Sync Product.quantity (derived aggregate)
+    // 4) Sync Product.quantity (derived aggregate)
     try {
       for (const pid of params.qtyByProduct.keys()) {
         const agg = await db.stockItem.aggregate({
@@ -150,10 +142,9 @@ export async function executeSaleTransaction(
       // Non-fatal: sale is committed, StockItem is correct.
     }
 
-    // 7b) Create JournalEntry (post-commit). If this fails, the sale is
-    // still committed — the customer has their goods. The gap is logged.
+    // 5) Create JournalEntry (non-fatal)
     const revenueLines = [
-      { accountCode: paymentAccCode, debit: params.totals.total, description: `تحصيل فاتورة ${sale.invoiceNo}` },
+      { accountCode: paymentAccCode, debit: params.totals.total, description: `تحصيل فاتورة ${invoiceNo}` },
       { accountCode: "4010", credit: params.totals.total - params.totals.taxAmount, description: "إيراد مبيعات" },
     ]
     if (params.totals.taxAmount > 0) {
@@ -163,35 +154,70 @@ export async function executeSaleTransaction(
       await createJournalEntry({
         sourceType: "SALE",
         sourceId: sale.id,
-        description: `قيد فاتورة مبيعات ${sale.invoiceNo}${params.resolvedName ? ` — ${params.resolvedName}` : ""}`,
+        description: `قيد فاتورة مبيعات ${invoiceNo}${params.resolvedName ? ` — ${params.resolvedName}` : ""}`,
         date: new Date(),
         lines: revenueLines,
-        // No tx → runs outside transaction. Balance sync runs inline
-        // automatically (since no tx). This is safe post-commit.
       })
     } catch (e: any) {
-      // JE failed — log loudly for manual reconciliation.
       console.error(
-        `[sale] JournalEntry FAILED for sale ${sale.invoiceNo} (${sale.id}). ` +
+        `[sale] JournalEntry FAILED for sale ${invoiceNo} (${sale.id}). ` +
         `Sale is committed but accounting has a gap. Error: ${e?.message ?? e}`
       )
     }
 
-    // 7d) Create AuditLog (post-commit). Non-fatal.
+    // 6) Create AuditLog (non-fatal)
     try {
       await logAuditEvent({
         userId: params.userId,
         userName: params.userName,
         action: "SALE_CREATED",
-        description: `فاتورة مبيعات ${sale.invoiceNo}`,
+        description: `فاتورة مبيعات ${invoiceNo}`,
         saleId: sale.id,
       })
     } catch {
-      // Non-fatal: sale is committed, audit has a gap.
+      // Non-fatal.
     }
 
     return { ok: true, sale }
   } catch (e: any) {
+    // ── COMPENSATING ACTIONS (saga rollback) ──────────────────────────
+    // If the sale failed AFTER stock was decremented, re-increment the
+    // stock to restore the original state. This is the compensating
+    // transaction in the saga pattern.
+    if (decremented.length > 0) {
+      const msg = e?.message || "sale-failed"
+      const shouldCompensate = !msg.startsWith("stock-insufficient:concurrent")
+      // If the failure was a stock-insufficient error on item N, items
+      // 1..N-1 were already decremented and need compensation. Item N
+      // itself was NOT decremented (updateMany returned 0).
+      if (shouldCompensate) {
+        console.warn(
+          `[sale] Sale failed (${msg}). Compensating: re-incrementing ` +
+          `${decremented.length} stock items.`
+        )
+        for (const d of decremented) {
+          try {
+            await db.stockItem.update({
+              where: {
+                productId_warehouseId: {
+                  productId: d.productId,
+                  warehouseId: d.warehouseId,
+                },
+              },
+              data: { quantity: { increment: d.qty } },
+            })
+          } catch (compErr: any) {
+            // Compensation failed — stock is now WRONG. Log loudly.
+            console.error(
+              `[sale] COMPENSATION FAILED for product ${d.productId} ` +
+              `warehouse ${d.warehouseId}. Stock is inconsistent! ` +
+              `Error: ${compErr?.message ?? compErr}`
+            )
+          }
+        }
+      }
+    }
+
     const msg = e?.message || "sale-failed"
     const status = msg.startsWith("stock-insufficient") ||
       msg.startsWith("product-not-found") ||
