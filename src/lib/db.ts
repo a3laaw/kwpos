@@ -4,53 +4,49 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-// Database connection.
+// Database connection — optimized for Vercel serverless + Supabase.
 //
-// On Supabase + Vercel, DATABASE_URL points to the pgbouncer pooler
-// (port 6543, ?pgbouncer=true). Pgbouncer in transaction mode does NOT
-// support Prisma interactive transactions ($transaction(async (tx) => ...))
-// because each query may land on a different backend connection, causing
-// "Transaction not found / Transaction ID is invalid" errors.
+// STRATEGY: Use the DIRECT connection (port 5432) for the Prisma client.
+// This supports interactive transactions ($transaction) which are needed
+// for sales, exchanges, refunds, etc.
 //
-// Fix: ALWAYS use a direct/session-pooler connection (port 5432) for the
-// Prisma client. We:
-//   1. Prefer DIRECT_DATABASE_URL if set (port 5432)
-//   2. Otherwise derive a direct URL from DATABASE_URL by replacing
-//      port 6543 → 5432 and stripping pgbouncer params
-//   3. This guarantees the client never uses transaction-mode pgbouncer.
-function getDirectDatasourceUrl(): string | undefined {
-  // Helper: convert any Supabase URL to a direct (non-pgbouncer) URL.
-  // This is critical because pgbouncer transaction mode breaks Prisma
-  // interactive transactions.
-  function toDirectUrl(rawUrl: string): string {
-    let fixed = rawUrl
-    // Replace port 6543 (pgbouncer transaction mode) → 5432 (session/direct)
-    fixed = fixed.replace(':6543', ':5432')
-    // Also handle 6543 without explicit port (rare)
-    // Strip ALL pgbouncer-related query params
-    fixed = fixed
-      .replace(/[?&]pgbouncer=true/g, '')
-      .replace(/[?&]connection_limit=\d+/g, '')
-      .replace(/[?&]statement_timeout=\d+/g, '')
-    // Clean up any orphan ? or & left after stripping
-    fixed = fixed.replace(/[?&]$/, '')
-    fixed = fixed.replace(/\?&/, '?')
-    fixed = fixed.replace(/&&/g, '&')
-    return fixed
+// To prevent connection pool exhaustion (Supabase limits to ~15 direct
+// connections), we:
+//   1. Cache the PrismaClient in globalThis (one client per function instance)
+//   2. Set connection_limit=1 in the URL (one connection per client)
+//   3. Vercel reuses function instances, so connections are shared
+function getDatasourceUrl(): string | undefined {
+  const direct = process.env.DIRECT_DATABASE_URL
+  const dbUrl = process.env.DATABASE_URL
+
+  // PREFER the direct URL (port 5432) — supports transactions
+  if (direct && direct.trim()) {
+    let url = direct.trim()
+    // Add connection_limit=1 if not already present (prevents pool exhaustion)
+    if (!url.includes('connection_limit=')) {
+      url += (url.includes('?') ? '&' : '?') + 'connection_limit=1'
+    }
+    return url
   }
 
-  // 1) Prefer DIRECT_DATABASE_URL — but convert it too, in case it was
-  //    accidentally set to the pgbouncer URL on Vercel.
-  const direct = process.env.DIRECT_DATABASE_URL
-  if (direct && direct.trim()) return toDirectUrl(direct.trim())
+  // Fall back to DATABASE_URL (strip pgbouncer params to make it direct)
+  if (dbUrl) {
+    let url = dbUrl
+    // Convert pgbouncer URL to direct
+    url = url.replace(':6543', ':5432')
+    url = url.replace(/[?&]pgbouncer=true/g, '')
+    url = url.replace(/[?&]connection_limit=\d+/g, '')
+    // Add connection_limit=1
+    url += (url.includes('?') ? '&' : '?') + 'connection_limit=1'
+    // Clean up
+    url = url.replace('&&', '&').replace('?&', '?')
+    return url
+  }
 
-  // 2) Fall back to DATABASE_URL (converted to direct)
-  const dbUrl = process.env.DATABASE_URL
-  if (!dbUrl) return undefined
-  return toDirectUrl(dbUrl)
+  return undefined
 }
 
-const datasourceUrl = getDirectDatasourceUrl()
+const datasourceUrl = getDatasourceUrl()
 
 if (globalForPrisma.prisma) {
   const hasPI = typeof (globalForPrisma.prisma as any).purchaseInvoice !== "undefined"
@@ -65,18 +61,12 @@ if (globalForPrisma.prisma) {
 export const db =
   globalForPrisma.prisma ??
   new PrismaClient({
-    log: process.env.NODE_ENV === 'production' ? ['error', 'warn'] : ['query'],
+    log: process.env.NODE_ENV === 'production' ? ['error'] : ['query'],
     ...(datasourceUrl ? { datasourceUrl } : {}),
   })
 
-// ALWAYS cache the Prisma client in globalThis — even in production.
-// On Vercel serverless, each function invocation would otherwise create
-// a NEW PrismaClient (and a new DB connection pool), causing:
-//   - Intermittent "no products" / "login fails" errors (connection races)
-//   - Connection pool exhaustion on Supabase
-//   - Slow cold starts (PrismaClient init is expensive)
-// Caching in globalThis lets the same client survive across invocations
-// within the same serverless function instance.
+// ALWAYS cache in globalThis — prevents creating new PrismaClient per
+// serverless function invocation (which would exhaust Supabase connections).
 globalForPrisma.prisma = db
 
 /* ─── Warehouse inventory helpers ──────────────────────────────────── */

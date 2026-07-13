@@ -38,12 +38,14 @@ export async function executeSaleTransaction(
   params: ExecuteSaleParams
 ): Promise<ExecuteSaleResult> {
   try {
+    // Use $transaction with the direct connection (port 5432).
+    // The direct connection supports interactive transactions.
+    // connection_limit=1 in the URL prevents pool exhaustion.
     const sale = await db.$transaction(async (tx) => {
       const count = await tx.sale.count()
       const invoiceNo = makeInvoiceNo(count + 1)
 
-      // Decrement StockItem for each unique product, using the decrement
-      // plan (may span multiple warehouses).
+      // Decrement StockItem for each unique product (atomic decrement)
       for (const [pid, steps] of params.decrementPlan) {
         for (const step of steps) {
           await tx.stockItem.update({
