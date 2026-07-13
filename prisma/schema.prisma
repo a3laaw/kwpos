@@ -29,6 +29,7 @@ model User {
   updatedAt    DateTime @updatedAt
 
   sales Sale[]
+  cancelledSales Sale[] @relation("SaleCanceller")
   shifts Shift[]
   spotChecks SpotCheck[]
   suspendedSales SuspendedSale[]
@@ -317,14 +318,27 @@ model Sale {
   userId       String?
   createdAt    DateTime   @default(now())
 
+  // ── Cancellation lifecycle ──────────────────────────────────────────
+  // A sale is COMPLETED by default. When an admin cancels the entire
+  // invoice (POST /api/sales/[id]/cancel), status flips to CANCELLED.
+  // Cancelled sales are NOT deleted — they remain for audit + reports,
+  // but their totals are excluded from revenue (the reversing journal
+  // entry zeroes out the financial impact).
+  status             String     @default("COMPLETED") // COMPLETED | CANCELLED
+  cancelledAt        DateTime?
+  cancelledById      String?
+  cancellationReason String?
+
   user         User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
   customer     Customer?  @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  cancelledBy User?      @relation("SaleCanceller", fields: [cancelledById], references: [id], onDelete: SetNull)
   items        SaleItem[]
 
   @@index([createdAt])
   @@index([userId])
   @@index([customerId])
   @@index([paymentMethod])
+  @@index([status])
 }
 
 model SaleItem {

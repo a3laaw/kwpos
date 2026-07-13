@@ -142,6 +142,12 @@ export interface Sale {
   userName?: string | null
   items: SaleItem[]
   createdAt: string
+  // Cancellation lifecycle
+  status: "COMPLETED" | "CANCELLED"
+  cancelledAt?: string | null
+  cancelledById?: string | null
+  cancelledByName?: string | null
+  cancellationReason?: string | null
 }
 
 export interface DashboardStats {

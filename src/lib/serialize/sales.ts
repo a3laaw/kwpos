@@ -57,5 +57,11 @@ export function serializeSale(s: AnyRow): Sale {
     userName: (s.user as any)?.name ?? null,
     items: (s.items as AnyRow[] | undefined)?.map(serializeSaleItem) ?? [],
     createdAt: String(s.createdAt),
+    // Cancellation lifecycle
+    status: (s.status as Sale["status"]) ?? "COMPLETED",
+    cancelledAt: s.cancelledAt ? String(s.cancelledAt) : null,
+    cancelledById: (s.cancelledById as string | null) ?? null,
+    cancelledByName: (s.cancelledBy as any)?.name ?? null,
+    cancellationReason: (s.cancellationReason as string | null) ?? null,
   }
 }

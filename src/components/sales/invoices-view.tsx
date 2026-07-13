@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/shared/empty-state"
 import { TableSkeleton } from "@/components/shared/loading-state"
 import { ConfirmDialog } from "@/components/shared/confirm-dialog"
 import { RefundDialog } from "@/components/sales/refund-dialog"
+import { CancelDialog } from "@/components/sales/cancel-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
@@ -24,12 +25,13 @@ import {
   ChevronRight,
   ChevronLeft,
   RotateCcw,
+  Ban,
   Flame,
   User,
   Phone,
   Calendar,
 } from "lucide-react"
-import { useSales, useRefundSale } from "@/hooks/use-api"
+import { useSales } from "@/hooks/use-api"
 import { useAppStore } from "@/lib/store"
 import { useFmt } from "@/components/currency-context"
 import { printA4Invoice, printThermalReceipt } from "@/lib/print"
@@ -57,16 +59,17 @@ export function InvoicesView() {
   const [pageSize] = React.useState(10)
   const [selected, setSelected] = React.useState<Sale | null>(null)
   const [refundTarget, setRefundTarget] = React.useState<Sale | null>(null)
-  const isAdmin = user.role === "ADMIN"
+  const [cancelTarget, setCancelTarget] = React.useState<Sale | null>(null)
+  const isAdmin = user.role === "ADMIN" || user.role === "OWNER" || user.role === "MANAGER"
   const debouncedQ = React.useDeferredValue(q)
   const { data, isLoading, isError, refetch } = useSales(debouncedQ || undefined, page, pageSize)
-  const refundMut = useRefundSale()
   const PAYMENT_META = paymentMeta(t)
 
   const sales = data?.items ?? []
   const pagination = data?.pagination
   const isRefunded = (s: Sale) => s.refundStatus === "FULL"
   const isPartialRefund = (s: Sale) => s.refundStatus === "PARTIAL"
+  const isCancelled = (s: Sale) => s.status === "CANCELLED"
 
   // Auto-advance pages — if current page is empty but not first page, go back
   React.useEffect(() => {
@@ -217,7 +220,9 @@ export function InvoicesView() {
               t={t}
               isAdmin={isAdmin}
               isRefunded={isRefunded(selected)}
+              isCancelled={isCancelled(selected)}
               onRefund={() => setRefundTarget(selected)}
+              onCancel={() => setCancelTarget(selected)}
             />
           ) : (
             <Card className="flex items-center justify-center h-[400px] border-dashed">
@@ -241,6 +246,18 @@ export function InvoicesView() {
         }}
         sale={refundTarget}
       />
+
+      {/* Cancel dialog (full invoice cancellation) */}
+      <CancelDialog
+        open={!!cancelTarget}
+        onOpenChange={(o) => {
+          if (!o) {
+            setCancelTarget(null)
+            setSelected(null)
+          }
+        }}
+        sale={cancelTarget}
+      />
     </div>
   )
 }
@@ -252,14 +269,18 @@ function InvoiceDetail({
   t,
   isAdmin,
   isRefunded,
+  isCancelled,
   onRefund,
+  onCancel,
 }: {
   sale: Sale
   fmt: ReturnType<typeof useFmt>
   t: Dict
   isAdmin: boolean
   isRefunded: boolean
+  isCancelled: boolean
   onRefund: () => void
+  onCancel: () => void
 }) {
   const pm = paymentMeta(t)[sale.paymentMethod]
   return (
@@ -373,15 +394,40 @@ function InvoiceDetail({
         </div>
         {isAdmin ? (
           <>
-            <Button
-              variant="outline"
-              className="w-full gap-2 text-destructive hover:text-destructive border-destructive/30 hover:border-destructive/50"
-              onClick={onRefund}
-              disabled={isRefunded}
-            >
-              <RotateCcw className="h-4 w-4" />
-              {isRefunded ? t.invoicesRefundedFullyBadge : sale.refundStatus === "PARTIAL" ? t.invoicesAdditionalRefund : t.invoicesRefundInvoiceAction}
-            </Button>
+            {/* Cancel full invoice button (shown only if not already cancelled/refunded) */}
+            {!isCancelled && !isRefunded ? (
+              <Button
+                variant="outline"
+                className="w-full gap-2 text-destructive hover:text-destructive border-destructive/30 hover:border-destructive/50"
+                onClick={onCancel}
+              >
+                <Ban className="h-4 w-4" />
+                {t.cancelSaleBtn}
+              </Button>
+            ) : null}
+            {isCancelled ? (
+              <div className="space-y-1">
+                <Badge variant="destructive" className="w-full justify-center py-1.5 text-xs gap-1">
+                  <Ban className="h-3.5 w-3.5" />
+                  {t.invoiceStatusCancelled}
+                </Badge>
+                {sale.cancellationReason ? (
+                  <p className="text-[10px] text-muted-foreground text-center italic">
+                    {sale.cancellationReason}
+                  </p>
+                ) : null}
+              </div>
+            ) : (
+              <Button
+                variant="outline"
+                className="w-full gap-2 text-destructive hover:text-destructive border-destructive/30 hover:border-destructive/50"
+                onClick={onRefund}
+                disabled={isRefunded}
+              >
+                <RotateCcw className="h-4 w-4" />
+                {isRefunded ? t.invoicesRefundedFullyBadge : sale.refundStatus === "PARTIAL" ? t.invoicesAdditionalRefund : t.invoicesRefundInvoiceAction}
+              </Button>
+            )}
             {isRefunded ? (
               <p className="text-[10px] text-muted-foreground text-center">
                 {t.invoicesRefundedFullTotalDesc.replace("{total}", fmt.currency(sale.refundTotal))}

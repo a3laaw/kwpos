@@ -312,6 +312,29 @@ export function useRefundSale() {
   })
 }
 
+export function useCancelSale() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
+      jsend<Sale & {
+        refundSummary: {
+          refundSubtotal: number
+          refundTax: number
+          refundTotal: number
+          refundCost: number
+          creditNoteNo: string
+          reason: string
+        }
+      }>(`/api/sales/${id}/cancel`, "POST", { reason }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["sales"] })
+      qc.invalidateQueries({ queryKey: ["products"] })
+      qc.invalidateQueries({ queryKey: ["dashboard"] })
+      qc.invalidateQueries({ queryKey: ["audit"] })
+    },
+  })
+}
+
 /* ----------------------------- Dashboard ----------------------------- */
 export function useDashboard(from?: string, to?: string, range?: string) {
   const qs = new URLSearchParams()
