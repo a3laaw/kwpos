@@ -92,7 +92,7 @@ export function CancelDialog({ open, onOpenChange, sale }: CancelDialogProps) {
           <Separator className="my-1.5" />
           <div className="flex justify-between text-base">
             <span className="font-semibold">{t.total}</span>
-            <span className="font-bold tabular-nums text-destructive">{fmt(sale.total)}</span>
+            <span className="font-bold tabular-nums text-destructive">{fmt.currency(sale.total)}</span>
           </div>
         </div>
 
