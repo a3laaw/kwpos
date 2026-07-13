@@ -528,20 +528,15 @@ function CategoriesManager() {
   const [name, setName] = React.useState("")
   const [code, setCode] = React.useState("")
   const [parentId, setParentId] = React.useState<string>("")
-  const [search, setSearch] = React.useState("")
+  const [selectedParentId, setSelectedParentId] = React.useState<string | null>(null)
   const [editing, setEditing] = React.useState<Category | null>(null)
   const [deletingId, setDeletingId] = React.useState<string | null>(null)
   const categories = data?.items ?? []
   const rootCategories = categories.filter((c) => !c.parentId)
   const childCategories = categories.filter((c) => c.parentId)
-  const filtered = categories.filter((c) => c.name.includes(search.trim()))
-
-  // Helper: get parent name for a child
-  const parentNameMap = new Map(categories.map((c) => [c.id, c.name]))
-  const getParentName = (cat: any) => {
-    if (!cat.parentId) return "—"
-    return parentNameMap.get(cat.parentId) ?? "—"
-  }
+  const childrenOfSelected = selectedParentId
+    ? categories.filter((c) => c.parentId === selectedParentId)
+    : []
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
@@ -576,6 +571,13 @@ function CategoriesManager() {
     }
   }
 
+  // Auto-select first parent if none selected
+  React.useEffect(() => {
+    if (!selectedParentId && rootCategories.length > 0) {
+      setSelectedParentId(rootCategories[0].id)
+    }
+  }, [rootCategories])
+
   return (
     <Card>
       <CardHeader>
@@ -589,6 +591,7 @@ function CategoriesManager() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
+        {/* Add form */}
         <form onSubmit={handleAdd} className="flex flex-wrap gap-2 max-w-2xl">
           <Input
             value={code}
@@ -621,76 +624,132 @@ function CategoriesManager() {
           </Button>
         </form>
 
-        {categories.length > 4 ? (
-          <div className="relative max-w-md">
-            <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t.setSearchCategoriesPlaceholder} className="h-8 pr-8 text-sm" />
-          </div>
-        ) : null}
-
+        {/* Two-panel layout: parents (left) | children (right) */}
         {isLoading ? (
-          <div className="flex flex-wrap gap-2">
-            {Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-9 w-28 rounded-full bg-muted/50 animate-pulse" />)}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="h-48 rounded-lg bg-muted/50 animate-pulse" />
+            <div className="h-48 rounded-lg bg-muted/50 animate-pulse" />
           </div>
-        ) : filtered.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">{search ? t.setNoResults : t.setNoCategories}</p>
+        ) : categories.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-4">{t.setNoCategories}</p>
         ) : (
-          /* Table layout: parent | child | actions */
-          <div className="overflow-x-auto scrollbar-thin max-h-[300px]">
-            <table className="w-full text-sm">
-              <thead className="sticky top-0 bg-muted/50">
-                <tr className="border-b border-border">
-                  <th className="text-start py-2 px-3 font-semibold">التصنيف الأب</th>
-                  <th className="text-start py-2 px-3 font-semibold">التصنيف الابن</th>
-                  <th className="text-center py-2 px-3 font-semibold w-20">إجراءات</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((c) => (
-                  <tr key={c.id} className="border-b border-border/40 hover:bg-muted/20">
-                    <td className="py-2 px-3 font-medium">
-                      {c.parentId ? getParentName(c) : (
-                        <span className="text-primary font-semibold">{c.name}</span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* ── Left panel: Parent categories ── */}
+            <div className="border border-border/70 rounded-lg overflow-hidden">
+              <div className="bg-muted/40 px-3 py-2 border-b border-border/70">
+                <p className="text-sm font-semibold">التصنيفات الرئيسية (الأب)</p>
+              </div>
+              <div className="max-h-[280px] overflow-y-auto scrollbar-thin">
+                {rootCategories.map((c) => {
+                  const isSelected = selectedParentId === c.id
+                  const childCount = categories.filter((ch) => ch.parentId === c.id).length
+                  return (
+                    <div
+                      key={c.id}
+                      className={cn(
+                        "flex items-center justify-between gap-2 px-3 py-2 border-b border-border/30 cursor-pointer transition",
+                        isSelected ? "bg-primary/10 border-primary/30" : "hover:bg-muted/20"
                       )}
-                    </td>
-                    <td className="py-2 px-3">
-                      {c.parentId ? (
-                        <span className="inline-flex items-center gap-1.5">
-                          {c.code ? (
-                            <span className="inline-flex items-center justify-center rounded-md bg-primary/15 px-1.5 py-0.5 text-[10px] font-mono tabular-nums text-primary" dir="ltr">
-                              {c.code}
-                            </span>
-                          ) : null}
-                          <Tags className="h-3.5 w-3.5 text-muted-foreground" />
-                          {c.name}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground text-xs">— (تصنيف رئيسي) —</span>
-                      )}
-                    </td>
-                    <td className="py-2 px-3 text-center">
-                      <button
-                        type="button"
-                        onClick={() => setEditing(c)}
-                        className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-primary/15 hover:text-primary transition mr-1"
-                        title={t.edit}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(c.id, c.name)}
-                        disabled={deletingId === c.id}
-                        className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/15 hover:text-destructive transition disabled:opacity-50"
-                        title={t.delete}
-                      >
-                        {deletingId === c.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      onClick={() => setSelectedParentId(c.id)}
+                    >
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        {c.imageUrl ? (
+                          <img src={c.imageUrl} alt="" className="h-6 w-6 rounded object-cover shrink-0" />
+                        ) : null}
+                        {c.code ? (
+                          <span className="inline-flex items-center justify-center rounded-md bg-primary/15 px-1.5 py-0.5 text-[10px] font-mono tabular-nums text-primary shrink-0" dir="ltr">
+                            {c.code}
+                          </span>
+                        ) : null}
+                        <span className={cn("truncate text-sm", isSelected && "font-bold text-primary")}>{c.name}</span>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Badge variant="outline" className="text-[10px] h-5 px-1.5 tabular-nums">
+                          {childCount} أبناء
+                        </Badge>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setEditing(c) }}
+                          className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-primary/15 hover:text-primary transition"
+                          title={t.edit}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); handleDelete(c.id, c.name) }}
+                          disabled={deletingId === c.id}
+                          className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/15 hover:text-destructive transition disabled:opacity-50"
+                          title={t.delete}
+                        >
+                          {deletingId === c.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+                {rootCategories.length === 0 ? (
+                  <p className="text-xs text-muted-foreground text-center py-4">لا توجد تصنيفات رئيسية</p>
+                ) : null}
+              </div>
+            </div>
+
+            {/* ── Right panel: Children of selected parent ── */}
+            <div className="border border-border/70 rounded-lg overflow-hidden">
+              <div className="bg-muted/40 px-3 py-2 border-b border-border/70 flex items-center justify-between">
+                <p className="text-sm font-semibold">
+                  {selectedParentId
+                    ? `أبناء: ${rootCategories.find((c) => c.id === selectedParentId)?.name ?? "—"}`
+                    : "اختر تصنيفاً رئيسياً"}
+                </p>
+                {selectedParentId ? (
+                  <Badge variant="secondary" className="text-[10px] tabular-nums">{childrenOfSelected.length}</Badge>
+                ) : null}
+              </div>
+              <div className="max-h-[280px] overflow-y-auto scrollbar-thin">
+                {childrenOfSelected.length === 0 ? (
+                  <p className="text-xs text-muted-foreground text-center py-4">
+                    {selectedParentId ? "لا توجد تصنيفات فرعية تحت هذا القسم" : "← اختر تصنيفاً رئيسياً من اليسار"}
+                  </p>
+                ) : (
+                  childrenOfSelected.map((c) => (
+                    <div
+                      key={c.id}
+                      className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border/30 hover:bg-muted/20 transition"
+                    >
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        {c.code ? (
+                          <span className="inline-flex items-center justify-center rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-mono tabular-nums text-muted-foreground shrink-0" dir="ltr">
+                            {c.code}
+                          </span>
+                        ) : null}
+                        <Tags className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <span className="truncate text-sm">{c.name}</span>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setEditing(c)}
+                          className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-primary/15 hover:text-primary transition"
+                          title={t.edit}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(c.id, c.name)}
+                          disabled={deletingId === c.id}
+                          className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/15 hover:text-destructive transition disabled:opacity-50"
+                          title={t.delete}
+                        >
+                          {deletingId === c.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
           </div>
         )}
       </CardContent>
