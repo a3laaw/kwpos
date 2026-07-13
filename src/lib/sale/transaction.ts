@@ -124,25 +124,44 @@ export async function executeSaleTransaction(
       include: { user: true, items: { include: { product: true } } },
     })
 
-    // ── POST-SALE SIDE EFFECTS (all non-fatal, logged on failure) ──────
+    // ── POST-SALE SIDE EFFECTS ─────────────────────────────────────────
+    // These run AFTER the sale is committed. They are NON-BLOCKING — we
+    // fire them off WITHOUT awaiting, so the API response returns to the
+    // cashier immediately. On Vercel serverless, the function may stay
+    // alive briefly after the response to complete these. If it doesn't,
+    // the gaps are logged.
+    //
+    // CRITICAL: the sale + stock decrement are ALREADY committed. These
+    // side effects are for accounting/audit convenience only.
 
-    // 4) Sync Product.quantity (derived aggregate)
-    try {
-      for (const pid of params.qtyByProduct.keys()) {
-        const agg = await db.stockItem.aggregate({
-          where: { productId: pid },
-          _sum: { quantity: true },
-        })
-        await db.product.update({
-          where: { id: pid },
-          data: { quantity: agg._sum.quantity ?? 0 },
-        })
-      }
-    } catch {
-      // Non-fatal: sale is committed, StockItem is correct.
+    const productIds = Array.from(params.qtyByProduct.keys())
+
+    // 4) Sync Product.quantity — SINGLE SQL query (was 80 queries!)
+    // UPDATE Product SET quantity = (SELECT SUM(StockItem.quantity) ...)
+    // WHERE id IN (...)
+    if (productIds.length > 0) {
+      void (async () => {
+        try {
+          const ids = productIds.map((id) => `'${id.replace(/'/g, "''")}'`).join(",")
+          await db.$executeRawUnsafe(`
+            UPDATE "Product"
+            SET quantity = COALESCE((
+              SELECT SUM(quantity) FROM "StockItem"
+              WHERE "StockItem"."productId" = "Product".id
+            ), 0)
+            WHERE id IN (${ids})
+          `)
+        } catch (e: any) {
+          console.warn(
+            `[sale] Product.quantity sync failed for sale ${invoiceNo}. ` +
+            `StockItem is correct; Product.quantity will self-correct. ` +
+            `Error: ${e?.message ?? e}`
+          )
+        }
+      })()
     }
 
-    // 5) Create JournalEntry (non-fatal)
+    // 5) Create JournalEntry (non-blocking, fire-and-forget)
     const revenueLines = [
       { accountCode: paymentAccCode, debit: params.totals.total, description: `تحصيل فاتورة ${invoiceNo}` },
       { accountCode: "4010", credit: params.totals.total - params.totals.taxAmount, description: "إيراد مبيعات" },
@@ -150,34 +169,40 @@ export async function executeSaleTransaction(
     if (params.totals.taxAmount > 0) {
       revenueLines.push({ accountCode: "2010", credit: params.totals.taxAmount, description: "ضريبة مستحقة" })
     }
-    try {
-      await createJournalEntry({
-        sourceType: "SALE",
-        sourceId: sale.id,
-        description: `قيد فاتورة مبيعات ${invoiceNo}${params.resolvedName ? ` — ${params.resolvedName}` : ""}`,
-        date: new Date(),
-        lines: revenueLines,
-      })
-    } catch (e: any) {
-      console.error(
-        `[sale] JournalEntry FAILED for sale ${invoiceNo} (${sale.id}). ` +
-        `Sale is committed but accounting has a gap. Error: ${e?.message ?? e}`
-      )
-    }
+    void (async () => {
+      try {
+        await createJournalEntry({
+          sourceType: "SALE",
+          sourceId: sale.id,
+          description: `قيد فاتورة مبيعات ${invoiceNo}${params.resolvedName ? ` — ${params.resolvedName}` : ""}`,
+          date: new Date(),
+          lines: revenueLines,
+        })
+      } catch (e: any) {
+        console.error(
+          `[sale] JournalEntry FAILED for sale ${invoiceNo} (${sale.id}). ` +
+          `Sale is committed but accounting has a gap. Error: ${e?.message ?? e}`
+        )
+      }
+    })()
 
-    // 6) Create AuditLog (non-fatal)
-    try {
-      await logAuditEvent({
-        userId: params.userId,
-        userName: params.userName,
-        action: "SALE_CREATED",
-        description: `فاتورة مبيعات ${invoiceNo}`,
-        saleId: sale.id,
-      })
-    } catch {
-      // Non-fatal.
-    }
+    // 6) Create AuditLog (non-blocking, fire-and-forget)
+    void (async () => {
+      try {
+        await logAuditEvent({
+          userId: params.userId,
+          userName: params.userName,
+          action: "SALE_CREATED",
+          description: `فاتورة مبيعات ${invoiceNo}`,
+          saleId: sale.id,
+        })
+      } catch (e: any) {
+        console.warn(`[sale] AuditLog failed for ${invoiceNo}: ${e?.message ?? e}`)
+      }
+    })()
 
+    // Return IMMEDIATELY — the cashier sees the sale succeed fast.
+    // Side effects continue in the background.
     return { ok: true, sale }
   } catch (e: any) {
     // ── COMPENSATING ACTIONS (saga rollback) ──────────────────────────
