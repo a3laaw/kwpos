@@ -113,7 +113,7 @@ export function CommandItem({
   )
 }
 
-function CommandSeparator({
+export function CommandSeparator({
   className,
   ...props
 }: React.ComponentProps<typeof CommandPrimitive.Separator>) {
@@ -125,7 +125,7 @@ function CommandSeparator({
   )
 }
 
-function CommandShortcut({
+export function CommandShortcut({
   className,
   ...props
 }: React.HTMLAttributes<HTMLSpanElement>) {
@@ -156,16 +156,4 @@ function SearchIcon(props: React.SVGProps<SVGSVGElement>) {
       <path d="m21 21-4.3-4.3" />
     </svg>
   )
-}
-
-export {
-  Command,
-  CommandDialog,
-  CommandInput,
-  CommandList,
-  CommandEmpty,
-  CommandGroup,
-  CommandItem,
-  CommandSeparator,
-  CommandShortcut,
 }
