@@ -231,7 +231,7 @@ export function ProductFormDialog({ open, onOpenChange, product }: ProductFormDi
             ) : null}
           </div>
 
-          {/* Category */}
+          {/* Category — shows only child categories (leaf nodes) grouped by parent */}
           <div className="space-y-2">
             <Label>{t.category}</Label>
             <Select value={form.categoryId} onValueChange={(v) => set("categoryId", v)}>
@@ -239,10 +239,28 @@ export function ProductFormDialog({ open, onOpenChange, product }: ProductFormDi
                 <SelectValue placeholder={t.selectCategory} />
               </SelectTrigger>
               <SelectContent>
-                {(cats?.items ?? []).map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.name}
-                  </SelectItem>
+                {(cats?.tree ?? []).map((root: any) => {
+                  const children = root.children ?? []
+                  if (children.length === 0) {
+                    // Root with no children — show it directly (it's a leaf)
+                    return (
+                      <SelectItem key={root.id} value={root.id}>{root.name}</SelectItem>
+                    )
+                  }
+                  // Root with children — show children grouped under parent name
+                  return (
+                    <React.Fragment key={root.id}>
+                      {children.map((child: any) => (
+                        <SelectItem key={child.id} value={child.id}>
+                          {root.name} › {child.name}
+                        </SelectItem>
+                      ))}
+                    </React.Fragment>
+                  )
+                })}
+                {/* Fallback: categories not in tree (e.g. orphans) */}
+                {(cats?.items ?? []).filter((c: any) => !c.parentId && !(cats?.tree ?? []).some((t: any) => t.id === c.id)).map((c: any) => (
+                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
