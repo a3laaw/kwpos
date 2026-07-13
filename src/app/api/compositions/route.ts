@@ -82,10 +82,12 @@ export async function POST(req: NextRequest) {
   // The new product's price/unit are computed automatically:
   //   - unit      = yieldUnit (وحدة الإنتاج)
   //   - costPrice = (Σ ingredient cost) / yieldQty  (per unit)
-  //   - salePrice = costPrice × profitMargin (default 1.5 = 50% markup)
+  //   - salePrice = costPrice + profitAmount (fixed currency amount above cost)
   const createNewProduct = body?.createNewProduct === true
   const outputProductId = String(body?.outputProductId || "").trim()
-  const profitMargin = Math.max(1, Number(body?.profitMargin) || 1.5) // default 50% markup
+  // profitAmount = fixed profit in currency added on top of costPrice.
+  // Default 0 = no profit (salePrice = costPrice).
+  const profitAmount = Math.max(0, Number(body?.profitAmount) || 0)
 
   if (!createNewProduct && !outputProductId) {
     return NextResponse.json({ error: "output-product-required" }, { status: 400 })
@@ -157,7 +159,8 @@ export async function POST(req: NextRequest) {
     0
   )
   const costPerUnit = yieldQty > 0 ? totalBatchCost / yieldQty : 0
-  const salePricePerUnit = +(costPerUnit * profitMargin).toFixed(3)
+  // salePrice = costPrice + fixed profit amount (not a multiplier)
+  const salePricePerUnit = +(costPerUnit + profitAmount).toFixed(3)
 
   // Enforce name uniqueness before attempting create (DB @unique).
   const dup = await db.composition.findUnique({

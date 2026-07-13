@@ -53,8 +53,8 @@ export interface CompositionInput {
   outputProductId?: string
   /** When true, the API creates a new Product as the composition output. */
   createNewProduct?: boolean
-  /** Markup multiplier for the auto-created product (1.5 = 50% profit). */
-  profitMargin?: number
+  /** Fixed profit amount in currency added on top of costPrice. */
+  profitAmount?: number
   yieldQty: number
   yieldUnit?: string
   isActive?: boolean

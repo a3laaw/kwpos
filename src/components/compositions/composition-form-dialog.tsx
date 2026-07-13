@@ -54,7 +54,7 @@ interface FormState {
   imageUrl: string
   outputProductId: string
   createNewProduct: boolean
-  profitMargin: string // markup multiplier (1.5 = 50% profit)
+  profitAmount: string // fixed profit amount in currency (added to costPrice)
   yieldQty: string
   yieldUnit: string
   isActive: boolean
@@ -67,7 +67,7 @@ const empty: FormState = {
   imageUrl: "",
   outputProductId: "",
   createNewProduct: true, // default: create a new product (factory model)
-  profitMargin: "1.5", // 50% markup
+  profitAmount: "0", // default: no profit (salePrice = costPrice)
   yieldQty: "1",
   yieldUnit: "قطعة",
   isActive: true,
@@ -149,7 +149,7 @@ export function CompositionFormDialog({
         imageUrl: composition.imageUrl ?? "",
         outputProductId: composition.outputProductId,
         createNewProduct: false, // editing existing — don't create new product
-        profitMargin: "1.5",
+        profitAmount: "0",
         yieldQty: String(composition.yieldQty ?? 1),
         yieldUnit: composition.yieldUnit ?? "قطعة",
         isActive: composition.isActive,
@@ -269,7 +269,7 @@ export function CompositionFormDialog({
       imageUrl: form.imageUrl.trim() || null,
       outputProductId: form.outputProductId || undefined,
       createNewProduct: !isEdit && form.createNewProduct, // only on create
-      profitMargin: Number(form.profitMargin) || 1.5,
+      profitAmount: Number(form.profitAmount) || 0,
       yieldQty: 1, // simplified: always 1 unit per recipe (no batch concept)
       yieldUnit: form.yieldUnit.trim() || "قطعة",
       isActive: form.isActive,
@@ -378,17 +378,28 @@ export function CompositionFormDialog({
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <Label className="text-[11px] text-muted-foreground">
-                        {t.compProfitMargin}
+                        {t.compProfitAmount}
                       </Label>
                       <Input
                         dir="ltr"
                         type="number"
-                        min="1"
-                        step="0.1"
-                        value={form.profitMargin}
-                        onChange={(e) => set("profitMargin", e.target.value)}
+                        min="0"
+                        step="0.001"
+                        value={form.profitAmount}
+                        onChange={(e) => set("profitAmount", e.target.value)}
                         className="text-end h-8"
                       />
+                      {/* Auto-calculated percentage display */}
+                      {(() => {
+                        const amt = Number(form.profitAmount) || 0
+                        const cost = totals.costPerUnit
+                        const pct = cost > 0 ? (amt / cost) * 100 : 0
+                        return (
+                          <p className="text-[10px] text-muted-foreground mt-0.5 tabular-nums">
+                            ≈ {pct.toFixed(1)}% {t.compOfCost}
+                          </p>
+                        )
+                      })()}
                     </div>
                     <div>
                       <Label className="text-[11px] text-muted-foreground">
@@ -396,13 +407,15 @@ export function CompositionFormDialog({
                       </Label>
                       <div className="h-8 flex items-center justify-end px-2 rounded-md bg-muted/50 text-xs tabular-nums">
                         {fmt.currency(
-                          (totals.costPerUnit * (Number(form.profitMargin) || 1.5))
+                          totals.costPerUnit + (Number(form.profitAmount) || 0)
                         )}
                       </div>
+                      <p className="text-[10px] text-muted-foreground mt-0.5 tabular-nums">
+                        {t.compCostPerUnit}: {fmt.currency(totals.costPerUnit)}
+                      </p>
                     </div>
                   </div>
                   <p className="text-[10px] text-muted-foreground">
-                    {t.compCostPerUnit}: {fmt.currency(totals.costPerUnit)} ·{" "}
                     {t.compYieldUnit}: {form.yieldUnit || "قطعة"}
                   </p>
                   <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
