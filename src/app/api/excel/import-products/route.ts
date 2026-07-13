@@ -158,7 +158,22 @@ export async function POST(req: NextRequest) {
     const costPrice = Number(row["سعر التكلفة"] ?? row["cost"] ?? 0) || 0
     const salePrice = Number(row["سعر البيع"] ?? row["sale"] ?? 0) || 0
     const unit = String(row["الوحدة"] ?? row["unit"] ?? "قطعة").trim() || "قطعة"
-    const imageUrl = String(row["رابط الصورة"] ?? row["imageUrl"] ?? row["image"] ?? "").trim() || null
+    // Image URL — supports direct links, Google Drive, and Imgur
+    let imageUrl = String(row["رابط الصورة"] ?? row["imageUrl"] ?? row["image"] ?? "").trim() || null
+    // Convert Google Drive share links to direct image links
+    if (imageUrl && imageUrl.includes("drive.google.com")) {
+      const fileIdMatch = imageUrl.match(/\/d\/([a-zA-Z0-9_-]+)/)
+      if (fileIdMatch) {
+        imageUrl = `https://drive.google.com/uc?export=view&id=${fileIdMatch[1]}`
+      }
+    }
+    // Convert Google Drive open?id= links
+    if (imageUrl && imageUrl.includes("open?id=")) {
+      const fileIdMatch = imageUrl.match(/open\?id=([a-zA-Z0-9_-]+)/)
+      if (fileIdMatch) {
+        imageUrl = `https://drive.google.com/uc?export=view&id=${fileIdMatch[1]}`
+      }
+    }
 
     try {
       // Match by barcode first, then by name
