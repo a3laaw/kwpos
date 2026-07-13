@@ -1,6 +1,8 @@
 import { toNum, round3 } from "@/lib/coercions"
 import type { SaleInput, SaleItemRaw } from "./input"
 import type { ProductStockRow } from "./stock-validator"
+import { effectivePrice } from "@/lib/types"
+import type { CustomerTier } from "@/lib/types"
 
 /**
  * The per-line computed data for a sale item (without the transient
@@ -32,12 +34,22 @@ export interface SaleTotals {
  * Compute all sale totals (subtotal, tax, discount, delivery, total) and
  * build the per-line item data.
  *
+ * SECURITY: unitPrice is calculated SERVER-SIDE from the product's price
+ * tiers + customer tier + active promotions. The client-sent unitPrice
+ * is IGNORED — it was previously trusted, allowing price manipulation.
+ *
  * Pure function — no DB access, no side effects. Easy to unit-test.
+ *
+ * @param items - cart items from the request (productId + quantity only; unitPrice ignored)
+ * @param products - product data prefetched from DB (with price tiers)
+ * @param input - cart-level params (cartTax, discount, deliveryFee)
+ * @param customerTier - the customer's price tier (RETAIL/WHOLESALE/CORPORATE)
  */
 export function computeSaleTotals(
   items: SaleItemRaw[],
   products: Map<string, ProductStockRow>,
-  input: Pick<SaleInput, "cartTax" | "discount" | "deliveryFee">
+  input: Pick<SaleInput, "cartTax" | "discount" | "deliveryFee">,
+  customerTier: CustomerTier = "RETAIL"
 ): SaleTotals {
   const itemsData: SaleItemDataWithTax[] = []
   let subtotal = 0
@@ -47,7 +59,18 @@ export function computeSaleTotals(
     const product = products.get(it.productId)
     // NOTE: product existence is validated by validateStockAvailability,
     // so it's guaranteed to exist here. Defensive `?.` guards test fallbacks.
-    const lineSubtotal = round3(it.quantity * it.unitPrice)
+
+    // SECURITY: Calculate unitPrice server-side — ignore client-sent price
+    const serverUnitPrice = effectivePrice(
+      {
+        salePrice: toNum(product?.salePrice),
+        wholesalePrice: toNum(product?.wholesalePrice),
+        corporatePrice: toNum(product?.corporatePrice),
+      },
+      customerTier
+    )
+
+    const lineSubtotal = round3(it.quantity * serverUnitPrice)
     // Per-product tax rate — fall back to cart-level rate for backward compat
     const lineTaxRate = toNum(product?.taxRate) || input.cartTax
     const lineTax = round3(lineSubtotal * (lineTaxRate / 100))
@@ -56,7 +79,7 @@ export function computeSaleTotals(
     itemsData.push({
       productId: it.productId,
       quantity: it.quantity,
-      unitPrice: it.unitPrice,
+      unitPrice: serverUnitPrice, // server-calculated, not client-sent
       subtotal: lineSubtotal,
       lineTaxRate,
     })

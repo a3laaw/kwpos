@@ -2,6 +2,7 @@ import { db } from "@/lib/db"
 import { serializeSale } from "@/lib/serialize"
 import { makeInvoiceNo } from "@/lib/format"
 import { coercePaymentMethod } from "@/lib/coercions"
+import { createJournalEntry } from "@/lib/journal"
 import { itemsForDb, type SaleItemDataWithTax, type SaleTotals } from "./totals"
 import type { DecrementStep } from "./decrement-planner"
 
@@ -27,35 +28,47 @@ export type ExecuteSaleResult =
 
 /**
  * Execute the core sale transaction:
- *   1. Generate the invoice number (1 query)
- *   2. Decrement StockItem for each unique product (N queries)
+ *   1. Generate the invoice number (atomic via sequence)
+ *   2. Decrement StockItem for each unique product (atomic with gte check)
  *   3. Create the Sale + SaleItems in one nested query
+ *   4. Create the journal entry (INSIDE tx — if it fails, sale rolls back)
  *
- * This is the ONLY code inside the Prisma transaction — everything else
- * (journal, audit, loyalty, quantity sync) runs AFTER it commits.
+ * This is the ONLY code inside the Prisma transaction. Post-transaction
+ * side effects (audit log, loyalty points, quantity sync) run after.
  */
 export async function executeSaleTransaction(
   params: ExecuteSaleParams
 ): Promise<ExecuteSaleResult> {
   try {
-    // Use $transaction with the direct connection (port 5432).
-    // The direct connection supports interactive transactions.
-    // connection_limit=1 in the URL prevents pool exhaustion.
-    const sale = await db.$transaction(async (tx) => {
-      const count = await tx.sale.count()
-      const invoiceNo = makeInvoiceNo(count + 1)
+    const paymentAccCode = params.paymentMethod === "CASH" ? "1010" : "1020"
 
-      // Decrement StockItem for each unique product (atomic decrement)
+    const sale = await db.$transaction(async (tx) => {
+      // 1) Generate invoice number using PostgreSQL sequence (atomic)
+      const seqResult = await tx.$queryRaw`SELECT nextval('sale_invoice_seq') as seq`
+      const seq = Number((seqResult as any[])[0]?.seq ?? 1)
+      const invoiceNo = makeInvoiceNo(seq)
+
+      // 2) Decrement StockItem with atomic gte check (prevents race condition)
       for (const [pid, steps] of params.decrementPlan) {
         for (const step of steps) {
-          await tx.stockItem.update({
-            where: { productId_warehouseId: { productId: pid, warehouseId: step.warehouseId } },
-            data: { quantity: { decrement: step.qty } },
+          const updated = await tx.stockItem.updateMany({
+            where: {
+              productId: pid,
+              warehouseId: step.warehouseId,
+              quantity: { gte: step.qty },
+            },
+            data: {
+              quantity: { decrement: step.qty },
+            },
           })
+          if (updated.count !== 1) {
+            throw new Error(`stock-insufficient:concurrent:${pid}`)
+          }
         }
       }
 
-      return await tx.sale.create({
+      // 3) Create the sale + items
+      const sale = await tx.sale.create({
         data: {
           invoiceNo,
           customerName: params.resolvedName,
@@ -75,8 +88,28 @@ export async function executeSaleTransaction(
         },
         include: { user: true, items: { include: { product: true } } },
       })
+
+      // 4) Create journal entry INSIDE the transaction (critical for accounting integrity)
+      // If this fails, the entire sale rolls back.
+      const revenueLines = [
+        { accountCode: paymentAccCode, debit: params.totals.total, description: `تحصيل فاتورة ${invoiceNo}` },
+        { accountCode: "4010", credit: params.totals.total - params.totals.taxAmount, description: "إيراد مبيعات" },
+      ]
+      if (params.totals.taxAmount > 0) {
+        revenueLines.push({ accountCode: "2010", credit: params.totals.taxAmount, description: "ضريبة مستحقة" })
+      }
+      await createJournalEntry({
+        sourceType: "SALE",
+        sourceId: sale.id,
+        description: `قيد فاتورة مبيعات ${invoiceNo}${params.resolvedName ? ` — ${params.resolvedName}` : ""}`,
+        date: new Date(),
+        lines: revenueLines,
+        tx,
+      })
+
+      return sale
     }, {
-      timeout: 10000,
+      timeout: 15000,
       maxWait: 5000,
     })
 
@@ -98,3 +131,4 @@ export async function executeSaleTransaction(
 export function serializeSaleResponse(sale: any) {
   return serializeSale(sale)
 }
+

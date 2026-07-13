@@ -6,7 +6,7 @@ import type { Role } from "@/lib/types"
 export const dynamic = "force-dynamic"
 
 /** Admin endpoint to run ANALYZE on all tables (updates query planner stats). */
-export async function POST(req: NextRequest) {
+export async function POST_handler_disabled(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   if (!hasRole(user.role, ["OWNER", "ADMIN" as Role])) {
@@ -34,4 +34,12 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ ok: fail === 0, analyzed: ok, failed: fail, total: tables.length })
+}
+
+// Disabled in production — DDL should only run via Prisma migrations.
+export async function POST(req: any) {
+  if (process.env.NODE_ENV === 'production' && process.env.ENABLE_ADMIN_DDL !== 'true') {
+    return Response.json({ error: "admin-ddl-disabled-in-production" }, { status: 403 })
+  }
+  return POST_handler_disabled(req)
 }

@@ -6,7 +6,7 @@ import type { Role } from "@/lib/types"
 export const dynamic = "force-dynamic"
 
 /** One-time admin endpoint to create StockTake + StockTakeItem tables. */
-export async function POST(req: NextRequest) {
+export async function POST_handler_disabled(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   if (!hasRole(user.role, ["OWNER", "ADMIN" as Role])) {
@@ -87,4 +87,12 @@ export async function POST(req: NextRequest) {
 
   const failed = steps.filter((s) => !s.ok)
   return NextResponse.json({ ok: failed.length === 0, steps, failedCount: failed.length })
+}
+
+// Disabled in production — DDL should only run via Prisma migrations.
+export async function POST(req: any) {
+  if (process.env.NODE_ENV === 'production' && process.env.ENABLE_ADMIN_DDL !== 'true') {
+    return Response.json({ error: "admin-ddl-disabled-in-production" }, { status: 403 })
+  }
+  return POST_handler_disabled(req)
 }

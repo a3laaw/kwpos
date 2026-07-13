@@ -6,6 +6,8 @@ export interface ProductStockRow {
   taxRate: number | null
   costPrice: number
   salePrice: number
+  wholesalePrice: number
+  corporatePrice: number
   [key: string]: unknown
 }
 

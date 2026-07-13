@@ -113,8 +113,8 @@ export async function POST(req: NextRequest) {
   // 7) Build the multi-warehouse decrement plan
   const decrementPlan = buildDecrementPlan(input.qtyByProduct, stockData, warehouseId)
 
-  // 8) Compute totals (pure function, no DB)
-  const totals = computeSaleTotals(input.items, stockData.products, input)
+  // 8) Compute totals (pure function, no DB) — server-side pricing, ignores client unitPrice
+  const totals = computeSaleTotals(input.items, stockData.products, input, "RETAIL")
 
   // 9) Execute the transaction
   const result = await executeSaleTransaction({

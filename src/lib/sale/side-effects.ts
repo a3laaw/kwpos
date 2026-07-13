@@ -33,11 +33,14 @@ export interface PostSaleSideEffectsParams {
 /**
  * Run all non-critical post-transaction side effects:
  *   1. Sync Product.quantity as SUM(StockItem.quantity)
- *   2. Create the double-entry journal entry
- *   3. Write the audit log
- *   4. Award loyalty points to the customer (if linked)
+ *   2. Write the audit log
+ *   3. Award loyalty points to the customer (if linked)
  *
- * Each operation is wrapped in `runInBackground` so a failure in one
+ * NOTE: The journal entry is now created INSIDE the sale transaction
+ * (in transaction.ts) — it's no longer a post-tx side effect. This
+ * ensures accounting integrity: if the journal fails, the sale rolls back.
+ *
+ * Each operation here is wrapped in `runInBackground` so a failure in one
  * does NOT affect the others or the already-committed sale.
  */
 export async function runPostSaleSideEffects(
@@ -59,26 +62,7 @@ export async function runPostSaleSideEffects(
     }
   })
 
-  // 2) Journal entry (double-entry accounting)
-  await runInBackground("Journal entry", ctx, async () => {
-    const paymentAccCode = params.paymentMethod === "CASH" ? "1010" : "1020"
-    const revenueLines: any[] = [
-      { accountCode: paymentAccCode, debit: params.totals.total, description: `تحصيل فاتورة ${params.sale.invoiceNo}` },
-      { accountCode: "4010", credit: (params.totals.total - params.totals.taxAmount), description: "إيراد مبيعات" },
-    ]
-    if (params.totals.taxAmount > 0) {
-      revenueLines.push({ accountCode: "2010", credit: params.totals.taxAmount, description: "ضريبة مستحقة" })
-    }
-    await createJournalEntry({
-      sourceType: "SALE",
-      sourceId: params.sale.id,
-      description: `قيد فاتورة مبيعات ${params.sale.invoiceNo}${params.resolvedName ? ` — ${params.resolvedName}` : ""}`,
-      date: new Date(),
-      lines: revenueLines,
-    })
-  })
-
-  // 3) Audit log
+  // 2) Audit log
   await runInBackground("Audit log", ctx, async () => {
     await logAuditEvent({
       userId: params.userId,
@@ -89,7 +73,7 @@ export async function runPostSaleSideEffects(
     })
   })
 
-  // 4) Loyalty points
+  // 3) Loyalty points
   if (params.customerId) {
     await runInBackground("Loyalty points", ctx, async () => {
       const pointsEarned = Math.floor(params.totals.afterDiscount)
