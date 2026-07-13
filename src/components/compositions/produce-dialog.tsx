@@ -43,7 +43,9 @@ export function ProduceDialog({
 }: ProduceDialogProps) {
   const t = useT()
   const fmt = useFmt()
-  const [batches, setBatches] = React.useState("1")
+  // 'quantity' = how many units of the output product to produce.
+  // (Simplified from 'batches' — the user enters the desired output directly.)
+  const [quantity, setQuantity] = React.useState("1")
   const [insufficient, setInsufficient] = React.useState<InsufficientIngredient[] | null>(
     null
   )
@@ -53,23 +55,22 @@ export function ProduceDialog({
   // Reset state whenever the dialog target changes.
   React.useEffect(() => {
     if (open) {
-      setBatches("1")
+      setQuantity("1")
       setInsufficient(null)
     }
   }, [open, composition?.id])
 
   if (!composition) return null
 
-  const batchesNum = Math.max(1, Math.floor(Number(batches) || 1))
-  const yieldQty = Number(composition.yieldQty ?? 0)
-  const producedQty = yieldQty * batchesNum
-  const costPerBatch = Number(composition.costPerBatch ?? 0)
-  const totalCost = costPerBatch * batchesNum
+  const quantityNum = Math.max(1, Math.floor(Number(quantity) || 1))
+  const producedQty = quantityNum
+  const costPerUnit = Number(composition.costPerUnit ?? composition.costPerBatch ?? 0)
+  const totalCost = costPerUnit * quantityNum
 
   // Compute client-side stock preview. The server is authoritative — we use
   // the product's aggregate `quantity` (sum across warehouses) for display.
   const preview = composition.ingredients.map((ing) => {
-    const required = Number(ing.quantity ?? 0) * batchesNum
+    const required = Number(ing.quantity ?? 0) * quantityNum
     const available = Number(ing.product?.quantity ?? 0)
     const short = available < required
     return {
@@ -85,7 +86,7 @@ export function ProduceDialog({
     if (!composition) return
     setInsufficient(null)
     try {
-      await produceMut.mutateAsync({ batches: batchesNum })
+      await produceMut.mutateAsync({ batches: quantityNum })
       toast.success(t.compProduceSuccess, {
         description: `${composition.outputProduct?.name ?? ""}: ${producedQty} ${
           composition.yieldUnit ?? ""
@@ -130,25 +131,28 @@ export function ProduceDialog({
         </DialogHeader>
 
         <div className="space-y-5">
-          {/* Batches input + produced summary */}
+          {/* Quantity input + produced summary */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="p-batches">{t.compProduceBatchQty} *</Label>
+              <Label htmlFor="p-quantity">{t.compProduceQuantity} *</Label>
               <Input
-                id="p-batches"
+                id="p-quantity"
                 type="number"
                 min="1"
                 step="1"
                 dir="ltr"
-                value={batches}
-                onChange={(e) => setBatches(e.target.value)}
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
                 className="text-end"
               />
+              <p className="text-[11px] text-muted-foreground">
+                {t.compProduceQuantityHint}
+              </p>
             </div>
             <div className="rounded-lg border border-border/60 bg-muted/30 p-3 flex flex-col gap-1">
               <span className="text-[11px] text-muted-foreground flex items-center gap-1">
                 <Plus className="h-3.5 w-3.5" />
-                {t.compYieldQty}
+                {t.compWillProduce}
               </span>
               <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
                 {producedQty} {composition.yieldUnit}
@@ -179,7 +183,7 @@ export function ProduceDialog({
                     </p>
                     <p className="text-[11px] text-muted-foreground">
                       {Number(p.ingredient.quantity ?? 0)} {p.ingredient.unit} ×{" "}
-                      {batchesNum} ={" "}
+                      {quantityNum} ={" "}
                       <span className="font-medium text-foreground">
                         {p.required} {p.ingredient.unit}
                       </span>
@@ -243,16 +247,16 @@ export function ProduceDialog({
           <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted/40 border border-border/60 p-3">
             <div className="flex flex-col gap-0.5">
               <span className="text-[11px] text-muted-foreground">
-                {t.compCostPerBatch}
+                {t.compCostPerUnit}
               </span>
               <span className="text-sm font-semibold">
-                {fmt.currency(costPerBatch)}
+                {fmt.currency(costPerUnit)}
               </span>
             </div>
             <div className="flex flex-col gap-0.5">
               <span className="text-[11px] text-muted-foreground flex items-center gap-1">
                 <ArrowDown className="h-3 w-3" />
-                {t.compCostPerBatch} × {batchesNum}
+                {t.compCostPerUnit} × {quantityNum}
               </span>
               <span className="text-sm font-semibold">
                 {fmt.currency(totalCost)}
@@ -273,7 +277,7 @@ export function ProduceDialog({
           <Button
             type="button"
             onClick={handleConfirm}
-            disabled={loading || batchesNum < 1}
+            disabled={loading || quantityNum < 1}
             className="gap-2"
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}

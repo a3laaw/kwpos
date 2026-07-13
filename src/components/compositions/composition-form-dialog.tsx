@@ -270,7 +270,7 @@ export function CompositionFormDialog({
       outputProductId: form.outputProductId || undefined,
       createNewProduct: !isEdit && form.createNewProduct, // only on create
       profitMargin: Number(form.profitMargin) || 1.5,
-      yieldQty: yieldQtyNum,
+      yieldQty: 1, // simplified: always 1 unit per recipe (no batch concept)
       yieldUnit: form.yieldUnit.trim() || "قطعة",
       isActive: form.isActive,
       notes: form.notes.trim() || null,
@@ -425,21 +425,7 @@ export function CompositionFormDialog({
                 </>
               )}
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor="c-yield">{t.compYieldQty} *</Label>
-                <Input
-                  id="c-yield"
-                  dir="ltr"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={form.yieldQty}
-                  onChange={(e) => set("yieldQty", e.target.value)}
-                  placeholder="1"
-                  className="text-end"
-                />
-              </div>
+            <div className="grid grid-cols-1 gap-3">
               <div className="space-y-2">
                 <Label htmlFor="c-unit">{t.compYieldUnit}</Label>
                 <Select value={form.yieldUnit} onValueChange={(v) => set("yieldUnit", v)}>

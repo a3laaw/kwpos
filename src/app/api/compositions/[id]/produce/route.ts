@@ -51,9 +51,12 @@ export async function POST(
 
   const { id } = await params
   const body = await req.json().catch(() => ({} as any))
-  const batches = Math.max(1, Math.floor(Number(body?.batches) || 1))
-  if (batches < 1) {
-    return NextResponse.json({ error: "invalid-batches" }, { status: 400 })
+  // 'quantity' = how many units of the output product to produce.
+  // (Formerly 'batches' — now simplified: the user enters the desired
+  // output quantity directly, not the number of recipe repetitions.)
+  const quantity = Math.max(1, Math.floor(Number(body?.batches ?? body?.quantity) || 1))
+  if (quantity < 1) {
+    return NextResponse.json({ error: "invalid-quantity" }, { status: 400 })
   }
 
   try {
@@ -82,8 +85,10 @@ export async function POST(
         }
       }
 
-      const yieldQty = Number(composition.yieldQty ?? 0)
-      const producedQty = yieldQty * batches
+      // The user enters the desired output quantity directly.
+      // Each ingredient is consumed: ingredient.quantity × quantity
+      // (ingredient.quantity is per-1-unit-of-output).
+      const producedQty = quantity
 
       // 3. Pre-check ALL ingredients before decrementing any. Build a list
       //    of every short ingredient so the user can fix them all at once.
@@ -96,7 +101,7 @@ export async function POST(
       }[] = []
 
       for (const ing of composition.ingredients) {
-        const requiredQty = Number(ing.quantity ?? 0) * batches
+        const requiredQty = Number(ing.quantity ?? 0) * quantity
         const stockRow = await tx.stockItem.findUnique({
           where: {
             productId_warehouseId: {
@@ -132,7 +137,7 @@ export async function POST(
       // After each decrement, sync the ingredient's Product.quantity so it
       // stays the derived aggregate (SUM of StockItem.quantity).
       for (const ing of composition.ingredients) {
-        const requiredQty = Number(ing.quantity ?? 0) * batches
+        const requiredQty = Number(ing.quantity ?? 0) * quantity
         const ok = await decrementStockItem(
           tx,
           ing.productId,
