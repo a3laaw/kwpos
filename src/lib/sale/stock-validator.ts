@@ -8,6 +8,7 @@ export interface ProductStockRow {
   salePrice: number
   wholesalePrice: number
   corporatePrice: number
+  categoryId?: string | null
   [key: string]: unknown
 }
 

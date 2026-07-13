@@ -104,25 +104,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "no-warehouse-available" }, { status: 400 })
   }
 
-  // 4.5) Manual discount permission check
-  // SALES and CASHIER can only discount up to 10% of subtotal.
-  // OWNER/ADMIN/MANAGER can discount any amount.
-  if (input.discount > 0) {
-    const isFrontline = user.role === "SALES" || user.role === "CASHIER"
-    if (isFrontline) {
-      // We need subtotal to calculate 10% — estimate from items
-      const estimatedSubtotal = input.items.reduce((s, it) => s + (Number(it.unitPrice) || 0) * it.quantity, 0)
-      const maxDiscount = estimatedSubtotal * 0.10
-      if (input.discount > maxDiscount) {
-        return NextResponse.json(
-          { error: "discount-requires-manager", maxAllowed: +maxDiscount.toFixed(3) },
-          { status: 403 }
-        )
-      }
-    }
-    if (input.discount < 0) {
-      return NextResponse.json({ error: "discount-cannot-be-negative" }, { status: 400 })
-    }
+  // 4.5) Manual discount — only check negative here (full check after totals)
+  if (input.discount < 0) {
+    return NextResponse.json({ error: "discount-cannot-be-negative" }, { status: 400 })
   }
 
   // 5) Prefetch stock data (parallel — 3 queries)
@@ -137,8 +121,41 @@ export async function POST(req: NextRequest) {
   // 7) Build the multi-warehouse decrement plan
   const decrementPlan = buildDecrementPlan(input.qtyByProduct, stockData, warehouseId)
 
-  // 8) Compute totals — server-side pricing using real customer tier, ignores client unitPrice
-  const totals = computeSaleTotals(input.items, stockData.products, input, customerType)
+  // 8) Compute totals — server-side pricing using real customer tier + promotions
+  //    Fetch active promotions server-side (client promotions are ignored)
+  const now = new Date()
+  const rawPromotions = await db.promotion.findMany({
+    where: {
+      isActive: true,
+      startAt: { lte: now },
+      endAt: { gte: now },
+    },
+    orderBy: { startAt: "asc" },
+  })
+  const promotions = rawPromotions.map((p: any) => {
+    let categoryIds: string[] = []
+    try {
+      categoryIds = p.categoryIdsJson ? JSON.parse(p.categoryIdsJson) : []
+    } catch {
+      categoryIds = []
+    }
+    return { ...p, categoryIds }
+  })
+
+  const totals = computeSaleTotals(input.items, stockData.products, input, customerType, promotions)
+
+  // 8.5) Manual discount permission check (after totals — uses server-side subtotal)
+  // SALES and CASHIER can only discount up to 10% of subtotal.
+  // OWNER/ADMIN/MANAGER can discount any amount.
+  if (input.discount > 0 && (user.role === "SALES" || user.role === "CASHIER")) {
+    const maxDiscount = totals.subtotal * 0.10
+    if (input.discount > maxDiscount) {
+      return NextResponse.json(
+        { error: "discount-requires-manager", maxAllowed: +maxDiscount.toFixed(3) },
+        { status: 403 }
+      )
+    }
+  }
 
   // 9) Execute the transaction (includes stock decrement, Product.quantity sync,
   //    sale creation, journal entry, and audit log — ALL inside the transaction)

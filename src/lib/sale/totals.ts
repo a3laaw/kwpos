@@ -1,7 +1,7 @@
 import { toNum, round3 } from "@/lib/coercions"
 import type { SaleInput, SaleItemRaw } from "./input"
 import type { ProductStockRow } from "./stock-validator"
-import { effectivePrice } from "@/lib/types"
+import { computeEffectivePrice, type PromotionLike } from "@/lib/pricing"
 import type { CustomerTier } from "@/lib/types"
 
 /**
@@ -44,12 +44,14 @@ export interface SaleTotals {
  * @param products - product data prefetched from DB (with price tiers)
  * @param input - cart-level params (cartTax, discount, deliveryFee)
  * @param customerTier - the customer's price tier (RETAIL/WHOLESALE/CORPORATE)
+ * @param promotions - active promotions fetched server-side (client promotions ignored)
  */
 export function computeSaleTotals(
   items: SaleItemRaw[],
   products: Map<string, ProductStockRow>,
   input: Pick<SaleInput, "cartTax" | "discount" | "deliveryFee">,
-  customerTier: CustomerTier = "RETAIL"
+  customerTier: CustomerTier = "RETAIL",
+  promotions: PromotionLike[] = []
 ): SaleTotals {
   const itemsData: SaleItemDataWithTax[] = []
   let subtotal = 0
@@ -57,18 +59,21 @@ export function computeSaleTotals(
 
   for (const it of items) {
     const product = products.get(it.productId)
-    // NOTE: product existence is validated by validateStockAvailability,
-    // so it's guaranteed to exist here. Defensive `?.` guards test fallbacks.
 
-    // SECURITY: Calculate unitPrice server-side — ignore client-sent price
-    const serverUnitPrice = effectivePrice(
+    // SECURITY: Calculate unitPrice server-side using computeEffectivePrice
+    // which applies customer tier + active promotions. Client-sent price ignored.
+    const priced = computeEffectivePrice(
       {
+        id: it.productId,
+        categoryId: (product?.categoryId as string | null | undefined) ?? null,
         salePrice: toNum(product?.salePrice),
         wholesalePrice: toNum(product?.wholesalePrice),
         corporatePrice: toNum(product?.corporatePrice),
       },
-      customerTier
+      customerTier,
+      promotions
     )
+    const serverUnitPrice = priced.effectivePrice
 
     const lineSubtotal = round3(it.quantity * serverUnitPrice)
     // Per-product tax rate — fall back to cart-level rate for backward compat

@@ -21,19 +21,26 @@
 
 في Supabase Dashboard → Project Settings → Database:
 
-### Pooled Connection (للاستخدام العادي)
+### Pooled Connection (DATABASE_URL — للـ migrations فقط)
 ```
-postgresql://postgres.[PROJECT_REF]:[PASSWORD]@aws-[REGION].pooler.supabase.com:6543/postgres?pgbouncer=true
+postgresql://postgres.PROJECT_REF:PASSWORD@aws-REGION.pooler.supabase.com:6543/postgres?pgbouncer=true
 ```
+> هذا الرابط يستخدم PgBouncer (transaction pooling). مناسب لـ Prisma migrations
+> ولكن **لا يدعم interactive transactions**.
 
-### Direct Connection (للـ migrations والمعاملات)
+### Direct Connection (DIRECT_DATABASE_URL — للتطبيق runtime)
 ```
-postgresql://postgres.[PROJECT_REF]:[PASSWORD]@aws-[REGION].pooler.supabase.com:5432/postgres
+postgresql://postgres:PASSWORD@db.PROJECT_REF.supabase.co:5432/postgres
 ```
+> هذا الرابط يتصل مباشرة بقاعدة البيانات (بدون PgBouncer). يدعم
+> interactive transactions ($transaction) وهو ما يستخدمه التطبيق
+> في وقت التشغيل. الكود يضيف `connection_limit=1` تلقائياً.
 
-> **مهم:** التطبيق يستخدم `DIRECT_DATABASE_URL` (port 5432) في وقت التشغيل
-> لأنه يدعم المعاملات التفاعلية (interactive transactions). الكود يضيف
-> `connection_limit=1` تلقائياً لمنع نفاد الاتصالات.
+> **مهم جداً:**
+> - لا تستخدم PgBouncer transaction pooling للـ Prisma interactive transactions.
+> - استخدم `prisma migrate deploy` في الإنتاج.
+> - لا تستخدم `db push` في الإنتاج.
+> - راقب Supabase connection count مع Vercel serverless.
 
 ---
 
@@ -43,8 +50,8 @@ postgresql://postgres.[PROJECT_REF]:[PASSWORD]@aws-[REGION].pooler.supabase.com:
 
 | المتغير | القيمة | ملاحظة |
 |---|---|---|
-| `DATABASE_URL` | `postgresql://...supabase.co:6543/postgres?pgbouncer=true` | للـ migrations |
-| `DIRECT_DATABASE_URL` | `postgresql://...supabase.co:5432/postgres` | للتطبيق (runtime) |
+| `DATABASE_URL` | `postgresql://postgres.PROJECT_REF:PASSWORD@aws-REGION.pooler.supabase.com:6543/postgres?pgbouncer=true` | Pooled — للـ migrations |
+| `DIRECT_DATABASE_URL` | `postgresql://postgres:PASSWORD@db.PROJECT_REF.supabase.co:5432/postgres` | Direct host — للتطبيق runtime |
 | `NEXTAUTH_URL` | `https://your-app.vercel.app` | رابط التطبيق |
 | `NEXTAUTH_SECRET` | `openssl rand -base64 32` | سر عشوائي قوي |
 | `AUDIT_INTERNAL_SECRET` | `openssl rand -base64 32` | سر عشوائي قوي |
@@ -62,8 +69,8 @@ cd kwpos
 npm install
 
 # تعيين متغيرات البيئة محلياً
-export DATABASE_URL="postgresql://...supabase.co:6543/postgres?pgbouncer=true"
-export DIRECT_DATABASE_URL="postgresql://...supabase.co:5432/postgres"
+export DATABASE_URL="postgresql://postgres.PROJECT_REF:PASSWORD@aws-REGION.pooler.supabase.com:6543/postgres?pgbouncer=true"
+export DIRECT_DATABASE_URL="postgresql://postgres:PASSWORD@db.PROJECT_REF.supabase.co:5432/postgres"
 
 # تطبيق migrations
 npx prisma migrate deploy
