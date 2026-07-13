@@ -62,6 +62,8 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await requireUser()
+  if (isErrorResponse(user)) return user
   const { id } = await params
   const inv = await db.purchaseInvoice.findUnique({
     where: { id },

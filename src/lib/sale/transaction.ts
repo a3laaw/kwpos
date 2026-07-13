@@ -3,6 +3,7 @@ import { serializeSale } from "@/lib/serialize"
 import { makeInvoiceNo } from "@/lib/format"
 import { coercePaymentMethod } from "@/lib/coercions"
 import { createJournalEntry } from "@/lib/journal"
+import { logAuditEvent } from "@/lib/audit"
 import { itemsForDb, type SaleItemDataWithTax, type SaleTotals } from "./totals"
 import type { DecrementStep } from "./decrement-planner"
 
@@ -11,6 +12,7 @@ export interface ExecuteSaleParams {
   itemsData: SaleItemDataWithTax[]
   totals: SaleTotals
   userId: string
+  userName?: string | null
   warehouseId: string
   customerId: string | undefined
   customerPhone: string
@@ -20,6 +22,7 @@ export interface ExecuteSaleParams {
   discount: number
   deliveryFee: number
   driverName: string | null
+  qtyByProduct: Map<string, number>
 }
 
 export type ExecuteSaleResult =
@@ -28,13 +31,15 @@ export type ExecuteSaleResult =
 
 /**
  * Execute the core sale transaction:
- *   1. Generate the invoice number (atomic via sequence)
+ *   1. Generate the invoice number (atomic via sequence on PostgreSQL)
  *   2. Decrement StockItem for each unique product (atomic with gte check)
- *   3. Create the Sale + SaleItems in one nested query
- *   4. Create the journal entry (INSIDE tx — if it fails, sale rolls back)
+ *   3. Sync Product.quantity inside the transaction
+ *   4. Create the Sale + SaleItems in one nested query
+ *   5. Create the journal entry (INSIDE tx — if it fails, sale rolls back)
+ *   6. Create the AuditLog (INSIDE tx — critical for compliance)
  *
- * This is the ONLY code inside the Prisma transaction. Post-transaction
- * side effects (audit log, loyalty points, quantity sync) run after.
+ * Post-transaction side effects (loyalty points) run AFTER the tx commits
+ * via await (not fire-and-forget — Vercel doesn't guarantee fire-and-forget).
  */
 export async function executeSaleTransaction(
   params: ExecuteSaleParams
@@ -43,9 +48,7 @@ export async function executeSaleTransaction(
     const paymentAccCode = params.paymentMethod === "CASH" ? "1010" : "1020"
 
     const sale = await db.$transaction(async (tx) => {
-      // 1) Generate invoice number atomically.
-      // On PostgreSQL (production), use a sequence for concurrency safety.
-      // On SQLite (tests), fall back to count()+1 (tests are single-threaded).
+      // 1) Generate invoice number atomically
       let invoiceNo: string
       const isPostgres = !process.env.DATABASE_URL?.startsWith("file:")
       if (isPostgres) {
@@ -76,7 +79,19 @@ export async function executeSaleTransaction(
         }
       }
 
-      // 3) Create the sale + items
+      // 3) Sync Product.quantity inside the transaction (NOT fire-and-forget)
+      for (const pid of params.qtyByProduct.keys()) {
+        const agg = await tx.stockItem.aggregate({
+          where: { productId: pid },
+          _sum: { quantity: true },
+        })
+        await tx.product.update({
+          where: { id: pid },
+          data: { quantity: agg._sum.quantity ?? 0 },
+        })
+      }
+
+      // 4) Create the sale + items
       const sale = await tx.sale.create({
         data: {
           invoiceNo,
@@ -98,8 +113,7 @@ export async function executeSaleTransaction(
         include: { user: true, items: { include: { product: true } } },
       })
 
-      // 4) Create journal entry INSIDE the transaction (critical for accounting integrity)
-      // If this fails, the entire sale rolls back.
+      // 5) Create journal entry INSIDE the transaction
       const revenueLines = [
         { accountCode: paymentAccCode, debit: params.totals.total, description: `تحصيل فاتورة ${invoiceNo}` },
         { accountCode: "4010", credit: params.totals.total - params.totals.taxAmount, description: "إيراد مبيعات" },
@@ -114,6 +128,16 @@ export async function executeSaleTransaction(
         date: new Date(),
         lines: revenueLines,
         tx,
+      })
+
+      // 6) Create AuditLog INSIDE the transaction (critical for compliance)
+      await logAuditEvent({
+        tx,
+        userId: params.userId,
+        userName: params.userName,
+        action: "SALE_CREATED",
+        description: `فاتورة مبيعات ${invoiceNo}`,
+        saleId: sale.id,
       })
 
       return sale

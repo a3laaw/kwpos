@@ -1,8 +1,6 @@
 import { db } from "@/lib/db"
-import { createJournalEntry } from "@/lib/journal"
-import { logAuditEvent } from "@/lib/audit"
 import { runInBackground } from "@/lib/background-runner"
-import type { SaleItemDataWithTax, SaleTotals } from "./totals"
+import type { SaleTotals } from "./totals"
 
 /** Loyalty tier thresholds — Replace Conditional with Data. */
 const LOYALTY_TIERS: Array<{ name: string; min: number }> = [
@@ -21,59 +19,25 @@ function resolveLoyaltyTier(points: number): string | null {
 
 export interface PostSaleSideEffectsParams {
   sale: any
-  qtyByProduct: Map<string, number>
   totals: SaleTotals
-  userId: string
-  userName?: string | null
   customerId: string | undefined
-  resolvedName: string | null
-  paymentMethod: unknown
 }
 
 /**
- * Run all non-critical post-transaction side effects:
- *   1. Sync Product.quantity as SUM(StockItem.quantity)
- *   2. Write the audit log
- *   3. Award loyalty points to the customer (if linked)
+ * Run post-transaction side effects:
+ *   - Loyalty points (non-critical, but awaited — not fire-and-forget)
  *
- * NOTE: The journal entry is now created INSIDE the sale transaction
- * (in transaction.ts) — it's no longer a post-tx side effect. This
- * ensures accounting integrity: if the journal fails, the sale rolls back.
- *
- * Each operation here is wrapped in `runInBackground` so a failure in one
- * does NOT affect the others or the already-committed sale.
+ * NOTE: Product.quantity sync, AuditLog, and JournalEntry are now INSIDE
+ * the sale transaction (in transaction.ts) — they're no longer post-tx
+ * side effects. This ensures data integrity on Vercel serverless where
+ * fire-and-forget is not guaranteed.
  */
 export async function runPostSaleSideEffects(
   params: PostSaleSideEffectsParams
 ): Promise<void> {
   const ctx = params.sale.invoiceNo
 
-  // 1) Product.quantity sync
-  await runInBackground("Product.quantity sync", ctx, async () => {
-    for (const pid of params.qtyByProduct.keys()) {
-      const agg = await db.stockItem.aggregate({
-        where: { productId: pid },
-        _sum: { quantity: true },
-      })
-      await db.product.update({
-        where: { id: pid },
-        data: { quantity: agg._sum.quantity ?? 0 },
-      })
-    }
-  })
-
-  // 2) Audit log
-  await runInBackground("Audit log", ctx, async () => {
-    await logAuditEvent({
-      userId: params.userId,
-      userName: params.userName,
-      action: "SALE_CREATED",
-      description: `فاتورة مبيعات ${params.sale.invoiceNo}`,
-      saleId: params.sale.id,
-    })
-  })
-
-  // 3) Loyalty points
+  // Loyalty points — awaited (not fire-and-forget)
   if (params.customerId) {
     await runInBackground("Loyalty points", ctx, async () => {
       const pointsEarned = Math.floor(params.totals.afterDiscount)

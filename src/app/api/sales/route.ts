@@ -91,8 +91,8 @@ export async function POST(req: NextRequest) {
   }
   const input = parsed.input
 
-  // 3) Resolve or create the customer
-  const { customerId, resolvedName } = await resolveOrCreateCustomer({
+  // 3) Resolve or create the customer — returns customerType for pricing
+  const { customerId, resolvedName, customerType } = await resolveOrCreateCustomer({
     name: input.customerName,
     phone: input.customerPhone,
     address: input.customerAddress,
@@ -102,6 +102,27 @@ export async function POST(req: NextRequest) {
   const warehouseId = await resolveWarehouseId(user, input.warehouseId)
   if (!warehouseId) {
     return NextResponse.json({ error: "no-warehouse-available" }, { status: 400 })
+  }
+
+  // 4.5) Manual discount permission check
+  // SALES and CASHIER can only discount up to 10% of subtotal.
+  // OWNER/ADMIN/MANAGER can discount any amount.
+  if (input.discount > 0) {
+    const isFrontline = user.role === "SALES" || user.role === "CASHIER"
+    if (isFrontline) {
+      // We need subtotal to calculate 10% — estimate from items
+      const estimatedSubtotal = input.items.reduce((s, it) => s + (Number(it.unitPrice) || 0) * it.quantity, 0)
+      const maxDiscount = estimatedSubtotal * 0.10
+      if (input.discount > maxDiscount) {
+        return NextResponse.json(
+          { error: "discount-requires-manager", maxAllowed: +maxDiscount.toFixed(3) },
+          { status: 403 }
+        )
+      }
+    }
+    if (input.discount < 0) {
+      return NextResponse.json({ error: "discount-cannot-be-negative" }, { status: 400 })
+    }
   }
 
   // 5) Prefetch stock data (parallel — 3 queries)
@@ -116,15 +137,17 @@ export async function POST(req: NextRequest) {
   // 7) Build the multi-warehouse decrement plan
   const decrementPlan = buildDecrementPlan(input.qtyByProduct, stockData, warehouseId)
 
-  // 8) Compute totals (pure function, no DB) — server-side pricing, ignores client unitPrice
-  const totals = computeSaleTotals(input.items, stockData.products, input, "RETAIL")
+  // 8) Compute totals — server-side pricing using real customer tier, ignores client unitPrice
+  const totals = computeSaleTotals(input.items, stockData.products, input, customerType)
 
-  // 9) Execute the transaction
+  // 9) Execute the transaction (includes stock decrement, Product.quantity sync,
+  //    sale creation, journal entry, and audit log — ALL inside the transaction)
   const result = await executeSaleTransaction({
     decrementPlan,
     itemsData: totals.itemsData,
     totals,
     userId: user.id,
+    userName: user.name,
     warehouseId,
     customerId,
     customerPhone: input.customerPhone,
@@ -134,25 +157,20 @@ export async function POST(req: NextRequest) {
     discount: input.discount,
     deliveryFee: input.deliveryFee,
     driverName: input.driverName,
+    qtyByProduct: input.qtyByProduct,
   })
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: result.status })
   }
 
-  // 10) Run post-transaction side effects (non-fatal, fire-and-forget).
-  // We do NOT await these — the response is returned immediately so the
-  // user sees "sale completed" fast. Vercel serverless keeps the function
-  // alive briefly after the response to finish background work.
-  runPostSaleSideEffects({
+  // 10) Run post-transaction side effects (loyalty points only).
+  // Awaited — not fire-and-forget — because Vercel serverless does NOT
+  // guarantee execution after the response is returned.
+  await runPostSaleSideEffects({
     sale: result.sale,
-    qtyByProduct: input.qtyByProduct,
     totals,
-    userId: user.id,
-    userName: user.name,
     customerId,
-    resolvedName,
-    paymentMethod: input.paymentMethod,
-  }).catch(() => {/* errors are already logged inside */})
+  })
 
   return NextResponse.json(serializeSale(result.sale), { status: 201 })
 }
