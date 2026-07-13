@@ -20,12 +20,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Loader2, Wand2, Tags } from "lucide-react"
+import { Loader2, Wand2, Tags, Ruler } from "lucide-react"
 import { ImageUpload } from "@/components/shared/image-upload"
 import {
   useCategories,
   useCreateProduct,
   useUpdateProduct,
+  useUnits,
 } from "@/hooks/use-api"
 import type { Product } from "@/lib/types"
 import { useT } from "@/components/i18n-context"
@@ -42,6 +43,7 @@ interface FormState {
   name: string
   barcode: string
   categoryId: string
+  unitId: string
   imageUrl: string
 }
 
@@ -49,6 +51,7 @@ const empty: FormState = {
   name: "",
   barcode: "",
   categoryId: "",
+  unitId: "",
   imageUrl: "",
 }
 
@@ -61,8 +64,10 @@ export function ProductFormDialog({ open, onOpenChange, product }: ProductFormDi
   const [form, setForm] = React.useState<FormState>(empty)
   const [barcodeLoading, setBarcodeLoading] = React.useState(false)
   const { data: cats } = useCategories()
+  const { data: unitsData } = useUnits()
   const createMut = useCreateProduct()
   const updateMut = useUpdateProduct(product?.id ?? "")
+  const units = unitsData?.items ?? []
 
   React.useEffect(() => {
     if (product) {
@@ -70,6 +75,7 @@ export function ProductFormDialog({ open, onOpenChange, product }: ProductFormDi
         name: product.name,
         barcode: product.barcode ?? "",
         categoryId: product.categoryId ?? "",
+        unitId: product.unitId ?? "",
         imageUrl: product.imageUrl ?? "",
       })
     } else {
@@ -113,6 +119,17 @@ export function ProductFormDialog({ open, onOpenChange, product }: ProductFormDi
       return
     }
 
+    // Resolve the unit: if a unitId is selected, look up its name so the
+    // legacy `unit` string column stays in sync with the `unitId` FK.
+    // If nothing is selected, fall back to the existing product's unit (edit)
+    // or the default "قطعة" (create).
+    const selectedUnit = units.find((u) => u.id === form.unitId)
+    const unitName = selectedUnit
+      ? selectedUnit.name
+      : isEdit
+        ? (product?.unit ?? "قطعة")
+        : "قطعة"
+
     // When editing, preserve existing values for fields not in the simplified form.
     // When creating, use safe defaults (0 / null).
     const payload = isEdit
@@ -121,6 +138,8 @@ export function ProductFormDialog({ open, onOpenChange, product }: ProductFormDi
           barcode: form.barcode.trim() || null,
           categoryId: form.categoryId || null,
           imageUrl: form.imageUrl.trim() || null,
+          unit: unitName,
+          unitId: form.unitId || null,
           // Preserve existing values
           supplierId: product?.supplierId ?? null,
           quantity: product?.quantity ?? 0,
@@ -132,13 +151,14 @@ export function ProductFormDialog({ open, onOpenChange, product }: ProductFormDi
           wholesalePrice: product?.wholesalePrice ?? 0,
           corporatePrice: product?.corporatePrice ?? 0,
           taxRate: product?.taxRate ?? 0,
-          unit: product?.unit ?? "قطعة",
         }
       : {
           name: form.name.trim(),
           barcode: form.barcode.trim() || null,
           categoryId: form.categoryId || null,
           imageUrl: form.imageUrl.trim() || null,
+          unit: unitName,
+          unitId: form.unitId || null,
           // Defaults for new product
           supplierId: null,
           quantity: 0,
@@ -150,7 +170,6 @@ export function ProductFormDialog({ open, onOpenChange, product }: ProductFormDi
           wholesalePrice: 0,
           taxRate: 0,
           corporatePrice: 0,
-          unit: "قطعة",
         }
 
     try {
@@ -264,6 +283,47 @@ export function ProductFormDialog({ open, onOpenChange, product }: ProductFormDi
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Unit of measure — links the product to a Unit row (gram, piece, box…)
+              Units are defined in Settings → Units. */}
+          <div className="space-y-2">
+            <Label>{t.unit}</Label>
+            <Select value={form.unitId} onValueChange={(v) => set("unitId", v)}>
+              <SelectTrigger>
+                <SelectValue placeholder={t.selectUnit} />
+              </SelectTrigger>
+              <SelectContent>
+                {units.length === 0 ? (
+                  <div className="px-2 py-3 text-center">
+                    <Ruler className="h-5 w-5 mx-auto mb-1.5 text-muted-foreground" />
+                    <p className="text-xs text-muted-foreground mb-1">{t.setNoUnits}</p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 gap-1 text-xs"
+                      onClick={() => {
+                        onOpenChange(false)
+                        setView("settings")
+                      }}
+                    >
+                      <Ruler className="h-3 w-3" />
+                      {t.units}
+                    </Button>
+                  </div>
+                ) : (
+                  units.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+            {units.length === 0 ? (
+              <p className="text-[11px] text-muted-foreground">
+                {t.setNoUnits}
+              </p>
+            ) : null}
           </div>
 
           {/* Pricing hint — for ADMIN, nudge to pricing screen */}

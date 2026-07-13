@@ -114,9 +114,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "too-many-rows", max: 5000 }, { status: 400 })
   }
 
-  // Preload units for name-matching
+  // Preload units for name-matching — map unit name → id so the import
+  // can link the Product.unitId FK when the unit name matches.
   const units = await db.unit.findMany()
-  const unitNames = new Set(units.map((u) => u.name))
+  const unitNameToId = new Map(units.map((u) => [u.name, u.id]))
 
   // Category cache: maps "parentId::name" or just "name" → categoryId
   // Preload all existing categories into the cache
@@ -158,6 +159,8 @@ export async function POST(req: NextRequest) {
     const costPrice = Number(row["سعر التكلفة"] ?? row["cost"] ?? 0) || 0
     const salePrice = Number(row["سعر البيع"] ?? row["sale"] ?? 0) || 0
     const unit = String(row["الوحدة"] ?? row["unit"] ?? "قطعة").trim() || "قطعة"
+    // Resolve unit name → unitId FK (null if the unit isn't defined in Settings)
+    const resolvedUnitId = unitNameToId.get(unit) ?? null
     // Image URL — supports direct links, Google Drive, and Imgur
     let imageUrl = String(row["رابط الصورة"] ?? row["imageUrl"] ?? row["image"] ?? "").trim() || null
     // Convert Google Drive share links to direct image links
@@ -191,13 +194,14 @@ export async function POST(req: NextRequest) {
             costPrice,
             salePrice,
             unit,
+            unitId: resolvedUnitId,
             ...(imageUrl ? { imageUrl } : {}),
           },
         })
         updated++
       } else {
         await db.product.create({
-          data: { name, barcode, categoryId, quantity, reorderLevel, costPrice, salePrice, unit, imageUrl },
+          data: { name, barcode, categoryId, quantity, reorderLevel, costPrice, salePrice, unit, unitId: resolvedUnitId, imageUrl },
         })
         created++
       }
