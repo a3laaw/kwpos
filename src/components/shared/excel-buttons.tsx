@@ -106,7 +106,39 @@ export function ExcelImportButton({ type }: { type: "products" | "customers" }) 
   }
 
   function downloadTemp() {
-    downloadTemplate(columns, `${type}-template.xlsx`, type === "products" ? t.products : t.customers)
+    // For the products template, include 2 example rows that demonstrate:
+    //   1) A root-level category (no parent)
+    //   2) A nested child category using "أب > ابن" format
+    //   3) The image-URL column with a sample direct link
+    // The user deletes these rows before filling in real data.
+    const exampleRows =
+      type === "products"
+        ? [
+            {
+              name: "عطر رجالي فاخر",
+              barcode: "6281000012345",
+              category: "عطور > عطور رجالية",
+              quantity: 50,
+              reorder: 10,
+              cost: 15,
+              sale: 35,
+              unit: "قطعة",
+              imageUrl: "https://example.com/images/perfume1.jpg",
+            },
+            {
+              name: "بخور عود",
+              barcode: "6281000056789",
+              category: "بخور",
+              quantity: 30,
+              reorder: 5,
+              cost: 20,
+              sale: 45,
+              unit: "علبة",
+              imageUrl: "",
+            },
+          ]
+        : undefined
+    downloadTemplate(columns, `${type}-template.xlsx`, type === "products" ? t.products : t.customers, exampleRows)
   }
 
   return (

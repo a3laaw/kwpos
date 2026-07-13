@@ -8,6 +8,33 @@ import type { Role } from "@/lib/types"
 export const dynamic = "force-dynamic"
 
 /**
+ * Build a map of categoryId → full path "أب > ابن > حفيد" by walking up
+ * the parentId chain. Used so the products export emits the complete
+ * nested category path (matching the import format) instead of just
+ * the leaf category name.
+ */
+function buildCategoryPathMap(
+  cats: { id: string; name: string; parentId: string | null }[]
+): Map<string, string> {
+  const byId = new Map(cats.map((c) => [c.id, c]))
+  const pathCache = new Map<string, string>()
+
+  function pathOf(id: string | null): string {
+    if (!id) return ""
+    if (pathCache.has(id)) return pathCache.get(id)!
+    const cat = byId.get(id)
+    if (!cat) return ""
+    const parentPath = pathOf(cat.parentId)
+    const full = parentPath ? `${parentPath} > ${cat.name}` : cat.name
+    pathCache.set(id, full)
+    return full
+  }
+
+  for (const c of cats) pathOf(c.id)
+  return pathCache
+}
+
+/**
  * Export data to .xlsx. `?type=sales|products|journal|customers|suppliers`
  * Optional `?from=&to=` for sales/journal.
  *
@@ -98,15 +125,20 @@ export async function GET(req: NextRequest) {
     headerRow = seeCost
       ? ["الاسم", "الباركود", "الفئة", "الكمية", "حد الطلب", "سعر التكلفة", "سعر البيع", "الوحدة", "رابط الصورة"]
       : ["الاسم", "الباركود", "الفئة", "الكمية", "حد الطلب", "سعر البيع", "الوحدة", "رابط الصورة"]
+    // Load all categories and build a full-path map so the export emits
+    // "أب > ابن" instead of just the leaf name — matching the import format.
+    const allCats = await db.category.findMany({ select: { id: true, name: true, parentId: true } })
+    const catPathMap = buildCategoryPathMap(allCats)
     const products = await db.product.findMany({
       include: { category: true },
       orderBy: { name: "asc" },
     })
-    dataRows = products.map((p) =>
-      seeCost
-        ? [p.name, p.barcode || "", p.category?.name || "", p.quantity, p.reorderLevel, p.costPrice, p.salePrice, p.unit, p.imageUrl || ""]
-        : [p.name, p.barcode || "", p.category?.name || "", p.quantity, p.reorderLevel, p.salePrice, p.unit, p.imageUrl || ""]
-    )
+    dataRows = products.map((p) => {
+      const catPath = p.categoryId ? (catPathMap.get(p.categoryId) || p.category?.name || "") : ""
+      return seeCost
+        ? [p.name, p.barcode || "", catPath, p.quantity, p.reorderLevel, p.costPrice, p.salePrice, p.unit, p.imageUrl || ""]
+        : [p.name, p.barcode || "", catPath, p.quantity, p.reorderLevel, p.salePrice, p.unit, p.imageUrl || ""]
+    })
   } else if (type === "journal") {
     sheetName = "القيود"
     filename = "journal.xlsx"
