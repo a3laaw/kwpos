@@ -142,7 +142,7 @@ export async function POST(
       // transaction mode on Supabase. Prisma's $transaction provides
       // sufficient isolation, and upsert/decrement are atomic.
       await incrementStockItem(tx, it.productId, warehouseId, Number(it.quantity))
-      await updateProductQuantityFromStockItems(tx, it.productId)
+      // Product.quantity sync is deferred to post-commit (see below).
 
       if (shouldApplySuggested) {
         await tx.priceChange.create({
@@ -229,6 +229,18 @@ export async function POST(
     timeout: 10000,
     maxWait: 5000,
   }).catch((e: any) => ({ __error: e?.message || "purchase-receive-failed" }))
+
+  // Post-commit: sync Product.quantity OUTSIDE the transaction.
+  if (updated && !(updated as any).__error) {
+    try {
+      const pids = Array.from(new Set(po.items.map((it: any) => it.productId)))
+      for (const pid of pids) {
+        await updateProductQuantityFromStockItems(db, pid)
+      }
+    } catch {
+      // Non-fatal: PO is received, StockItem is correct.
+    }
+  }
 
   if (updated && (updated as any).__error) {
     const msg = (updated as any).__error as string

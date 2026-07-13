@@ -144,8 +144,7 @@ export async function POST(req: NextRequest) {
           update: { quantity: { decrement: it.quantity } },
           create: { productId: it.productId, warehouseId: fromWarehouseId, quantity: 0 },
         })
-        // Recompute Product.quantity as SUM(StockItem.quantity) — no direct decrement.
-        await updateProductQuantityFromStockItems(tx, it.productId)
+        // Product.quantity sync is deferred to post-commit (see below).
       }
       return tx.stockTransfer.create({
         data: {
@@ -180,6 +179,16 @@ export async function POST(req: NextRequest) {
       timeout: 15000,
       maxWait: 5000,
     })
+
+    // Post-commit: sync Product.quantity OUTSIDE the transaction.
+    try {
+      const pids = Array.from(new Set(itemsData.map((it: any) => it.productId)))
+      for (const pid of pids) {
+        await updateProductQuantityFromStockItems(db, pid)
+      }
+    } catch {
+      // Non-fatal: transfer is committed, StockItem is correct.
+    }
   } catch (e: any) {
     const msg = String(e?.message || e)
     if (msg.startsWith("exceeds-available:")) {

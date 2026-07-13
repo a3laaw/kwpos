@@ -79,17 +79,13 @@ export async function executeSaleTransaction(
         }
       }
 
-      // 3) Sync Product.quantity inside the transaction (NOT fire-and-forget)
-      for (const pid of params.qtyByProduct.keys()) {
-        const agg = await tx.stockItem.aggregate({
-          where: { productId: pid },
-          _sum: { quantity: true },
-        })
-        await tx.product.update({
-          where: { id: pid },
-          data: { quantity: agg._sum.quantity ?? 0 },
-        })
-      }
+      // 3) Product.quantity sync is now done AFTER the transaction commits
+      // (see step 7 below). This removes N aggregate + N update queries
+      // from inside the transaction, making it shorter and more resilient
+      // to PgBouncer connection reassignment on Supabase. Product.quantity
+      // is a DERIVED value (SUM of StockItem.quantity) so computing it
+      // post-commit is safe — if it fails, StockItem is still correct and
+      // the next sale/refresh will recompute it.
 
       // 4) Create the sale + items
       const sale = await tx.sale.create({
@@ -145,6 +141,31 @@ export async function executeSaleTransaction(
       timeout: 15000,
       maxWait: 5000,
     })
+
+    // 7) Sync Product.quantity OUTSIDE the transaction.
+    // This is a DERIVED value (SUM of StockItem.quantity). Running it
+    // post-commit with `db` (not `tx`) means:
+    //   - The transaction is shorter → less likely to hit PgBouncer issues
+    //   - If this sync fails (cold start, connection drop), the SALE is
+    //     still committed and StockItem is still correct. Product.quantity
+    //     will be stale until the next sale or a manual refresh.
+    //   - We await (not fire-and-forget) so the API response reflects the
+    //     updated quantity.
+    try {
+      for (const pid of params.qtyByProduct.keys()) {
+        const agg = await db.stockItem.aggregate({
+          where: { productId: pid },
+          _sum: { quantity: true },
+        })
+        await db.product.update({
+          where: { id: pid },
+          data: { quantity: agg._sum.quantity ?? 0 },
+        })
+      }
+    } catch {
+      // Non-fatal: sale is committed, StockItem is correct.
+      // Product.quantity will self-correct on the next sale.
+    }
 
     return { ok: true, sale }
   } catch (e: any) {

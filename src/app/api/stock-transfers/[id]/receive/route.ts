@@ -50,8 +50,7 @@ export async function POST(
           quantity: it.quantity,
         },
       })
-      // Recompute Product.quantity as SUM(StockItem.quantity) — no direct increment.
-      await updateProductQuantityFromStockItems(tx, it.productId)
+      // Product.quantity sync is deferred to post-commit (see below).
     }
     const updated = await tx.stockTransfer.update({
       where: { id },
@@ -83,6 +82,16 @@ export async function POST(
     timeout: 15000,
     maxWait: 5000,
   })
+
+  // Post-commit: sync Product.quantity OUTSIDE the transaction.
+  try {
+    const pids = Array.from(new Set(transfer.items.map((it: any) => it.productId)))
+    for (const pid of pids) {
+      await updateProductQuantityFromStockItems(db, pid)
+    }
+  } catch {
+    // Non-fatal: transfer is received, StockItem is correct.
+  }
 
   return NextResponse.json({
     id: updated.id,

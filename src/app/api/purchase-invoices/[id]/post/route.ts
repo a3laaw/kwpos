@@ -85,9 +85,7 @@ export async function POST(
             data: { costPrice: it.unitCost },
           })
         }
-        // Recompute Product.quantity as SUM(StockItem.quantity) so it stays
-        // the derived aggregate — no direct increment.
-        await updateProductQuantityFromStockItems(tx, it.productId)
+        // Product.quantity sync is deferred to post-commit (see below).
       }
 
       // Mark linked PO as RECEIVED
@@ -136,6 +134,17 @@ export async function POST(
       timeout: 10000,
       maxWait: 5000,
     })
+
+    // Post-commit: sync Product.quantity OUTSIDE the transaction.
+    // Derived value (SUM of StockItem.quantity) — safe to run post-commit.
+    try {
+      const pids = Array.from(new Set(inv.items.map((it: any) => it.productId)))
+      for (const pid of pids) {
+        await updateProductQuantityFromStockItems(db, pid)
+      }
+    } catch {
+      // Non-fatal: invoice is posted, StockItem is correct.
+    }
 
     return NextResponse.json({
       id: String(result.id),

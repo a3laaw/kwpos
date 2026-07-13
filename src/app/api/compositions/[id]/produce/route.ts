@@ -158,8 +158,7 @@ export async function POST(
             },
           }
         }
-        // Sync the ingredient's Product.quantity (derived aggregate).
-        await updateProductQuantityFromStockItems(tx, ing.productId)
+        // Product.quantity sync is deferred to post-commit (see below).
       }
 
       // 5. Increment the output product's stock.
@@ -170,8 +169,7 @@ export async function POST(
         producedQty
       )
 
-      // 6. Sync the aggregate Product.quantity for the output product.
-      await updateProductQuantityFromStockItems(tx, composition.outputProductId)
+      // 6. Product.quantity sync is deferred to post-commit (see below).
 
       // 7. Audit log (inside tx — atomic).
       await logAuditEvent({
@@ -190,6 +188,20 @@ export async function POST(
       timeout: 15000,
       maxWait: 5000,
     })
+
+    // Post-commit: sync Product.quantity OUTSIDE the transaction.
+    try {
+      const pids = new Set<string>()
+      for (const ing of composition.ingredients) {
+        pids.add(ing.productId)
+      }
+      pids.add(composition.outputProductId)
+      for (const pid of pids) {
+        await updateProductQuantityFromStockItems(db, pid)
+      }
+    } catch {
+      // Non-fatal: production is committed, StockItem is correct.
+    }
 
     return NextResponse.json({
       ok: true,

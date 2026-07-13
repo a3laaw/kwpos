@@ -101,8 +101,7 @@ export async function PUT(
         })
       }
 
-      // Recalculate Product.quantity from StockItem sum
-      await updateProductQuantityFromStockItems(tx, id)
+      // Product.quantity sync is deferred to post-commit (see below).
 
       return tx.product.findUnique({
         where: { id },
@@ -112,6 +111,13 @@ export async function PUT(
       timeout: 15000,
       maxWait: 5000,
     })
+
+    // Post-commit: sync Product.quantity OUTSIDE the transaction.
+    try {
+      await updateProductQuantityFromStockItems(db, id)
+    } catch {
+      // Non-fatal: product stock is committed, StockItem is correct.
+    }
 
     await logAuditEvent({
       userId: user.id,

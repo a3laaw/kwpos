@@ -240,16 +240,14 @@ export async function POST(req: NextRequest) {
             },
           })
         }
-        // Keep Product.costPrice in sync if the invoice has a real unit cost.
-        if (it.unitCost > 0) {
+        // Sync the product's cost price from the invoice line.
+        if (typeof it.unitCost === "number" && it.unitCost >= 0) {
           await tx.product.update({
             where: { id: it.productId },
             data: { costPrice: it.unitCost },
           })
         }
-        // Recompute Product.quantity as SUM(StockItem.quantity) so it stays
-        // the derived aggregate — no direct increment.
-        await updateProductQuantityFromStockItems(tx, it.productId)
+        // Product.quantity sync is deferred to post-commit (see below).
       }
 
       // If linked PO: mark RECEIVED
@@ -301,6 +299,21 @@ export async function POST(req: NextRequest) {
     timeout: 15000,
     maxWait: 5000,
   }).catch((e: any) => ({ __error: e?.message || "purchase-invoice-failed" }))
+
+  // Post-commit: sync Product.quantity OUTSIDE the transaction.
+  // This is a derived value (SUM of StockItem.quantity). Running it
+  // post-commit makes the transaction shorter and more resilient to
+  // PgBouncer connection issues on Supabase.
+  if (wantPost && created && !(created as any).__error) {
+    try {
+      const pids = Array.from(new Set(itemsData.map((it: any) => it.productId)))
+      for (const pid of pids) {
+        await updateProductQuantityFromStockItems(db, pid)
+      }
+    } catch {
+      // Non-fatal: invoice is committed, StockItem is correct.
+    }
+  }
 
   if (created && (created as any).__error) {
     const msg = (created as any).__error as string
