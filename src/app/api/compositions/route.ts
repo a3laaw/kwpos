@@ -76,8 +76,18 @@ export async function POST(req: NextRequest) {
   const name = String(body?.name || "").trim()
   if (!name) return NextResponse.json({ error: "name-required" }, { status: 400 })
 
+  // Output product — either an existing productId OR a new product to create.
+  // When `createNewProduct` is true, the API creates a new Product row
+  // atomically inside the transaction and links it as the output.
+  // The new product's price/unit are computed automatically:
+  //   - unit      = yieldUnit (وحدة الإنتاج)
+  //   - costPrice = (Σ ingredient cost) / yieldQty  (per unit)
+  //   - salePrice = costPrice × profitMargin (default 1.5 = 50% markup)
+  const createNewProduct = body?.createNewProduct === true
   const outputProductId = String(body?.outputProductId || "").trim()
-  if (!outputProductId) {
+  const profitMargin = Math.max(1, Number(body?.profitMargin) || 1.5) // default 50% markup
+
+  if (!createNewProduct && !outputProductId) {
     return NextResponse.json({ error: "output-product-required" }, { status: 400 })
   }
 
@@ -113,20 +123,41 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "ingredients-required" }, { status: 400 })
   }
 
-  // Verify all referenced products exist (ingredients + output).
-  const productIds: string[] = Array.from(
-    new Set([
-      ...ingredientsData.map((i) => i.productId),
-      outputProductId,
-    ])
+  // Verify all referenced ingredient products exist (NOT the output — it may be new).
+  const ingredientProductIds: string[] = Array.from(
+    new Set(ingredientsData.map((i) => i.productId))
   )
-  const products = await db.product.findMany({
-    where: { id: { in: productIds } },
-    select: { id: true },
+  const ingredientProducts = await db.product.findMany({
+    where: { id: { in: ingredientProductIds } },
+    select: { id: true, costPrice: true, name: true },
   })
-  if (products.length !== productIds.length) {
+  if (ingredientProducts.length !== ingredientProductIds.length) {
     return NextResponse.json({ error: "invalid-product" }, { status: 400 })
   }
+
+  // If using an existing output product, verify it exists.
+  if (!createNewProduct && outputProductId) {
+    const outExists = await db.product.findUnique({
+      where: { id: outputProductId },
+      select: { id: true },
+    })
+    if (!outExists) {
+      return NextResponse.json({ error: "invalid-output-product" }, { status: 400 })
+    }
+  }
+
+  // Compute the cost-per-unit for the new product (if creating).
+  // cost = Σ (ingredient quantity × ingredient costPrice) / yieldQty
+  // This is the manufacturing cost — what it costs to produce one unit.
+  const ingredientCostMap = new Map(
+    ingredientProducts.map((p) => [p.id, Number(p.costPrice ?? 0)])
+  )
+  const totalBatchCost = ingredientsData.reduce(
+    (sum, ing) => sum + (ingredientCostMap.get(ing.productId) ?? 0) * ing.quantity,
+    0
+  )
+  const costPerUnit = yieldQty > 0 ? totalBatchCost / yieldQty : 0
+  const salePricePerUnit = +(costPerUnit * profitMargin).toFixed(3)
 
   // Enforce name uniqueness before attempting create (DB @unique).
   const dup = await db.composition.findUnique({
@@ -143,12 +174,37 @@ export async function POST(req: NextRequest) {
 
   try {
     const created = await db.$transaction(async (tx) => {
+      // If creating a new output product, do it inside the transaction so
+      // the composition + product are atomic (both roll back on failure).
+      let finalOutputProductId = outputProductId
+      if (createNewProduct) {
+        // The new product name = composition name (user can rename later)
+        // Unit = yieldUnit, prices computed from ingredient costs.
+        const newProduct = await tx.product.create({
+          data: {
+            name,
+            costPrice: +costPerUnit.toFixed(3),
+            salePrice: salePricePerUnit,
+            unit: yieldUnit,
+            isManufactured: true,
+            quantity: 0, // starts at 0 — produced via Composition.produce
+          },
+        })
+        finalOutputProductId = newProduct.id
+      } else if (outputProductId) {
+        // Linking an existing product — mark it as manufactured.
+        await tx.product.update({
+          where: { id: outputProductId },
+          data: { isManufactured: true },
+        })
+      }
+
       const composition = await tx.composition.create({
         data: {
           name,
           description,
           imageUrl,
-          outputProductId,
+          outputProductId: finalOutputProductId,
           yieldQty,
           yieldUnit,
           isActive,

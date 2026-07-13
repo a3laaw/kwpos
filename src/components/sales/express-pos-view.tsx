@@ -824,7 +824,14 @@ export function ExpressPosView({ user, onToggleMode }: ExpressPosViewProps) {
                       </div>
                       {/* Info */}
                       <div className="p-2 text-start flex-1 flex flex-col gap-0.5">
-                        <p className="font-medium text-xs leading-tight line-clamp-2" title={p.name}>{p.name}</p>
+                        <div className="flex items-center gap-1">
+                          <p className="font-medium text-xs leading-tight line-clamp-2 flex-1" title={p.name}>{p.name}</p>
+                          {p.isManufactured ? (
+                            <span className="shrink-0 rounded bg-primary/15 text-primary text-[8px] px-1 py-0.5 leading-none font-medium" title={t.manufacturedProduct || "مُصنّع"}>
+                              {t.manufacturedProductShort || "تركيبة"}
+                            </span>
+                          ) : null}
+                        </div>
                         <div className="flex items-end justify-between gap-0.5 mt-auto">
                           <span className="flex flex-col items-start leading-none">
                             {promoActive ? (

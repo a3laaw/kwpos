@@ -50,6 +50,8 @@ export interface Product {
   unit: string
   unitId?: string | null
   imageUrl?: string | null
+  /** True if this Product is the output of a Composition (manufactured). */
+  isManufactured?: boolean
   stockByWarehouse?: { warehouseId: string; warehouseName: string; warehouseCode?: string | null; quantity: number }[]
   createdAt: string
   updatedAt: string

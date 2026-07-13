@@ -53,6 +53,8 @@ interface FormState {
   description: string
   imageUrl: string
   outputProductId: string
+  createNewProduct: boolean
+  profitMargin: string // markup multiplier (1.5 = 50% profit)
   yieldQty: string
   yieldUnit: string
   isActive: boolean
@@ -64,6 +66,8 @@ const empty: FormState = {
   description: "",
   imageUrl: "",
   outputProductId: "",
+  createNewProduct: true, // default: create a new product (factory model)
+  profitMargin: "1.5", // 50% markup
   yieldQty: "1",
   yieldUnit: "قطعة",
   isActive: true,
@@ -141,6 +145,8 @@ export function CompositionFormDialog({
         description: composition.description ?? "",
         imageUrl: composition.imageUrl ?? "",
         outputProductId: composition.outputProductId,
+        createNewProduct: false, // editing existing — don't create new product
+        profitMargin: "1.5",
         yieldQty: String(composition.yieldQty ?? 1),
         yieldUnit: composition.yieldUnit ?? "قطعة",
         isActive: composition.isActive,
@@ -227,7 +233,8 @@ export function CompositionFormDialog({
       toast.error(t.compName)
       return
     }
-    if (!form.outputProductId) {
+    // Output product is required UNLESS we're creating a new one.
+    if (!form.createNewProduct && !form.outputProductId) {
       toast.error(t.compOutputProduct)
       return
     }
@@ -247,8 +254,8 @@ export function CompositionFormDialog({
       toast.error(t.compNoIngredients)
       return
     }
-    // An ingredient can't also be the output product.
-    if (cleanIngredients.some((it) => it.productId === form.outputProductId)) {
+    // An ingredient can't also be the output product (only when using existing).
+    if (!form.createNewProduct && cleanIngredients.some((it) => it.productId === form.outputProductId)) {
       toast.error(t.compOutputProduct)
       return
     }
@@ -257,7 +264,9 @@ export function CompositionFormDialog({
       name: form.name.trim(),
       description: form.description.trim() || null,
       imageUrl: form.imageUrl.trim() || null,
-      outputProductId: form.outputProductId,
+      outputProductId: form.outputProductId || undefined,
+      createNewProduct: !isEdit && form.createNewProduct, // only on create
+      profitMargin: Number(form.profitMargin) || 1.5,
       yieldQty: yieldQtyNum,
       yieldUnit: form.yieldUnit.trim() || "قطعة",
       isActive: form.isActive,
@@ -335,17 +344,80 @@ export function CompositionFormDialog({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="c-output">{t.compOutputProduct} *</Label>
-              <Combobox
-                value={form.outputProductId}
-                onValueChange={(v) => set("outputProductId", v)}
-                placeholder={t.compSelectIngredient}
-                searchPlaceholder={t.compSelectIngredient}
-                disabled={productsLoading}
-                options={outputProductComboboxOptions}
-              />
-              <p className="text-[11px] text-muted-foreground">
-                {t.compOutputProductHint}
-              </p>
+              {/* Toggle: create a new product (factory model) vs use existing */}
+              {!isEdit ? (
+                <div className="flex gap-2 mb-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={form.createNewProduct ? "default" : "outline"}
+                    onClick={() => set("createNewProduct", true)}
+                    className="flex-1 gap-1.5"
+                  >
+                    {t.compCreateNewProduct}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={!form.createNewProduct ? "default" : "outline"}
+                    onClick={() => set("createNewProduct", false)}
+                    className="flex-1 gap-1.5"
+                  >
+                    {t.compUseExistingProduct}
+                  </Button>
+                </div>
+              ) : null}
+              {form.createNewProduct && !isEdit ? (
+                <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    {t.compNewProductAutoHint}
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-[11px] text-muted-foreground">
+                        {t.compProfitMargin}
+                      </Label>
+                      <Input
+                        dir="ltr"
+                        type="number"
+                        min="1"
+                        step="0.1"
+                        value={form.profitMargin}
+                        onChange={(e) => set("profitMargin", e.target.value)}
+                        className="text-end h-8"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[11px] text-muted-foreground">
+                        {t.compAutoSalePrice}
+                      </Label>
+                      <div className="h-8 flex items-center justify-end px-2 rounded-md bg-muted/50 text-xs tabular-nums">
+                        {fmt.currency(
+                          (totals.costPerUnit * (Number(form.profitMargin) || 1.5))
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    {t.compCostPerUnit}: {fmt.currency(totals.costPerUnit)} ·{" "}
+                    {t.compYieldUnit}: {form.yieldUnit || "قطعة"}
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <Combobox
+                    value={form.outputProductId}
+                    onValueChange={(v) => set("outputProductId", v)}
+                    placeholder={t.compSelectIngredient}
+                    searchPlaceholder={t.compSelectIngredient}
+                    disabled={productsLoading}
+                    options={outputProductComboboxOptions}
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    {t.compOutputProductHint}
+                  </p>
+                </>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">

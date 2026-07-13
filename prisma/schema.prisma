@@ -132,6 +132,11 @@ model Product {
   unit            String           @default("قطعة")
   unitId          String?
   imageUrl        String? // product image (local path or remote URL)
+  // True if this Product is the OUTPUT of a Composition (مُصنّع).
+  // When a Composition is created with a new output product, this flag
+  // is set to true so POS/inventory can visually distinguish manufactured
+  // items from purchased/raw materials.
+  isManufactured  Boolean          @default(false)
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 

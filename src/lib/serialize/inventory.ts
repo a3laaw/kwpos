@@ -51,6 +51,7 @@ export function serializeProduct(p: AnyRow): Product {
     unit: String(p.unit ?? "قطعة"),
     unitId: (p.unitId as string | null) ?? null,
     imageUrl: (p.imageUrl as string | null) ?? null,
+    isManufactured: Boolean((p as any).isManufactured ?? false),
     stockByWarehouse,
     createdAt: String(p.createdAt),
     updatedAt: String(p.updatedAt),
