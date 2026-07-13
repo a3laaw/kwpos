@@ -1,3 +1,4 @@
+import { requireUser, isErrorResponse } from "@/lib/auth-helpers"
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
@@ -7,6 +8,8 @@ import type { Role } from "@/lib/types"
 export const dynamic = "force-dynamic"
 
 export async function GET() {
+  const user = await requireUser()
+  if (isErrorResponse(user)) return user
   const suppliers = await db.supplier.findMany({
     orderBy: { name: "asc" },
     include: { _count: { select: { products: true, orders: true } } },

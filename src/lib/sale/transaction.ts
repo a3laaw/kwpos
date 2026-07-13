@@ -43,10 +43,19 @@ export async function executeSaleTransaction(
     const paymentAccCode = params.paymentMethod === "CASH" ? "1010" : "1020"
 
     const sale = await db.$transaction(async (tx) => {
-      // 1) Generate invoice number using PostgreSQL sequence (atomic)
-      const seqResult = await tx.$queryRaw`SELECT nextval('sale_invoice_seq') as seq`
-      const seq = Number((seqResult as any[])[0]?.seq ?? 1)
-      const invoiceNo = makeInvoiceNo(seq)
+      // 1) Generate invoice number atomically.
+      // On PostgreSQL (production), use a sequence for concurrency safety.
+      // On SQLite (tests), fall back to count()+1 (tests are single-threaded).
+      let invoiceNo: string
+      const isPostgres = !process.env.DATABASE_URL?.startsWith("file:")
+      if (isPostgres) {
+        const seqResult = await tx.$queryRaw`SELECT nextval('sale_invoice_seq') as seq`
+        const seq = Number((seqResult as any[])[0]?.seq ?? 1)
+        invoiceNo = makeInvoiceNo(seq)
+      } else {
+        const count = await tx.sale.count()
+        invoiceNo = makeInvoiceNo(count + 1)
+      }
 
       // 2) Decrement StockItem with atomic gte check (prevents race condition)
       for (const [pid, steps] of params.decrementPlan) {

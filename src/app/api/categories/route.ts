@@ -1,3 +1,4 @@
+import { requireUser, isErrorResponse } from "@/lib/auth-helpers"
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
@@ -7,6 +8,8 @@ import type { Role } from "@/lib/types"
 export const dynamic = "force-dynamic"
 
 export async function GET() {
+  const user = await requireUser()
+  if (isErrorResponse(user)) return user
   // Fetch all categories with their parent relation (for parentId in response)
   const cats = await db.category.findMany({
     orderBy: { name: "asc" },

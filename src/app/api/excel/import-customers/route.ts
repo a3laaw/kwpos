@@ -25,6 +25,16 @@ export async function POST(req: NextRequest) {
   const formData = await req.formData()
   const file = formData.get("file") as File | null
   if (!file) return NextResponse.json({ error: "no-file" }, { status: 400 })
+  
+  // Security: limit file size to 5MB and validate type
+  if (file.size > 5 * 1024 * 1024) {
+    return NextResponse.json({ error: "file-too-large" }, { status: 413 })
+  }
+  const validTypes = [".xlsx", ".xls", ".csv"]
+  const fileName = (file.name || "").toLowerCase()
+  if (!validTypes.some(ext => fileName.endsWith(ext))) {
+    return NextResponse.json({ error: "invalid-file-type" }, { status: 400 })
+  }
 
   const buf = await file.arrayBuffer()
   const wb = XLSX.read(buf, { type: "array" })
@@ -33,6 +43,9 @@ export async function POST(req: NextRequest) {
 
   if (rows.length === 0) {
     return NextResponse.json({ error: "empty-file" }, { status: 400 })
+  }
+  if (rows.length > 5000) {
+    return NextResponse.json({ error: "too-many-rows", max: 5000 }, { status: 400 })
   }
 
   let created = 0

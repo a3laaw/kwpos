@@ -1,3 +1,4 @@
+import { requireUser, isErrorResponse } from "@/lib/auth-helpers"
 import { NextRequest, NextResponse } from "next/server"
 import { getCurrentUser, hasRole } from "@/lib/session"
 import { serializeSale } from "@/lib/serialize"
@@ -17,6 +18,8 @@ export const dynamic = "force-dynamic"
 
 /** GET /api/sales — list sales with pagination + search. */
 export async function GET(req: NextRequest) {
+  const user = await requireUser()
+  if (isErrorResponse(user)) return user
   const { searchParams } = new URL(req.url)
   const q = searchParams.get("q")?.trim() || ""
   const page = Math.max(1, Number(searchParams.get("page")) || 1)

@@ -1,3 +1,4 @@
+import { requireUser, isErrorResponse } from "@/lib/auth-helpers"
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
@@ -62,6 +63,8 @@ function serializePayment(p: any) {
  * List all supplier payments (newest first), with supplier + createdBy.
  */
 export async function GET(req: NextRequest) {
+  const user = await requireUser()
+  if (isErrorResponse(user)) return user
   const { searchParams } = new URL(req.url)
   const supplierId = searchParams.get("supplierId") || undefined
 

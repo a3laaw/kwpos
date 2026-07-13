@@ -1,96 +1,154 @@
-<div dir="rtl">
+# دليل النشر — KWPOS على Supabase + Vercel
 
-# 🚀 دليل النشر على Vercel
+## المتطلبات
 
-## المشكلة
-البيئة الحالية (sandbox) تقتل خادم التطوير بعد فترة قصيرة. الحل الدائم هو نشر المشروع على **Vercel** (مجاني) مع قاعدة بيانات **Turso** (SQLite متوافق مع serverless، مجاني).
-
----
-
-## الخطوة 1: إنشاء قاعدة بيانات Turso (مجاناً)
-
-1. اذهب إلى **https://turso.tech** → Sign up (بGitHub أو Google)
-2. بعد تسجيل الدخول، اضغط **New Database**
-3. اختر اسم: `kwpos`
-4. اختر أقرب منطقة (Frankfurt أو Bahrain)
-5. بعد الإنشاء، اذهب لـ **Settings → Tokens** → أنشئ token جديداً
-6. احفظ هاتين القيمتين:
-   - **Database URL**: مثل `libsql://kwpos-xxx.turso.io`
-   - **Auth Token**: مثل `eyJhbGciOi...`
+- حساب [Supabase](https://supabase.com)
+- حساب [Vercel](https://vercel.com)
+- مستودع GitHub: `https://github.com/a3laaw/kwpos.git`
 
 ---
 
-## الخطوة 2: تحديث Prisma لـ Turso
+## 1. إنشاء مشروع Supabase
 
-على جهازك المحلي (أو هنا)، عدّل `prisma/schema.prisma` — أضف في الأعلى:
-
-```prisma
-generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["driverAdapters"]
-}
-
-datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
-}
-```
-
-ثم شغّل:
-```bash
-# محلياً مع Turso
-DATABASE_URL="libsql://kwpos-xxx.turso.io?authToken=eyJ..." bun run db:push
-```
+1. اذهب إلى [Supabase Dashboard](https://app.supabase.com) → New Project
+2. اختر اسماً وكلمة مرور قوية لقاعدة البيانات
+3. احفظ كلمة المرور — لن تظهر مرة أخرى
+4. انتظر حتى يصبح المشروع جاهزاً
 
 ---
 
-## الخطوة 3: نشر على Vercel
+## 2. الحصول على روابط الاتصال
 
-1. اذهب إلى **https://vercel.com** → Sign up بـ GitHub
-2. اضغط **New Project**
-3. اختر مستودع `a3laaw/kwpos`
-4. في إعدادات Environment Variables، أضف:
+في Supabase Dashboard → Project Settings → Database:
 
-| المتغير | القيمة |
-|---|---|
-| `DATABASE_URL` | `libsql://kwpos-xxx.turso.io` |
-| `TURSO_DATABASE_URL` | `libsql://kwpos-xxx.turso.io` |
-| `TURSO_AUTH_TOKEN` | `eyJhbGciOi...` |
-| `NEXTAUTH_SECRET` | (ولّده بـ `openssl rand -base64 32`) |
-| `NEXTAUTH_URL` | `https://kwpos.vercel.app` (رابط المشروع بعد النشر) |
+### Pooled Connection (للاستخدام العادي)
+```
+postgresql://postgres.[PROJECT_REF]:[PASSWORD]@aws-[REGION].pooler.supabase.com:6543/postgres?pgbouncer=true
+```
 
-5. اضغط **Deploy**
-6. انتظر ~2 دقيقة حتى يكتمل النشر
+### Direct Connection (للـ migrations والمعاملات)
+```
+postgresql://postgres.[PROJECT_REF]:[PASSWORD]@aws-[REGION].pooler.supabase.com:5432/postgres
+```
+
+> **مهم:** التطبيق يستخدم `DIRECT_DATABASE_URL` (port 5432) في وقت التشغيل
+> لأنه يدعم المعاملات التفاعلية (interactive transactions). الكود يضيف
+> `connection_limit=1` تلقائياً لمنع نفاد الاتصالات.
 
 ---
 
-## الخطوة 4: تهيئة البيانات التجريبية
+## 3. إعداد متغيرات البيئة في Vercel
 
-بعد النشر، افتح رابط المشروع + `/api/seed`:
-```
-https://kwpos.vercel.app/api/seed
-```
+اذهب إلى Vercel → مشروعك → Settings → Environment Variables:
 
-أو استخدم curl:
-```bash
-curl -X POST https://kwpos.vercel.app/api/seed -H "Content-Type: application/json" -d '{"reset": true}'
-```
-
----
-
-## الخطوة 5: تسجيل الدخول
-
-| الدور | البريد | كلمة المرور |
+| المتغير | القيمة | ملاحظة |
 |---|---|---|
-| مدير النظام | admin@demo.com | (يُعين أثناء الإعداد) |
-| موظف مبيعات | sales@demo.com | (يُعين أثناء الإعداد) |
-| أمين مخزن | warehouse@demo.com | (يُعين أثناء الإعداد) |
+| `DATABASE_URL` | `postgresql://...supabase.co:6543/postgres?pgbouncer=true` | للـ migrations |
+| `DIRECT_DATABASE_URL` | `postgresql://...supabase.co:5432/postgres` | للتطبيق (runtime) |
+| `NEXTAUTH_URL` | `https://your-app.vercel.app` | رابط التطبيق |
+| `NEXTAUTH_SECRET` | `openssl rand -base64 32` | سر عشوائي قوي |
+| `AUDIT_INTERNAL_SECRET` | `openssl rand -base64 32` | سر عشوائي قوي |
+
+> **تحذير:** لا تستخدم `db push` على الإنتاج. استخدم `prisma migrate deploy` فقط.
 
 ---
 
-## ✅ النتيجة
-- المشروع يعمل 24/7 بدون توقف
-- رابط عام: `https://kwpos.vercel.app`
-- قاعدة بيانات سحابية دائمة
+## 4. تطبيق Migrations
 
-</div>
+```bash
+# استنساخ المشروع
+git clone https://github.com/a3laaw/kwpos.git
+cd kwpos
+npm install
+
+# تعيين متغيرات البيئة محلياً
+export DATABASE_URL="postgresql://...supabase.co:6543/postgres?pgbouncer=true"
+export DIRECT_DATABASE_URL="postgresql://...supabase.co:5432/postgres"
+
+# تطبيق migrations
+npx prisma migrate deploy
+
+# توليد Prisma client
+npx prisma generate
+```
+
+---
+
+## 5. Seed آمن
+
+بعد تطبيق migrations، يمكن إنشاء بيانات أولية:
+
+```bash
+# تعيين كلمات مرور آمنة عبر environment
+export SEED_ADMIN_PASSWORD="YourStrongPassword"
+export SEED_SALES_PASSWORD="YourStrongPassword"
+
+# شغل seed عبر API (يتطلب صلاحية ADMIN)
+curl -X POST https://your-app.vercel.app/api/seed \
+  -H "Content-Type: application/json" \
+  -d '{"reset": true}'
+```
+
+> **تحذير:** الـ seed يحذف كل البيانات الموجودة. لا تستخدمه على نظام فيه بيانات حقيقية.
+
+---
+
+## 6. النشر على Vercel
+
+1. اذهب إلى [Vercel Dashboard](https://vercel.com/dashboard)
+2. Import Project → اختر مستودع `kwpos`
+3. تأكد من أن Environment Variables مضبوطة (الخطوة 3)
+4. اضغط Deploy
+5. انتظر حتى يكتمل البناء (✅ Ready)
+
+---
+
+## 7. Smoke Tests بعد النشر
+
+### بدون تسجيل دخول:
+```bash
+curl https://your-app.vercel.app/api/sales      # يجب أن يرجع 401
+curl https://your-app.vercel.app/api/products   # يجب أن يرجع 401
+curl https://your-app.vercel.app/api/settings   # يجب أن يرجع 401
+```
+
+### بعد تسجيل الدخول:
+1. افتح رابط التطبيق
+2. سجل دخول كمدير النظام
+3. جرّب: POS → بيع منتج → تحقق من الفاتورة
+4. جرّب: المخازن → إضافة منتج → تحقق
+5. جرّب: الإعدادات → التصنيفات → إضافة تصنيف
+
+---
+
+## 8. مراقبة اتصالات Supabase
+
+Vercel serverless يفتح اتصالات لكل function instance. لمراقبة:
+
+1. Supabase Dashboard → Database → Connections
+2. يجب أن تكون الاتصالات < 15 (حد Supabase المجاني)
+3. الكود يضيف `connection_limit=1` تلقائياً
+4. إذا زادت الاتصالات، أعد نشر التطبيق (Vercel يعيد تدوير instances)
+
+---
+
+## 9. خطة التراجع (Rollback)
+
+### إذا فشل النشر:
+1. Vercel → Deployments → اختر آخر deployment ناجح
+2. اضغط ⋯ → Redeploy
+
+### إذا فشلت migrations:
+1. Supabase Dashboard → Database → SQL Editor
+2. شغّل migration عكسي (إذا متوفر)
+3. أو استرجع backup (Supabase → Database → Backups)
+
+---
+
+## 10. تحذيرات مهمة
+
+- ❌ **لا تستخدم `db push`** على الإنتاج — استخدم `migrate deploy` فقط
+- ❌ **لا تضع أسراراً في الكود** — استخدم Environment Variables
+- ❌ **لا تعتمد على fire-and-forget** للعمليات المالية على Vercel
+- ✅ **اربط Supabase بـ Vercel** عبر Environment Variables فقط
+- ✅ **راقب الاتصالات** بانتظام على Supabase Dashboard

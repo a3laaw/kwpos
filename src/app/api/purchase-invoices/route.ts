@@ -1,3 +1,4 @@
+import { requireUser, isErrorResponse } from "@/lib/auth-helpers"
 import { NextRequest, NextResponse } from "next/server"
 import { db, updateProductQuantityFromStockItems } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
@@ -62,6 +63,8 @@ function serializeInvoice(inv: any) {
  * List all purchase invoices (newest first), with supplier + warehouse + items.product.
  */
 export async function GET() {
+  const user = await requireUser()
+  if (isErrorResponse(user)) return user
   const invoices = await db.purchaseInvoice.findMany({
     include: {
       supplier: true,

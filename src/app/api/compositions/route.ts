@@ -1,3 +1,4 @@
+import { requireUser, isErrorResponse } from "@/lib/auth-helpers"
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
@@ -21,6 +22,8 @@ export const dynamic = "force-dynamic"
  * No auth required — SALES staff may need to read compositions in POS.
  */
 export async function GET(req: NextRequest) {
+  const user = await requireUser()
+  if (isErrorResponse(user)) return user
   const { searchParams } = new URL(req.url)
   const q = searchParams.get("q")?.trim() || undefined
   const active = searchParams.get("active")
