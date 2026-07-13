@@ -32,7 +32,7 @@ import {
   Calculator,
 } from "lucide-react"
 import { ImageUpload } from "@/components/shared/image-upload"
-import { useProducts } from "@/hooks/use-api"
+import { useProducts, useUnits } from "@/hooks/use-api"
 import {
   useCreateComposition,
   useUpdateComposition,
@@ -106,6 +106,9 @@ export function CompositionFormDialog({
     productSearch ? { q: productSearch } : undefined
   )
   const productOptions = productsData?.items ?? []
+  // Load units from Settings → Units (like the product form does).
+  const { data: unitsData } = useUnits()
+  const units = unitsData?.items ?? []
 
   // Combobox options for the output product selector — excludes products
   // already added as ingredients.
@@ -402,6 +405,9 @@ export function CompositionFormDialog({
                     {t.compCostPerUnit}: {fmt.currency(totals.costPerUnit)} ·{" "}
                     {t.compYieldUnit}: {form.yieldUnit || "قطعة"}
                   </p>
+                  <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
+                    {t.compStartsWithZeroStock}
+                  </p>
                 </div>
               ) : (
                 <>
@@ -436,12 +442,27 @@ export function CompositionFormDialog({
               </div>
               <div className="space-y-2">
                 <Label htmlFor="c-unit">{t.compYieldUnit}</Label>
-                <Input
-                  id="c-unit"
-                  value={form.yieldUnit}
-                  onChange={(e) => set("yieldUnit", e.target.value)}
-                  placeholder="قطعة"
-                />
+                <Select value={form.yieldUnit} onValueChange={(v) => set("yieldUnit", v)}>
+                  <SelectTrigger id="c-unit">
+                    <SelectValue placeholder={t.selectUnit} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {units.length === 0 ? (
+                      <>
+                        {/* Fallback to common defaults if no units defined yet */}
+                        <SelectItem value="قطعة">قطعة</SelectItem>
+                        <SelectItem value="جرام">جرام</SelectItem>
+                        <SelectItem value="كيلو">كيلو</SelectItem>
+                        <SelectItem value="مل">مل</SelectItem>
+                        <SelectItem value="لتر">لتر</SelectItem>
+                      </>
+                    ) : (
+                      units.map((u) => (
+                        <SelectItem key={u.id} value={u.name}>{u.name}</SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>
@@ -594,11 +615,17 @@ export function CompositionFormDialog({
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              {DEFAULT_UNITS.map((u) => (
-                                <SelectItem key={u} value={u}>
-                                  {u}
-                                </SelectItem>
-                              ))}
+                              {units.length === 0
+                                ? DEFAULT_UNITS.map((u) => (
+                                    <SelectItem key={u} value={u}>
+                                      {u}
+                                    </SelectItem>
+                                  ))
+                                : units.map((u) => (
+                                    <SelectItem key={u.id} value={u.name}>
+                                      {u.name}
+                                    </SelectItem>
+                                  ))}
                             </SelectContent>
                           </Select>
                         </div>
