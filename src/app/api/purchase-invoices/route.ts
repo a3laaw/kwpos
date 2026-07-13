@@ -2,8 +2,8 @@ import { requireUser, isErrorResponse } from "@/lib/auth-helpers"
 import { NextRequest, NextResponse } from "next/server"
 import { db, updateProductQuantityFromStockItems } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
-import { createJournalEntry } from "@/lib/journal"
 import { logAuditEvent } from "@/lib/audit"
+import { ensurePurchaseAccounts, createPurchaseInvoiceJournalEntry } from "@/lib/purchase"
 import type { Role } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
@@ -119,7 +119,14 @@ export async function POST(req: NextRequest) {
     note,
     items,
     post,
+    paymentMethod,
   } = body || {}
+
+  // Normalize payment method — default CASH per the owner's decision
+  const normalizedPaymentMethod =
+    paymentMethod === "BANK" ? "BANK"
+    : paymentMethod === "CREDIT" ? "CREDIT"
+    : "CASH"
 
   if (!supplierId) {
     return NextResponse.json({ error: "supplier-required" }, { status: 400 })
@@ -206,6 +213,7 @@ export async function POST(req: NextRequest) {
         customs: customsNum,
         otherCharges: otherNum,
         total,
+        paymentMethod: normalizedPaymentMethod,
         note: note ? String(note).trim() : null,
         createdById: user.id,
         items: { create: itemsData },
@@ -258,31 +266,9 @@ export async function POST(req: NextRequest) {
         })
       }
 
-      // ── Journal entry (inside tx — atomic) ──
-      // If the journal entry fails, the entire invoice creation rolls back.
-      try {
-        journalEntryId = await createJournalEntry({
-          sourceType: "PURCHASE",
-          sourceId: inv.id,
-          description: `قيد فاتورة مشتريات ${inv.invoiceNo} — ${supplier.name}`,
-          date: invoiceDateVal,
-          lines: [
-            // Debit Inventory (asset increases)
-            { accountCode: "1010", debit: total, description: `فاتورة مشتريات ${inv.invoiceNo}` },
-            // Credit Accounts Payable (liability increases)
-            { accountCode: "2010", credit: total, description: `ذمم دائنة — ${supplier.name}` },
-          ],
-          tx,
-        })
-        if (journalEntryId) {
-          await tx.purchaseInvoice.update({
-            where: { id: inv.id },
-            data: { journalEntryId },
-          })
-        }
-      } catch (e: any) {
-        throw new Error(`فشل تسجيل القيد المحاسبي / Journal entry failed: ${e?.message ?? e}`)
-      }
+      // NOTE: Journal entry + AuditLog are now post-commit (see below).
+      // This keeps the transaction short (stock + invoice only) to avoid
+      // PgBouncer "Transaction not found" errors on Supabase.
 
       // ── Audit log (inside tx — atomic) ──
       await logAuditEvent({
@@ -300,11 +286,11 @@ export async function POST(req: NextRequest) {
     maxWait: 5000,
   }).catch((e: any) => ({ __error: e?.message || "purchase-invoice-failed" }))
 
-  // Post-commit: sync Product.quantity OUTSIDE the transaction.
-  // This is a derived value (SUM of StockItem.quantity). Running it
-  // post-commit makes the transaction shorter and more resilient to
-  // PgBouncer connection issues on Supabase.
+  // ── Post-commit side effects (non-fatal) ────────────────────────────
   if (wantPost && created && !(created as any).__error) {
+    const inv = created as any
+
+    // Sync Product.quantity (derived aggregate)
     try {
       const pids = Array.from(new Set(itemsData.map((it: any) => it.productId)))
       for (const pid of pids) {
@@ -312,6 +298,30 @@ export async function POST(req: NextRequest) {
       }
     } catch {
       // Non-fatal: invoice is committed, StockItem is correct.
+    }
+
+    // Create journal entry (capital-based: fees → inventory value, tax → 2110)
+    try {
+      await ensurePurchaseAccounts()
+      await createPurchaseInvoiceJournalEntry({
+        invoiceNo: inv.invoiceNo,
+        invoiceId: inv.id,
+        supplierName: supplier.name,
+        subtotal,
+        taxAmount,
+        discount: discountNum,
+        shipping: shippingNum,
+        customs: customsNum,
+        otherCharges: otherNum,
+        total,
+        paymentMethod: normalizedPaymentMethod,
+        date: invoiceDateVal,
+      })
+    } catch (e: any) {
+      console.error(
+        `[purchase-invoice] JournalEntry FAILED for ${inv.invoiceNo}. ` +
+        `Invoice is committed but accounting has a gap. Error: ${e?.message ?? e}`
+      )
     }
   }
 

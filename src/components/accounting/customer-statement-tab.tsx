@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Combobox, type ComboboxOption } from "@/components/ui/combobox"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { TableSkeleton } from "@/components/shared/loading-state"
@@ -32,6 +32,12 @@ export function CustomerStatementTab() {
     to || undefined
   )
 
+  // Combobox options for the customer selector (potentially large list).
+  const customerComboboxOptions = React.useMemo<ComboboxOption[]>(
+    () => customers.map((c) => ({ value: c.id, label: c.name })),
+    [customers]
+  )
+
   // Export rows (only meaningful when a customer is selected and data loaded)
   const exportHeaders = [t.statementDate, t.statementType, t.statementReference, t.statementDebit, t.statementCredit, t.statementBalance]
   const exportRows: any[][] = (data?.transactions ?? []).map((tx) => [
@@ -49,12 +55,14 @@ export function CustomerStatementTab() {
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 flex-1">
           <div className="space-y-1 col-span-2 sm:col-span-1">
             <Label className="text-xs">{t.accCustomerStatement}</Label>
-            <Select value={customerId} onValueChange={setCustomerId}>
-              <SelectTrigger className="h-9"><SelectValue placeholder="—" /></SelectTrigger>
-              <SelectContent>
-                {customers.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <Combobox
+              value={customerId}
+              onValueChange={setCustomerId}
+              placeholder="—"
+              searchPlaceholder="—"
+              className="h-9"
+              options={customerComboboxOptions}
+            />
           </div>
           <div className="space-y-1">
             <Label className="text-xs">{t.statementFrom}</Label>

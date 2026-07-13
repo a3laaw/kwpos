@@ -761,6 +761,10 @@ model PurchaseInvoice {
   customs         Float    @default(0)
   otherCharges    Float    @default(0)
   total           Float    @default(0)
+  // Payment method for this invoice. CASH | BANK | CREDIT (آجل).
+  // Determines which account is credited in the journal entry:
+  //   CASH → 1010 (النقدية), BANK → 1020 (البنك), CREDIT → 2010 (ذمم دائنة)
+  paymentMethod   String   @default("CASH")
   note            String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt

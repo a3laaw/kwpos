@@ -13,13 +13,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { Combobox, type ComboboxOption } from "@/components/ui/combobox"
 import { Separator } from "@/components/ui/separator"
 import { Plus, Trash2, Loader2, BookCopy } from "lucide-react"
 import { useAccounts, useCreateManualJournal } from "@/hooks/use-api"
@@ -56,6 +50,17 @@ export function ManualJournalDialog({
   ])
 
   const accounts = (accountsData?.flat ?? []).filter((a) => a.code !== "1000" && a.code !== "2000" && a.code !== "3000" && a.code !== "4000" && a.code !== "5000")
+
+  // Combobox options for the account selector (potentially large list).
+  // Each label embeds `code — name` so the built-in search matches both.
+  const accountComboboxOptions = React.useMemo<ComboboxOption[]>(
+    () =>
+      accounts.map((a) => ({
+        value: a.code,
+        label: `${a.code} — ${a.name}`,
+      })),
+    [accounts]
+  )
 
   React.useEffect(() => {
     if (open) {
@@ -151,16 +156,14 @@ export function ManualJournalDialog({
               {lines.map((l) => (
                 <div key={l.key} className="grid grid-cols-12 gap-2 items-center rounded-lg border border-border/60 bg-muted/20 p-2">
                   <div className="col-span-12 sm:col-span-5">
-                    <Select value={l.accountCode} onValueChange={(v) => updateLine(l.key, { accountCode: v })}>
-                      <SelectTrigger className="h-9"><SelectValue placeholder={t.accSelectAccount} /></SelectTrigger>
-                      <SelectContent>
-                        {accounts.map((a) => (
-                          <SelectItem key={a.id} value={a.code}>
-                            <span className="font-mono text-xs" dir="ltr">{a.code}</span> — {a.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Combobox
+                      value={l.accountCode}
+                      onValueChange={(v) => updateLine(l.key, { accountCode: v })}
+                      placeholder={t.accSelectAccount}
+                      searchPlaceholder={t.accSelectAccount}
+                      className="h-9"
+                      options={accountComboboxOptions}
+                    />
                   </div>
                   <div className="col-span-4 sm:col-span-2">
                     <Input type="number" min={0} step="0.001" placeholder={t.accDebit} value={l.debit} onChange={(e) => updateLine(l.key, { debit: e.target.value })} className="h-9 tabular-nums" />

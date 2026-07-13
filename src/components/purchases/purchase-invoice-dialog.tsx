@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Combobox, type ComboboxOption } from "@/components/ui/combobox"
 import { Separator } from "@/components/ui/separator"
 import {
   Collapsible,
@@ -108,6 +109,7 @@ export function PurchaseInvoiceDialog({
   const [shipping, setShipping] = React.useState("")
   const [customs, setCustoms] = React.useState("")
   const [other, setOther] = React.useState("")
+  const [paymentMethod, setPaymentMethod] = React.useState<"CASH" | "BANK" | "CREDIT">("CASH")
   const [note, setNote] = React.useState("")
   const [items, setItems] = React.useState<LineItem[]>([
     { key: makeKey(), productId: "", quantity: "1", unitCost: "0" },
@@ -139,6 +141,7 @@ export function PurchaseInvoiceDialog({
     setShipping("")
     setCustoms("")
     setOther("")
+    setPaymentMethod("CASH")
     setNote("")
     setItems([{ key: makeKey(), productId: "", quantity: "1", unitCost: "0" }])
     setExtraOpen(false)
@@ -258,6 +261,26 @@ export function PurchaseInvoiceDialog({
       selectedProductIds.has(p.id)
   )
 
+  // Pre-compute Combobox option lists (high-volume selectors).
+  const supplierOptions = React.useMemo<ComboboxOption[]>(
+    () => suppliers.map((s) => ({ value: s.id, label: s.name })),
+    [suppliers]
+  )
+  const productOptions = React.useMemo<ComboboxOption[]>(
+    () => filteredProducts.map((p) => ({ value: p.id, label: p.name })),
+    [filteredProducts]
+  )
+  const poOptions = React.useMemo<ComboboxOption[]>(
+    () => [
+      { value: "none", label: t.piNoPO },
+      ...linkablePOs.map((p) => ({
+        value: p.id,
+        label: `PO-${p.id.slice(-6).toUpperCase()} — ${p.supplierName}`,
+      })),
+    ],
+    [linkablePOs, t.piNoPO]
+  )
+
   const validItems = items.filter(
     (it) => it.productId && Number(it.quantity) > 0
   )
@@ -282,6 +305,7 @@ export function PurchaseInvoiceDialog({
       customs: customsNum,
       otherCharges: otherNum,
       note: note.trim() || null,
+      paymentMethod,
       items: validItems.map((it) => ({
         productId: it.productId,
         purchaseOrderItemId: it.purchaseOrderItemId ?? null,
@@ -350,18 +374,13 @@ export function PurchaseInvoiceDialog({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>{t.supplier} *</Label>
-                <Select value={supplierId} onValueChange={setSupplierId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={t.piSelectSupplier} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {suppliers.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>
-                        {s.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Combobox
+                  value={supplierId}
+                  onValueChange={setSupplierId}
+                  placeholder={t.piSelectSupplier}
+                  searchPlaceholder={t.piSelectSupplier}
+                  options={supplierOptions}
+                />
               </div>
               <div className="space-y-2">
                 <Label>{t.piSelectWarehouse}</Label>
@@ -381,19 +400,14 @@ export function PurchaseInvoiceDialog({
               <div className="space-y-2">
                 <Label>{t.piSelectPO}</Label>
                 <div className="flex gap-2">
-                  <Select value={purchaseOrderId} onValueChange={setPurchaseOrderId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={t.piNoPO} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">{t.piNoPO}</SelectItem>
-                      {linkablePOs.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {`PO-${p.id.slice(-6).toUpperCase()} — ${p.supplierName}`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Combobox
+                    value={purchaseOrderId}
+                    onValueChange={setPurchaseOrderId}
+                    placeholder={t.piNoPO}
+                    searchPlaceholder={t.piNoPO}
+                    className="flex-1"
+                    options={poOptions}
+                  />
                   <Button
                     type="button"
                     variant="outline"
@@ -464,21 +478,14 @@ export function PurchaseInvoiceDialog({
                           <Label className="text-xs text-muted-foreground">
                             {t.product}
                           </Label>
-                          <Select
+                          <Combobox
                             value={it.productId}
                             onValueChange={(v) => selectProduct(it.key, v)}
-                          >
-                            <SelectTrigger className="h-9">
-                              <SelectValue placeholder={t.selectProduct} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {filteredProducts.map((p) => (
-                                <SelectItem key={p.id} value={p.id}>
-                                  {p.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                            placeholder={t.selectProduct}
+                            searchPlaceholder={t.selectProduct}
+                            className="h-9"
+                            options={productOptions}
+                          />
                         </div>
                         <div className="col-span-4 sm:col-span-2 space-y-1">
                           <Label className="text-xs text-muted-foreground">
@@ -613,6 +620,24 @@ export function PurchaseInvoiceDialog({
                 </div>
               </CollapsibleContent>
             </Collapsible>
+
+            {/* Payment Method — determines the credit account in the journal:
+                CASH → 1010, BANK → 1020, CREDIT → 2010 (آجل) */}
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">
+                {t.piPaymentMethod}
+              </Label>
+              <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as "CASH" | "BANK" | "CREDIT")}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="CASH">{t.piPaymentCash}</SelectItem>
+                  <SelectItem value="BANK">{t.piPaymentBank}</SelectItem>
+                  <SelectItem value="CREDIT">{t.piPaymentCredit}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">

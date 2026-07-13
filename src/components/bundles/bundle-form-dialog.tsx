@@ -15,13 +15,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { Combobox, type ComboboxOption } from "@/components/ui/combobox"
 import { Loader2, Plus, Trash2, Package, TrendingDown, TrendingUp, Percent } from "lucide-react"
 import { ImageUpload } from "@/components/shared/image-upload"
 import { useProducts } from "@/hooks/use-api"
@@ -98,6 +92,19 @@ export function BundleFormDialog({ open, onOpenChange, bundle }: BundleFormDialo
     productSearch ? { q: productSearch } : undefined
   )
   const productOptions = productsData?.items ?? []
+
+  // Combobox options for the bundle-item product selector — excludes
+  // products already added as bundle items.
+  const bundleProductComboboxOptions = React.useMemo<ComboboxOption[]>(
+    () =>
+      productOptions
+        .filter((p) => !items.some((it) => it.productId === p.id))
+        .map((p) => ({
+          value: p.id,
+          label: `${p.name} (${fmt.currency(p.salePrice)})`,
+        })),
+    [productOptions, items, fmt]
+  )
 
   // Hydrate the form when opening / when the target bundle changes.
   React.useEffect(() => {
@@ -345,36 +352,15 @@ export function BundleFormDialog({ open, onOpenChange, bundle }: BundleFormDialo
                 placeholder={t.bundleSearchPlaceholder}
                 className="sm:max-w-[40%]"
               />
-              <Select
+              <Combobox
                 value={selectedProductId}
                 onValueChange={(v) => setSelectedProductId(v)}
-              >
-                <SelectTrigger className="flex-1">
-                  <SelectValue placeholder={t.bundleSelectProduct} />
-                </SelectTrigger>
-                <SelectContent>
-                  {productsLoading ? (
-                    <SelectItem value="__loading" disabled>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    </SelectItem>
-                  ) : productOptions.length === 0 ? (
-                    <SelectItem value="__empty" disabled>
-                      {t.bundleNoBundles}
-                    </SelectItem>
-                  ) : (
-                    productOptions
-                      .filter((p) => !items.some((it) => it.productId === p.id))
-                      .map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          <span className="truncate">{p.name}</span>
-                          <span className="text-xs text-muted-foreground ms-1">
-                            ({fmt.currency(p.salePrice)})
-                          </span>
-                        </SelectItem>
-                      ))
-                  )}
-                </SelectContent>
-              </Select>
+                placeholder={t.bundleSelectProduct}
+                searchPlaceholder={t.bundleSelectProduct}
+                disabled={productsLoading}
+                className="flex-1"
+                options={bundleProductComboboxOptions}
+              />
               <Button
                 type="button"
                 variant="secondary"

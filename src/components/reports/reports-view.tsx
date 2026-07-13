@@ -32,6 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Combobox, type ComboboxOption } from "@/components/ui/combobox"
 import {
   FileBarChart,
   Filter,
@@ -152,6 +153,15 @@ function GeneralReports() {
   const byPayment: { method: string; count: number; revenue: number }[] =
     data?.byPayment ?? []
 
+  // Combobox options for the product filter (potentially large list).
+  const productComboboxOptions = React.useMemo<ComboboxOption[]>(
+    () => [
+      { value: "all", label: t.allProducts },
+      ...products.map((p) => ({ value: p.id, label: p.name })),
+    ],
+    [products, t.allProducts]
+  )
+
   return (
     <div className="space-y-5">
       {/* Filters card */}
@@ -194,13 +204,14 @@ function GeneralReports() {
             </div>
             <div className="space-y-1">
               <Label className="text-xs">{t.product}</Label>
-              <Select value={productId} onValueChange={(v) => setProductId(v === "all" ? "" : v)}>
-                <SelectTrigger className="h-9"><SelectValue placeholder={t.all} /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t.allProducts}</SelectItem>
-                  {products.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Combobox
+                value={productId || "all"}
+                onValueChange={(v) => setProductId(v === "all" ? "" : v)}
+                placeholder={t.all}
+                searchPlaceholder={t.all}
+                className="h-9"
+                options={productComboboxOptions}
+              />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">{t.paymentMethod}</Label>

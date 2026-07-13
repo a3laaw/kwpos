@@ -9,13 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { Combobox, type ComboboxOption } from "@/components/ui/combobox"
 import {
   ClipboardCheck,
   ScanLine,
@@ -57,6 +51,19 @@ export function SpotCheckView() {
       (p) => p.name.toLowerCase().includes(q) || (p.barcode || "").toLowerCase().includes(q)
     )
   }, [products, search])
+
+  // Combobox options for the spot-check product selector — name + barcode
+  // so the built-in search matches both.
+  const productComboboxOptions = React.useMemo<ComboboxOption[]>(
+    () =>
+      filteredProducts.map((p) => ({
+        value: p.id,
+        label: p.barcode
+          ? `${p.name} — ${p.barcode}`
+          : p.name,
+      })),
+    [filteredProducts]
+  )
 
   function handleSubmit() {
     if (!selectedProductId) return
@@ -114,20 +121,14 @@ export function SpotCheckView() {
             {/* Product selector — NO book qty shown */}
             <div className="space-y-1.5">
               <Label className="text-xs">{t.spcItemToCount}</Label>
-              <Select value={selectedProductId} onValueChange={setSelectedProductId}>
-                <SelectTrigger className="h-10"><SelectValue placeholder={t.spcSelectItemPlaceholder} /></SelectTrigger>
-                <SelectContent className="max-h-72">
-                  {filteredProducts.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      <span className="flex items-center gap-2">
-                        <Package className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span>{p.name}</span>
-                        {p.barcode ? <span className="text-[10px] text-muted-foreground font-mono" dir="ltr">{p.barcode}</span> : null}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Combobox
+                value={selectedProductId}
+                onValueChange={setSelectedProductId}
+                placeholder={t.spcSelectItemPlaceholder}
+                searchPlaceholder={t.spcSelectItemPlaceholder}
+                className="h-10"
+                options={productComboboxOptions}
+              />
               <p className="text-[10px] text-muted-foreground">
                 ⓘ {t.spcBookQtyHiddenHint}
               </p>

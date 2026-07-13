@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Combobox, type ComboboxOption } from "@/components/ui/combobox"
 import {
   Table,
   TableBody,
@@ -99,6 +100,12 @@ export function StockMovementReport() {
   const products = productsData?.items ?? []
   const { data: warehousesData } = useWarehouses()
   const warehouses = warehousesData?.items ?? []
+
+  // Combobox options for the product filter (potentially large list).
+  const productComboboxOptions = React.useMemo<ComboboxOption[]>(
+    () => products.map((p) => ({ value: p.id, label: p.name })),
+    [products]
+  )
 
   // Defer the query until the user has selected at least one filter — the
   // unfiltered result set can be huge on a busy store, so we require an
@@ -189,12 +196,14 @@ export function StockMovementReport() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             <div className="space-y-1 col-span-2 lg:col-span-1">
               <Label className="text-xs">{t.product}</Label>
-              <Select value={productId} onValueChange={setProductId}>
-                <SelectTrigger className="h-9"><SelectValue placeholder={t.movementTypeAll} /></SelectTrigger>
-                <SelectContent>
-                  {products.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Combobox
+                value={productId}
+                onValueChange={setProductId}
+                placeholder={t.movementTypeAll}
+                searchPlaceholder={t.movementTypeAll}
+                className="h-9"
+                options={productComboboxOptions}
+              />
             </div>
             <div className="space-y-1 col-span-2 lg:col-span-1">
               <Label className="text-xs">{t.stockTakeWarehouse}</Label>

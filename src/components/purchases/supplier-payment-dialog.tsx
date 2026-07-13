@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Combobox, type ComboboxOption } from "@/components/ui/combobox"
 import { Loader2, Wallet } from "lucide-react"
 import { useT } from "@/components/i18n-context"
 import { useFmt } from "@/components/currency-context"
@@ -75,6 +76,12 @@ export function SupplierPaymentDialog({
   const balanceMap = new Map(balances.map((b) => [b.supplierId, b.balance]))
   const currentBalance = selectedSupplier ? balanceMap.get(selectedSupplier) ?? 0 : 0
 
+  // Combobox options for the supplier selector (potentially large list).
+  const supplierComboboxOptions = React.useMemo<ComboboxOption[]>(
+    () => suppliers.map((s) => ({ value: s.id, label: s.name })),
+    [suppliers]
+  )
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!selectedSupplier) {
@@ -120,22 +127,14 @@ export function SupplierPaymentDialog({
           {/* Supplier */}
           <div className="space-y-2">
             <Label>{t.colSupplier}</Label>
-            <Select
+            <Combobox
               value={selectedSupplier}
               onValueChange={setSelectedSupplier}
+              placeholder="—"
+              searchPlaceholder="—"
               disabled={!!supplierId}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="—" />
-              </SelectTrigger>
-              <SelectContent>
-                {suppliers.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>
-                    {s.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              options={supplierComboboxOptions}
+            />
             {selectedSupplier ? (
               <div className="flex items-center justify-between rounded-lg bg-muted/60 px-3 py-2 text-sm">
                 <span className="text-muted-foreground">{t.supplierBalance}</span>

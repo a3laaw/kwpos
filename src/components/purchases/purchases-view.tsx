@@ -38,6 +38,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Combobox, type ComboboxOption } from "@/components/ui/combobox"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -127,6 +128,13 @@ export function PurchasesView() {
   const isAdmin = user.role === "ADMIN"
   const orders = data?.items ?? []
   const suppliers = sups?.items ?? []
+
+  // Combobox options for the auto-draft supplier selector (potentially
+  // large list).
+  const autoDraftSupplierOptions = React.useMemo<ComboboxOption[]>(
+    () => suppliers.map((s) => ({ value: s.id, label: s.name })),
+    [suppliers]
+  )
 
   function poLabel(po: PurchaseOrder): string {
     return `PO-${(po.id || "").slice(-6).toUpperCase()}`
@@ -574,18 +582,13 @@ export function PurchasesView() {
           </DialogHeader>
           <div className="space-y-2">
             <Label>{t.supplier} *</Label>
-            <Select value={autoDraftSupplier} onValueChange={setAutoDraftSupplier}>
-              <SelectTrigger>
-                <SelectValue placeholder={t.selectSupplier} />
-              </SelectTrigger>
-              <SelectContent>
-                {suppliers.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>
-                    {s.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Combobox
+              value={autoDraftSupplier}
+              onValueChange={setAutoDraftSupplier}
+              placeholder={t.selectSupplier}
+              searchPlaceholder={t.selectSupplier}
+              options={autoDraftSupplierOptions}
+            />
             <p className="text-xs text-muted-foreground leading-relaxed">
               {t.suggestedQtyFormulaLong}
             </p>

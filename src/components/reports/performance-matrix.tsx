@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Combobox, type ComboboxOption } from "@/components/ui/combobox"
 import {
   ChevronDown,
   ChevronLeft,
@@ -188,6 +189,15 @@ export function PerformanceMatrix() {
   const activeFiltersCount = Object.values(applied).filter(Boolean).length
   const periodDays = data?.periodDays ?? 0
 
+  // Combobox options for the supplier filter (potentially large list).
+  const supplierComboboxOptions = React.useMemo<ComboboxOption[]>(
+    () => [
+      { value: "all", label: t.allSuppliers },
+      ...suppliers.map((s) => ({ value: s.id, label: s.name })),
+    ],
+    [suppliers, t.allSuppliers]
+  )
+
   // Aggregate totals across all categories (for the header KPI strip).
   const totals = React.useMemo(() => {
     let revenue = 0,
@@ -254,15 +264,14 @@ export function PerformanceMatrix() {
             </div>
             <div className="space-y-1">
               <Label className="text-xs">{t.supplier}</Label>
-              <Select value={supplierId} onValueChange={(v) => setSupplierId(v === "all" ? "" : v)}>
-                <SelectTrigger className="h-9"><SelectValue placeholder={t.allSuppliers} /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t.allSuppliers}</SelectItem>
-                  {suppliers.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Combobox
+                value={supplierId || "all"}
+                onValueChange={(v) => setSupplierId(v === "all" ? "" : v)}
+                placeholder={t.allSuppliers}
+                searchPlaceholder={t.allSuppliers}
+                className="h-9"
+                options={supplierComboboxOptions}
+              />
             </div>
           </div>
           <div className="flex justify-end gap-2">

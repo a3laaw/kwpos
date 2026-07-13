@@ -5,13 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { Combobox, type ComboboxOption } from "@/components/ui/combobox"
 import {
   Table,
   TableBody,
@@ -45,6 +39,17 @@ export function GeneralLedgerTab() {
     to || undefined
   )
 
+  // Combobox options for the account selector (potentially large list).
+  // Each label embeds `code — name` so the built-in search matches both.
+  const accountComboboxOptions = React.useMemo<ComboboxOption[]>(
+    () =>
+      accounts.map((a) => ({
+        value: a.id,
+        label: `${a.code} — ${a.name}`,
+      })),
+    [accounts]
+  )
+
   // Export rows: opening balance as first row, then each line, then closing.
   const exportHeaders = [t.glDate, t.glEntryNo, t.glDescription, t.accDebit, t.accCredit, t.glRunningBalance]
   const exportRows: any[][] = []
@@ -69,17 +74,14 @@ export function GeneralLedgerTab() {
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 flex-1">
           <div className="space-y-1 col-span-2 sm:col-span-1">
             <Label className="text-xs">{t.glSelectAccount}</Label>
-            <Select value={accountId} onValueChange={setAccountId}>
-              <SelectTrigger className="h-9"><SelectValue placeholder="—" /></SelectTrigger>
-              <SelectContent>
-                {accounts.map((a) => (
-                  <SelectItem key={a.id} value={a.id}>
-                    <span className="font-mono text-xs me-2">{a.code}</span>
-                    {a.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Combobox
+              value={accountId}
+              onValueChange={setAccountId}
+              placeholder="—"
+              searchPlaceholder="—"
+              className="h-9"
+              options={accountComboboxOptions}
+            />
           </div>
           <div className="space-y-1">
             <Label className="text-xs">{t.statementFrom}</Label>

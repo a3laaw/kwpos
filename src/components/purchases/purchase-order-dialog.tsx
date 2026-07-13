@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Combobox, type ComboboxOption } from "@/components/ui/combobox"
 import { Separator } from "@/components/ui/separator"
 import {
   Collapsible,
@@ -93,6 +94,16 @@ export function PurchaseOrderDialog({
   const selectedProductIds = new Set(items.map((it) => it.productId).filter(Boolean))
   const filteredProducts = products.filter(
     (p) => categoryFilter === "all" || p.categoryId === categoryFilter || selectedProductIds.has(p.id)
+  )
+
+  // Pre-compute Combobox option lists (high-volume selectors).
+  const supplierOptions = React.useMemo<ComboboxOption[]>(
+    () => suppliers.map((s) => ({ value: s.id, label: s.name })),
+    [suppliers]
+  )
+  const productOptions = React.useMemo<ComboboxOption[]>(
+    () => filteredProducts.map((p) => ({ value: p.id, label: p.name })),
+    [filteredProducts]
   )
 
   function updateItem(key: string, patch: Partial<LineItem>) {
@@ -178,18 +189,13 @@ export function PurchaseOrderDialog({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>{t.supplier} *</Label>
-              <Select value={supplierId} onValueChange={setSupplierId}>
-                <SelectTrigger>
-                  <SelectValue placeholder={t.selectSupplier} />
-                </SelectTrigger>
-                <SelectContent>
-                  {suppliers.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Combobox
+                value={supplierId}
+                onValueChange={setSupplierId}
+                placeholder={t.selectSupplier}
+                searchPlaceholder={t.selectSupplier}
+                options={supplierOptions}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="po-note">{t.note}</Label>
@@ -239,21 +245,14 @@ export function PurchaseOrderDialog({
                     <div className="grid grid-cols-12 gap-2 items-end">
                       <div className="col-span-12 sm:col-span-6 space-y-1">
                         <Label className="text-xs text-muted-foreground">{t.product}</Label>
-                        <Select
+                        <Combobox
                           value={it.productId}
                           onValueChange={(v) => selectProduct(it.key, v)}
-                        >
-                          <SelectTrigger className="h-9">
-                            <SelectValue placeholder={t.selectProduct} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {filteredProducts.map((p) => (
-                              <SelectItem key={p.id} value={p.id}>
-                                {p.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          placeholder={t.selectProduct}
+                          searchPlaceholder={t.selectProduct}
+                          className="h-9"
+                          options={productOptions}
+                        />
                       </div>
                       <div className="col-span-4 sm:col-span-2 space-y-1">
                         <Label className="text-xs text-muted-foreground">{t.qty}</Label>

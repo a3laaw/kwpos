@@ -1306,6 +1306,7 @@ export interface CreatePurchaseInvoiceBody {
   customs?: number
   otherCharges?: number
   note?: string | null
+  paymentMethod?: "CASH" | "BANK" | "CREDIT"
   items: Array<{
     productId: string
     quantity: number

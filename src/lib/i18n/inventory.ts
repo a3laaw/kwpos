@@ -206,6 +206,11 @@ export const ar_inventory: Record<string, string> = {
   piTotal: "الإجمالي",
   piLandedCost: "تكلفة الوصول",
   piNoInvoices: "لا توجد فواتير مشتريات",
+  // Payment method for purchase invoices
+  piPaymentMethod: "طريقة الدفع",
+  piPaymentCash: "نقدي",
+  piPaymentBank: "بنك / تحويل",
+  piPaymentCredit: "آجل (ذمم دائنة)",
 }
 
 export const en_inventory: Record<string, string> = {
@@ -408,4 +413,9 @@ export const en_inventory: Record<string, string> = {
   piTotal: "Total",
   piLandedCost: "Landed cost",
   piNoInvoices: "No purchase invoices",
+  // Payment method for purchase invoices
+  piPaymentMethod: "Payment method",
+  piPaymentCash: "Cash",
+  piPaymentBank: "Bank / Transfer",
+  piPaymentCredit: "Credit (Accounts Payable)",
 }

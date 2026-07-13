@@ -4,6 +4,7 @@ import { makeInvoiceNo } from "@/lib/format"
 import { coercePaymentMethod } from "@/lib/coercions"
 import { createJournalEntry } from "@/lib/journal"
 import { logAuditEvent } from "@/lib/audit"
+import { ensurePurchaseAccounts } from "@/lib/purchase"
 import { itemsForDb, type SaleItemDataWithTax, type SaleTotals } from "./totals"
 import type { DecrementStep } from "./decrement-planner"
 
@@ -210,10 +211,15 @@ export async function executeSaleTransaction(
       { accountCode: "4010", credit: params.totals.total - params.totals.taxAmount, description: "إيراد مبيعات" },
     ]
     if (params.totals.taxAmount > 0) {
-      revenueLines.push({ accountCode: "2010", credit: params.totals.taxAmount, description: "ضريبة مستحقة" })
+      // Tax Payable (2110) — NOT Accounts Payable (2010). The tax collected
+      // from customers is a liability owed to the tax authority, not to
+      // suppliers. ensurePurchaseAccounts() created 2110 if missing.
+      revenueLines.push({ accountCode: "2110", credit: params.totals.taxAmount, description: "ضريبة مستحقة" })
     }
     void (async () => {
       try {
+        // Ensure Tax Payable (2110) account exists (for DBs seeded before it was added)
+        await ensurePurchaseAccounts()
         await createJournalEntry({
           sourceType: "SALE",
           sourceId: sale.id,

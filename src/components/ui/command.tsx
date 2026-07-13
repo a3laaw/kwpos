@@ -113,6 +113,33 @@ export function CommandItem({
   )
 }
 
+function CommandSeparator({
+  className,
+  ...props
+}: React.ComponentProps<typeof CommandPrimitive.Separator>) {
+  return (
+    <CommandPrimitive.Separator
+      className={cn("bg-border -mx-1 h-px", className)}
+      {...props}
+    />
+  )
+}
+
+function CommandShortcut({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLSpanElement>) {
+  return (
+    <span
+      className={cn(
+        "text-muted-foreground ml-auto text-xs tracking-widest",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
 function SearchIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -129,4 +156,16 @@ function SearchIcon(props: React.SVGProps<SVGSVGElement>) {
       <path d="m21 21-4.3-4.3" />
     </svg>
   )
+}
+
+export {
+  Command,
+  CommandDialog,
+  CommandInput,
+  CommandList,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+  CommandSeparator,
+  CommandShortcut,
 }

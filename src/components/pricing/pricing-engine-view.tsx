@@ -24,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Combobox, type ComboboxOption } from "@/components/ui/combobox"
 import {
   AlertDialog,
   AlertDialogContent,
@@ -611,6 +612,12 @@ function PromotionsTab() {
   const categories = catsData?.items ?? []
   const promos = data?.items ?? []
 
+  // Combobox options for the product selector — potentially large list.
+  const productComboboxOptions = React.useMemo<ComboboxOption[]>(
+    () => products.map((p) => ({ value: p.id, label: p.name })),
+    [products]
+  )
+
   function toggleCat(id: string) {
     setSelectedCatIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
   }
@@ -719,18 +726,13 @@ function PromotionsTab() {
               {scope === "PRODUCT" ? (
                 <div className="space-y-1.5">
                   <Label className="text-xs">{t.product} *</Label>
-                  <Select value={productId} onValueChange={setProductId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={t.selectProduct} />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-72">
-                      {products.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {p.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Combobox
+                    value={productId}
+                    onValueChange={setProductId}
+                    placeholder={t.selectProduct}
+                    searchPlaceholder={t.selectProduct}
+                    options={productComboboxOptions}
+                  />
                 </div>
               ) : null}
 

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db, updateProductQuantityFromStockItems } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
-import { createJournalEntry } from "@/lib/journal"
 import { logAuditEvent } from "@/lib/audit"
+import { ensurePurchaseAccounts, createPurchaseInvoiceJournalEntry } from "@/lib/purchase"
 import type { Role } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
@@ -96,27 +96,14 @@ export async function POST(
         })
       }
 
-      // ── Journal entry (INSIDE tx — atomic) ──
-      // If this throws, the entire transaction rolls back: stock stays
-      // unchanged, status stays DRAFT, PO stays unchanged.
-      journalEntryId = await createJournalEntry({
-        sourceType: "PURCHASE",
-        sourceId: inv.id,
-        description: `قيد فاتورة مشتريات ${inv.invoiceNo} — ${inv.supplier?.name ?? ""}`,
-        date: inv.invoiceDate,
-        lines: [
-          { accountCode: "1010", debit: +Number(inv.total).toFixed(3), description: `فاتورة مشتريات ${inv.invoiceNo}` },
-          { accountCode: "2010", credit: +Number(inv.total).toFixed(3), description: `ذمم دائنة — ${inv.supplier?.name ?? ""}` },
-        ],
-        tx,
-      })
+      // NOTE: Journal entry is now post-commit (see below) to keep the
+      // transaction short and avoid PgBouncer "Transaction not found".
 
-      // Attach journalEntryId to the invoice (inside tx)
+      // Update invoice status to POSTED (inside tx — atomic)
       const updated = await tx.purchaseInvoice.update({
         where: { id: inv.id },
         data: {
           status: "POSTED",
-          journalEntryId: journalEntryId ?? null,
         },
       })
 
@@ -135,8 +122,8 @@ export async function POST(
       maxWait: 5000,
     })
 
-    // Post-commit: sync Product.quantity OUTSIDE the transaction.
-    // Derived value (SUM of StockItem.quantity) — safe to run post-commit.
+    // ── Post-commit side effects (non-fatal) ──────────────────────────
+    // Sync Product.quantity (derived aggregate)
     try {
       const pids = Array.from(new Set(inv.items.map((it: any) => it.productId)))
       for (const pid of pids) {
@@ -146,6 +133,30 @@ export async function POST(
       // Non-fatal: invoice is posted, StockItem is correct.
     }
 
+    // Create journal entry (capital-based: fees → inventory value, tax → 2110)
+    try {
+      await ensurePurchaseAccounts()
+      await createPurchaseInvoiceJournalEntry({
+        invoiceNo: inv.invoiceNo,
+        invoiceId: inv.id,
+        supplierName: inv.supplier?.name ?? "",
+        subtotal: inv.subtotal,
+        taxAmount: inv.taxAmount,
+        discount: inv.discount,
+        shipping: inv.shipping,
+        customs: inv.customs,
+        otherCharges: inv.otherCharges,
+        total: inv.total,
+        paymentMethod: inv.paymentMethod,
+        date: inv.invoiceDate,
+      })
+    } catch (e: any) {
+      console.error(
+        `[purchase-invoice] JournalEntry FAILED for ${inv.invoiceNo}. ` +
+        `Invoice is posted but accounting has a gap. Error: ${e?.message ?? e}`
+      )
+    }
+
     return NextResponse.json({
       id: String(result.id),
       invoiceNo: String(result.invoiceNo),
@@ -153,12 +164,11 @@ export async function POST(
       journalEntryId,
     })
   } catch (e: any) {
-    // Journal entry failure (e.g. invalid account code) rolls back the
-    // entire transaction — stock is unchanged, invoice stays DRAFT.
+    // Transaction failed (stock bump, PO update, or audit log).
+    // The invoice stays DRAFT — no partial state.
     return NextResponse.json(
       {
-        error: "فشل تسجيل القيد المحاسبي / Journal entry failed",
-        detail: e?.message ?? String(e),
+        error: e?.message ?? "post-failed",
       },
       { status: 500 }
     )

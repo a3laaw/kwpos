@@ -397,9 +397,11 @@ export async function POST(req: Request) {
       { code: "1000", name: "الأصول", type: "ASSET", balance: 0 },
       { code: "1010", name: "النقدية", type: "ASSET", parentIdCode: "1000", balance: 1243 },
       { code: "1020", name: "البنك", type: "ASSET", parentIdCode: "1000", balance: 3372 },
+      { code: "1100", name: "المخزون", type: "ASSET", parentIdCode: "1000", balance: 0 },
       // Liabilities (2000s) — credit-normal → negative balance (debit-positive convention)
       { code: "2000", name: "الخصوم", type: "LIABILITY", balance: 0 },
       { code: "2010", name: "ذمم دائنة", type: "LIABILITY", parentIdCode: "2000", balance: -320 },
+      { code: "2110", name: "ضريبة مستحقة", type: "LIABILITY", parentIdCode: "2000", balance: 0 },
       // Equity (3000s) — credit-normal → negative balance
       // Capital is set so the opening balance sheet balances with the
       // post-expense asset position (Cash 1243 + Bank 3372 = 4615;
