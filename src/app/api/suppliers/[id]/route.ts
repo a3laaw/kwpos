@@ -29,6 +29,7 @@ export async function PUT(
       ...(body.phone !== undefined ? { phone: body.phone ? String(body.phone).trim() : null } : {}),
       ...(body.email !== undefined ? { email: body.email ? String(body.email).trim() : null } : {}),
       ...(body.address !== undefined ? { address: body.address ? String(body.address).trim() : null } : {}),
+      ...(body.supplierType !== undefined ? { supplierType: body.supplierType === "FOREIGN" ? "FOREIGN" : "LOCAL" } : {}),
     },
   })
   return NextResponse.json(serializeSupplier(updated as any))

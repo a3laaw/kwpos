@@ -73,6 +73,11 @@ model Supplier {
   phone     String?
   email     String?
   address   String?
+  // Supplier type — LOCAL (محلي) | FOREIGN (خارجي/استيراد).
+  // Determines which fee fields appear on the purchase invoice:
+  //   LOCAL  → only tax + discount (no customs, no international shipping)
+  //   FOREIGN → customs + shipping + other charges + tax + discount
+  supplierType String         @default("LOCAL")
   createdAt DateTime         @default(now())
   products  Product[]        @relation("ProductSupplier")
   defaultForProducts Product[] @relation("DefaultProductSupplier")

@@ -139,7 +139,19 @@ export function SuppliersView() {
                       <Truck className="h-5 w-5" />
                     </div>
                     <div className="min-w-0">
-                      <p className="font-semibold truncate">{s.name}</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-semibold truncate">{s.name}</p>
+                        {s.supplierType === "FOREIGN" ? (
+                          <Badge variant="outline" className="shrink-0 text-[10px] py-0 px-1.5 gap-0.5">
+                            <Truck className="h-2.5 w-2.5" />
+                            {t.supplierTypeForeign}
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="shrink-0 text-[10px] py-0 px-1.5">
+                            {t.supplierTypeLocal}
+                          </Badge>
+                        )}
+                      </div>
                       {s.contact ? (
                         <p className="text-xs text-muted-foreground truncate">
                           {s.contact}

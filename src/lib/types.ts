@@ -22,6 +22,7 @@ export interface Supplier {
   phone?: string | null
   email?: string | null
   address?: string | null
+  supplierType: "LOCAL" | "FOREIGN"
   createdAt: string
 }
 

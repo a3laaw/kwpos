@@ -131,6 +131,22 @@ export function PurchaseInvoiceDialog({
     (p) => p.status === "APPROVED" || p.status === "PENDING"
   )
 
+  // Resolve the selected supplier to check its type.
+  // LOCAL → hide customs/shipping/other fees (only tax + discount apply)
+  // FOREIGN → show all fee fields
+  const selectedSupplier = suppliers.find((s) => s.id === supplierId)
+  const isForeignSupplier = selectedSupplier?.supplierType === "FOREIGN"
+
+  // When the supplier changes to LOCAL, reset the fee fields (customs/
+  // shipping/other) to 0 — they are hidden and should not carry over.
+  React.useEffect(() => {
+    if (!isForeignSupplier) {
+      setCustoms("")
+      setShipping("")
+      setOther("")
+    }
+  }, [isForeignSupplier])
+
   function resetForm() {
     setSupplierId("")
     setWarehouseId("")
@@ -544,6 +560,10 @@ export function PurchaseInvoiceDialog({
               </div>
             </div>
 
+            {/* Landed-cost fees (customs/shipping/other) — shown ONLY for
+                FOREIGN suppliers. LOCAL suppliers have no customs or
+                international shipping, so the section is hidden entirely. */}
+            {isForeignSupplier ? (
             <Collapsible
               open={extraOpen}
               onOpenChange={setExtraOpen}
@@ -620,6 +640,7 @@ export function PurchaseInvoiceDialog({
                 </div>
               </CollapsibleContent>
             </Collapsible>
+            ) : null}
 
             {/* Payment Method — determines the credit account in the journal:
                 CASH → 1010, BANK → 1020, CREDIT → 2010 (آجل) */}

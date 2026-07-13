@@ -31,6 +31,7 @@ export function serializeSupplier(s: AnyRow): Supplier {
     phone: (s.phone as string | null) ?? null,
     email: (s.email as string | null) ?? null,
     address: (s.address as string | null) ?? null,
+    supplierType: (s.supplierType as Supplier["supplierType"]) ?? "LOCAL",
     createdAt: String(s.createdAt),
   }
 }

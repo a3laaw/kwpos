@@ -38,6 +38,10 @@ export const ar_common_entities: Record<string, string> = {
   supplierDeleted: "تم حذف المورّد",
   supplierUpdated: "تم تحديث المورّد",
   supplierAdded: "تمت إضافة المورّد",
+  // Supplier type (LOCAL = محلي, FOREIGN = خارجي/استيراد)
+  supplierTypeLabel: "نوع المورد",
+  supplierTypeLocal: "مورد محلي",
+  supplierTypeForeign: "مورد خارجي (استيراد)",
   // Common — quantity / stock
   qty: "الكمية",
   quantity: "الكمية",
@@ -319,6 +323,10 @@ export const en_common_entities: Record<string, string> = {
   supplierDeleted: "Supplier deleted",
   supplierUpdated: "Supplier updated",
   supplierAdded: "Supplier added",
+  // Supplier type (LOCAL = محلي, FOREIGN = خارجي/استيراد)
+  supplierTypeLabel: "Supplier type",
+  supplierTypeLocal: "Local supplier",
+  supplierTypeForeign: "Foreign supplier (import)",
   // Common — quantity / stock
   qty: "Qty",
   quantity: "Quantity",

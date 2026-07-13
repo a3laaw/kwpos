@@ -32,6 +32,8 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
   const name = String(body?.name || "").trim()
   if (!name) return NextResponse.json({ error: "name-required" }, { status: 400 })
+  // supplierType — mandatory, LOCAL or FOREIGN
+  const supplierType = body.supplierType === "FOREIGN" ? "FOREIGN" : "LOCAL"
   const created = await db.supplier.create({
     data: {
       name,
@@ -39,6 +41,7 @@ export async function POST(req: NextRequest) {
       phone: body.phone?.trim() || null,
       email: body.email?.trim() || null,
       address: body.address?.trim() || null,
+      supplierType,
     },
   })
   return NextResponse.json(serializeSupplier(created as any), { status: 201 })

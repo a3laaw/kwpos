@@ -13,6 +13,13 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Loader2 } from "lucide-react"
 import {
   useCreateSupplier,
@@ -33,9 +40,10 @@ interface FormState {
   phone: string
   email: string
   address: string
+  supplierType: "LOCAL" | "FOREIGN"
 }
 
-const empty: FormState = { name: "", contact: "", phone: "", email: "", address: "" }
+const empty: FormState = { name: "", contact: "", phone: "", email: "", address: "", supplierType: "LOCAL" }
 
 export function SupplierFormDialog({ open, onOpenChange, supplier }: SupplierFormDialogProps) {
   const isEdit = !!supplier
@@ -52,6 +60,7 @@ export function SupplierFormDialog({ open, onOpenChange, supplier }: SupplierFor
         phone: supplier.phone ?? "",
         email: supplier.email ?? "",
         address: supplier.address ?? "",
+        supplierType: supplier.supplierType ?? "LOCAL",
       })
     } else {
       setForm(empty)
@@ -72,6 +81,7 @@ export function SupplierFormDialog({ open, onOpenChange, supplier }: SupplierFor
       phone: form.phone.trim() || null,
       email: form.email.trim() || null,
       address: form.address.trim() || null,
+      supplierType: form.supplierType,
     }
     try {
       if (isEdit) {
@@ -108,6 +118,24 @@ export function SupplierFormDialog({ open, onOpenChange, supplier }: SupplierFor
               placeholder={t.supplierNameInputPlaceholder}
               autoFocus
             />
+          </div>
+          {/* Supplier Type — mandatory. Determines fee fields on purchase invoice:
+              LOCAL → only tax + discount (no customs/shipping)
+              FOREIGN → customs + shipping + other charges + tax + discount */}
+          <div className="space-y-2">
+            <Label htmlFor="s-type">{t.supplierTypeLabel} *</Label>
+            <Select
+              value={form.supplierType}
+              onValueChange={(v) => set("supplierType", v as "LOCAL" | "FOREIGN")}
+            >
+              <SelectTrigger id="s-type">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="LOCAL">{t.supplierTypeLocal}</SelectItem>
+                <SelectItem value="FOREIGN">{t.supplierTypeForeign}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
