@@ -533,7 +533,15 @@ function CategoriesManager() {
   const [deletingId, setDeletingId] = React.useState<string | null>(null)
   const categories = data?.items ?? []
   const rootCategories = categories.filter((c) => !c.parentId)
+  const childCategories = categories.filter((c) => c.parentId)
   const filtered = categories.filter((c) => c.name.includes(search.trim()))
+
+  // Helper: get parent name for a child
+  const parentNameMap = new Map(categories.map((c) => [c.id, c.name]))
+  const getParentName = (cat: any) => {
+    if (!cat.parentId) return "—"
+    return parentNameMap.get(cat.parentId) ?? "—"
+  }
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
@@ -598,7 +606,7 @@ function CategoriesManager() {
             className="flex-1 min-w-[180px]"
           />
           <Select value={parentId} onValueChange={(v) => setParentId(v === "none" ? "" : v)}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-48">
               <SelectValue placeholder="— تصنيف رئيسي —" />
             </SelectTrigger>
             <SelectContent>
@@ -627,42 +635,62 @@ function CategoriesManager() {
         ) : filtered.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">{search ? t.setNoResults : t.setNoCategories}</p>
         ) : (
-          <div className="flex flex-wrap gap-2 max-h-[260px] overflow-y-auto scrollbar-thin pr-1">
-            {filtered.map((c) => (
-              <span
-                key={c.id}
-                className="group inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5 text-sm font-medium"
-              >
-                {c.code ? (
-                  <span
-                    className="inline-flex items-center justify-center rounded-md bg-primary/15 px-1.5 py-0.5 text-[10px] font-mono tabular-nums text-primary"
-                    dir="ltr"
-                    title={t.setCategoryCode}
-                  >
-                    {c.code}
-                  </span>
-                ) : null}
-                <Tags className="h-3.5 w-3.5 text-primary" />
-                {c.name}
-                <button
-                  type="button"
-                  onClick={() => setEditing(c)}
-                  className="ml-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground opacity-0 group-hover:opacity-100 hover:bg-primary/15 hover:text-primary transition"
-                  title={t.edit}
-                >
-                  <Pencil className="h-3 w-3" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDelete(c.id, c.name)}
-                  disabled={deletingId === c.id}
-                  className="inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground opacity-0 group-hover:opacity-100 hover:bg-destructive/15 hover:text-destructive transition disabled:opacity-50"
-                  title={t.delete}
-                >
-                  {deletingId === c.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
-                </button>
-              </span>
-            ))}
+          /* Table layout: parent | child | actions */
+          <div className="overflow-x-auto scrollbar-thin max-h-[300px]">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-muted/50">
+                <tr className="border-b border-border">
+                  <th className="text-start py-2 px-3 font-semibold">التصنيف الأب</th>
+                  <th className="text-start py-2 px-3 font-semibold">التصنيف الابن</th>
+                  <th className="text-center py-2 px-3 font-semibold w-20">إجراءات</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((c) => (
+                  <tr key={c.id} className="border-b border-border/40 hover:bg-muted/20">
+                    <td className="py-2 px-3 font-medium">
+                      {c.parentId ? getParentName(c) : (
+                        <span className="text-primary font-semibold">{c.name}</span>
+                      )}
+                    </td>
+                    <td className="py-2 px-3">
+                      {c.parentId ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          {c.code ? (
+                            <span className="inline-flex items-center justify-center rounded-md bg-primary/15 px-1.5 py-0.5 text-[10px] font-mono tabular-nums text-primary" dir="ltr">
+                              {c.code}
+                            </span>
+                          ) : null}
+                          <Tags className="h-3.5 w-3.5 text-muted-foreground" />
+                          {c.name}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">— (تصنيف رئيسي) —</span>
+                      )}
+                    </td>
+                    <td className="py-2 px-3 text-center">
+                      <button
+                        type="button"
+                        onClick={() => setEditing(c)}
+                        className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-primary/15 hover:text-primary transition mr-1"
+                        title={t.edit}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(c.id, c.name)}
+                        disabled={deletingId === c.id}
+                        className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/15 hover:text-destructive transition disabled:opacity-50"
+                        title={t.delete}
+                      >
+                        {deletingId === c.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </CardContent>
