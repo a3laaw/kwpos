@@ -10,6 +10,8 @@ export interface Category {
   /** Explicit barcode prefix digit (1-9). If null, uses order index. */
   barcodePrefix?: number | null
   imageUrl?: string | null
+  /** Parent category for nested categories. Null = root category. */
+  parentId?: string | null
   createdAt: string
 }
 

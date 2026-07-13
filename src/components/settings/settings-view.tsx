@@ -527,10 +527,12 @@ function CategoriesManager() {
   const deleteMut = useDeleteCategory()
   const [name, setName] = React.useState("")
   const [code, setCode] = React.useState("")
+  const [parentId, setParentId] = React.useState<string>("")
   const [search, setSearch] = React.useState("")
   const [editing, setEditing] = React.useState<Category | null>(null)
   const [deletingId, setDeletingId] = React.useState<string | null>(null)
   const categories = data?.items ?? []
+  const rootCategories = categories.filter((c) => !c.parentId)
   const filtered = categories.filter((c) => c.name.includes(search.trim()))
 
   async function handleAdd(e: React.FormEvent) {
@@ -539,9 +541,10 @@ function CategoriesManager() {
     if (!n) return
     const c = code.trim().slice(0, 4)
     try {
-      await createMut.mutateAsync({ name: n, code: c || null })
+      await createMut.mutateAsync({ name: n, code: c || null, parentId: parentId || null })
       setName("")
       setCode("")
+      setParentId("")
       toast.success(t.setCategoryAdded)
     } catch (err: any) {
       const msg = err?.message === "code-exists" ? t.setCategoryCodeExists : err?.message
@@ -594,6 +597,17 @@ function CategoriesManager() {
             placeholder={t.setAddCategoryPlaceholder}
             className="flex-1 min-w-[180px]"
           />
+          <Select value={parentId} onValueChange={(v) => setParentId(v === "none" ? "" : v)}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="— تصنيف رئيسي —" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">— تصنيف رئيسي (بدون أب) —</SelectItem>
+              {rootCategories.map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button type="submit" size="icon" disabled={createMut.isPending || !name.trim()}>
             {createMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
           </Button>
@@ -667,14 +681,20 @@ function CategoryEditDialog({
   onClose: () => void
 }) {
   const t = useT()
+  const { data: catsData } = useCategories()
   const updateMut = useUpdateCategory(category?.id ?? "")
   const [name, setName] = React.useState("")
   const [code, setCode] = React.useState("")
+  const [parentId, setParentId] = React.useState<string>("")
+
+  const allCategories = catsData?.items ?? []
+  const rootCategories = allCategories.filter((c) => !c.parentId && c.id !== category?.id)
 
   React.useEffect(() => {
     if (category) {
       setName(category.name)
       setCode(category.code ?? "")
+      setParentId((category as any).parentId || "")
     }
   }, [category])
 
@@ -688,7 +708,7 @@ function CategoryEditDialog({
     }
     const c = code.trim().slice(0, 4)
     try {
-      await updateMut.mutateAsync({ name: n, code: c || null })
+      await updateMut.mutateAsync({ name: n, code: c || null, parentId: parentId || null })
       toast.success(t.setCategoryUpdated)
       onClose()
     } catch (err: any) {
@@ -721,6 +741,20 @@ function CategoryEditDialog({
           <div className="space-y-1.5">
             <Label htmlFor="cat-name">{t.setCategoryName}</Label>
             <Input id="cat-name" value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>التصنيف الأب</Label>
+            <Select value={parentId} onValueChange={(v) => setParentId(v === "none" ? "" : v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="— تصنيف رئيسي (بدون أب) —" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">— تصنيف رئيسي (بدون أب) —</SelectItem>
+                {rootCategories.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose} disabled={updateMut.isPending}>

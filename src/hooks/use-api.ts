@@ -85,7 +85,7 @@ export function useCategories() {
 export function useCreateCategory() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (body: { name: string; code?: string | null }) =>
+    mutationFn: (body: { name: string; code?: string | null; parentId?: string | null }) =>
       jsend<Category>("/api/categories", "POST", body),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["categories"] }),
   })
@@ -94,7 +94,7 @@ export function useCreateCategory() {
 export function useUpdateCategory(id: string) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (body: Partial<Pick<Category, "name" | "code" | "imageUrl">>) =>
+    mutationFn: (body: Partial<Pick<Category, "name" | "code" | "imageUrl">> & { parentId?: string | null }) =>
       jsend<Category>(`/api/categories/${id}`, "PUT", body),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["categories"] }),
   })
