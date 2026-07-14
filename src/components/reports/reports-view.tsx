@@ -44,18 +44,20 @@ import {
   Printer,
   Calendar,
   Layers,
+  Star,
 } from "lucide-react"
 import { useReport, type ReportFilters } from "@/hooks/use-api"
 import { useFmt } from "@/components/currency-context"
 import { useT } from "@/components/i18n-context"
 import { PerformanceMatrix } from "@/components/reports/performance-matrix"
+import { ProductEfficiencyReport } from "@/components/reports/product-efficiency-report"
 import { printReportOnly } from "@/lib/print"
 import { cn } from "@/lib/utils"
 import { useModuleTab } from "@/lib/module-tab-store"
 
 const PIE_COLORS = ["#2E6237", "#DFC196", "#F9DC7C", "#f59e0b", "#8b5cf6", "#ec4899", "#0ea5e9"]
 
-type ReportTab = "general" | "matrix"
+type ReportTab = "general" | "matrix" | "efficiency"
 
 export function ReportsView() {
   const t = useT()
@@ -64,17 +66,21 @@ export function ReportsView() {
   // The parent view owns the single PageHeader so we don't end up with
   // two stacked headers (parent + child) both reading "التقارير".
   const isGeneral = tab === "general"
-  const headerTitle = isGeneral ? t.reportsTitle : t.matrixTitleFull
-  const headerDesc = isGeneral ? t.repDescFull : t.matrixLongDescFull
+  const isMatrix = tab === "matrix"
+  const isEfficiency = tab === "efficiency"
+  const headerTitle = isGeneral ? t.reportsTitle : isMatrix ? t.matrixTitleFull : "مؤشر كفاءة المنتج"
+  const headerDesc = isGeneral ? t.repDescFull : isMatrix ? t.matrixLongDescFull : "تقرير تحليلي يدمج الربح والمبيعات والمرتجعات والتكلفة في درجة واحدة من 100"
   const headerIcon = isGeneral ? (
     <FileBarChart className="h-5 w-5" />
-  ) : (
+  ) : isMatrix ? (
     <Layers className="h-5 w-5" />
+  ) : (
+    <Star className="h-5 w-5" />
   )
 
   const breadcrumbItems: BreadcrumbItem[] = [
     { labelKey: "navReports" },
-    { labelKey: isGeneral ? "generalReports" : "performanceMatrix" },
+    { labelKey: isGeneral ? "generalReports" : isMatrix ? "performanceMatrix" : "generalReports" },
   ]
 
   return (
@@ -99,7 +105,7 @@ export function ReportsView() {
         <hr className="my-2 border-gray-300" />
       </div>
 
-      {isGeneral ? <GeneralReports /> : <PerformanceMatrix />}
+      {isGeneral ? <GeneralReports /> : isMatrix ? <PerformanceMatrix /> : <ProductEfficiencyReport />}
     </div>
   )
 }
