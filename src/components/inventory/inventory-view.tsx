@@ -139,7 +139,7 @@ export function InventoryView() {
           { labelKey: "navInventory" },
           { labelKey: (INV_TAB_LABELS[invTab] || "invItemsTab") as keyof import("@/lib/i18n").Dict },
         ]}
-        actions={
+        actions={invTab === "products" ? (
           <div className="flex items-center gap-2 flex-wrap">
             {canManage ? <ExcelImportButton type="products" /> : null}
             {canManage ? <ExcelExportButton type="products" /> : null}
@@ -156,7 +156,7 @@ export function InventoryView() {
               </Button>
             ) : null}
           </div>
-        }
+        ) : undefined}
       />
 
 

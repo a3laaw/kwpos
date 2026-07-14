@@ -59,8 +59,8 @@ export function StockTakeTab() {
       {
         productId: p.id,
         productName: p.name,
-        systemQty: p.quantity,
-        actualQty: String(p.quantity),
+        systemQty: p.quantity, // kept for internal use but NOT shown during entry
+        actualQty: "", // BLANK — blind count: user must type the actual quantity
         unitCost: p.costPrice,
       },
     ])
@@ -118,9 +118,7 @@ export function StockTakeTab() {
         <td class="num">${i + 1}</td>
         <td class="name">${p.name}</td>
         <td class="barcode">${p.barcode || "—"}</td>
-        <td class="system">${p.quantity}</td>
         <td class="actual"></td>
-        <td class="diff"></td>
       </tr>`).join("")
 
     const html = `<!DOCTYPE html>
@@ -139,11 +137,11 @@ export function StockTakeTab() {
   table { width: 100%; border-collapse: collapse; }
   thead th { background: #f0fdf4; color: #065f46; font-size: 10px; padding: 2mm; border-bottom: 2px solid #2E6237; }
   thead th.num { width: 8mm; text-align: center; }
-  thead th.system, thead th.actual, thead th.diff { width: 20mm; text-align: center; }
+  thead th.actual { width: 30mm; text-align: center; }
   thead th.barcode { width: 30mm; text-align: center; }
   tbody td { padding: 2mm; border-bottom: 1px solid #ddd; font-size: 10px; }
-  tbody td.num, tbody td.system { text-align: center; }
-  tbody td.actual, tbody td.diff { text-align: center; height: 8mm; background: #fafafa; }
+  tbody td.num { text-align: center; }
+  tbody td.actual { text-align: center; height: 10mm; background: #fafafa; }
   tbody td.barcode { text-align: center; font-family: monospace; font-size: 9px; }
   .footer { margin-top: 6mm; text-align: center; font-size: 9px; color: #999; }
   @media print { body { -webkit-print-color-adjust: exact; } }
@@ -151,7 +149,7 @@ export function StockTakeTab() {
 </head>
 <body>
   <div class="header">
-    <h1>كشف جرد المخزون</h1>
+    <h1>كشف جرد المخزون (جرد أعمى)</h1>
     <p>المخزن: ${whName} | التاريخ: ${dateStr}</p>
   </div>
   <table>
@@ -160,15 +158,13 @@ export function StockTakeTab() {
         <th class="num">#</th>
         <th>الصنف</th>
         <th class="barcode">الباركود</th>
-        <th class="system">الرصيد بالنظام</th>
         <th class="actual">العد الفعلي</th>
-        <th class="diff">الفرق</th>
       </tr>
     </thead>
     <tbody>${rows}</tbody>
   </table>
   <div class="footer">
-    <p>تم إنشاء كشف الجرد: ${dateStr} — اطبع هذا الكشف، قم بالعد الفعلي، ثم أدخل الأرقام في النظام</p>
+    <p>كشف جرد أعمى — لا يحتوي على الرصيد الدفتري. قم بالعد الفعلي واكتب الرقم في خانة "العد الفعلي"</p>
   </div>
 </body>
 </html>`
@@ -317,36 +313,27 @@ export function StockTakeTab() {
                   <table className="w-full text-sm">
                     <thead className="bg-muted/40">
                       <tr>
+                        <th className="text-start p-2.5 font-medium">#</th>
                         <th className="text-start p-2.5 font-medium">{t.productName || "الصنف"}</th>
-                        <th className="text-center p-2.5 font-medium w-20">{t.systemQty}</th>
-                        <th className="text-center p-2.5 font-medium w-20">{t.actualQty}</th>
-                        <th className="text-center p-2.5 font-medium w-20">{t.varianceLabel}</th>
-                        <th className="text-center p-2.5 font-medium w-24">{t.varianceValue}</th>
+                        <th className="text-center p-2.5 font-medium w-28">{t.actualQty}</th>
                         <th className="w-10" />
                       </tr>
                     </thead>
                     <tbody>
-                      {lines.map((l) => {
-                        const v = (Number(l.actualQty) || 0) - l.systemQty
-                        const val = v * l.unitCost
+                      {lines.map((l, idx) => {
                         return (
                           <tr key={l.productId} className="border-t border-border/40 hover:bg-muted/20">
+                            <td className="p-2.5 text-center text-muted-foreground tabular-nums">{idx + 1}</td>
                             <td className="p-2.5 font-medium">{l.productName}</td>
-                            <td className="p-2.5 text-center tabular-nums">{fmt.number(l.systemQty)}</td>
                             <td className="p-2.5 text-center">
                               <Input
                                 type="number"
                                 min={0}
                                 value={l.actualQty}
                                 onChange={(e) => setActualQty(l.productId, e.target.value)}
-                                className="h-7 w-16 text-center tabular-nums mx-auto"
+                                className="h-8 w-24 text-center tabular-nums mx-auto"
+                                placeholder="؟"
                               />
-                            </td>
-                            <td className={cn("p-2.5 text-center tabular-nums font-medium", v < 0 ? "text-rose-600" : v > 0 ? "text-emerald-600" : "text-muted-foreground")}>
-                              {v > 0 ? "+" : ""}{fmt.number(v)}
-                            </td>
-                            <td className={cn("p-2.5 text-center tabular-nums", v < 0 ? "text-rose-600" : v > 0 ? "text-emerald-600" : "text-muted-foreground")}>
-                              {fmt.currency(val)}
                             </td>
                             <td className="p-2.5 text-center">
                               <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeLine(l.productId)}>
@@ -374,23 +361,11 @@ export function StockTakeTab() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div className="rounded-lg bg-rose-500/5 border border-rose-500/20 p-3">
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    <TrendingDown className="h-3 w-3 text-rose-500" /> {t.shortage}
-                  </p>
-                  <p className="text-lg font-bold tabular-nums text-rose-600">{fmt.currency(variance.shortage)}</p>
-                </div>
-                <div className="rounded-lg bg-emerald-500/5 border border-emerald-500/20 p-3">
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    <TrendingUp className="h-3 w-3 text-emerald-500" /> {t.surplus}
-                  </p>
-                  <p className="text-lg font-bold tabular-nums text-emerald-600">{fmt.currency(variance.surplus)}</p>
-                </div>
-              </div>
-              <div className="text-xs text-muted-foreground space-y-1">
-                <p>• {t.shortage} → {t.statementDebit} 5070 / {t.statementCredit} 1010</p>
-                <p>• {t.surplus} → {t.statementDebit} 1010 / {t.statementCredit} 4060</p>
+              {/* Blind count: shortage/surplus hidden during entry — revealed only after approval */}
+              <div className="rounded-lg bg-muted/40 border border-border/60 p-3 text-center">
+                <p className="text-xs text-muted-foreground">
+                  جرد أعمى — القيمة الدفترية والفروقات تظهر بعد الاعتماد
+                </p>
               </div>
               <Separator />
               {/* Stage 2: Close stock take online */}
