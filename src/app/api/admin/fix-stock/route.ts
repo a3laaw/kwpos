@@ -53,6 +53,19 @@ export async function POST(req: NextRequest) {
     piByProduct.set(it.productId, (piByProduct.get(it.productId) || 0) + it.quantity)
   }
 
+  // 2b) Get all RECEIVED purchase order items (also adds stock — the old
+  //     'Confirm Receipt' button marked POs as RECEIVED and incremented
+  //     stock inside a $transaction that may have failed on PgBouncer.
+  //     We count these as stock additions.)
+  const poItems = await db.purchaseOrderItem.findMany({
+    where: { purchaseOrder: { status: "RECEIVED" } },
+    select: { productId: true, quantity: true, returnedQty: true },
+  })
+  for (const it of poItems) {
+    const net = it.quantity - (it.returnedQty || 0)
+    piByProduct.set(it.productId, (piByProduct.get(it.productId) || 0) + net)
+  }
+
   // 3) Get all purchase return items (removes stock)
   const prItems = await db.purchaseReturnItem.findMany({
     select: { productId: true, quantity: true },
