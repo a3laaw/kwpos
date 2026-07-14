@@ -34,6 +34,10 @@ import {
   Save,
   Search,
   ChevronRight,
+  Wrench,
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
 } from "lucide-react"
 import { COUNTRIES, getCountryName } from "@/lib/countries"
 import { useCountry, useFmt } from "@/components/currency-context"
@@ -92,6 +96,7 @@ export function SettingsView() {
     { id: "hardware", icon: Printer, title: t.hardwareSettingsTitle || "إعدادات الأجهزة", desc: t.hardwareSettingsDesc || "الطابعة، درج النقدية، قارئ الباركود" },
     { id: "categories", icon: Tags, title: t.setCategories, desc: t.setCategoriesDesc },
     { id: "units", icon: Ruler, title: t.setUnitsTitle || "الوحدات", desc: t.setUnitsDesc || "وحدات القياس" },
+    { id: "maintenance", icon: Wrench, title: "صيانة النظام", desc: "إعادة حساب المخزون + فحص النظام" },
   ]
 
   return (
@@ -198,6 +203,7 @@ export function SettingsView() {
           {activeSection === "hardware" && <HardwareSettingsCard />}
           {activeSection === "categories" && <CategoriesManager />}
           {activeSection === "units" && <UnitsManager />}
+          {activeSection === "maintenance" && <SystemMaintenanceCard />}
         </div>
       )}
     </div>
@@ -895,5 +901,124 @@ function CategoryEditDialog({
         </form>
       </DialogContent>
     </Dialog>
+  )
+}
+
+/* ───────────────────────── System Maintenance Card ───────────────────────── */
+function SystemMaintenanceCard() {
+  const t = useT()
+  const [recalcLoading, setRecalcLoading] = React.useState(false)
+  const [recalcResult, setRecalcResult] = React.useState<any>(null)
+  const canAccess = true // Settings is already gated by ADMIN/OWNER
+
+  async function handleRecalcStock() {
+    setRecalcLoading(true)
+    setRecalcResult(null)
+    try {
+      const res = await fetch("/api/admin/recalc-stock", { method: "POST" })
+      if (!res.ok) throw new Error(`request-failed:${res.status}`)
+      const data = await res.json()
+      setRecalcResult(data)
+    } catch (err: any) {
+      setRecalcResult({ error: err?.message || "failed" })
+    } finally {
+      setRecalcLoading(false)
+    }
+  }
+
+  if (!canAccess) return null
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Wrench className="h-4 w-4 text-primary" />
+          صيانة النظام
+        </CardTitle>
+        <CardDescription>أدوات صيانة وإصلاح قاعدة البيانات</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Stock recalculation */}
+        <div className="rounded-lg border border-border/60 p-4 space-y-3">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h4 className="text-sm font-semibold">إعادة حساب المخزون</h4>
+              <p className="text-xs text-muted-foreground mt-1">
+                يُعيد حساب كمية كل منتج من مجموع الكميات الفعلية في المستودعات.
+                يستخدم لإصلاح أي عدم تطابق بين المخزون المعروض والمخزون الفعلي.
+              </p>
+            </div>
+            <Button
+              onClick={handleRecalcStock}
+              disabled={recalcLoading}
+              className="gap-2 shrink-0"
+            >
+              {recalcLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wrench className="h-4 w-4" />}
+              إعادة الحساب
+            </Button>
+          </div>
+
+          {recalcResult ? (
+            <div className="rounded-lg bg-muted/40 p-3 space-y-2">
+              {recalcResult.error ? (
+                <div className="flex items-center gap-2 text-sm text-destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  فشل: {recalcResult.error}
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 text-sm text-emerald-600">
+                    <CheckCircle2 className="h-4 w-4" />
+                    تمت إعادة الحساب بنجاح
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="rounded-lg bg-background p-2">
+                      <p className="text-xs text-muted-foreground">إجمالي المنتجات</p>
+                      <p className="text-lg font-bold tabular-nums">{recalcResult.totalProducts}</p>
+                    </div>
+                    <div className="rounded-lg bg-amber-500/10 p-2">
+                      <p className="text-xs text-muted-foreground">تم تصحيحها</p>
+                      <p className="text-lg font-bold tabular-nums text-amber-600">{recalcResult.corrected}</p>
+                    </div>
+                    <div className="rounded-lg bg-emerald-500/10 p-2">
+                      <p className="text-xs text-muted-foreground">سليمة</p>
+                      <p className="text-lg font-bold tabular-nums text-emerald-600">{recalcResult.unchanged}</p>
+                    </div>
+                  </div>
+                  {recalcResult.corrections?.length > 0 ? (
+                    <div className="space-y-1 mt-2">
+                      <p className="text-xs font-medium text-muted-foreground">
+                        أول {recalcResult.corrections.length} منتج تم تصحيحها:
+                      </p>
+                      <div className="max-h-40 overflow-y-auto scrollbar-thin space-y-1">
+                        {recalcResult.corrections.map((c: any) => (
+                          <div key={c.productId} className="flex items-center justify-between text-xs rounded bg-background px-2 py-1">
+                            <span className="truncate">{c.productName}</span>
+                            <span className="tabular-nums shrink-0">
+                              <span className="text-rose-600 line-through">{c.oldQty}</span>
+                              {" → "}
+                              <span className="text-emerald-600 font-medium">{c.newQty}</span>
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </>
+              )}
+            </div>
+          ) : null}
+        </div>
+
+        {/* Info */}
+        <div className="rounded-lg bg-amber-500/5 border border-amber-500/20 p-3">
+          <p className="text-xs text-muted-foreground">
+            💡 استخدم إعادة حساب المخزون عند ملاحظة اختلاف بين الكمية المعروضة في النظام
+            والكمية الفعلية. هذا يحدث أحياناً بسبب فواتير معلقة، إلغاء جزئي، أو تحويلات
+            بين المستودعات.
+          </p>
+        </div>
+      </CardContent>
+    </Card>
   )
 }
