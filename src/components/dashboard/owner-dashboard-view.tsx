@@ -12,7 +12,38 @@ import {
 import { useT } from "@/components/i18n-context"
 import { useFmt } from "@/components/currency-context"
 import { useAppStore } from "@/lib/store"
+import { useExpenses } from "@/hooks/use-api"
+import type { ExpenseTransaction } from "@/lib/types"
 import { cn } from "@/lib/utils"
+
+/**
+ * Returns true if the given ISO date string falls on the same calendar day
+ * (in the user's local timezone) as `now`.
+ */
+function isSameLocalDay(iso: string | null | undefined, now: Date): boolean {
+  if (!iso) return false
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return false
+  return (
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate()
+  )
+}
+
+/**
+ * Sum the amounts of expenses whose effective date is today.
+ * SALARY expenses use `payDate`; ADMIN expenses use `date`.
+ */
+function sumTodayExpenses(items: ExpenseTransaction[] | undefined): number {
+  if (!items || items.length === 0) return 0
+  const now = new Date()
+  return items.reduce((sum, e) => {
+    const effective = e.type === "SALARY" ? e.payDate : e.date
+    if (!isSameLocalDay(effective, now)) return sum
+    return sum + (Number(e.amount) || 0)
+  }, 0)
+}
 
 export function OwnerDashboardView() {
   const t = useT()
@@ -30,6 +61,16 @@ export function OwnerDashboardView() {
     staleTime: 30_000,
   })
 
+  // Real expenses for today — replaces the previous `todaySales * 0.75`
+  // heuristic. The /api/expenses endpoint returns up to 200 most recent
+  // rows; we filter client-side for entries whose effective date is today.
+  // If the query fails, the fallback is 0 (not the old 75% estimate).
+  const { data: expensesData } = useExpenses()
+  const todayExpenses = React.useMemo(
+    () => sumTodayExpenses(expensesData?.items),
+    [expensesData]
+  )
+
   if (isLoading || !data) {
     return (
       <div className="space-y-4">
@@ -43,11 +84,12 @@ export function OwnerDashboardView() {
     )
   }
 
-  // Estimate expenses as 75% of sales (cost of goods + overheads)
+  // Real expenses come from the /api/expenses query (filtered to today).
+  // Fallback is 0 — we no longer estimate as 75% of sales.
   const todaySales = data.todaySales || 0
   const yesterdaySales = data.yesterdaySales || 0
-  const estimatedExpenses = todaySales * 0.75
-  const netProfit = todaySales - estimatedExpenses
+  const realExpenses = todayExpenses
+  const netProfit = todaySales - realExpenses
   const salesUp = data.salesChangePct >= 0
 
   return (
@@ -104,12 +146,12 @@ export function OwnerDashboardView() {
                   <Wallet className="h-6 w-6" />
                 </span>
                 <div>
-                  <p className="text-sm text-muted-foreground">مصروفات اليوم (تقديري)</p>
-                  <p className="text-xs text-muted-foreground">تكلفة البضاعة + مصاريف تشغيل</p>
+                  <p className="text-sm text-muted-foreground">مصروفات اليوم</p>
+                  <p className="text-xs text-muted-foreground">مصاريف مسجّلة في النظام</p>
                 </div>
               </div>
             </div>
-            <p className="text-3xl font-bold tabular-nums text-rose-600">{fmt.currency(estimatedExpenses)}</p>
+            <p className="text-3xl font-bold tabular-nums text-rose-600">{fmt.currency(realExpenses)}</p>
             <div className="mt-3 pt-3 border-t border-border/40 flex justify-between text-xs text-muted-foreground">
               <span>صافي الربح: {fmt.currency(netProfit)}</span>
               <span>هامش: {todaySales > 0 ? Math.round((netProfit / todaySales) * 100) : 0}%</span>
@@ -131,7 +173,7 @@ export function OwnerDashboardView() {
           <CardContent className="p-4 text-center">
             <Wallet className="h-5 w-5 text-rose-600 mx-auto mb-1" />
             <p className="text-xs text-muted-foreground">المصروفات</p>
-            <p className="text-lg font-bold tabular-nums">{fmt.currency(estimatedExpenses)}</p>
+            <p className="text-lg font-bold tabular-nums">{fmt.currency(realExpenses)}</p>
           </CardContent>
         </Card>
         <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setView("inventory" as any)}>

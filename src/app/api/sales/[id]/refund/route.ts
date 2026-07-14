@@ -5,6 +5,7 @@ import { serializeSale } from "@/lib/serialize"
 import { createJournalEntry } from "@/lib/journal"
 import { logAuditEvent } from "@/lib/audit"
 import { resolveWarehouseId } from "@/lib/warehouse-resolver"
+import { reverseLoyaltyPoints } from "@/lib/loyalty"
 
 export const dynamic = "force-dynamic"
 
@@ -212,6 +213,22 @@ export async function POST(
       msg.startsWith("exceeds-returnable") ||
       msg.startsWith("no-warehouse-available")
     return NextResponse.json({ error: msg }, { status: isClientError ? 400 : 500 })
+  }
+
+  // ── Loyalty points reversal (post-commit, non-fatal) ──────────────
+  // The refund transaction has already committed. Deduct the refunded
+  // points (Math.floor(refundTotal) — mirrors the awarding formula) and
+  // recompute the customer's loyalty tier. Failures here do NOT roll
+  // back the refund.
+  if (sale.customerId) {
+    try {
+      const pointsToDeduct = Math.floor(refundTotal)
+      await reverseLoyaltyPoints(sale.customerId, pointsToDeduct)
+    } catch (e: any) {
+      console.warn(
+        `[refund] Loyalty reversal failed for ${sale.invoiceNo}: ${e?.message ?? e}`
+      )
+    }
   }
 
   return NextResponse.json({

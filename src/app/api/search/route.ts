@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic"
  *   - Products (by name or barcode)
  *   - Customers (by name or phone)
  *   - Suppliers (by name)
- *   - Sales invoices (by invoiceNo)
+ *   - Sales invoices (by invoiceNo, customerName, or customerPhone)
  *   - Purchase orders (by id/note)
  *
  * Returns the top 5 matches per category. Requires authentication.
@@ -49,9 +49,9 @@ export async function GET(req: NextRequest) {
       select: { id: true, name: true, phone: true },
       take: 5,
     }),
-    // Sales: by invoiceNo
+    // Sales: by invoiceNo, customerName, or customerPhone
     db.sale.findMany({
-      where: { invoiceNo: contains },
+      where: { OR: [{ invoiceNo: contains }, { customerName: contains }, { customerPhone: contains }] },
       select: { id: true, invoiceNo: true, total: true, createdAt: true, customerName: true },
       take: 5,
       orderBy: { createdAt: "desc" },

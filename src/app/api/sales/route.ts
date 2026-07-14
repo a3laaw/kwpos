@@ -30,6 +30,7 @@ export async function GET(req: NextRequest) {
     where.OR = [
       { invoiceNo: { contains: q, mode: 'insensitive' as const } },
       { customerName: { contains: q, mode: 'insensitive' as const } },
+      { customerPhone: { contains: q, mode: 'insensitive' as const } },
     ]
   }
 

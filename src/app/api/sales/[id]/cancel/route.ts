@@ -5,6 +5,7 @@ import { createJournalEntry } from "@/lib/journal"
 import { logAuditEvent } from "@/lib/audit"
 import { incrementStockItem, updateProductQuantityFromStockItems } from "@/lib/db"
 import { resolveWarehouseId } from "@/lib/warehouse-resolver"
+import { reverseLoyaltyPoints } from "@/lib/loyalty"
 import type { Role } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
@@ -195,6 +196,21 @@ export async function POST(
       console.warn(`[cancel] AuditLog failed for ${sale.invoiceNo}: ${e?.message ?? e}`)
     }
   })()
+
+  // ── 6) LOYALTY POINTS REVERSAL (post-commit, non-fatal) ───────────
+  // Full reversal — deduct Math.floor(sale.total) points (same formula
+  // as the awarding side, but reversed). Recomputes the loyalty tier.
+  // Failures here do NOT roll back the cancellation.
+  if (sale.customerId) {
+    try {
+      const pointsToDeduct = Math.floor(sale.total)
+      await reverseLoyaltyPoints(sale.customerId, pointsToDeduct)
+    } catch (e: any) {
+      console.warn(
+        `[cancel] Loyalty reversal failed for ${sale.invoiceNo}: ${e?.message ?? e}`
+      )
+    }
+  }
 
   return NextResponse.json({
     ok: true,

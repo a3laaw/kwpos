@@ -36,6 +36,7 @@ import {
   Phone,
   MapPin,
   UserPlus,
+  Star,
 } from "lucide-react"
 import { useCustomers, useDeleteCustomer } from "@/hooks/use-api"
 import { useFmt } from "@/components/currency-context"
@@ -161,26 +162,56 @@ export function CustomersView() {
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
                   <TableHead>{t.cusCustomerName}</TableHead>
                   <TableHead>{t.cusCustomerPhone}</TableHead>
+                  <TableHead className="hidden md:table-cell">{t.cusCustomerType || "نوع العميل"}</TableHead>
+                  <TableHead className="hidden lg:table-cell">نقاط الولاء</TableHead>
                   <TableHead className="hidden sm:table-cell">{t.address}</TableHead>
                   <TableHead className="hidden md:table-cell">{t.cusDateAdded}</TableHead>
                   <TableHead className="w-12 text-center"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {customers.map((c) => (
+                {customers.map((c) => {
+                  const typeLabel =
+                    c.type === "WHOLESALE"
+                      ? "جملة"
+                      : c.type === "CORPORATE"
+                      ? "شركات"
+                      : "تجزئة"
+                  const typeVariant: "default" | "secondary" | "outline" =
+                    c.type === "WHOLESALE"
+                      ? "default"
+                      : c.type === "CORPORATE"
+                      ? "secondary"
+                      : "outline"
+                  return (
                   <TableRow key={c.id} className="hover:bg-muted/30">
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
                         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold">
                           {c.name.slice(0, 2)}
                         </span>
-                        {c.name}
+                        <span className="flex flex-col">
+                          <span>{c.name}</span>
+                          <span className="md:hidden text-[11px] text-muted-foreground">{typeLabel}</span>
+                        </span>
                       </div>
                     </TableCell>
                     <TableCell>
                       <span className="flex items-center gap-1.5 font-mono text-sm" dir="ltr">
                         <Phone className="h-3.5 w-3.5 text-muted-foreground" />
                         {c.phone || "—"}
+                      </span>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      <Badge variant={typeVariant}>{typeLabel}</Badge>
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell">
+                      <span className="flex items-center gap-1.5">
+                        <Star className="h-3.5 w-3.5 text-amber-500" />
+                        <span className="tabular-nums font-medium">{Number(c.loyaltyPoints ?? 0)}</span>
+                        {c.loyaltyTier ? (
+                          <Badge variant="outline" className="text-[10px] py-0 px-1.5">{c.loyaltyTier}</Badge>
+                        ) : null}
                       </span>
                     </TableCell>
                     <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
@@ -221,7 +252,8 @@ export function CustomersView() {
                       ) : null}
                     </TableCell>
                   </TableRow>
-                ))}
+                  )
+                })}
               </TableBody>
             </Table>
           </div>

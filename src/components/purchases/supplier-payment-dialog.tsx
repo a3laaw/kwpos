@@ -22,9 +22,11 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Combobox, type ComboboxOption } from "@/components/ui/combobox"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Loader2, Wallet } from "lucide-react"
 import { useT } from "@/components/i18n-context"
 import { useFmt } from "@/components/currency-context"
+import { useUser } from "@/components/user-context"
 import {
   useSuppliers,
   useSupplierBalances,
@@ -45,10 +47,15 @@ export function SupplierPaymentDialog({
 }: SupplierPaymentDialogProps) {
   const t = useT()
   const fmt = useFmt()
+  const user = useUser()
 
   const { data: suppliersData } = useSuppliers()
   const { data: balancesData } = useSupplierBalances()
   const createMut = useCreateSupplierPayment()
+
+  // Override (manager bypass) is restricted to OWNER and ADMIN roles.
+  // The backend re-checks the role server-side, so this is just UX.
+  const canOverride = user.role === "OWNER" || user.role === "ADMIN"
 
   const [selectedSupplier, setSelectedSupplier] = React.useState<string>(supplierId ?? "")
   const [amount, setAmount] = React.useState<string>("")
@@ -58,6 +65,7 @@ export function SupplierPaymentDialog({
     new Date().toISOString().slice(0, 10)
   )
   const [note, setNote] = React.useState<string>("")
+  const [override, setOverride] = React.useState<boolean>(false)
 
   // Sync when dialog opens or supplierId prop changes
   React.useEffect(() => {
@@ -68,6 +76,7 @@ export function SupplierPaymentDialog({
       setReferenceNo("")
       setPaymentDate(new Date().toISOString().slice(0, 10))
       setNote("")
+      setOverride(false)
     }
   }, [open, supplierId])
 
@@ -101,6 +110,7 @@ export function SupplierPaymentDialog({
         paymentMethod,
         referenceNo: referenceNo.trim() || null,
         note: note.trim() || null,
+        ...(override && canOverride ? { override: true } : {}),
       })
       toast.success(t.supplierPaymentCreated)
       onOpenChange(false)
@@ -214,6 +224,26 @@ export function SupplierPaymentDialog({
               placeholder="—"
             />
           </div>
+
+          {/* Manager override — allow payment above outstanding balance.
+              Only OWNER / ADMIN can see and use this toggle. The backend
+              re-validates the role server-side. */}
+          {canOverride ? (
+            <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2.5">
+              <Checkbox
+                id="sp-override"
+                checked={override}
+                onCheckedChange={(v) => setOverride(v === true)}
+                className="mt-0.5"
+              />
+              <Label htmlFor="sp-override" className="cursor-pointer text-sm font-medium text-amber-800 dark:text-amber-200">
+                تجاوز رصيد المورد (مدير)
+                <span className="block text-xs font-normal text-muted-foreground">
+                  السماح بسداد مبلغ يتجاوز الرصيد المستحق على المورد.
+                </span>
+              </Label>
+            </div>
+          ) : null}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

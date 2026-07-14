@@ -13,7 +13,15 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Loader2 } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Loader2, Star, Crown } from "lucide-react"
 import {
   useCreateCustomer,
   useUpdateCustomer,
@@ -27,13 +35,26 @@ interface CustomerFormDialogProps {
   customer?: Customer | null
 }
 
+type CustomerType = "RETAIL" | "WHOLESALE" | "CORPORATE"
+
 interface FormState {
   name: string
   phone: string
   address: string
+  type: CustomerType
 }
 
-const empty: FormState = { name: "", phone: "", address: "" }
+const empty: FormState = { name: "", phone: "", address: "", type: "RETAIL" }
+
+const CUSTOMER_TYPE_LABEL: Record<CustomerType, string> = {
+  RETAIL: "تجزئة",
+  WHOLESALE: "جملة",
+  CORPORATE: "شركات",
+}
+
+function normalizeCustomerType(v: unknown): CustomerType {
+  return v === "WHOLESALE" || v === "CORPORATE" ? v : "RETAIL"
+}
 
 export function CustomerFormDialog({ open, onOpenChange, customer }: CustomerFormDialogProps) {
   const isEdit = !!customer
@@ -44,13 +65,21 @@ export function CustomerFormDialog({ open, onOpenChange, customer }: CustomerFor
 
   React.useEffect(() => {
     if (customer) {
-      setForm({ name: customer.name, phone: customer.phone, address: customer.address })
+      setForm({
+        name: customer.name,
+        phone: customer.phone,
+        address: customer.address,
+        type: normalizeCustomerType(customer.type),
+      })
     } else {
       setForm(empty)
     }
   }, [customer, open])
 
   const set = (k: keyof FormState, v: string) => setForm((f) => ({ ...f, [k]: v }))
+
+  const loyaltyPoints: number = isEdit && customer ? Number(customer.loyaltyPoints ?? 0) : 0
+  const loyaltyTier: string | null = isEdit && customer ? (customer.loyaltyTier ?? null) : null
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -62,6 +91,7 @@ export function CustomerFormDialog({ open, onOpenChange, customer }: CustomerFor
       name: form.name.trim(),
       phone: form.phone.trim(),
       address: form.address.trim(),
+      type: form.type,
     }
     try {
       if (isEdit) {
@@ -89,6 +119,22 @@ export function CustomerFormDialog({ open, onOpenChange, customer }: CustomerFor
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Loyalty info — only in edit mode (read-only) */}
+          {isEdit ? (
+            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm">
+              <span className="flex items-center gap-1.5 font-medium text-amber-700 dark:text-amber-300">
+                <Star className="h-4 w-4" />
+                نقاط الولاء:
+                <Badge variant="secondary" className="tabular-nums">{loyaltyPoints}</Badge>
+              </span>
+              <span className="mx-1 text-muted-foreground">|</span>
+              <span className="flex items-center gap-1.5 font-medium text-amber-700 dark:text-amber-300">
+                <Crown className="h-4 w-4" />
+                المستوى:
+                <Badge variant="outline">{loyaltyTier || "—"}</Badge>
+              </span>
+            </div>
+          ) : null}
           <div className="space-y-2">
             <Label htmlFor="c-name">{t.cusCustomerName} *</Label>
             <Input
@@ -109,6 +155,22 @@ export function CustomerFormDialog({ open, onOpenChange, customer }: CustomerFor
               placeholder="+965 5xxx xxxx"
               className="text-end"
             />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="c-type">{t.cusCustomerType || "نوع العميل"}</Label>
+            <Select
+              value={form.type}
+              onValueChange={(v) => set("type", v)}
+            >
+              <SelectTrigger id="c-type">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="RETAIL">{CUSTOMER_TYPE_LABEL.RETAIL}</SelectItem>
+                <SelectItem value="WHOLESALE">{CUSTOMER_TYPE_LABEL.WHOLESALE}</SelectItem>
+                <SelectItem value="CORPORATE">{CUSTOMER_TYPE_LABEL.CORPORATE}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2">
             <Label htmlFor="c-address">{t.address}</Label>

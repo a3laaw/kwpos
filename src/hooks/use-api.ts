@@ -480,7 +480,7 @@ export function useDeleteWarehouse() {
 export function useCreateCustomer() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (body: { name: string; phone?: string; address?: string }) =>
+    mutationFn: (body: { name: string; phone?: string; address?: string; type?: "RETAIL" | "WHOLESALE" | "CORPORATE" }) =>
       jsend<Customer>("/api/customers", "POST", body),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["customers"] }),
   })
@@ -1381,6 +1381,8 @@ export interface CreateSupplierPaymentBody {
   paymentAccount?: string
   referenceNo?: string | null
   note?: string | null
+  /** Manager bypass: allow amount > outstanding balance. OWNER/ADMIN only. */
+  override?: boolean
 }
 
 /** List all supplier payments (newest first). Pass supplierId to filter. */

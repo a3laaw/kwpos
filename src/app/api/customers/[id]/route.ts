@@ -25,12 +25,20 @@ export async function PUT(
   const exists = await db.customer.findUnique({ where: { id } })
   if (!exists) return NextResponse.json({ error: "not-found" }, { status: 404 })
 
+  // Normalize customer type — default to RETAIL for invalid values.
+  const rawType = body?.type
+  const type =
+    rawType === "WHOLESALE" || rawType === "CORPORATE" || rawType === "RETAIL"
+      ? rawType
+      : "RETAIL"
+
   const updated = await db.customer.update({
     where: { id },
     data: {
       ...(body.name !== undefined ? { name: String(body.name).trim() } : {}),
       ...(body.phone !== undefined ? { phone: String(body.phone).trim() } : {}),
       ...(body.address !== undefined ? { address: String(body.address).trim() } : {}),
+      ...(body.type !== undefined ? { type } : {}),
     },
   })
   return NextResponse.json(serializeCustomer(updated as any))
