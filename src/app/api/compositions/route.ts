@@ -4,6 +4,7 @@ import { db } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
 import { serializeComposition } from "@/lib/serialize"
 import { logAuditEvent } from "@/lib/audit"
+import { generateProductBarcode } from "@/lib/barcode"
 import type { Role } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
@@ -181,11 +182,47 @@ export async function POST(req: NextRequest) {
       // the composition + product are atomic (both roll back on failure).
       let finalOutputProductId = outputProductId
       if (createNewProduct) {
+        // Auto-create or find the "التركيبات" category (closed/locked —
+        // used only by the system for manufactured products).
+        let compositionsCategory = await tx.category.findFirst({
+          where: { name: "التركيبات" },
+          select: { id: true, barcodePrefix: true },
+        })
+        if (!compositionsCategory) {
+          // Create the category with a unique barcodePrefix (9 = max)
+          const existingPrefixes = await tx.category.findMany({
+            where: { barcodePrefix: { not: null } },
+            select: { barcodePrefix: true },
+          })
+          const usedPrefixes = new Set(existingPrefixes.map((c) => c.barcodePrefix))
+          let prefix = 9 // default to 9 for compositions
+          while (usedPrefixes.has(prefix) && prefix > 0) prefix--
+          compositionsCategory = await tx.category.create({
+            data: {
+              name: "التركيبات",
+              barcodePrefix: prefix || 9,
+            },
+            select: { id: true, barcodePrefix: true },
+          })
+        }
+
+        // Generate barcode using the compositions category prefix
+        const productCountInCategory = await tx.product.count({
+          where: { categoryId: compositionsCategory.id },
+        })
+        const barcode = generateProductBarcode(
+          compositionsCategory.barcodePrefix || 9,
+          productCountInCategory + 1
+        )
+
         // The new product name = composition name (user can rename later)
         // Unit = yieldUnit, prices computed from ingredient costs.
+        // Auto-assigned to "التركيبات" category + auto-generated barcode.
         const newProduct = await tx.product.create({
           data: {
             name,
+            barcode,
+            categoryId: compositionsCategory.id,
             costPrice: +costPerUnit.toFixed(3),
             salePrice: salePricePerUnit,
             unit: yieldUnit,
