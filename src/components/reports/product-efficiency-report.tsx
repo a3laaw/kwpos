@@ -1,17 +1,19 @@
 "use client"
 
 import * as React from "react"
+import { BarChart, Bar, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 import { PageHeader } from "@/components/shared/page-header"
 import { LoadingState } from "@/components/shared/loading-state"
 import { EmptyState } from "@/components/shared/empty-state"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Crown, Gem, AlertTriangle, Ban, Star, Calendar, TrendingUp, Package } from "lucide-react"
+import { Crown, Gem, AlertTriangle, Ban, Star, Calendar, TrendingUp, Package, Download } from "lucide-react"
 import { useFmt } from "@/components/currency-context"
 import { useT } from "@/components/i18n-context"
+import { exportToExcel, type ExcelColumn } from "@/lib/excel"
 import { cn } from "@/lib/utils"
 
 interface EfficiencyProduct {
@@ -88,6 +90,17 @@ const DECISION_META: Record<EfficiencyProduct["decisionCode"], {
   },
 }
 
+// Bar fill colors for the efficiency index chart — aligned with the
+// project palette (no indigo/blue). Champion uses emerald, Hidden Gem
+// uses gold (instead of blue) for chart bars only — the DECISION_META
+// styling above (badges / table cells) is unchanged.
+const EFFICIENCY_BAR_COLOR: Record<EfficiencyProduct["decisionCode"], string> = {
+  CHAMPION: "#2E6237", // emerald
+  HIDDEN_GEM: "#F9DC7C", // gold
+  DECEPTIVE: "#f59e0b", // orange
+  STAGNANT: "#ef4444", // red
+}
+
 function indexColor(index: number): string {
   if (index >= 70) return "text-emerald-600 dark:text-emerald-400 font-bold"
   if (index >= 40) return "text-blue-600 dark:text-blue-400 font-bold"
@@ -140,6 +153,47 @@ export function ProductEfficiencyReport() {
     return () => clearTimeout(timer)
   }, [from, to])
 
+  // Excel export — all products with full efficiency breakdown.
+  function handleExportExcel() {
+    if (!data) return
+    const columns: ExcelColumn[] = [
+      { header: "المنتج", key: "name", width: 28 },
+      { header: "الفئة", key: "category", width: 18 },
+      { header: "وحدات مباعة", key: "unitsSold", width: 12 },
+      { header: "وحدات مرتجع", key: "unitsReturned", width: 12 },
+      { header: "معدل المرتجع %", key: "returnRate", width: 14 },
+      { header: "الإيراد", key: "revenue", width: 16 },
+      { header: "التكلفة", key: "costPrice", width: 16 },
+      { header: "صافي الربح", key: "netProfit", width: 16 },
+      { header: "مساهمة %", key: "profitContribution", width: 12 },
+      { header: "نقاط الربح /40", key: "scoreProfit", width: 14 },
+      { header: "نقاط المبيعات /25", key: "scoreSales", width: 14 },
+      { header: "نقاط المرتجع /20", key: "scoreReturn", width: 14 },
+      { header: "نقاط التكلفة /15", key: "scoreCost", width: 14 },
+      { header: "المؤشر /100", key: "efficiencyIndex", width: 14 },
+      { header: "القرار الإداري", key: "decision", width: 18 },
+    ]
+    const rows: Record<string, any>[] = data.products.map((p) => ({
+      name: p.name,
+      category: p.categoryName ?? "",
+      unitsSold: p.unitsSold,
+      unitsReturned: p.unitsReturned,
+      returnRate: p.returnRate,
+      revenue: p.revenue,
+      costPrice: p.costPrice,
+      netProfit: p.netProfit,
+      profitContribution: p.profitContribution,
+      scoreProfit: p.scores.profit,
+      scoreSales: p.scores.sales,
+      scoreReturn: p.scores.return,
+      scoreCost: p.scores.cost,
+      efficiencyIndex: p.efficiencyIndex,
+      decision: p.decision,
+    }))
+    const today = new Date().toISOString().slice(0, 10)
+    exportToExcel(rows, columns, `product-efficiency-${today}.xlsx`, "كفاءة المنتج")
+  }
+
   return (
     <div className="space-y-4">
       {/* Date range filter */}
@@ -174,6 +228,15 @@ export function ProductEfficiencyReport() {
           <Button onClick={fetchReport} disabled={loading} className="gap-2">
             {loading ? "جاري..." : "تحديث"}
           </Button>
+          <Button
+            variant="outline"
+            onClick={handleExportExcel}
+            disabled={!data || data.products.length === 0}
+            className="gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Excel
+          </Button>
         </div>
       </Card>
 
@@ -205,6 +268,60 @@ export function ProductEfficiencyReport() {
             color="red"
           />
         </div>
+      ) : null}
+
+      {/* Top 10 products by efficiency index — chart */}
+      {data && data.products.length > 0 ? (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <TrendingUp className="h-4 w-4 text-primary" />
+              أعلى 10 منتجات حسب مؤشر الكفاءة
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={320} minHeight={200}>
+              <BarChart
+                data={data.products.slice(0, 10)}
+                layout="vertical"
+                margin={{ top: 5, right: 10, left: 100, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} horizontal={false} />
+                <XAxis
+                  type="number"
+                  domain={[0, 100]}
+                  tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                  tickLine={false}
+                  axisLine={false}
+                  width={100}
+                  tickFormatter={(v: string) =>
+                    v && v.length > 15 ? `${v.slice(0, 15)}…` : v
+                  }
+                />
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: 12,
+                    border: "1px solid hsl(var(--border))",
+                    fontSize: 12,
+                  }}
+                  formatter={(v: number) => [`${Number(v).toFixed(1)} / 100`, "المؤشر"]}
+                />
+                <Bar dataKey="efficiencyIndex" radius={[0, 6, 6, 0]}>
+                  {data.products.slice(0, 10).map((p) => (
+                    <Cell key={p.id} fill={EFFICIENCY_BAR_COLOR[p.decisionCode]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
       ) : null}
 
       {/* Main table */}

@@ -6,6 +6,7 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  Legend,
   Line,
   LineChart,
   Pie,
@@ -39,8 +40,9 @@ import {
   AlertTriangle,
   LayoutGrid,
 } from "lucide-react"
-import { Printer } from "lucide-react"
+import { Printer, Download } from "lucide-react"
 import { printReportOnly } from "@/lib/print"
+import { exportToExcel, type ExcelColumn } from "@/lib/excel"
 import { useAnalytics } from "@/hooks/use-api"
 import { useFmt } from "@/components/currency-context"
 import { useT } from "@/components/i18n-context"
@@ -130,6 +132,120 @@ export function AnalyticsView() {
     margin: "anlProfitability",
   }
 
+  // Excel export — exports the underlying list for the active tab.
+  function handleExportExcel() {
+    if (!data) return
+    let columns: ExcelColumn[] = []
+    let rows: Record<string, any>[] = []
+    let sheetName = ""
+    let filename = ""
+
+    if (tab === "stagnant") {
+      columns = [
+        { header: "المنتج", key: "name", width: 28 },
+        { header: "الفئة", key: "categoryName", width: 18 },
+        { header: "المخزون الحالي", key: "currentStock", width: 14 },
+        { header: "الكمية المباعة", key: "quantitySold", width: 14 },
+        { header: "التكلفة", key: "costPrice", width: 16 },
+        { header: "قيمة المخزون الراكد", key: "stuckValue", width: 18 },
+      ]
+      rows = data.stagnant.map((p) => ({
+        name: p.name,
+        categoryName: p.categoryName ?? "",
+        currentStock: p.currentStock,
+        quantitySold: p.quantitySold,
+        costPrice: p.costPrice,
+        stuckValue: p.currentStock * p.costPrice,
+      }))
+      sheetName = "المنتجات الراكدة"
+      filename = "analytics-stagnant"
+    } else if (tab === "cost") {
+      columns = [
+        { header: "القائمة", key: "list", width: 16 },
+        { header: "المنتج", key: "name", width: 28 },
+        { header: "الفئة", key: "categoryName", width: 18 },
+        { header: "التكلفة", key: "costPrice", width: 16 },
+        { header: "سعر البيع", key: "salePrice", width: 14 },
+        { header: "المخزون الحالي", key: "currentStock", width: 14 },
+      ]
+      rows = [
+        ...data.mostExpensive.map((p) => ({
+          list: "الأعلى تكلفة",
+          name: p.name,
+          categoryName: p.categoryName ?? "",
+          costPrice: p.costPrice,
+          salePrice: p.salePrice,
+          currentStock: p.currentStock,
+        })),
+        ...data.cheapest.map((p) => ({
+          list: "الأقل تكلفة",
+          name: p.name,
+          categoryName: p.categoryName ?? "",
+          costPrice: p.costPrice,
+          salePrice: p.salePrice,
+          currentStock: p.currentStock,
+        })),
+      ]
+      sheetName = "تحليل التكلفة"
+      filename = "analytics-cost"
+    } else if (tab === "margin") {
+      columns = [
+        { header: "المنتج", key: "name", width: 28 },
+        { header: "الفئة", key: "categoryName", width: 18 },
+        { header: "هامش الربح", key: "margin", width: 16 },
+        { header: "نسبة الهامش %", key: "marginPct", width: 14 },
+        { header: "سعر البيع", key: "salePrice", width: 14 },
+        { header: "التكلفة", key: "costPrice", width: 16 },
+      ]
+      rows = data.highestMargin.map((p) => ({
+        name: p.name,
+        categoryName: p.categoryName ?? "",
+        margin: p.margin,
+        marginPct: p.marginPct,
+        salePrice: p.salePrice,
+        costPrice: p.costPrice,
+      }))
+      sheetName = "تحليل الربحية"
+      filename = "analytics-margin"
+    } else if (tab === "top") {
+      columns = [
+        { header: "المنتج", key: "name", width: 28 },
+        { header: "الفئة", key: "categoryName", width: 18 },
+        { header: "الكمية المباعة", key: "quantitySold", width: 14 },
+        { header: "الإيراد", key: "grossVolume", width: 16 },
+        { header: "سعر البيع", key: "salePrice", width: 14 },
+      ]
+      rows = data.topSelling.map((p) => ({
+        name: p.name,
+        categoryName: p.categoryName ?? "",
+        quantitySold: p.quantitySold,
+        grossVolume: p.grossVolume,
+        salePrice: p.salePrice,
+      }))
+      sheetName = "الأكثر مبيعاً"
+      filename = "analytics-top-selling"
+    } else {
+      // overview — combine top selling as the main underlying list
+      columns = [
+        { header: "المنتج", key: "name", width: 28 },
+        { header: "الفئة", key: "categoryName", width: 18 },
+        { header: "الكمية المباعة", key: "quantitySold", width: 14 },
+        { header: "الإيراد", key: "grossVolume", width: 16 },
+      ]
+      rows = data.topSelling.map((p) => ({
+        name: p.name,
+        categoryName: p.categoryName ?? "",
+        quantitySold: p.quantitySold,
+        grossVolume: p.grossVolume,
+      }))
+      sheetName = "نظرة عامة"
+      filename = "analytics-overview"
+    }
+
+    const today = new Date().toISOString().slice(0, 10)
+    exportToExcel(rows, columns, `${filename}-${today}.xlsx`, sheetName)
+  }
+
   return (
     <div className="space-y-5">
       <PageHeader
@@ -141,10 +257,21 @@ export function AnalyticsView() {
           { labelKey: ANL_TAB_BREADCRUMB[tab] },
         ]}
         actions={
-          <Button variant="outline" className="gap-2" onClick={() => printReportOnly(t.analyticsTitle, t.analyticsDesc)}>
-            <Printer className="h-4 w-4" />
-            <span className="hidden sm:inline">{t.exportPrint || "طباعة"}</span>
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={handleExportExcel}
+              disabled={!data}
+            >
+              <Download className="h-4 w-4" />
+              <span className="hidden sm:inline">Excel</span>
+            </Button>
+            <Button variant="outline" className="gap-2" onClick={() => printReportOnly(t.analyticsTitle, t.analyticsDesc)}>
+              <Printer className="h-4 w-4" />
+              <span className="hidden sm:inline">{t.exportPrint || "طباعة"}</span>
+            </Button>
+          </div>
         }
       />
 
@@ -282,7 +409,7 @@ function OverviewTab({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={220}>
+            <ResponsiveContainer width="100%" height={220} minHeight={200}>
               <BarChart data={topData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
                 <XAxis dataKey="name" tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} tickFormatter={(v) => String(v).slice(0, 10)} />
@@ -302,12 +429,28 @@ function OverviewTab({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={220}>
+            <ResponsiveContainer width="100%" height={220} minHeight={200}>
               <PieChart>
-                <Pie data={data.highestMargin.slice(0, 6)} dataKey="margin" nameKey="name" cx="50%" cy="50%" innerRadius={45} outerRadius={80} paddingAngle={2}>
+                <Pie data={data.highestMargin.slice(0, 6)} dataKey="margin" nameKey="name" cx="50%" cy="45%" innerRadius={40} outerRadius={70} paddingAngle={2}>
                   {data.highestMargin.slice(0, 6).map((_: any, i: number) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                 </Pie>
                 <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))", fontSize: 12 }} formatter={(v: number) => fmt.currency(v)} />
+                <Legend
+                  layout="horizontal"
+                  verticalAlign="bottom"
+                  align="center"
+                  iconType="circle"
+                  iconSize={9}
+                  wrapperStyle={{
+                    fontSize: 11,
+                    paddingTop: 8,
+                    maxHeight: 60,
+                    overflow: "hidden",
+                  }}
+                  formatter={(value: string) =>
+                    value.length > 16 ? `${value.slice(0, 16)}…` : value
+                  }
+                />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
@@ -392,11 +535,11 @@ function TopSellingTab({ data, fmt, t }: { data: ProductAnalytics[]; fmt: Return
         </CardHeader>
         <CardContent>
           {data.length === 0 ? <EmptyState title={t.anlNoSales} description={t.anlTryWiderRange} /> : (
-            <ResponsiveContainer width="100%" height={320}>
+            <ResponsiveContainer width="100%" height={320} minHeight={200}>
               <BarChart data={data.slice(0, 10)} layout="vertical" margin={{ top: 5, right: 10, left: 80, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} horizontal={false} />
                 <XAxis type="number" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} />
-                <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} width={80} />
+                <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} width={80} tickFormatter={(v: string) => v.length > 12 ? `${v.slice(0, 12)}…` : v} />
                 <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))", fontSize: 12 }} formatter={(v: number) => [fmt.number(v) + " " + t.anlUnit, t.qty]} />
                 <Bar dataKey="quantitySold" fill="#2E6237" radius={[0, 6, 6, 0]} />
               </BarChart>
@@ -488,11 +631,11 @@ function CostTab({ expensive, cheapest, fmt, t }: { expensive: ProductAnalytics[
           <CardHeader><CardTitle className="flex items-center gap-2 text-base"><ArrowUp className="h-4 w-4 text-rose-500" />{t.anlMostExpensive}</CardTitle></CardHeader>
           <CardContent>
             {expensive.length === 0 ? <EmptyState title={t.anlNoData} /> : (
-              <ResponsiveContainer width="100%" height={280}>
+              <ResponsiveContainer width="100%" height={280} minHeight={200}>
                 <BarChart data={expensive.slice(0, 8)} layout="vertical" margin={{ top: 5, right: 10, left: 80, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} horizontal={false} />
                   <XAxis type="number" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} width={80} />
+                  <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} width={80} tickFormatter={(v: string) => v.length > 12 ? `${v.slice(0, 12)}…` : v} />
                   <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))", fontSize: 12 }} formatter={(v: number) => fmt.currency(v)} />
                   <Bar dataKey="costPrice" fill="#f43f5e" radius={[0, 6, 6, 0]} />
                 </BarChart>
@@ -504,11 +647,11 @@ function CostTab({ expensive, cheapest, fmt, t }: { expensive: ProductAnalytics[
           <CardHeader><CardTitle className="flex items-center gap-2 text-base"><ArrowDown className="h-4 w-4 text-[#DFC196]" />{t.anlCheapest}</CardTitle></CardHeader>
           <CardContent>
             {cheapest.length === 0 ? <EmptyState title={t.anlNoData} /> : (
-              <ResponsiveContainer width="100%" height={280}>
+              <ResponsiveContainer width="100%" height={280} minHeight={200}>
                 <BarChart data={cheapest.slice(0, 8)} layout="vertical" margin={{ top: 5, right: 10, left: 80, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} horizontal={false} />
                   <XAxis type="number" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} width={80} />
+                  <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} width={80} tickFormatter={(v: string) => v.length > 12 ? `${v.slice(0, 12)}…` : v} />
                   <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))", fontSize: 12 }} formatter={(v: number) => fmt.currency(v)} />
                   <Bar dataKey="costPrice" fill="#DFC196" radius={[0, 6, 6, 0]} />
                 </BarChart>
@@ -537,7 +680,7 @@ function MarginTab({ data, fmt, t }: { data: ProductAnalytics[]; fmt: ReturnType
         <CardContent>
           {data.length === 0 ? <EmptyState title={t.anlNoData} /> : (
             <div className="grid sm:grid-cols-2 gap-4 items-start">
-              <ResponsiveContainer width="100%" height={260}>
+              <ResponsiveContainer width="100%" height={260} minHeight={200}>
                 <PieChart>
                   <Pie data={data.slice(0, 8)} dataKey="margin" nameKey="name" cx="50%" cy="50%" innerRadius={55} outerRadius={90} paddingAngle={2}>
                     {data.slice(0, 8).map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}

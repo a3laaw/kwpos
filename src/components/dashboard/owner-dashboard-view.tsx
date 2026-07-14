@@ -2,8 +2,9 @@
 
 import * as React from "react"
 import { useQuery } from "@tanstack/react-query"
+import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 import { PageHeader } from "@/components/shared/page-header"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
   Crown, TrendingUp, TrendingDown, DollarSign, Wallet,
@@ -191,6 +192,53 @@ export function OwnerDashboardView() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Sales vs expenses chart */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <DollarSign className="h-4 w-4 text-emerald-600" />
+            المبيعات مقابل المصروفات (اليوم)
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={240} minHeight={200}>
+            <BarChart
+              data={[
+                { name: "المبيعات", value: todaySales, fill: "#2E6237" },
+                { name: "المصروفات", value: realExpenses, fill: "#f43f5e" },
+              ]}
+              margin={{ top: 5, right: 10, left: 0, bottom: 0 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+              <XAxis
+                dataKey="name"
+                tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+                tickLine={false}
+                axisLine={false}
+              />
+              <YAxis
+                tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                tickLine={false}
+                axisLine={false}
+                width={60}
+              />
+              <Tooltip
+                contentStyle={{
+                  borderRadius: 12,
+                  border: "1px solid hsl(var(--border))",
+                  fontSize: 12,
+                }}
+                formatter={(v: number) => fmt.currency(v)}
+              />
+              <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                <Cell fill="#2E6237" />
+                <Cell fill="#f43f5e" />
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
 
       {/* Quick actions */}
       <div className="flex gap-3 flex-wrap">

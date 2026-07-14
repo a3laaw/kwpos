@@ -20,6 +20,7 @@ import {
 import { usePnLReport } from "@/hooks/use-api"
 import { useFmt } from "@/components/currency-context"
 import { useT } from "@/components/i18n-context"
+import { ExportToolbar } from "@/components/shared/export-toolbar"
 import { cn } from "@/lib/utils"
 
 export function PnLTab() {
@@ -43,6 +44,25 @@ export function PnLTab() {
     setAppliedTo(undefined)
   }
 
+  // Build export rows — P&L statement + expense breakdown interleaved.
+  const exportHeaders = [t.accPnlStatementFull, "البند", "المبلغ"]
+  const exportRows: any[][] = []
+  if (data) {
+    exportRows.push(["", t.accTotalRevenueFull, fmt.currency(data.revenue)])
+    exportRows.push(["", t.accCogsFull, fmt.currency(-data.cogs)])
+    exportRows.push(["", t.accGrossProfit, fmt.currency(data.grossProfit)])
+    exportRows.push(["", t.accSalaries, fmt.currency(-data.salaries)])
+    exportRows.push(["", t.accAdminExpenses, fmt.currency(-data.adminExpenses)])
+    exportRows.push(["", t.accTotalOpex, fmt.currency(-data.totalOperatingExpenses)])
+    exportRows.push(["", t.accNetProfit, fmt.currency(data.netProfit)])
+    if (data.expenseBreakdown.length > 0) {
+      exportRows.push(["", t.accExpenseBreakdownTitle, ""])
+      for (const b of data.expenseBreakdown) {
+        exportRows.push(["", b.category, fmt.currency(b.amount)])
+      }
+    }
+  }
+
   return (
     <div className="space-y-4">
       <Card className="p-4">
@@ -59,9 +79,16 @@ export function PnLTab() {
             </Label>
             <Input id="pto" type="date" value={to} onChange={(e) => setTo(e.target.value)} className="h-9" />
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center flex-wrap">
             <Button onClick={apply} size="sm">{t.apply}</Button>
             <Button onClick={reset} size="sm" variant="outline">{t.accAllPeriods}</Button>
+            <ExportToolbar
+              title={t.accPnlStatementFull}
+              headers={exportHeaders}
+              rows={exportRows}
+              filename={`pnl-${appliedFrom || "all"}-${appliedTo || "now"}`}
+              className="ms-1"
+            />
           </div>
         </div>
         <p className="text-xs text-muted-foreground mt-2">

@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 import { LoadingState } from "@/components/shared/loading-state"
 import { EmptyState } from "@/components/shared/empty-state"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -32,10 +33,12 @@ import {
   Gauge,
   Clock,
   Warehouse as WarehouseIcon,
+  Download,
 } from "lucide-react"
 import { useReportMatrix, type MatrixFilters } from "@/hooks/use-api"
 import { useI18n, useT } from "@/components/i18n-context"
 import { useFmt } from "@/components/currency-context"
+import { exportToExcel, type ExcelColumn } from "@/lib/excel"
 import { cn } from "@/lib/utils"
 
 type SortKey =
@@ -218,6 +221,50 @@ export function PerformanceMatrix() {
     return { revenue, cost, profit, qty, margin, turnover, days, catCount: categories.length }
   }, [categories, periodDays])
 
+  // Excel export — flatten the category→product hierarchy.
+  function handleExportExcel() {
+    const columns: ExcelColumn[] = [
+      { header: "الفئة", key: "category", width: 22 },
+      { header: "المنتج", key: "product", width: 28 },
+      { header: "صافي الكمية", key: "netQty", width: 12 },
+      { header: "الإيراد", key: "revenue", width: 16 },
+      { header: "التكلفة", key: "cost", width: 16 },
+      { header: "إجمالي الربح", key: "grossProfit", width: 16 },
+      { header: "الهامش %", key: "marginPct", width: 12 },
+      { header: "معدل الدوران", key: "turnoverRate", width: 14 },
+      { header: "أيام التخزين", key: "avgDaysInInv", width: 14 },
+    ]
+    const rows: Record<string, any>[] = []
+    for (const c of categories) {
+      rows.push({
+        category: c.categoryName,
+        product: "—",
+        netQty: c.netQty,
+        revenue: c.revenue,
+        cost: c.cost,
+        grossProfit: c.grossProfit,
+        marginPct: c.marginPct,
+        turnoverRate: c.turnoverRate,
+        avgDaysInInv: c.avgDaysInInv,
+      })
+      for (const p of c.children) {
+        rows.push({
+          category: c.categoryName,
+          product: p.name,
+          netQty: p.netQty,
+          revenue: p.revenue,
+          cost: p.cost,
+          grossProfit: p.grossProfit,
+          marginPct: p.marginPct,
+          turnoverRate: p.turnoverRate,
+          avgDaysInInv: p.avgDaysInInv,
+        })
+      }
+    }
+    const today = new Date().toISOString().slice(0, 10)
+    exportToExcel(rows, columns, `performance-matrix-${today}.xlsx`, "مصفوفة الأداء")
+  }
+
   return (
     <div className="space-y-4">
       {/* Filters card — hidden when printing */}
@@ -301,6 +348,65 @@ export function PerformanceMatrix() {
             <KpiTile icon={<Gauge className="h-4 w-4" />} label={t.matrixKpiTurnover} value={fmt.number(totals.turnover)} hint={t.matrixStagnantDaysHint.replace("{x}", fmt.number(totals.days))} tone="default" />
           </div>
 
+          {/* Top 10 categories by revenue — chart */}
+          {(() => {
+            const topCats = [...categories]
+              .sort((a, b) => b.revenue - a.revenue)
+              .slice(0, 10)
+              .map((c) => ({ name: c.categoryName, revenue: c.revenue }))
+            if (topCats.length === 0) return null
+            return (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <TrendingUp className="h-4 w-4 text-primary" />
+                    أعلى 10 فئات حسب الإيراد
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    ترتيب الفئات حسب إجمالي الإيراد في الفترة المحددة
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={320} minHeight={200}>
+                    <BarChart
+                      data={topCats}
+                      layout="vertical"
+                      margin={{ top: 5, right: 10, left: 100, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} horizontal={false} />
+                      <XAxis
+                        type="number"
+                        tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <YAxis
+                        type="category"
+                        dataKey="name"
+                        tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                        tickLine={false}
+                        axisLine={false}
+                        width={100}
+                        tickFormatter={(v: string) =>
+                          v && v.length > 15 ? `${v.slice(0, 15)}…` : v
+                        }
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          borderRadius: 12,
+                          border: "1px solid hsl(var(--border))",
+                          fontSize: 12,
+                        }}
+                        formatter={(v: number) => fmt.currency(v)}
+                      />
+                      <Bar dataKey="revenue" fill="#2E6237" radius={[0, 6, 6, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            )
+          })()}
+
           {/* Matrix table */}
           <Card>
             <CardHeader className="pb-3">
@@ -320,6 +426,9 @@ export function PerformanceMatrix() {
                   </Button>
                   <Button size="sm" variant="outline" onClick={collapseAll} className="h-7 text-xs gap-1">
                     <ClosedChevron className="h-3.5 w-3.5" /> {t.collapseAll}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={handleExportExcel} className="h-7 text-xs gap-1.5">
+                    <Download className="h-3.5 w-3.5" /> Excel
                   </Button>
                 </div>
               </div>

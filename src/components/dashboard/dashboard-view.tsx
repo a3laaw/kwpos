@@ -8,6 +8,7 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  Legend,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -40,7 +41,9 @@ import {
   Receipt,
   Trophy,
   Tags,
+  Download,
 } from "lucide-react"
+import { exportToExcel, type ExcelColumn } from "@/lib/excel"
 
 const PIE_COLORS = [
   "#2E6237", // blue primary
@@ -104,6 +107,45 @@ export function DashboardView() {
   const trend = data.salesTrend ?? []
   const top = data.topProducts ?? []
   const cats = data.categoryDistribution ?? []
+  // Capture the narrowed `data` so the click handler below doesn't lose the
+  // narrowing through the closure.
+  const d = data
+
+  // Excel export — KPIs + recent sales + low stock products in one sheet.
+  function handleExportExcel() {
+    const columns: ExcelColumn[] = [
+      { header: "القسم", key: "section", width: 16 },
+      { header: "البيان", key: "label", width: 32 },
+      { header: "القيمة", key: "value", width: 20 },
+    ]
+    const rows: Record<string, any>[] = []
+    // KPIs
+    rows.push({ section: "مؤشرات", label: t.dshTotalSales, value: fmt.currency(d.totalSales) })
+    rows.push({ section: "مؤشرات", label: t.dshTodaySales, value: fmt.currency(d.todaySales) })
+    rows.push({ section: "مؤشرات", label: t.invoiceCountLabel.replace("{count}", ""), value: fmt.number(d.salesCount) })
+    rows.push({ section: "مؤشرات", label: t.dshProductsCount, value: fmt.number(d.productsCount) })
+    rows.push({ section: "مؤشرات", label: t.inventoryValueLabel.replace("{value}", ""), value: fmt.currency(d.inventoryValue) })
+    rows.push({ section: "مؤشرات", label: t.dshLowStockProducts, value: fmt.number(d.lowStockCount) })
+    rows.push({ section: "مؤشرات", label: t.pendingPoCountLabel.replace("{count}", ""), value: fmt.number(d.pendingPurchases) })
+    // Recent sales
+    for (const s of recentSales) {
+      rows.push({
+        section: "أحدث الفواتير",
+        label: s.invoiceNo,
+        value: `${fmt.currency(s.total)} — ${s.customerName || t.cashCustomer} — ${fmt.dateTime(s.createdAt)}`,
+      })
+    }
+    // Low stock products
+    for (const p of lowStock) {
+      rows.push({
+        section: "نقص المخزون",
+        label: p.name,
+        value: `${fmt.number(p.quantity)} / ${fmt.number(p.reorderLevel)} ${p.unit ?? ""}`,
+      })
+    }
+    const today = new Date().toISOString().slice(0, 10)
+    exportToExcel(rows, columns, `dashboard-${today}.xlsx`, "لوحة المعلومات")
+  }
 
   return (
     <div className="space-y-6">
@@ -135,6 +177,10 @@ export function DashboardView() {
             <div className="flex items-end gap-2">
               <Button onClick={applyRange} size="sm" className="h-9">{t.apply}</Button>
               <Button onClick={() => resetRange("30")} size="sm" variant="outline" className="h-9">{t.reset}</Button>
+              <Button onClick={handleExportExcel} size="sm" variant="outline" className="h-9 gap-1.5">
+                <Download className="h-3.5 w-3.5" />
+                Excel
+              </Button>
             </div>
           </div>
           <Badge variant="outline" className="self-end lg:self-auto">{rangeLabel}</Badge>
@@ -192,7 +238,7 @@ export function DashboardView() {
             {trend.length === 0 ? (
               <EmptyState title={t.dshNoSalesYet} description={t.dshNoSalesYetDesc} />
             ) : (
-              <ResponsiveContainer width="100%" height={260}>
+              <ResponsiveContainer width="100%" height={260} minHeight={200}>
                 <AreaChart data={trend} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
@@ -262,16 +308,16 @@ export function DashboardView() {
             {cats.length === 0 ? (
               <EmptyState title={t.dshNoCategories} description={t.noDataDescription} />
             ) : (
-              <ResponsiveContainer width="100%" height={260}>
+              <ResponsiveContainer width="100%" height={260} minHeight={200}>
                 <PieChart>
                   <Pie
                     data={cats}
                     dataKey="total"
                     nameKey="categoryName"
                     cx="50%"
-                    cy="50%"
-                    innerRadius={55}
-                    outerRadius={90}
+                    cy="45%"
+                    innerRadius={45}
+                    outerRadius={75}
                     paddingAngle={2}
                   >
                     {cats.map((_, i) => (
@@ -287,6 +333,22 @@ export function DashboardView() {
                       fontSize: 13,
                     }}
                     formatter={(v: number) => fmt.currency(v)}
+                  />
+                  <Legend
+                    layout="horizontal"
+                    verticalAlign="bottom"
+                    align="center"
+                    iconType="circle"
+                    iconSize={9}
+                    wrapperStyle={{
+                      fontSize: 11,
+                      paddingTop: 8,
+                      maxHeight: 60,
+                      overflow: "hidden",
+                    }}
+                    formatter={(value: string) =>
+                      value.length > 16 ? `${value.slice(0, 16)}…` : value
+                    }
                   />
                 </PieChart>
               </ResponsiveContainer>

@@ -8,6 +8,7 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  Legend,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -45,6 +46,7 @@ import {
   Calendar,
   Layers,
   Star,
+  Download,
 } from "lucide-react"
 import { useReport, type ReportFilters } from "@/hooks/use-api"
 import { useFmt } from "@/components/currency-context"
@@ -52,6 +54,7 @@ import { useT } from "@/components/i18n-context"
 import { PerformanceMatrix } from "@/components/reports/performance-matrix"
 import { ProductEfficiencyReport } from "@/components/reports/product-efficiency-report"
 import { printReportOnly } from "@/lib/print"
+import { exportToExcel, type ExcelColumn } from "@/lib/excel"
 import { cn } from "@/lib/utils"
 import { useModuleTab } from "@/lib/module-tab-store"
 
@@ -168,6 +171,45 @@ function GeneralReports() {
     [products, t.allProducts]
   )
 
+  // Excel export — combines KPIs, byDay, byCategory, byProduct into one sheet.
+  function handleExportExcel() {
+    if (!data) return
+    const columns: ExcelColumn[] = [
+      { header: "القسم", key: "section", width: 16 },
+      { header: "البيان", key: "label", width: 28 },
+      { header: "التفاصيل", key: "detail", width: 18 },
+      { header: "الكمية", key: "qty", width: 12 },
+      { header: "الإيراد", key: "revenue", width: 16 },
+      { header: "التكلفة", key: "cost", width: 16 },
+      { header: "الربح", key: "profit", width: 16 },
+      { header: "الهامش %", key: "margin", width: 12 },
+    ]
+    const rows: Record<string, any>[] = []
+    // Summary KPIs
+    rows.push({ section: "ملخص", label: t.repTotalRevenue, revenue: data.summary.totalRevenue })
+    rows.push({ section: "ملخص", label: t.repTotalCost, cost: data.summary.totalCost })
+    rows.push({ section: "ملخص", label: t.repGrossProfit, profit: data.summary.grossProfit })
+    rows.push({ section: "ملخص", label: t.repMarginPctLabel.replace("{x}", ""), margin: data.summary.marginPct })
+    rows.push({ section: "ملخص", label: t.repInvoicesCount.replace("{count}", ""), qty: data.summary.salesCount })
+    rows.push({ section: "ملخص", label: t.repUnitsSoldCount.replace("{count}", ""), qty: data.summary.itemsSold })
+    rows.push({ section: "ملخص", label: t.repAvgInvoice, revenue: data.summary.avgSale })
+    rows.push({ section: "ملخص", label: t.repDiscountLabel.replace("{x}", ""), revenue: data.summary.totalDiscount })
+    // By day
+    for (const d of data.byDay) {
+      rows.push({ section: "يومي", label: d.date, revenue: d.revenue })
+    }
+    // By category
+    for (const c of data.byCategory) {
+      rows.push({ section: "حسب الفئة", label: c.category, revenue: c.revenue, profit: c.profit })
+    }
+    // By product
+    for (const p of data.byProduct) {
+      rows.push({ section: "حسب المنتج", label: p.name, detail: p.category, qty: p.qty, revenue: p.revenue, cost: p.cost, profit: p.profit })
+    }
+    const today = new Date().toISOString().slice(0, 10)
+    exportToExcel(rows, columns, `general-report-${today}.xlsx`, "التقرير العام")
+  }
+
   return (
     <div className="space-y-5">
       {/* Filters card */}
@@ -181,10 +223,20 @@ function GeneralReports() {
                 <Badge className="tabular-nums">{activeFiltersCount} {t.activeLabel}</Badge>
               ) : null}
             </CardTitle>
-            <div className="flex gap-1.5 flex-wrap">
+            <div className="flex gap-1.5 flex-wrap items-center">
               <Button size="sm" variant="ghost" onClick={() => setQuickRange(7)} className="h-7 text-xs">{t.last7Days}</Button>
               <Button size="sm" variant="ghost" onClick={() => setQuickRange(30)} className="h-7 text-xs">{t.last30Days}</Button>
               <Button size="sm" variant="ghost" onClick={() => setQuickRange(90)} className="h-7 text-xs">{t.last90Days}</Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs gap-1.5 ms-1"
+                onClick={handleExportExcel}
+                disabled={!data}
+              >
+                <Download className="h-3.5 w-3.5" />
+                Excel
+              </Button>
             </div>
           </div>
         </CardHeader>
@@ -280,7 +332,7 @@ function GeneralReports() {
                 {data.byDay.length === 0 ? (
                   <EmptyState title={t.noData} />
                 ) : (
-                  <ResponsiveContainer width="100%" height={280}>
+                  <ResponsiveContainer width="100%" height={280} minHeight={200}>
                     <AreaChart data={data.byDay} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
                       <defs>
                         <linearGradient id="repGrad" x1="0" y1="0" x2="0" y2="1">
@@ -310,12 +362,28 @@ function GeneralReports() {
                   <EmptyState title={t.noData} />
                 ) : (
                   <>
-                    <ResponsiveContainer width="100%" height={200}>
+                    <ResponsiveContainer width="100%" height={240} minHeight={200}>
                       <PieChart>
-                        <Pie data={byPayment} dataKey="revenue" nameKey="method" cx="50%" cy="50%" innerRadius={50} outerRadius={85} paddingAngle={2}>
+                        <Pie data={byPayment} dataKey="revenue" nameKey="method" cx="50%" cy="45%" innerRadius={45} outerRadius={75} paddingAngle={2}>
                           {byPayment.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                         </Pie>
                         <Tooltip formatter={(v: number) => fmt.currency(v)} />
+                        <Legend
+                          layout="horizontal"
+                          verticalAlign="bottom"
+                          align="center"
+                          iconType="circle"
+                          iconSize={9}
+                          wrapperStyle={{
+                            fontSize: 11,
+                            paddingTop: 4,
+                            maxHeight: 40,
+                            overflow: "hidden",
+                          }}
+                          formatter={(value: string) =>
+                            value.length > 14 ? `${value.slice(0, 14)}…` : value
+                          }
+                        />
                       </PieChart>
                     </ResponsiveContainer>
                     <div className="space-y-1.5 mt-2">
@@ -345,10 +413,10 @@ function GeneralReports() {
               {data.byCategory.length === 0 ? (
                 <EmptyState title={t.noData} />
               ) : (
-                <ResponsiveContainer width="100%" height={300}>
+                <ResponsiveContainer width="100%" height={300} minHeight={200}>
                   <BarChart data={data.byCategory} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                    <XAxis dataKey="category" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} />
+                    <XAxis dataKey="category" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} angle={-15} textAnchor="end" height={60} interval={0} tickFormatter={(v: string) => (v && v.length > 12 ? `${v.slice(0, 12)}…` : v)} />
                     <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} width={50} />
                     <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))", fontSize: 12 }} formatter={(v: number) => fmt.currency(v)} />
                     <Bar dataKey="revenue" name={t.repRevenue} fill="#2E6237" radius={[6, 6, 0, 0]} />

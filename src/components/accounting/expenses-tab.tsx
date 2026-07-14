@@ -36,6 +36,7 @@ import {
 } from "@/hooks/use-api"
 import { useFmt } from "@/components/currency-context"
 import { useT } from "@/components/i18n-context"
+import { ExportToolbar } from "@/components/shared/export-toolbar"
 import type { ExpenseTransaction } from "@/lib/types"
 
 type CategoryKey = "rent" | "utilities" | "subscriptions" | "marketing" | "other"
@@ -361,11 +362,26 @@ function ExpensesList() {
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center gap-2">
-          <Receipt className="h-4 w-4 text-primary" />
-          {t.accExpensesHistory}
-          <Badge variant="secondary" className="tabular-nums">{items.length}</Badge>
-        </CardTitle>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Receipt className="h-4 w-4 text-primary" />
+            {t.accExpensesHistory}
+            <Badge variant="secondary" className="tabular-nums">{items.length}</Badge>
+          </CardTitle>
+          <ExportToolbar
+            title={t.accExpensesHistory}
+            headers={["النوع", "البيان", "الفئة", "التاريخ", "المبلغ", "حساب الدفع"]}
+            rows={items.map((e) => [
+              e.type === "SALARY" ? t.accSalary : t.accAdminExpenses,
+              e.type === "SALARY" ? e.employeeName ?? "" : e.title ?? "",
+              e.type === "SALARY" ? t.accSalary : e.category ?? "",
+              fmt.date(e.type === "SALARY" ? e.payDate! : e.date!),
+              fmt.currency(e.amount),
+              e.paymentAccountName ?? "",
+            ])}
+            filename={`expenses-${new Date().toISOString().slice(0, 10)}`}
+          />
+        </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (

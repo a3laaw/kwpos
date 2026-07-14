@@ -14,6 +14,7 @@ import { useFmt } from "@/components/currency-context"
 import { useT } from "@/components/i18n-context"
 import { ManualJournalDialog } from "@/components/accounting/manual-journal-dialog"
 import { JournalEntryModal } from "@/components/accounting/journal-entry-modal"
+import { ExportToolbar } from "@/components/shared/export-toolbar"
 import { toast } from "sonner"
 import type { JournalEntry } from "@/lib/types"
 import { cn } from "@/lib/utils"
@@ -200,17 +201,38 @@ export function TrialBalanceTab() {
 
   const balanced = Math.abs(data.totalDebit - data.totalCredit) < 0.001
 
+  // Build export rows: code, account, type, debit, credit + totals row at the end.
+  const exportHeaders = [t.accCode, t.accAccountName, t.colType || "النوع", t.accDebit, t.accCredit]
+  const exportRows: any[][] = data.rows.map((r) => [
+    r.code,
+    r.name,
+    r.type,
+    r.debit > 0 ? fmt.currency(r.debit) : "",
+    r.credit > 0 ? fmt.currency(r.credit) : "",
+  ])
+  exportRows.push(["", t.accSum, "", fmt.currency(data.totalDebit), fmt.currency(data.totalCredit)])
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <FileText className="h-4 w-4 text-primary" />
-          {t.accTrialBalance}
-          <Badge variant={balanced ? "default" : "destructive"} className="gap-1">
-            {balanced ? `${t.accBalanced} ✓` : t.accNotBalanced}
-          </Badge>
-        </CardTitle>
-        <CardDescription>{t.accTrialBalanceDescFull}</CardDescription>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <FileText className="h-4 w-4 text-primary" />
+              {t.accTrialBalance}
+              <Badge variant={balanced ? "default" : "destructive"} className="gap-1">
+                {balanced ? `${t.accBalanced} ✓` : t.accNotBalanced}
+              </Badge>
+            </CardTitle>
+            <CardDescription className="mt-1">{t.accTrialBalanceDescFull}</CardDescription>
+          </div>
+          <ExportToolbar
+            title={t.accTrialBalance}
+            headers={exportHeaders}
+            rows={exportRows}
+            filename={`trial-balance-${new Date().toISOString().slice(0, 10)}`}
+          />
+        </div>
       </CardHeader>
       <CardContent>
         {data.rows.length === 0 ? (

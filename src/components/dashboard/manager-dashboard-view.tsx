@@ -3,6 +3,7 @@
 import * as React from "react"
 import { useQuery } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
+import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 import { PageHeader } from "@/components/shared/page-header"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -10,11 +11,12 @@ import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   TrendingUp, TrendingDown, DollarSign, Users, Package, ShoppingCart,
-  CreditCard, AlertTriangle, RefreshCw, Clock, Receipt, ArrowLeft,
+  CreditCard, AlertTriangle, RefreshCw, Clock, Receipt, ArrowLeft, Download,
 } from "lucide-react"
 import { useT } from "@/components/i18n-context"
 import { useFmt } from "@/components/currency-context"
 import { useAppStore } from "@/lib/store"
+import { exportToExcel, type ExcelColumn } from "@/lib/excel"
 import { cn } from "@/lib/utils"
 
 interface ManagerDashboardData {
@@ -73,6 +75,48 @@ export function ManagerDashboardView() {
   }
 
   const salesUp = data.salesChangePct >= 0
+  // Capture the narrowed `data` so the click handler below doesn't lose the
+  // narrowing through the closure.
+  const d = data
+
+  // Excel export — today's KPIs + alerts + low stock + pending POs.
+  function handleExportExcel() {
+    const columns: ExcelColumn[] = [
+      { header: "القسم", key: "section", width: 18 },
+      { header: "البيان", key: "label", width: 32 },
+      { header: "القيمة", key: "value", width: 24 },
+    ]
+    const rows: Record<string, any>[] = []
+    // KPIs
+    rows.push({ section: "مؤشرات اليوم", label: "مبيعات اليوم", value: fmt.currency(d.todaySales) })
+    rows.push({ section: "مؤشرات اليوم", label: "مبيعات الأمس", value: fmt.currency(d.yesterdaySales) })
+    rows.push({ section: "مؤشرات اليوم", label: "نسبة التغيير %", value: `${d.salesChangePct}%` })
+    rows.push({ section: "مؤشرات اليوم", label: "عدد فواتير اليوم", value: d.todaySalesCount })
+    rows.push({ section: "مؤشرات اليوم", label: "عدد فواتير الأمس", value: d.yesterdaySalesCount })
+    rows.push({ section: "مؤشرات اليوم", label: "ورديات مفتوحة", value: d.openShifts.length })
+    rows.push({ section: "مؤشرات اليوم", label: "مستحقات موردين", value: fmt.currency(d.totalPayables) })
+    rows.push({ section: "مؤشرات اليوم", label: "نسبة الحذف والمرتجعات (7 أيام) %", value: `${d.voidRefundRate}%` })
+    rows.push({ section: "مؤشرات اليوم", label: "عدد عمليات الحذف/المرتجعات", value: d.voidRefundCount })
+    rows.push({ section: "مؤشرات اليوم", label: "إجمالي المبيعات (7 أيام)", value: d.totalSalesCount7d })
+    // Alerts — low stock
+    for (const p of d.lowStockProducts) {
+      rows.push({
+        section: "تنبيهات المخزون",
+        label: p.name,
+        value: `${p.quantity} / ${p.reorderLevel}${p.barcode ? ` — ${p.barcode}` : ""}`,
+      })
+    }
+    // Pending POs
+    for (const po of d.pendingPurchaseOrders) {
+      rows.push({
+        section: "أوامر شراء معلّقة",
+        label: po.supplierName,
+        value: `${fmt.currency(po.total)} — ${po.status} — ${new Date(po.createdAt).toLocaleDateString("ar")}`,
+      })
+    }
+    const today = new Date().toISOString().slice(0, 10)
+    exportToExcel(rows, columns, `manager-dashboard-${today}.xlsx`, "لوحة المدير")
+  }
 
   return (
     <div className="space-y-5">
@@ -81,16 +125,27 @@ export function ManagerDashboardView() {
         description="نظرة عملياتية سريعة على أداء المتجر"
         icon={<TrendingUp className="h-5 w-5" />}
         actions={
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => refetch()}
-            disabled={isFetching}
-            className="gap-2"
-          >
-            <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
-            تحديث
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportExcel}
+              className="gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Excel
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="gap-2"
+            >
+              <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
+              تحديث
+            </Button>
+          </div>
         }
       />
 
@@ -173,6 +228,53 @@ export function ManagerDashboardView() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Today vs yesterday sales chart */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <TrendingUp className="h-4 w-4 text-primary" />
+            مبيعات اليوم مقابل الأمس
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={240} minHeight={200}>
+            <BarChart
+              data={[
+                { name: "اليوم", value: data.todaySales },
+                { name: "أمس", value: data.yesterdaySales },
+              ]}
+              margin={{ top: 5, right: 10, left: 0, bottom: 0 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+              <XAxis
+                dataKey="name"
+                tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+                tickLine={false}
+                axisLine={false}
+              />
+              <YAxis
+                tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                tickLine={false}
+                axisLine={false}
+                width={60}
+              />
+              <Tooltip
+                contentStyle={{
+                  borderRadius: 12,
+                  border: "1px solid hsl(var(--border))",
+                  fontSize: 12,
+                }}
+                formatter={(v: number) => fmt.currency(v)}
+              />
+              <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                <Cell fill="#2E6237" />
+                <Cell fill="#DFC196" />
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
 
       {/* Second row: alerts + details */}
       <div className="grid gap-4 lg:grid-cols-2">

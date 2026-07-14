@@ -38,6 +38,7 @@ import {
 import { useAccounts, useCreateAccount, useDeleteAccount } from "@/hooks/use-api"
 import { useFmt } from "@/components/currency-context"
 import { useT } from "@/components/i18n-context"
+import { ExportToolbar } from "@/components/shared/export-toolbar"
 import type { Account, AccountType } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
@@ -51,6 +52,7 @@ const TYPE_META: Record<AccountType, { labelKey: keyof import("@/lib/i18n").Dict
 
 export function ChartOfAccountsTab() {
   const t = useT()
+  const fmt = useFmt()
   const { data, isLoading } = useAccounts()
   const [addOpen, setAddOpen] = React.useState(false)
   const [addParent, setAddParent] = React.useState<Account | null>(null)
@@ -64,10 +66,32 @@ export function ChartOfAccountsTab() {
     EXPENSE: t.accTypeExpense,
   }
 
+  // Flatten the account tree (recursive) into a single list for export.
+  function flattenAccounts(accs: Account[]): Account[] {
+    const out: Account[] = []
+    const walk = (list: Account[]) => {
+      for (const a of list) {
+        out.push(a)
+        if (a.children && a.children.length > 0) walk(a.children)
+      }
+    }
+    walk(accs)
+    return out
+  }
+
+  const flatAccounts = flattenAccounts(tree)
+  const exportHeaders = [t.accCode, t.name, t.accAccountType, "الرصيد"]
+  const exportRows: any[][] = flatAccounts.map((a) => [
+    a.code,
+    a.name,
+    TYPE_LABELS[a.type],
+    fmt.currency(a.balance),
+  ])
+
   return (
     <div className="space-y-4">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 space-y-0">
           <div>
             <CardTitle className="flex items-center gap-2 text-base">
               <Wallet className="h-4 w-4 text-primary" />
@@ -75,10 +99,18 @@ export function ChartOfAccountsTab() {
             </CardTitle>
             <CardDescription>{t.accChartOfAccountsDesc}</CardDescription>
           </div>
-          <Button size="sm" onClick={() => { setAddParent(null); setAddOpen(true) }} className="gap-1.5">
-            <Plus className="h-3.5 w-3.5" />
-            {t.accMainAccount}
-          </Button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <ExportToolbar
+              title={t.accChartOfAccounts}
+              headers={exportHeaders}
+              rows={exportRows}
+              filename={`chart-of-accounts-${new Date().toISOString().slice(0, 10)}`}
+            />
+            <Button size="sm" onClick={() => { setAddParent(null); setAddOpen(true) }} className="gap-1.5">
+              <Plus className="h-3.5 w-3.5" />
+              {t.accMainAccount}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
