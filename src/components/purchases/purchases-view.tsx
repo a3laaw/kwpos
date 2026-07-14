@@ -365,13 +365,6 @@ export function PurchasesView() {
                                 {canManage && po.status === "PENDING" && (
                                   <>
                                     <DropdownMenuItem
-                                      onClick={() => setReceiveTarget(po)}
-                                      className="gap-2 text-emerald-600 focus:text-emerald-600"
-                                    >
-                                      <PackageCheck className="h-4 w-4" />
-                                      {t.confirmReceipt}
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
                                       onClick={() => receiveAndCreateInvoice(po)}
                                       className="gap-2 text-primary focus:text-primary"
                                     >
@@ -388,22 +381,13 @@ export function PurchasesView() {
                                   </>
                                 )}
                                 {canManage && po.status === "APPROVED" && (
-                                  <>
-                                    <DropdownMenuItem
-                                      onClick={() => setReceiveTarget(po)}
-                                      className="gap-2 text-emerald-600 focus:text-emerald-600"
-                                    >
-                                      <PackageCheck className="h-4 w-4" />
-                                      {t.confirmReceipt}
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      onClick={() => receiveAndCreateInvoice(po)}
-                                      className="gap-2 text-primary focus:text-primary"
-                                    >
-                                      <FileText className="h-4 w-4" />
-                                      {t.piReceiveFromPO}
-                                    </DropdownMenuItem>
-                                  </>
+                                  <DropdownMenuItem
+                                    onClick={() => receiveAndCreateInvoice(po)}
+                                    className="gap-2 text-primary focus:text-primary"
+                                  >
+                                    <FileText className="h-4 w-4" />
+                                    {t.piReceiveFromPO}
+                                  </DropdownMenuItem>
                                 )}
                                 {canManage && po.status === "RECEIVED" && (
                                   <DropdownMenuItem
