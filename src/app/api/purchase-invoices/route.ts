@@ -1,6 +1,6 @@
 import { requireUser, isErrorResponse } from "@/lib/auth-helpers"
 import { NextRequest, NextResponse } from "next/server"
-import { db, updateProductQuantityFromStockItems } from "@/lib/db"
+import { db, updateProductQuantityFromStockItems, getDefaultWarehouseId } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
 import { logAuditEvent } from "@/lib/audit"
 import { ensurePurchaseAccounts, createPurchaseInvoiceJournalEntry } from "@/lib/purchase"
