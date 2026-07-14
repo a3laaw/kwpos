@@ -35,7 +35,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { MoreVertical } from "lucide-react"
+import { MoreVertical, Ship } from "lucide-react"
 import { useUser } from "@/components/user-context"
 import { useT } from "@/components/i18n-context"
 import { useFmt } from "@/components/currency-context"
@@ -43,8 +43,10 @@ import {
   usePurchaseInvoices,
   usePostPurchaseInvoice,
   useDeletePurchaseInvoice,
+  useCustomsAnnexes,
   type PurchaseInvoice,
 } from "@/hooks/use-api"
+import { CustomsAnnexDialog } from "@/components/purchases/customs-annex-dialog"
 
 const STATUS_META: Record<
   PurchaseInvoice["status"],
@@ -72,15 +74,26 @@ export function PurchaseInvoicesView() {
   const [detail, setDetail] = React.useState<PurchaseInvoice | null>(null)
   const [postTarget, setPostTarget] = React.useState<PurchaseInvoice | null>(null)
   const [deleteTarget, setDeleteTarget] = React.useState<PurchaseInvoice | null>(null)
+  const [annexTarget, setAnnexTarget] = React.useState<PurchaseInvoice | null>(null)
   const [prefill, setPrefill] = React.useState<PurchaseInvoicePrefill | null>(null)
 
   const { data, isLoading, isError, refetch } = usePurchaseInvoices()
+  const { data: annexesData } = useCustomsAnnexes()
   const postMut = usePostPurchaseInvoice()
   const deleteMut = useDeletePurchaseInvoice()
 
   const canManage = user.role === "ADMIN" || user.role === "WAREHOUSE"
   const isAdmin = user.role === "ADMIN"
   const invoices = data?.items ?? []
+
+  // Set of invoice IDs that have at least one customs annex (any status).
+  const invoicesWithAnnex = React.useMemo(() => {
+    const set = new Set<string>()
+    for (const a of annexesData?.items ?? []) {
+      set.add(a.purchaseInvoiceId)
+    }
+    return set
+  }, [annexesData])
 
   async function handlePost() {
     if (!postTarget) return
@@ -199,9 +212,21 @@ export function PurchaseInvoicesView() {
                         {fmt.currency(inv.total)}
                       </TableCell>
                       <TableCell className="text-center">
-                        <Badge variant="secondary" className={`gap-1 ${meta.className}`}>
-                          {t[meta.labelKey]}
-                        </Badge>
+                        <div className="flex items-center justify-center gap-1.5">
+                          <Badge variant="secondary" className={`gap-1 ${meta.className}`}>
+                            {t[meta.labelKey]}
+                          </Badge>
+                          {inv.status === "POSTED" && invoicesWithAnnex.has(inv.id) ? (
+                            <Badge
+                              variant="outline"
+                              className="gap-1 border-primary/30 bg-primary/5 text-primary"
+                              title={t.annexBtn}
+                            >
+                              <Ship className="h-3 w-3" />
+                              {t.annexBtn}
+                            </Badge>
+                          ) : null}
+                        </div>
                       </TableCell>
                       <TableCell
                         className="text-center"
@@ -228,6 +253,15 @@ export function PurchaseInvoicesView() {
                               >
                                 <PackageCheck className="h-4 w-4" />
                                 {t.piPost}
+                              </DropdownMenuItem>
+                            )}
+                            {inv.status === "POSTED" && (
+                              <DropdownMenuItem
+                                onClick={() => setAnnexTarget(inv)}
+                                className="gap-2"
+                              >
+                                <Ship className="h-4 w-4" />
+                                {t.annexBtn}
                               </DropdownMenuItem>
                             )}
                             {isAdmin && inv.status === "DRAFT" && (
@@ -363,6 +397,13 @@ export function PurchaseInvoicesView() {
       </Dialog>
 
       <PurchaseInvoiceDialog open={createOpen} onOpenChange={setCreateOpen} prefill={prefill} />
+
+      {/* Customs annex dialog (only meaningful for POSTED invoices) */}
+      <CustomsAnnexDialog
+        open={!!annexTarget}
+        onOpenChange={(o) => !o && setAnnexTarget(null)}
+        invoice={annexTarget}
+      />
 
       {/* Post confirmation */}
       <ConfirmDialog

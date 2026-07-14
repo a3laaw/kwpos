@@ -1481,6 +1481,92 @@ export function useCreatePurchaseReturn() {
   })
 }
 
+/* ----------------------------- Customs Annexes ---------------------- */
+//
+//  GET    /api/customs-annexes                — list (newest first)
+//  POST   /api/customs-annexes                — create a DRAFT annex
+//  GET    /api/customs-annexes/[id]           — single annex (with invoice+items)
+//  POST   /api/customs-annexes/[id]/post      — post a DRAFT annex
+//
+
+export interface CustomsAnnex {
+  id: string
+  annexNo: string
+  purchaseInvoiceId: string
+  invoiceNo: string
+  supplierName: string
+  invoiceSubtotal: number
+  annexDate: string
+  status: "DRAFT" | "POSTED"
+  customsRate: number
+  customsAmount: number
+  taxRate: number
+  taxAmount: number
+  shippingRate: number
+  shippingAmount: number
+  otherCharges: number
+  totalAnnexCost: number
+  billOfLading: string | null
+  arrivalDate: string | null
+  note: string | null
+  createdByName: string | null
+  createdAt: string
+}
+
+export interface CreateCustomsAnnexBody {
+  purchaseInvoiceId: string
+  customsRate?: number
+  taxRate?: number
+  shippingRate?: number
+  otherCharges?: number
+  billOfLading?: string | null
+  arrivalDate?: string | null
+  note?: string | null
+}
+
+/** List all customs annexes (newest first). Pass invoiceId to filter. */
+export function useCustomsAnnexes(invoiceId?: string) {
+  const qs = invoiceId ? `?purchaseInvoiceId=${invoiceId}` : ""
+  return useQuery<{ items: CustomsAnnex[] }>({
+    queryKey: ["customs-annexes", invoiceId ?? "all"],
+    queryFn: () => jget(`/api/customs-annexes${qs}`),
+  })
+}
+
+/** Create a customs annex as DRAFT (canSeeFinancials). */
+export function useCreateCustomsAnnex() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: CreateCustomsAnnexBody) =>
+      jsend<CustomsAnnex>("/api/customs-annexes", "POST", body),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ["customs-annexes"] })
+      qc.invalidateQueries({
+        queryKey: ["customs-annexes", variables.purchaseInvoiceId],
+      })
+      qc.invalidateQueries({ queryKey: ["purchase-invoices"] })
+      qc.invalidateQueries({ queryKey: ["dashboard"] })
+    },
+  })
+}
+
+/** Post a DRAFT customs annex — capitalizes costs into the invoice + JE. */
+export function usePostCustomsAnnex() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) =>
+      jsend<{ ok: true; annex: CustomsAnnex }>(
+        `/api/customs-annexes/${id}/post`,
+        "POST"
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["customs-annexes"] })
+      qc.invalidateQueries({ queryKey: ["purchase-invoices"] })
+      qc.invalidateQueries({ queryKey: ["dashboard"] })
+    },
+  })
+}
+
 /* ----------------------------- Stock Takes -------------------------- */
 /** List all stock takes (newest first). */
 export function useStockTakes() {

@@ -124,7 +124,7 @@ export function SupplierPaymentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px]">
+      <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto scrollbar-thin">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Wallet className="h-5 w-5 text-primary" />
@@ -173,7 +173,7 @@ export function SupplierPaymentDialog({
           </div>
 
           {/* Payment method + date */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>{t.paymentMethodLabel}</Label>
               <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as any)}>

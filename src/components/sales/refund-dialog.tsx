@@ -161,7 +161,7 @@ export function RefundDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto scrollbar-thin">
+      <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto scrollbar-thin">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <RotateCcw className="h-5 w-5 text-primary" />
@@ -196,7 +196,7 @@ export function RefundDialog({
           <>
             {/* 14-day warning */}
             {past14 ? (
-              <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 flex items-start gap-2">
+              <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-4 flex items-start gap-2">
                 <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
@@ -239,7 +239,7 @@ export function RefundDialog({
                   <div
                     key={l.saleItemId}
                     className={cn(
-                      "rounded-lg border p-3 transition-all",
+                      "rounded-lg border p-4 transition-all",
                       isMatch && "border-primary ring-1 ring-primary/30",
                       fullyReturned ? "border-border/40 opacity-50" : "border-border/60"
                     )}
@@ -287,7 +287,7 @@ export function RefundDialog({
 
             {/* Refund summary */}
             {hasReturns ? (
-              <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 space-y-1.5 text-sm">
+              <div className="rounded-lg bg-primary/5 border border-primary/20 p-4 space-y-1.5 text-sm">
                 <div className="flex justify-between text-muted-foreground">
                   <span>{t.refundReturnsTotalLabel}</span>
                   <span className="tabular-nums">{fmt.currency(refundSubtotal)}</span>

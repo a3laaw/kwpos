@@ -190,7 +190,7 @@ export function ProductFormDialog({ open, onOpenChange, product }: ProductFormDi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[92vh] overflow-y-auto scrollbar-thin">
+      <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto scrollbar-thin">
         <DialogHeader>
           <DialogTitle>{isEdit ? t.editProduct : t.addProductNew}</DialogTitle>
           <DialogDescription>

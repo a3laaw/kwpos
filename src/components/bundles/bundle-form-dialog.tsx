@@ -240,7 +240,7 @@ export function BundleFormDialog({ open, onOpenChange, bundle }: BundleFormDialo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[92vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl max-h-[92vh] overflow-y-auto scrollbar-thin">
         <DialogHeader>
           <DialogTitle>{isEdit ? t.bundleEditTitle : t.bundleAddNew}</DialogTitle>
           <DialogDescription>{t.bundlesDesc}</DialogDescription>
@@ -254,7 +254,7 @@ export function BundleFormDialog({ open, onOpenChange, bundle }: BundleFormDialo
               onChange={(url) => set("imageUrl", url ?? "")}
               label={t.bundleName}
             />
-            <div className="space-y-3 w-full">
+            <div className="space-y-4 w-full">
               <div className="space-y-2">
                 <Label htmlFor="b-name">{t.bundleName} *</Label>
                 <Input
@@ -336,7 +336,7 @@ export function BundleFormDialog({ open, onOpenChange, bundle }: BundleFormDialo
           </div>
 
           {/* Items section */}
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div className="flex items-center justify-between gap-2">
               <Label className="text-base font-semibold">{t.bundleItems}</Label>
               <span className="text-xs text-muted-foreground">
@@ -433,7 +433,7 @@ export function BundleFormDialog({ open, onOpenChange, bundle }: BundleFormDialo
 
             {/* Live cost summary */}
             {items.length > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 rounded-lg bg-muted/40 border border-border/60 p-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 rounded-lg bg-muted/40 border border-border/60 p-4">
                 <SummaryCell
                   icon={<TrendingDown className="h-3.5 w-3.5" />}
                   label={t.bundleTotalCost}

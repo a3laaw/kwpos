@@ -101,7 +101,7 @@ export function SupplierFormDialog({ open, onOpenChange, supplier }: SupplierFor
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto scrollbar-thin">
         <DialogHeader>
           <DialogTitle>{isEdit ? t.editSupplier : t.addSupplierNew}</DialogTitle>
           <DialogDescription>

@@ -94,7 +94,7 @@ export function SupplierStatementDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[900px] max-h-[90vh] flex flex-col">
+      <DialogContent className="sm:max-w-5xl max-h-[92vh] flex flex-col overflow-y-auto scrollbar-thin">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
@@ -106,10 +106,10 @@ export function SupplierStatementDialog({
         </DialogHeader>
 
         {/* Date filters + export toolbar */}
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 print:hidden">
-          <div className="grid grid-cols-2 gap-3 flex-1">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 print:hidden">
+          <div className="grid grid-cols-2 gap-4 flex-1">
             <div className="space-y-1.5">
-              <Label htmlFor="stmt-from" className="text-xs">{t.statementFrom}</Label>
+              <Label htmlFor="stmt-from" className="text-sm">{t.statementFrom}</Label>
               <Input
                 id="stmt-from"
                 type="date"
@@ -120,7 +120,7 @@ export function SupplierStatementDialog({
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="stmt-to" className="text-xs">{t.statementTo}</Label>
+              <Label htmlFor="stmt-to" className="text-sm">{t.statementTo}</Label>
               <Input
                 id="stmt-to"
                 type="date"

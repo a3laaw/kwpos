@@ -372,7 +372,7 @@ export function PurchaseInvoiceDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto scrollbar-thin">
+        <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto scrollbar-thin">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5 text-primary" />
@@ -560,92 +560,10 @@ export function PurchaseInvoiceDialog({
               </div>
             </div>
 
-            {/* Landed-cost fees (customs/shipping/other) — shown ONLY for
-                FOREIGN suppliers. LOCAL suppliers have no customs or
-                international shipping, so the section is hidden entirely. */}
-            {isForeignSupplier ? (
-            <Collapsible
-              open={extraOpen}
-              onOpenChange={setExtraOpen}
-              className="rounded-lg border border-border/60"
-            >
-              <CollapsibleTrigger asChild>
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-between gap-2 px-4 py-3 text-start hover:bg-muted/40 transition-colors"
-                >
-                  <span className="flex items-center gap-2 text-sm font-medium">
-                    <Truck className="h-4 w-4 text-primary" />
-                    {t.piLandedCost}
-                    {extraTotal > 0 ? (
-                      <span className="text-xs text-muted-foreground tabular-nums">
-                        (+{fmt.currency(extraTotal)})
-                      </span>
-                    ) : null}
-                  </span>
-                  <ChevronDown
-                    className={`h-4 w-4 text-muted-foreground transition-transform ${
-                      extraOpen ? "rotate-180" : ""
-                    }`}
-                  />
-                </button>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="border-t border-border/60 p-4">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="pi-shipping" className="text-xs text-muted-foreground">
-                      {t.shipping}
-                    </Label>
-                    <Input
-                      id="pi-shipping"
-                      type="number"
-                      min={0}
-                      step="0.001"
-                      inputMode="decimal"
-                      placeholder="0"
-                      value={shipping}
-                      onChange={(e) => setShipping(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="pi-customs" className="text-xs text-muted-foreground">
-                      {t.customs}
-                    </Label>
-                    <Input
-                      id="pi-customs"
-                      type="number"
-                      min={0}
-                      step="0.001"
-                      inputMode="decimal"
-                      placeholder="0"
-                      value={customs}
-                      onChange={(e) => setCustoms(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="pi-other" className="text-xs text-muted-foreground">
-                      {t.otherFees}
-                    </Label>
-                    <Input
-                      id="pi-other"
-                      type="number"
-                      min={0}
-                      step="0.001"
-                      inputMode="decimal"
-                      placeholder="0"
-                      value={other}
-                      onChange={(e) => setOther(e.target.value)}
-                    />
-                  </div>
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-            ) : null}
-
             {/* Payment Method — determines the credit account in the journal:
                 CASH → 1010, BANK → 1020, CREDIT → 2010 (آجل) */}
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">
+              <Label className="text-sm text-muted-foreground">
                 {t.piPaymentMethod}
               </Label>
               <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as "CASH" | "BANK" | "CREDIT")}>
@@ -662,7 +580,7 @@ export function PurchaseInvoiceDialog({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="pi-tax" className="text-xs text-muted-foreground">
+                <Label htmlFor="pi-tax" className="text-sm text-muted-foreground">
                   {t.taxRate} %
                 </Label>
                 <Input
@@ -677,7 +595,7 @@ export function PurchaseInvoiceDialog({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="pi-discount" className="text-xs text-muted-foreground">
+                <Label htmlFor="pi-discount" className="text-sm text-muted-foreground">
                   {t.discount}
                 </Label>
                 <Input
@@ -694,7 +612,7 @@ export function PurchaseInvoiceDialog({
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="pi-note" className="text-xs text-muted-foreground">
+              <Label htmlFor="pi-note" className="text-sm text-muted-foreground">
                 {t.note}
               </Label>
               <Textarea

@@ -66,7 +66,7 @@ export function CancelDialog({ open, onOpenChange, sale }: CancelDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[92vh] overflow-y-auto scrollbar-thin">
+      <DialogContent className="max-w-lg max-h-[92vh] overflow-y-auto scrollbar-thin">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-destructive">
             <Ban className="h-5 w-5" />
@@ -76,7 +76,7 @@ export function CancelDialog({ open, onOpenChange, sale }: CancelDialogProps) {
         </DialogHeader>
 
         {/* Invoice summary */}
-        <div className="rounded-lg border border-border/60 bg-muted/30 p-3 space-y-1.5 text-sm">
+        <div className="rounded-lg border border-border/60 bg-muted/30 p-4 space-y-1.5 text-sm">
           <div className="flex justify-between">
             <span className="text-muted-foreground">{t.invoiceNo}</span>
             <span className="font-medium tabular-nums">{sale.invoiceNo}</span>

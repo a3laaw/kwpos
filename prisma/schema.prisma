@@ -43,6 +43,7 @@ model User {
   stockTakeApproved StockTake[] @relation("StockTakeApprover")
   transfersCreated StockTransfer[] @relation("TransferCreator")
   transfersReceived StockTransfer[] @relation("TransferReceiver")
+  customsAnnexes CustomsAnnex[] @relation("CustomsAnnexCreator")
 }
 
 model Category {
@@ -787,9 +788,48 @@ model PurchaseInvoice {
   journalEntryId  String?
   journalEntry    JournalEntry?  @relation(fields: [journalEntryId], references: [id], onDelete: SetNull)
   createdBy       User?          @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  customsAnnexes  CustomsAnnex[]
 
   @@index([purchaseOrderId])
   @@index([supplierId])
+}
+
+// ─── MODULE 8b: Customs Annex (ملحق التخليص الجمركي) ───────────────
+// Created AFTER a purchase invoice is posted and goods arrive from abroad.
+// Captures customs, tax, shipping, and other charges as PERCENTAGES of the
+// invoice subtotal (not fixed amounts). Multiple annexes can be attached to
+// a single invoice (e.g. partial shipments). When posted, the annex costs
+// are CAPITALIZED into inventory (added to Product.costPrice) and a journal
+// entry is created (Debit 1100 Inventory / Credit 1010 or 1020).
+model CustomsAnnex {
+  id                String   @id @default(cuid())
+  annexNo           String   @unique
+  purchaseInvoiceId String
+  annexDate         DateTime @default(now())
+  status            String   @default("DRAFT") // DRAFT | POSTED
+
+  // Rates as percentages of the invoice subtotal
+  customsRate       Float    @default(0)  // % of invoice subtotal
+  customsAmount     Float    @default(0)  // auto-calculated: subtotal × rate / 100
+  taxRate           Float    @default(0)  // % of invoice subtotal (same tax, deferred)
+  taxAmount         Float    @default(0)  // auto-calculated
+  shippingRate      Float    @default(0)  // % of invoice subtotal (optional)
+  shippingAmount    Float    @default(0)  // auto-calculated
+  otherCharges      Float    @default(0)  // fixed amount (not a percentage)
+  totalAnnexCost    Float    @default(0)  // sum of all amounts
+
+  billOfLading      String?                // رقم بوليصة الشحن
+  arrivalDate       DateTime?              // تاريخ الوصول
+  note              String?
+
+  createdAt         DateTime @default(now())
+  createdById       String?
+
+  purchaseInvoice   PurchaseInvoice @relation(fields: [purchaseInvoiceId], references: [id], onDelete: Cascade)
+  createdBy         User?           @relation("CustomsAnnexCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([purchaseInvoiceId])
+  @@index([status])
 }
 
 model PurchaseInvoiceItem {

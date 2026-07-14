@@ -305,7 +305,7 @@ export function CompositionFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[92vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl max-h-[92vh] overflow-y-auto scrollbar-thin">
         <DialogHeader>
           <DialogTitle>{isEdit ? t.compEditTitle : t.compAddNew}</DialogTitle>
           <DialogDescription>{t.compositionsDesc}</DialogDescription>
@@ -319,7 +319,7 @@ export function CompositionFormDialog({
               onChange={(url) => set("imageUrl", url ?? "")}
               label={t.compName}
             />
-            <div className="space-y-3 w-full">
+            <div className="space-y-4 w-full">
               <div className="space-y-2">
                 <Label htmlFor="c-name">{t.compName} *</Label>
                 <Input
@@ -438,7 +438,7 @@ export function CompositionFormDialog({
                 </>
               )}
             </div>
-            <div className="grid grid-cols-1 gap-3">
+            <div className="grid grid-cols-1 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="c-unit">{t.compYieldUnit}</Label>
                 <Select value={form.yieldUnit} onValueChange={(v) => set("yieldUnit", v)}>
@@ -491,7 +491,7 @@ export function CompositionFormDialog({
           </div>
 
           {/* Ingredients section */}
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div className="flex items-center justify-between gap-2">
               <Label className="text-base font-semibold">
                 {t.compIngredients}
@@ -647,7 +647,7 @@ export function CompositionFormDialog({
 
             {/* Live cost summary */}
             {ingredients.length > 0 && (
-              <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted/40 border border-border/60 p-3">
+              <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted/40 border border-border/60 p-4">
                 <SummaryCell
                   icon={<TrendingDown className="h-3.5 w-3.5" />}
                   label={t.compCostPerBatch}

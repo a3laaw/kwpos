@@ -119,7 +119,7 @@ export function PurchaseReturnDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto scrollbar-thin">
+      <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto scrollbar-thin">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <RotateCcw className="h-5 w-5 text-primary" />
@@ -155,7 +155,7 @@ export function PurchaseReturnDialog({
         ) : (
           <>
             {/* Supplier info */}
-            <div className="rounded-lg bg-muted/40 p-3 text-sm">
+            <div className="rounded-lg bg-muted/40 p-4 text-sm">
               <p>
                 <span className="text-muted-foreground">{t.colSupplier}:</span>{" "}
                 {po?.supplierName}
@@ -189,7 +189,7 @@ export function PurchaseReturnDialog({
                   <div
                     key={l.poItemId}
                     className={cn(
-                      "rounded-lg border p-3",
+                      "rounded-lg border p-4",
                       fullyReturned ? "border-border/40 opacity-50" : "border-border/60"
                     )}
                   >
@@ -247,7 +247,7 @@ export function PurchaseReturnDialog({
             </div>
 
             {hasReturns ? (
-              <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 flex justify-between font-bold text-sm">
+              <div className="rounded-lg bg-primary/5 border border-primary/20 p-4 flex justify-between font-bold text-sm">
                 <span>{t.returnTotal}</span>
                 <span className="tabular-nums text-primary text-lg">
                   {fmt.currency(returnTotal)}

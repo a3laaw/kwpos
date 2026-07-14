@@ -122,7 +122,7 @@ export function ManualJournalDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto scrollbar-thin">
+      <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto scrollbar-thin">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <BookCopy className="h-5 w-5 text-primary" />
@@ -131,7 +131,7 @@ export function ManualJournalDialog({
           <DialogDescription>{t.accManualEntryDesc}</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="je-desc">{t.accDescription} *</Label>
               <Input id="je-desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t.accDescriptionPlaceholder} autoFocus />

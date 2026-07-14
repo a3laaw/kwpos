@@ -66,21 +66,11 @@ export function PurchaseOrderDialog({
   const [items, setItems] = React.useState<LineItem[]>([
     { key: makeKey(), productId: "", quantity: "1", unitCost: "0", suggestedSalePrice: "" },
   ])
-  // Landed cost extra charges — empty by default (sent as 0 when blank).
-  const [customs, setCustoms] = React.useState("")
-  const [shipping, setShipping] = React.useState("")
-  const [other, setOther] = React.useState("")
-  const [extraOpen, setExtraOpen] = React.useState(false)
-
   React.useEffect(() => {
     if (open) {
       setSupplierId("")
       setNote("")
       setItems([{ key: makeKey(), productId: "", quantity: "1", unitCost: "0", suggestedSalePrice: "" }])
-      setCustoms("")
-      setShipping("")
-      setOther("")
-      setExtraOpen(false)
     }
   }, [open])
 
@@ -134,12 +124,6 @@ export function PurchaseOrderDialog({
     return acc + (Number(it.quantity) || 0) * (Number(it.unitCost) || 0)
   }, 0)
 
-  const customsNum = Number(customs) || 0
-  const shippingNum = Number(shipping) || 0
-  const otherNum = Number(other) || 0
-  const extraTotal = customsNum + shippingNum + otherNum
-  const grandTotal = total + extraTotal
-
   const validItems = items.filter((it) => it.productId && Number(it.quantity) > 0)
 
   async function handleSubmit(e: React.FormEvent) {
@@ -162,9 +146,6 @@ export function PurchaseOrderDialog({
           unitCost: Number(it.unitCost),
           suggestedSalePrice: it.suggestedSalePrice ? Number(it.suggestedSalePrice) : 0,
         })),
-        customsAmount: customsNum,
-        shippingAmount: shippingNum,
-        otherCharges: otherNum,
       })
       toast.success(t.poCreated)
       onOpenChange(false)
@@ -175,7 +156,7 @@ export function PurchaseOrderDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto scrollbar-thin">
+      <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto scrollbar-thin">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ShoppingCart className="h-5 w-5 text-primary" />
@@ -323,98 +304,11 @@ export function PurchaseOrderDialog({
             </div>
           </div>
 
-          <Collapsible open={extraOpen} onOpenChange={setExtraOpen} className="rounded-lg border border-border/60">
-            <CollapsibleTrigger asChild>
-              <button
-                type="button"
-                className="flex w-full items-center justify-between gap-2 px-4 py-3 text-start hover:bg-muted/40 transition-colors"
-              >
-                <span className="flex items-center gap-2 text-sm font-medium">
-                  <Truck className="h-4 w-4 text-primary" />
-                  {t.landedCostSectionTitle}
-                  {extraTotal > 0 ? (
-                    <span className="text-xs text-muted-foreground tabular-nums">
-                      (+{fmt.currency(extraTotal)})
-                    </span>
-                  ) : null}
-                </span>
-                <ChevronDown
-                  className={`h-4 w-4 text-muted-foreground transition-transform ${
-                    extraOpen ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="border-t border-border/60 p-4">
-              <p className="mb-3 text-xs text-muted-foreground">
-                {t.landedCostPreviewLong}
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="po-customs" className="text-xs text-muted-foreground">
-                    {t.customs}
-                  </Label>
-                  <Input
-                    id="po-customs"
-                    type="number"
-                    min={0}
-                    step="0.001"
-                    inputMode="decimal"
-                    placeholder="0"
-                    value={customs}
-                    onChange={(e) => setCustoms(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="po-shipping" className="text-xs text-muted-foreground">
-                    {t.shipping}
-                  </Label>
-                  <Input
-                    id="po-shipping"
-                    type="number"
-                    min={0}
-                    step="0.001"
-                    inputMode="decimal"
-                    placeholder="0"
-                    value={shipping}
-                    onChange={(e) => setShipping(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="po-other" className="text-xs text-muted-foreground">
-                    {t.otherFees}
-                  </Label>
-                  <Input
-                    id="po-other"
-                    type="number"
-                    min={0}
-                    step="0.001"
-                    inputMode="decimal"
-                    placeholder="0"
-                    value={other}
-                    onChange={(e) => setOther(e.target.value)}
-                  />
-                </div>
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-
           <div className="space-y-2 rounded-lg bg-primary/5 px-4 py-3">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">{t.invoiceTotal}</span>
-              <span className="font-medium tabular-nums">{fmt.currency(total)}</span>
-            </div>
-            {extraTotal > 0 ? (
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">{t.additionalFeesShort}</span>
-                <span className="font-medium tabular-nums">{fmt.currency(extraTotal)}</span>
-              </div>
-            ) : null}
-            <Separator className="my-1" />
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">{t.grandTotalLong}</span>
               <span className="text-lg font-bold tabular-nums text-primary">
-                {fmt.currency(grandTotal)}
+                {fmt.currency(total)}
               </span>
             </div>
           </div>
