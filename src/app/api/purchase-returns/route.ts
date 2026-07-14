@@ -138,37 +138,60 @@ export async function POST(req: NextRequest) {
   const returnTotal = r(returnItems.reduce((s, x) => s + x.subtotal, 0))
   const returnNo = await nextReturnNo()
 
-  const created = await db.$transaction(async (tx) => {
-    // Resolve warehouseId — PurchaseReturn has no warehouseId; fall back to
-    // the PO's warehouseId, then to the default active warehouse.
-    let warehouseId =
-      (po as any).warehouseId as string | undefined
-    if (!warehouseId) {
-      warehouseId = (await getDefaultWarehouseId(tx)) || undefined
-    }
-    if (!warehouseId) {
-      throw new Error("no-warehouse-available")
-    }
+  // ── NO $transaction (PgBouncer compatibility) ──
+  // Sequential queries with compensation on failure (saga pattern).
 
-    // Decrement inventory + bump POItem.returnedQty
+  // Resolve warehouseId (use db, not tx)
+  let warehouseId = (po as any).warehouseId as string | undefined
+  if (!warehouseId) {
+    warehouseId = (await getDefaultWarehouseId(db)) || undefined
+  }
+  if (!warehouseId) {
+    return NextResponse.json({ error: "no-warehouse-available" }, { status: 400 })
+  }
+
+  // Track decremented items for compensation on failure
+  const decremented: Array<{ productId: string; qty: number; poItemId: string }> = []
+
+  try {
+    // 1) Decrement inventory (multi-warehouse) + update POItem.returnedQty
     for (const ri of returnItems) {
-      // Decrement the matching StockItem (with row locking). Return 400 if
-      // insufficient stock for this warehouse.
-      const ok = await decrementStockItem(tx, ri.productId, warehouseId, ri.returnQty)
+      const ok = await decrementStockItem(db, ri.productId, warehouseId, ri.returnQty)
       if (!ok) {
-        const prod = await tx.product.findUnique({
+        // Compensate: re-increment what we already decremented
+        for (const d of decremented) {
+          try {
+            await db.stockItem.update({
+              where: { productId_warehouseId: { productId: d.productId, warehouseId } },
+              data: { quantity: { increment: d.qty } },
+            })
+          } catch {}
+        }
+        const prod = await db.product.findUnique({
           where: { id: ri.productId },
-          select: { name: true },
+          select: { name: true, quantity: true },
         })
-        throw new Error(`stock-insufficient:${prod?.name ?? ri.productId}:warehouse:${warehouseId}`)
+        return NextResponse.json(
+          { error: `stock-insufficient:${prod?.name ?? ri.productId}:available:${prod?.quantity ?? 0}:requested:${ri.returnQty}` },
+          { status: 400 }
+        )
       }
-      await updateProductQuantityFromStockItems(tx, ri.productId)
-      await tx.purchaseOrderItem.update({
+      decremented.push({ productId: ri.productId, qty: ri.returnQty, poItemId: ri.poItemId })
+
+      // Update Product.quantity (derived aggregate) — non-fatal
+      try {
+        await updateProductQuantityFromStockItems(db, ri.productId)
+      } catch {}
+
+      // Bump POItem.returnedQty
+      await db.purchaseOrderItem.update({
         where: { id: ri.poItemId },
         data: { returnedQty: { increment: ri.returnQty } },
       })
     }
-    const purchaseReturn = await tx.purchaseReturn.create({
+
+    // 2) Create the purchase return record
+    const purchaseReturn = await db.purchaseReturn.create({
       data: {
         returnNo,
         purchaseOrderId: po.id,
@@ -193,58 +216,50 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    // ── Reversing journal entry (inside tx — non-fatal) ──
-    // debit 2010 (AP — reduces what we owe supplier) /
-    // credit 1010 (Inventory — reduces asset). Non-fatal: if it fails
-    // (e.g. accounts not set up), the purchase return still succeeds.
-    const journalEntryId = await safeCreateJournalEntry(tx, {
-      sourceType: "MANUAL",
-      sourceId: purchaseReturn.id,
-      description: `قيد مرتجع مشتريات ${returnNo} — ${po.supplier?.name ?? ""}`,
-      date: new Date(),
-      lines: [
-        { accountCode: "2010", debit: returnTotal, description: `مرتجع لمورد ${po.supplier?.name ?? ""}` },
-        { accountCode: "1010", credit: returnTotal, description: "خصم من المخزون (مرتجع مشتريات)" },
-      ],
-    }, `Purchase return ${returnNo} journal`)
+    // 3) Journal entry (fire-and-forget, non-fatal)
+    let journalEntryId: string | null = null
+    try {
+      journalEntryId = await safeCreateJournalEntry(db, {
+        sourceType: "MANUAL",
+        sourceId: purchaseReturn.id,
+        description: `قيد مرتجع مشتريات ${returnNo} — ${po.supplier?.name ?? ""}`,
+        date: new Date(),
+        lines: [
+          { accountCode: "2010", debit: returnTotal, description: `مرتجع لمورد ${po.supplier?.name ?? ""}` },
+          { accountCode: "1010", credit: returnTotal, description: "خصم من المخزون (مرتجع مشتريات)" },
+        ],
+      }, `Purchase return ${returnNo} journal`)
+    } catch (e: any) {
+      console.error(`[purchase-return] Journal failed for ${returnNo}: ${e?.message}`)
+    }
 
-    // ── Audit log (inside tx — atomic) ──
-    await logAuditEvent({
-      tx,
-      userId: user.id,
-      userName: user.name,
-      action: "PURCHASE_RETURN_CREATED",
-      description: `مرتجع مشتريات ${returnNo}`,
-    })
+    // 4) Audit log (fire-and-forget, non-fatal)
+    try {
+      await logAuditEvent({
+        userId: user.id,
+        userName: user.name,
+        action: "PURCHASE_RETURN_CREATED",
+        description: `مرتجع مشتريات ${returnNo}`,
+      })
+    } catch {}
 
-    return { purchaseReturn, journalEntryId }
-  }, {
-    timeout: 10000,
-    maxWait: 5000,
-  }).catch((e: any) => ({ __error: e?.message || "purchase-return-failed" }))
-
-  if ((created as any).__error) {
-    const msg = (created as any).__error as string
-    const isClientError =
-      msg.startsWith("stock-insufficient") ||
-      msg.startsWith("product-not-found") ||
-      msg.startsWith("invalid") ||
-      msg.startsWith("exceeds-returnable") ||
-      msg.startsWith("po-")
-    return NextResponse.json({ error: msg }, { status: isClientError ? 400 : 500 })
+    return NextResponse.json(
+      { ...serializeReturn(purchaseReturn), journalEntryId, returnTotal },
+      { status: 201 }
+    )
+  } catch (e: any) {
+    // Compensate: re-increment what we decremented
+    for (const d of decremented) {
+      try {
+        await db.stockItem.update({
+          where: { productId_warehouseId: { productId: d.productId, warehouseId } },
+          data: { quantity: { increment: d.qty } },
+        })
+      } catch {}
+    }
+    return NextResponse.json(
+      { error: e?.message || "purchase-return-failed" },
+      { status: 500 }
+    )
   }
-
-  const { purchaseReturn, journalEntryId } = created as {
-    purchaseReturn: Awaited<ReturnType<typeof db.purchaseReturn.create>>
-    journalEntryId: string | null
-  }
-
-  return NextResponse.json(
-    {
-      ...serializeReturn(purchaseReturn),
-      journalEntryId,
-      returnTotal,
-    },
-    { status: 201 }
-  )
 }
