@@ -58,7 +58,17 @@ export async function GET() {
 
 /**
  * POST /api/stock-takes — create a stock take as DRAFT (ADMIN/WAREHOUSE).
- * Body: { warehouseId?, note?, items: [{ productId, actualQty }] }
+ *
+ * Body (one of):
+ *  - { loadAll: true, warehouseId?, categoryId?, note? }
+ *      Auto-load ALL matching products as items. systemQty = product.quantity,
+ *      actualQty = 0 (blank — user fills in during count). Optionally filter
+ *      by warehouse (only products that have stock there) and/or by category.
+ *  - { warehouseId?, note?, items: [{ productId, actualQty }] }
+ *      Manual item list (existing behavior).
+ *
+ * If BOTH `loadAll` and `items` are provided, `loadAll` wins.
+ *
  * Captures systemQty + unitCost from current product state. No inventory
  * changes at creation — approval is a separate step.
  */
@@ -70,32 +80,84 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => ({} as any))
-  const { warehouseId, note, items } = body || {}
-  if (!Array.isArray(items) || items.length === 0) {
-    return NextResponse.json({ error: "items-required" }, { status: 400 })
-  }
+  const { warehouseId, note, items, loadAll, categoryId } = body || {}
 
-  const productIds = items.map((i: any) => i.productId)
-  const products = await db.product.findMany({ where: { id: { in: productIds } } })
-  if (products.length !== new Set(productIds).size) {
-    return NextResponse.json({ error: "invalid-product" }, { status: 400 })
-  }
+  // ── Resolve the items list (either auto-loaded or manual) ───────────
+  let itemsData: Array<{
+    productId: string
+    systemQty: number
+    actualQty: number
+    variance: number
+    unitCost: number
+    varianceValue: number
+  }>
 
-  const itemsData = items.map((it: any) => {
-    const p = products.find((pr) => pr.id === it.productId)
-    const systemQty = Number(p?.quantity ?? 0)
-    const actualQty = Math.max(0, Math.round(Number(it.actualQty) || 0))
-    const variance = actualQty - systemQty
-    const unitCost = Number(p?.costPrice ?? 0)
-    return {
-      productId: String(it.productId),
-      systemQty,
-      actualQty,
-      variance,
-      unitCost,
-      varianceValue: r(variance * unitCost),
+  if (loadAll) {
+    // Auto-load products. Build the where-clause from optional filters.
+    const where: any = {}
+    if (categoryId) where.categoryId = String(categoryId)
+
+    // If a warehouse is specified, restrict to products that have ANY stock
+    // in that warehouse (via StockItem rows with quantity > 0).
+    if (warehouseId) {
+      const stockRows = await db.stockItem.findMany({
+        where: { warehouseId: String(warehouseId), quantity: { gt: 0 } },
+        select: { productId: true },
+        distinct: ["productId"],
+      })
+      where.id = { in: stockRows.map((s) => s.productId) }
     }
-  })
+
+    const products = await db.product.findMany({
+      where,
+      select: { id: true, quantity: true, costPrice: true },
+    })
+    if (products.length === 0) {
+      return NextResponse.json({ error: "no-products" }, { status: 400 })
+    }
+
+    itemsData = products.map((p) => {
+      const systemQty = Number(p.quantity ?? 0)
+      const actualQty = 0 // blank — user enters during count
+      const variance = 0 - systemQty // will be recalculated when user enters actual
+      const unitCost = Number(p.costPrice ?? 0)
+      return {
+        productId: p.id,
+        systemQty,
+        actualQty,
+        variance,
+        unitCost,
+        varianceValue: r(variance * unitCost),
+      }
+    })
+  } else {
+    // Manual item list — validate as before.
+    if (!Array.isArray(items) || items.length === 0) {
+      return NextResponse.json({ error: "items-required" }, { status: 400 })
+    }
+
+    const productIds = items.map((i: any) => i.productId)
+    const products = await db.product.findMany({ where: { id: { in: productIds } } })
+    if (products.length !== new Set(productIds).size) {
+      return NextResponse.json({ error: "invalid-product" }, { status: 400 })
+    }
+
+    itemsData = items.map((it: any) => {
+      const p = products.find((pr) => pr.id === it.productId)
+      const systemQty = Number(p?.quantity ?? 0)
+      const actualQty = Math.max(0, Math.round(Number(it.actualQty) || 0))
+      const variance = actualQty - systemQty
+      const unitCost = Number(p?.costPrice ?? 0)
+      return {
+        productId: String(it.productId),
+        systemQty,
+        actualQty,
+        variance,
+        unitCost,
+        varianceValue: r(variance * unitCost),
+      }
+    })
+  }
 
   const takeNo = await nextTakeNo()
   const created = await db.stockTake.create({
