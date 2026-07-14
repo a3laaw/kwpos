@@ -33,21 +33,26 @@ export async function GET(req: NextRequest) {
   const todayEnd = now
 
   // ── Today's sales vs yesterday ──
+  // Only COMPLETED sales count; net revenue subtracts refundTotal so
+  // refunds don't inflate the daily totals.
+  const saleStatusFilter = { status: "COMPLETED" as const }
   const [todayAgg, yesterdayAgg] = await Promise.all([
     db.sale.aggregate({
-      where: { createdAt: { gte: todayStart, lte: todayEnd } },
-      _sum: { total: true },
+      where: { ...saleStatusFilter, createdAt: { gte: todayStart, lte: todayEnd } },
+      _sum: { total: true, refundTotal: true },
       _count: true,
     }),
     db.sale.aggregate({
-      where: { createdAt: { gte: yesterdayStart, lt: todayStart } },
-      _sum: { total: true },
+      where: { ...saleStatusFilter, createdAt: { gte: yesterdayStart, lt: todayStart } },
+      _sum: { total: true, refundTotal: true },
       _count: true,
     }),
   ])
 
-  const todaySales = Number(todayAgg._sum.total ?? 0)
-  const yesterdaySales = Number(yesterdayAgg._sum.total ?? 0)
+  const todaySales =
+    Number(todayAgg._sum.total ?? 0) - Number(todayAgg._sum.refundTotal ?? 0)
+  const yesterdaySales =
+    Number(yesterdayAgg._sum.total ?? 0) - Number(yesterdayAgg._sum.refundTotal ?? 0)
   const salesChangePct = yesterdaySales > 0
     ? ((todaySales - yesterdaySales) / yesterdaySales) * 100
     : todaySales > 0 ? 100 : 0
@@ -119,16 +124,21 @@ export async function GET(req: NextRequest) {
     : 0
 
   // ── Top selling products today ──
+  // Only COMPLETED sales contribute. Net qty/revenue subtracts returnedQty.
   const todaySaleItems = await db.saleItem.findMany({
-    where: { sale: { createdAt: { gte: todayStart, lte: todayEnd } } },
+    where: { sale: { ...saleStatusFilter, createdAt: { gte: todayStart, lte: todayEnd } } },
     include: { product: { select: { name: true, imageUrl: true } } },
   })
   const productMap = new Map<string, { name: string; imageUrl?: string | null; qty: number; revenue: number }>()
   for (const it of todaySaleItems) {
     const key = it.productId
     const existing = productMap.get(key)
-    const qty = it.quantity - (it.returnedQty ?? 0)
-    const revenue = Number(it.subtotal)
+    const grossQty = Number(it.quantity)
+    const returned = Number(it.returnedQty ?? 0)
+    const qty = Math.max(0, grossQty - returned)
+    const subtotal = Number(it.subtotal)
+    const lineUnit = grossQty > 0 ? subtotal / grossQty : 0
+    const revenue = subtotal - returned * lineUnit
     if (existing) {
       existing.qty += qty
       existing.revenue += revenue

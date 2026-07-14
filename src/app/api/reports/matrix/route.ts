@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { getCurrentUser } from "@/lib/session"
+import { canSeeFinancials } from "@/lib/permissions"
+import type { Role } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
 
@@ -26,6 +28,9 @@ export const dynamic = "force-dynamic"
 export async function GET(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+  if (!canSeeFinancials(user.role as Role)) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 })
+  }
 
   const { searchParams } = new URL(req.url)
   const from = searchParams.get("from") || undefined
@@ -47,7 +52,10 @@ export async function GET(req: NextRequest) {
   // Sale filter: date range + (optionally) warehouse — note: Sale doesn't have
   // a direct warehouseId in schema, but Shopify/POS source is encoded in invoiceNo.
   // For warehouse filtering we filter SaleItems via their product's StockItem.
+  // Only COMPLETED sales count — CANCELLED invoices are excluded. Returns are
+  // already handled per-line below (netQty = soldQty − returned).
   const saleWhere: any = {
+    status: "COMPLETED",
     createdAt: { gte: startDate, lte: endDate },
   }
 

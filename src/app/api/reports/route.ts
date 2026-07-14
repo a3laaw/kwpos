@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { getCurrentUser } from "@/lib/session"
+import { canSeeFinancials } from "@/lib/permissions"
+import type { Role } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
 
@@ -16,6 +18,9 @@ export const dynamic = "force-dynamic"
 export async function GET(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+  if (!canSeeFinancials(user.role as Role)) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 })
+  }
 
   const { searchParams } = new URL(req.url)
   const from = searchParams.get("from")
@@ -33,7 +38,10 @@ export async function GET(req: NextRequest) {
     dateFilter.lte = t
   }
 
-  const saleWhere: any = {}
+  // Only COMPLETED sales count toward reports — CANCELLED invoices are
+  // excluded from revenue / quantities / COGS. Returns are subtracted
+  // separately at the saleItem level (see aggregation below).
+  const saleWhere: any = { status: "COMPLETED" }
   if (Object.keys(dateFilter).length) saleWhere.createdAt = dateFilter
   if (paymentMethod) saleWhere.paymentMethod = paymentMethod
   if (source === "POS") saleWhere.invoiceNo = { not: { startsWith: "SHP-" } }
@@ -62,22 +70,23 @@ export async function GET(req: NextRequest) {
       _count: true,
       _avg: { total: true },
     }),
-    // Items sold (sum of quantity across matched items)
+    // Items sold (net quantity = quantity − returnedQty across matched items)
     db.saleItem.aggregate({
       where: { sale: saleWhere, ...itemWhere },
-      _sum: { quantity: true },
+      _sum: { quantity: true, returnedQty: true },
     }),
-    // By product (DB groupBy)
+    // By product (DB groupBy) — include returnedQty so we can compute net
+    // qty / net revenue / net COGS in the JS reduction below.
     db.saleItem.groupBy({
       by: ["productId"],
       where: { sale: saleWhere, ...itemWhere },
-      _sum: { quantity: true, subtotal: true },
+      _sum: { quantity: true, returnedQty: true, subtotal: true },
     }),
     // By category (DB groupBy via product relation)
     db.saleItem.groupBy({
       by: ["productId"],
       where: { sale: saleWhere, ...itemWhere },
-      _sum: { quantity: true, subtotal: true },
+      _sum: { quantity: true, returnedQty: true, subtotal: true },
     }),
     // By day — fetch lightweight sale rows for day grouping (fewer cols)
     db.sale.findMany({
@@ -113,8 +122,15 @@ export async function GET(req: NextRequest) {
     const meta = metaMap.get(row.productId)
     const name = meta?.name || "—"
     const cat = meta?.category?.name || "غير مصنف"
-    const qty = Number(row._sum.quantity || 0)
-    const revenue = Number(row._sum.subtotal || 0)
+    // Net qty / net revenue / net COGS — subtract returned units and their
+    // proportional line value so returns don't inflate quantities, revenue,
+    // or cost of goods sold.
+    const grossQty = Number(row._sum.quantity || 0)
+    const returned = Number(row._sum.returnedQty || 0)
+    const qty = Math.max(0, grossQty - returned)
+    const subtotal = Number(row._sum.subtotal || 0)
+    const lineUnit = grossQty > 0 ? subtotal / grossQty : 0
+    const revenue = subtotal - returned * lineUnit
     const cost = qty * Number(meta?.costPrice ?? 0)
     productMap.set(name, { name, category: cat, qty, revenue, cost })
     const cm = categoryMap.get(cat) || { qty: 0, revenue: 0, cost: 0 }
@@ -139,7 +155,10 @@ export async function GET(req: NextRequest) {
   const totalDiscount = Number(summaryAgg._sum.discount || 0)
   const totalTax = Number(summaryAgg._sum.taxAmount || 0)
   const salesCount = summaryAgg._count || 0
-  const itemsSold = Number(itemsSoldAgg._sum.quantity || 0)
+  // Net items sold = Σ quantity − Σ returnedQty (returns reduce volume).
+  const itemsSold =
+    Number(itemsSoldAgg._sum.quantity || 0) -
+    Number(itemsSoldAgg._sum.returnedQty || 0)
   const avgSale = summaryAgg._avg.total ? Number(summaryAgg._avg.total) : 0
 
   // Items cost = sum(qty * costPrice) — computed above in productMap loop

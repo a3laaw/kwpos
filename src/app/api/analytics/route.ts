@@ -60,10 +60,13 @@ export async function GET(req: NextRequest) {
   // All products with category
   const products = await db.product.findMany({ include: { category: true } })
 
-  // Sale items within the date range (join sale for createdAt)
-  const saleItemsWhere: any = {}
+  // Sale items within the date range (join sale for createdAt).
+  // Only COMPLETED sales contribute — CANCELLED invoices are excluded.
+  const saleItemsWhere: any = {
+    sale: { status: "COMPLETED" },
+  }
   if (Object.keys(dateFilter).length) {
-    saleItemsWhere.sale = { createdAt: dateFilter }
+    saleItemsWhere.sale = { status: "COMPLETED", createdAt: dateFilter }
   }
   const saleItems = await db.saleItem.findMany({
     where: saleItemsWhere,
@@ -77,8 +80,15 @@ export async function GET(req: NextRequest) {
   >()
   for (const it of saleItems) {
     const cur = agg.get(it.productId) || { qty: 0, gross: 0, lastSold: null }
-    cur.qty += Number(it.quantity)
-    cur.gross += Number(it.subtotal)
+    // Net quantity = quantity − returnedQty. Gross volume subtracts the
+    // proportional value of returned units (same model as the reports
+    // endpoint) so returns don't inflate sales volume or revenue.
+    const grossQty = Number(it.quantity)
+    const returned = Number(it.returnedQty || 0)
+    const subtotal = Number(it.subtotal)
+    const lineUnit = grossQty > 0 ? subtotal / grossQty : 0
+    cur.qty += Math.max(0, grossQty - returned)
+    cur.gross += subtotal - returned * lineUnit
     const d = it.sale?.createdAt ? new Date(it.sale.createdAt) : null
     if (d && (!cur.lastSold || d > cur.lastSold)) cur.lastSold = d
     agg.set(it.productId, cur)

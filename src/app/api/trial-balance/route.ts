@@ -1,14 +1,17 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { getCurrentUser } from "@/lib/session"
-import type { TrialBalance, TrialBalanceRow, AccountType } from "@/lib/types"
+import { canSeeFinancials } from "@/lib/permissions"
+import type { TrialBalance, TrialBalanceRow, AccountType, Role } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
 
 export async function GET() {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  if (user.role !== "ADMIN") return NextResponse.json({ error: "forbidden" }, { status: 403 })
+  if (!canSeeFinancials(user.role as Role)) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 })
+  }
 
   // Trial balance using account-type-aware debit/credit classification.
   // Convention: balance is stored as debit-positive.

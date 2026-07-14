@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { getCurrentUser } from "@/lib/session"
+import { canSeeFinancials } from "@/lib/permissions"
+import type { Role } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
 
@@ -15,6 +17,9 @@ export async function GET(
 ) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+  if (!canSeeFinancials(user.role as Role)) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 })
+  }
 
   const { id } = await params
   const customer = await db.customer.findUnique({
@@ -35,12 +40,13 @@ export async function GET(
     dateFilter.lte = t
   }
 
-  // Opening balance = sum of sales + refunds BEFORE `from`
+  // Opening balance = sum of COMPLETED sales + refunds BEFORE `from`.
+  // Cancelled invoices are excluded — they should not appear as debits.
   const openingDateFilter: any = {}
   if (from) openingDateFilter.lt = new Date(from)
   const openingSales = from
     ? await db.sale.aggregate({
-        where: { customerId: id, createdAt: openingDateFilter },
+        where: { status: "COMPLETED", customerId: id, createdAt: openingDateFilter },
         _sum: { total: true, refundTotal: true },
       })
     : null
@@ -48,8 +54,9 @@ export async function GET(
     ? Number(openingSales._sum.total || 0) - Number(openingSales._sum.refundTotal || 0)
     : 0
 
-  // Period sales
-  const salesWhere: any = { customerId: id }
+  // Period sales — only COMPLETED. Cancelled invoices must NOT appear as
+  // debits on the customer statement.
+  const salesWhere: any = { status: "COMPLETED", customerId: id }
   if (Object.keys(dateFilter).length) salesWhere.createdAt = dateFilter
   const sales = await db.sale.findMany({
     where: salesWhere,

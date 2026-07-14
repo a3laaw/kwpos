@@ -22,8 +22,11 @@ export async function GET(req: NextRequest) {
     dateFilter.lte = t
   }
 
-  // Revenue: all sales within range (incl Shopify-tagged SHP-)
-  const salesWhere = Object.keys(dateFilter).length ? { createdAt: dateFilter } : {}
+  // Revenue: COMPLETED sales within range (incl Shopify-tagged SHP-).
+  // Net revenue = Σ total − Σ refundTotal. COGS uses net quantity
+  // (quantity − returnedQty) so returned units don't count as cost.
+  const salesWhere: any = { status: "COMPLETED" }
+  if (Object.keys(dateFilter).length) salesWhere.createdAt = dateFilter
   const sales = await db.sale.findMany({
     where: salesWhere,
     include: { items: { include: { product: true } } },
@@ -32,9 +35,12 @@ export async function GET(req: NextRequest) {
   let revenue = 0
   let cogs = 0
   for (const s of sales) {
-    revenue += Number(s.total)
+    revenue += Number(s.total) - Number(s.refundTotal || 0)
     for (const it of s.items) {
-      cogs += Number(it.quantity) * Number(it.product?.costPrice ?? 0)
+      const grossQty = Number(it.quantity)
+      const returned = Number(it.returnedQty || 0)
+      const netQty = Math.max(0, grossQty - returned)
+      cogs += netQty * Number(it.product?.costPrice ?? 0)
     }
   }
   const grossProfit = revenue - cogs

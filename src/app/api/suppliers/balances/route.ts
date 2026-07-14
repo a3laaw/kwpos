@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { getCurrentUser } from "@/lib/session"
+import { canSeeFinancials } from "@/lib/permissions"
+import type { Role } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
 
@@ -14,6 +16,9 @@ export const dynamic = "force-dynamic"
 export async function GET() {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+  if (!canSeeFinancials(user.role as Role)) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 })
+  }
 
   const [invoices, payments, returns, suppliers] = await Promise.all([
     db.purchaseInvoice.groupBy({

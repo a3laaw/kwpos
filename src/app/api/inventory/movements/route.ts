@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { getCurrentUser } from "@/lib/session"
+import { canSeeFinancials, canManageProducts } from "@/lib/permissions"
+import type { Role } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
 
@@ -57,6 +59,9 @@ export interface StockMovementRow {
 export async function GET(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+  if (!canSeeFinancials(user.role as Role) && !canManageProducts(user.role as Role)) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 })
+  }
 
   const { searchParams } = new URL(req.url)
   const productId = searchParams.get("productId") || undefined
@@ -92,8 +97,9 @@ export async function GET(req: NextRequest) {
 
   // ── 1. SALE (SaleItem — quantity sold, negative change) ──
   // Skipped when a warehouse filter is set (Sale has no warehouseId).
+  // Only COMPLETED sales appear — cancelled invoices don't move stock.
   if (!warehouseId && (!typeFilter || typeFilter === "SALE")) {
-    const saleWhere: any = {}
+    const saleWhere: any = { status: "COMPLETED" }
     if (hasDate) saleWhere.createdAt = dateFilter
     const saleItems = await db.saleItem.findMany({
       where: { productId: productId || undefined, sale: saleWhere },
@@ -114,9 +120,10 @@ export async function GET(req: NextRequest) {
   }
 
   // ── 2. REFUND (SaleItem.returnedQty — positive change) ──
-  // Skipped when a warehouse filter is set.
+  // Skipped when a warehouse filter is set. Only COMPLETED sales have
+  // refunds — cancelled invoices have no returnedQty impact.
   if (!warehouseId && (!typeFilter || typeFilter === "REFUND")) {
-    const saleWhere: any = {}
+    const saleWhere: any = { status: "COMPLETED" }
     if (hasDate) saleWhere.createdAt = dateFilter
     const refundItems = await db.saleItem.findMany({
       where: {

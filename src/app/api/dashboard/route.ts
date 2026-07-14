@@ -78,6 +78,10 @@ export async function GET(req: NextRequest) {
     .sort((a, b) => b.total - a.total)
 
   // ── Prisma queries (parallel, but sequential with connection_limit=1) ──
+  // All sale-based aggregates filter to status COMPLETED so cancelled
+  // invoices don't inflate totals/counts. revenue figures also subtract
+  // refundTotal so refunds are netted out.
+  const saleStatusFilter = { status: "COMPLETED" as const }
   const [
     totalSalesAgg,
     salesCount,
@@ -88,11 +92,17 @@ export async function GET(req: NextRequest) {
     periodSales,
     topProductsRows,
   ] = await Promise.all([
-    db.sale.aggregate({ _sum: { total: true }, where: { createdAt: dateFilter } }),
-    db.sale.count({ where: { createdAt: dateFilter } }),
     db.sale.aggregate({
-      where: { createdAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) } },
-      _sum: { total: true },
+      _sum: { total: true, refundTotal: true },
+      where: { ...saleStatusFilter, createdAt: dateFilter },
+    }),
+    db.sale.count({ where: { ...saleStatusFilter, createdAt: dateFilter } }),
+    db.sale.aggregate({
+      where: {
+        ...saleStatusFilter,
+        createdAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
+      },
+      _sum: { total: true, refundTotal: true },
     }),
     db.product.count(),
     db.purchaseOrder.count({ where: { status: "PENDING" } }),
@@ -107,13 +117,13 @@ export async function GET(req: NextRequest) {
       take: 5,
     }),
     db.sale.findMany({
-      where: { createdAt: dateFilter },
-      select: { total: true, createdAt: true },
+      where: { ...saleStatusFilter, createdAt: dateFilter },
+      select: { total: true, refundTotal: true, createdAt: true },
       orderBy: { createdAt: "asc" },
     }),
     db.saleItem.findMany({
-      where: { sale: { createdAt: dateFilter } },
-      select: { quantity: true, subtotal: true, product: { select: { name: true } } },
+      where: { sale: { ...saleStatusFilter, createdAt: dateFilter } },
+      select: { quantity: true, returnedQty: true, subtotal: true, product: { select: { name: true } } },
     }),
   ])
 
@@ -145,7 +155,9 @@ export async function GET(req: NextRequest) {
     const d = new Date(s.createdAt)
     if (d < startDay || d > endDay) continue
     const key = d.toISOString().slice(0, 10)
-    dayMap.set(key, (dayMap.get(key) || 0) + Number(s.total))
+    // Net revenue per sale = total − refundTotal (refunds netted out).
+    const net = Number(s.total) - Number(s.refundTotal || 0)
+    dayMap.set(key, (dayMap.get(key) || 0) + net)
   }
   const cursor = new Date(startDay)
   while (cursor <= endDay) {
@@ -160,13 +172,17 @@ export async function GET(req: NextRequest) {
       return { date, total: +total.toFixed(2), label: labels[d.getDay()] }
     })
 
-  // Top products by revenue
+  // Top products by revenue (net of returns)
   const topMap = new Map<string, { qty: number; total: number }>()
   for (const it of topProductsRows) {
     const name = (it as any).product?.name || "—"
     const cur = topMap.get(name) || { qty: 0, total: 0 }
-    cur.qty += Number(it.quantity)
-    cur.total += Number(it.subtotal)
+    const grossQty = Number(it.quantity)
+    const returned = Number((it as any).returnedQty || 0)
+    const subtotal = Number(it.subtotal)
+    const lineUnit = grossQty > 0 ? subtotal / grossQty : 0
+    cur.qty += Math.max(0, grossQty - returned)
+    cur.total += subtotal - returned * lineUnit
     topMap.set(name, cur)
   }
   const topProducts = Array.from(topMap.entries())
@@ -194,9 +210,14 @@ export async function GET(req: NextRequest) {
   }))
 
   const stats: DashboardStats = {
-    totalSales: Number(totalSalesAgg._sum.total || 0),
+    // Net sales = Σ total − Σ refundTotal (refunds netted out).
+    totalSales:
+      Number(totalSalesAgg._sum.total || 0) -
+      Number(totalSalesAgg._sum.refundTotal || 0),
     salesCount,
-    todaySales: Number(todaySalesAgg._sum.total || 0),
+    todaySales:
+      Number(todaySalesAgg._sum.total || 0) -
+      Number(todaySalesAgg._sum.refundTotal || 0),
     productsCount,
     lowStockCount,
     pendingPurchases,
