@@ -239,27 +239,36 @@ export async function POST(req: NextRequest) {
 
   // 2) If posting: bump stock + update cost price + mark PO received
   if (wantPost) {
+    // Resolve warehouse: if not specified, use the default active warehouse.
+    // Without this, stock would NEVER be added (the if(warehouseId) guard
+    // would skip the StockItem upsert entirely).
+    let effectiveWarehouseId = warehouseId || null
+    if (!effectiveWarehouseId) {
+      effectiveWarehouseId = await getDefaultWarehouseId(db)
+    }
+    if (!effectiveWarehouseId) {
+      return NextResponse.json({ error: "no-warehouse-available" }, { status: 400 })
+    }
+
     for (const it of itemsData) {
       // Increment StockItem (upsert — creates if missing)
-      if (warehouseId) {
-        try {
-          await db.stockItem.upsert({
-            where: {
-              productId_warehouseId: {
-                productId: it.productId,
-                warehouseId,
-              },
-            },
-            update: { quantity: { increment: it.quantity } },
-            create: {
+      try {
+        await db.stockItem.upsert({
+          where: {
+            productId_warehouseId: {
               productId: it.productId,
-              warehouseId,
-              quantity: it.quantity,
+              warehouseId: effectiveWarehouseId,
             },
-          })
-        } catch (e: any) {
-          console.error(`[purchase-invoice] Stock increment FAILED for ${it.productId}: ${e?.message}`)
-        }
+          },
+          update: { quantity: { increment: it.quantity } },
+          create: {
+            productId: it.productId,
+            warehouseId: effectiveWarehouseId,
+            quantity: it.quantity,
+          },
+        })
+      } catch (e: any) {
+        console.error(`[purchase-invoice] Stock increment FAILED for ${it.productId}: ${e?.message}`)
       }
       // Update cost price
       if (typeof it.unitCost === "number" && it.unitCost >= 0) {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { db, updateProductQuantityFromStockItems } from "@/lib/db"
+import { db, updateProductQuantityFromStockItems, getDefaultWarehouseId } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
 import { logAuditEvent } from "@/lib/audit"
 import { ensurePurchaseAccounts, createPurchaseInvoiceJournalEntry } from "@/lib/purchase"
@@ -53,7 +53,16 @@ export async function POST(
     // ── NO $transaction (PgBouncer compatibility) ──
     // Sequential queries — same pattern as sales + purchase invoice POST.
 
-    // 1) Bump stock per item
+    // 1) Resolve warehouse: if not specified, use the default active warehouse.
+    let effectiveWarehouseId = inv.warehouseId || null
+    if (!effectiveWarehouseId) {
+      effectiveWarehouseId = await getDefaultWarehouseId(db)
+    }
+    if (!effectiveWarehouseId) {
+      return NextResponse.json({ error: "no-warehouse-available" }, { status: 400 })
+    }
+
+    // 2) Bump stock per item
     for (const it of inv.items) {
       // Inventory freeze: check if product is under active stock take
       const frozenItem = await db.stockTakeItem.findFirst({
@@ -63,25 +72,23 @@ export async function POST(
         return NextResponse.json({ error: `stock-frozen:${it.productId}` }, { status: 400 })
       }
 
-      if (inv.warehouseId) {
-        try {
-          await db.stockItem.upsert({
-            where: {
-              productId_warehouseId: {
-                productId: it.productId,
-                warehouseId: inv.warehouseId,
-              },
-            },
-            update: { quantity: { increment: it.quantity } },
-            create: {
+      try {
+        await db.stockItem.upsert({
+          where: {
+            productId_warehouseId: {
               productId: it.productId,
-              warehouseId: inv.warehouseId,
-              quantity: it.quantity,
+              warehouseId: effectiveWarehouseId,
             },
-          })
-        } catch (e: any) {
-          console.error(`[purchase-invoice-post] Stock increment FAILED for ${it.productId}: ${e?.message}`)
-        }
+          },
+          update: { quantity: { increment: it.quantity } },
+          create: {
+            productId: it.productId,
+            warehouseId: effectiveWarehouseId,
+            quantity: it.quantity,
+          },
+        })
+      } catch (e: any) {
+        console.error(`[purchase-invoice-post] Stock increment FAILED for ${it.productId}: ${e?.message}`)
       }
       // Update cost price
       if (it.unitCost > 0) {
