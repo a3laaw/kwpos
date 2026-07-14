@@ -232,12 +232,11 @@ function PriceManagementTab() {
   // The below-cost warnings captured from the 409 response (re-displayed
   // after the manager re-confirms with `confirm: true`).
   const [belowCost, setBelowCost] = React.useState<BelowCostWarning[]>([])
-  // Batch margin % inputs — when filled + "Apply to All" clicked, every
-  // product's price is recalculated from costPrice × (1 + margin%).
-  const [batchRetailMargin, setBatchRetailMargin] = React.useState("")
-  const [batchWholesaleMargin, setBatchWholesaleMargin] = React.useState("")
-  const [batchCorporateMargin, setBatchCorporateMargin] = React.useState("")
-  const [batchOpen, setBatchOpen] = React.useState(false)
+  // Column-level margin % — ONE input per tier in the column header.
+  // Type a % → applies to ALL products instantly (price = cost × (1 + %)).
+  const [colRetailMargin, setColRetailMargin] = React.useState("")
+  const [colWholesaleMargin, setColWholesaleMargin] = React.useState("")
+  const [colCorporateMargin, setColCorporateMargin] = React.useState("")
 
   const items = data?.items ?? []
 
@@ -290,7 +289,7 @@ function PriceManagementTab() {
     return it.salePrice
   }
 
-  /** Compute the current margin % for a product+tier from its effective price. */
+  /** Compute the current margin % for display (read-only, not editable per-row). */
   function currentMargin(it: PricingItem, tier: PriceTier): string {
     const price = effectivePrice(it, tier)
     if (it.costPrice <= 0) return ""
@@ -298,58 +297,34 @@ function PriceManagementTab() {
     return pct.toFixed(1)
   }
 
-  /** When the user types a margin %, compute the absolute price from cost. */
-  function applyMargin(it: PricingItem, tier: PriceTier, marginStr: string, original: number) {
+  /** Apply a margin % to ALL filtered products for a specific tier.
+   *  price = cost × (1 + margin%) — stages all changes at once. */
+  function applyColumnMargin(tier: PriceTier, marginStr: string) {
     if (!isAdmin) return
     const pct = Number(marginStr)
     if (!Number.isFinite(pct)) return
-    const newPrice = +Math.max(0, it.costPrice * (1 + pct / 100)).toFixed(3)
-    stageChange(it.id, tier, String(newPrice), original)
-  }
 
-  /** Batch apply margins to ALL filtered products. */
-  function applyBatchMargins() {
-    if (!isAdmin) return
-    const rPct = Number(batchRetailMargin)
-    const wPct = Number(batchWholesaleMargin)
-    const cPct = Number(batchCorporateMargin)
-    if (!Number.isFinite(rPct) && !Number.isFinite(wPct) && !Number.isFinite(cPct)) {
-      toast.error("أدخل نسبة واحدة على الأقل")
-      return
-    }
     const newStaged = { ...staged }
     let count = 0
     for (const it of filtered) {
-      if (Number.isFinite(rPct) && it.costPrice > 0) {
-        const key = `${it.id}:RETAIL`
-        const newPrice = +Math.max(0, it.costPrice * (1 + rPct / 100)).toFixed(3)
-        if (newPrice !== it.salePrice) {
-          newStaged[key] = { productId: it.id, priceType: "RETAIL", newPrice }
-          count++
-        }
-      }
-      if (Number.isFinite(wPct) && it.costPrice > 0) {
-        const key = `${it.id}:WHOLESALE`
-        const newPrice = +Math.max(0, it.costPrice * (1 + wPct / 100)).toFixed(3)
-        if (newPrice !== it.wholesalePrice) {
-          newStaged[key] = { productId: it.id, priceType: "WHOLESALE", newPrice }
-          count++
-        }
-      }
-      if (Number.isFinite(cPct) && it.costPrice > 0) {
-        const key = `${it.id}:CORPORATE`
-        const newPrice = +Math.max(0, it.costPrice * (1 + cPct / 100)).toFixed(3)
-        if (newPrice !== it.corporatePrice) {
-          newStaged[key] = { productId: it.id, priceType: "CORPORATE", newPrice }
-          count++
-        }
+      if (it.costPrice <= 0) continue
+      const key = `${it.id}:${tier}`
+      const original = tier === "WHOLESALE" ? it.wholesalePrice : tier === "CORPORATE" ? it.corporatePrice : it.salePrice
+      const newPrice = +Math.max(0, it.costPrice * (1 + pct / 100)).toFixed(3)
+      if (newPrice !== original) {
+        newStaged[key] = { productId: it.id, priceType: tier, newPrice }
+        count++
+      } else {
+        // Same as original → remove staged
+        delete newStaged[key]
       }
     }
     setStaged(newStaged)
-    setBatchOpen(false)
-    toast.success(`تم تجهيز ${count} تغيير سعر`, {
-      description: "راجع التغييرات ثم اضغط «اعتماد وتطبيق»",
-    })
+    if (count > 0) {
+      toast.success(`تم تطبيق ${pct}% على ${count} منتج`, {
+        description: "راجع الأسعار ثم اضغط «اعتماد وتطبيق»",
+      })
+    }
   }
 
   function clearStaged() {
@@ -473,22 +448,109 @@ function PriceManagementTab() {
                     <TableHead className="text-start">{t.colCategory}</TableHead>
                     <TableHead className="text-center">{t.colCostPrice}</TableHead>
                     <TableHead className="text-center">{t.taxPercent || "ضريبة %"}</TableHead>
-                    <TableHead className="text-center min-w-[140px]">
-                      <div className="flex flex-col gap-0.5">
+                    <TableHead className="text-center min-w-[120px]">
+                      <div className="flex flex-col gap-1">
                         <span>{t.tierRetail}</span>
-                        <span className="text-[10px] font-normal text-muted-foreground">ربح %</span>
+                        {isAdmin ? (
+                          <div className="flex items-center gap-1 justify-center">
+                            <Input
+                              type="number"
+                              step="0.01"
+                              className="h-7 w-16 text-[11px] text-center tabular-nums border-primary/40"
+                              placeholder="نسبة %"
+                              value={colRetailMargin}
+                              onChange={(e) => setColRetailMargin(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  applyColumnMargin("RETAIL", colRetailMargin)
+                                }
+                              }}
+                              title="اكتب نسبة الربح واضغط Enter لتطبيقها على كل المنتجات"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-1.5 text-[10px] gap-0.5"
+                              onClick={() => applyColumnMargin("RETAIL", colRetailMargin)}
+                              title="تطبيق النسبة على الكل"
+                            >
+                              <Percent className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <span className="text-[10px] font-normal text-muted-foreground">ربح %</span>
+                        )}
                       </div>
                     </TableHead>
-                    <TableHead className="text-center min-w-[140px]">
-                      <div className="flex flex-col gap-0.5">
+                    <TableHead className="text-center min-w-[120px]">
+                      <div className="flex flex-col gap-1">
                         <span>{t.tierWholesale}</span>
-                        <span className="text-[10px] font-normal text-muted-foreground">ربح %</span>
+                        {isAdmin ? (
+                          <div className="flex items-center gap-1 justify-center">
+                            <Input
+                              type="number"
+                              step="0.01"
+                              className="h-7 w-16 text-[11px] text-center tabular-nums border-primary/40"
+                              placeholder="نسبة %"
+                              value={colWholesaleMargin}
+                              onChange={(e) => setColWholesaleMargin(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  applyColumnMargin("WHOLESALE", colWholesaleMargin)
+                                }
+                              }}
+                              title="اكتب نسبة الربح واضغط Enter لتطبيقها على كل المنتجات"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-1.5 text-[10px] gap-0.5"
+                              onClick={() => applyColumnMargin("WHOLESALE", colWholesaleMargin)}
+                              title="تطبيق النسبة على الكل"
+                            >
+                              <Percent className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <span className="text-[10px] font-normal text-muted-foreground">ربح %</span>
+                        )}
                       </div>
                     </TableHead>
-                    <TableHead className="text-center min-w-[140px]">
-                      <div className="flex flex-col gap-0.5">
+                    <TableHead className="text-center min-w-[120px]">
+                      <div className="flex flex-col gap-1">
                         <span>{t.tierCorporate}</span>
-                        <span className="text-[10px] font-normal text-muted-foreground">ربح %</span>
+                        {isAdmin ? (
+                          <div className="flex items-center gap-1 justify-center">
+                            <Input
+                              type="number"
+                              step="0.01"
+                              className="h-7 w-16 text-[11px] text-center tabular-nums border-primary/40"
+                              placeholder="نسبة %"
+                              value={colCorporateMargin}
+                              onChange={(e) => setColCorporateMargin(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  applyColumnMargin("CORPORATE", colCorporateMargin)
+                                }
+                              }}
+                              title="اكتب نسبة الربح واضغط Enter لتطبيقها على كل المنتجات"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-1.5 text-[10px] gap-0.5"
+                              onClick={() => applyColumnMargin("CORPORATE", colCorporateMargin)}
+                              title="تطبيق النسبة على الكل"
+                            >
+                              <Percent className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <span className="text-[10px] font-normal text-muted-foreground">ربح %</span>
+                        )}
                       </div>
                     </TableHead>
                     <TableHead className="text-center">{t.promoActive}</TableHead>
@@ -538,27 +600,8 @@ function PriceManagementTab() {
                           const margin = currentMargin(it, tier)
                           return (
                             <TableCell key={tier} className="text-center">
-                              <div className="flex flex-col gap-1 items-center">
-                                {/* Margin % input — computes price from cost */}
-                                {isAdmin && it.costPrice > 0 ? (
-                                  <Input
-                                    type="number"
-                                    step="0.1"
-                                    inputMode="decimal"
-                                    className={cn(
-                                      "h-6 w-20 text-[10px] text-center tabular-nums border-muted-foreground/30",
-                                      dirty && "border-emerald-500/60 bg-emerald-50/40 dark:bg-emerald-950/10"
-                                    )}
-                                    value={margin}
-                                    onChange={(e) => applyMargin(it, tier, e.target.value, original)}
-                                    title="نسبة الربح من التكلفة"
-                                  />
-                                ) : (
-                                  <div className="h-6 w-20 flex items-center justify-center text-[10px] text-muted-foreground tabular-nums">
-                                    {margin ? `${margin}%` : "—"}
-                                  </div>
-                                )}
-                                {/* Absolute price input (existing) */}
+                              <div className="flex flex-col gap-0.5 items-center">
+                                {/* Price input (editable) */}
                                 <Input
                                   type="number"
                                   min={0}
@@ -575,6 +618,10 @@ function PriceManagementTab() {
                                   )}
                                   title={isAdmin ? undefined : t.prcInputLockedTitle}
                                 />
+                                {/* Margin display (read-only) */}
+                                <span className="text-[10px] text-muted-foreground tabular-nums">
+                                  {margin ? `${margin}%` : "—"}
+                                </span>
                               </div>
                             </TableCell>
                           )
@@ -604,81 +651,15 @@ function PriceManagementTab() {
       {/* Sticky footer — apply bar */}
       {isAdmin ? (
         <div className="z-30 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 bg-background/95 backdrop-blur border-t border-border/70 shadow-[0_-4px_12px_rgba(0,0,0,0.04)]">
-          {/* Batch margin panel (collapsible) */}
-          {batchOpen ? (
-            <div className="mb-3 rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
-              <div className="flex items-center gap-2 mb-1">
-                <Calculator className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium">تطبيق نسبة ربح على كل المنتجات</span>
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-[10px] text-muted-foreground">تجزئة %</Label>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    className="h-8 text-sm tabular-nums"
-                    placeholder="مثال: 50"
-                    value={batchRetailMargin}
-                    onChange={(e) => setBatchRetailMargin(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px] text-muted-foreground">جملة %</Label>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    className="h-8 text-sm tabular-nums"
-                    placeholder="مثال: 30"
-                    value={batchWholesaleMargin}
-                    onChange={(e) => setBatchWholesaleMargin(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px] text-muted-foreground">شركات %</Label>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    className="h-8 text-sm tabular-nums"
-                    placeholder="مثال: 15"
-                    value={batchCorporateMargin}
-                    onChange={(e) => setBatchCorporateMargin(e.target.value)}
-                  />
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Button size="sm" onClick={applyBatchMargins} className="gap-1.5">
-                  <Calculator className="h-3.5 w-3.5" />
-                  تطبيق على {filtered.length} منتج
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => setBatchOpen(false)}>
-                  إلغاء
-                </Button>
-              </div>
-            </div>
-          ) : null}
           <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="text-sm text-muted-foreground">
-                {stagedCount > 0 ? (
-                  <>
-                    {t.prcPendingCountDesc.replace("{count}", fmt.number(stagedCount))}
-                  </>
-                ) : (
-                  t.editCellToEnable
-                )}
-              </div>
-              {!batchOpen ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setBatchOpen(true)}
-                  className="gap-1.5"
-                >
-                  <Calculator className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">تطبيق نسبة على الكل</span>
-                </Button>
-              ) : null}
+            <div className="text-sm text-muted-foreground">
+              {stagedCount > 0 ? (
+                <>
+                  {t.prcPendingCountDesc.replace("{count}", fmt.number(stagedCount))}
+                </>
+              ) : (
+                t.editCellToEnable
+              )}
             </div>
             <Button
               className="gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700"
