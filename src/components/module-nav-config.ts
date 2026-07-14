@@ -135,7 +135,7 @@ export const MODULE_NAV: Partial<Record<string, MegaMenuGroup[]>> = {
       items: [
         { value: "general", labelKey: "generalReports" as keyof Dict, icon: FileText },
         { value: "matrix", labelKey: "performanceMatrix" as keyof Dict, icon: FileBarChart },
-        { value: "efficiency", labelKey: "generalReports" as keyof Dict, icon: Star },
+        { value: "efficiency", labelKey: "productEfficiency" as keyof Dict, icon: Star },
       ],
     },
   ],
