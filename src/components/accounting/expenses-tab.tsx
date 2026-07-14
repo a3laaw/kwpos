@@ -202,7 +202,7 @@ function ExpenseForm() {
   const amt = Number(amount) || 0
 
   return (
-    <Card className="lg:sticky lg:top-20">
+    <Card className="lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto scrollbar-thin">
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
           <Plus className="h-4 w-4 text-primary" />

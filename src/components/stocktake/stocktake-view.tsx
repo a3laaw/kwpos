@@ -213,7 +213,7 @@ export function StockTakeView() {
 
         {/* Right: summary + actions */}
         <div className="lg:col-span-1">
-          <Card className="lg:sticky lg:top-20">
+          <Card className="lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto scrollbar-thin">
             <CardHeader><CardTitle className="text-base">ملخص الجرد</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               <div className="grid grid-cols-2 gap-2 text-sm">

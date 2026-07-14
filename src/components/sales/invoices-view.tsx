@@ -122,7 +122,7 @@ export function InvoicesView() {
             <EmptyState icon={<ReceiptText className="h-7 w-7" />} title={t.noInvoices} />
           ) : (
             <>
-              <ScrollArea className="max-h-[calc(100vh-16rem)] scrollbar-thin pr-1">
+              <ScrollArea className="lg:max-h-[calc(100vh-18rem)] scrollbar-thin pr-1">
                 <div className="space-y-1.5">
                   {sales.map((s) => {
                     const pm = PAYMENT_META[s.paymentMethod]
@@ -284,7 +284,7 @@ function InvoiceDetail({
 }) {
   const pm = paymentMeta(t)[sale.paymentMethod]
   return (
-    <Card className="flex flex-col max-h-[calc(100vh-10rem)] overflow-hidden">
+    <Card className="flex flex-col lg:max-h-[calc(100vh-12rem)] overflow-hidden">
       {/* Header — fixed, not scrollable */}
       <div className="bg-primary/5 border-b border-border/60 p-4 shrink-0">
         <div className="flex items-start justify-between gap-3">

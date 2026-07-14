@@ -496,7 +496,7 @@ function PriceManagementTab() {
 
       {/* Sticky footer — apply bar */}
       {isAdmin ? (
-        <div className="sticky bottom-0 z-30 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 bg-background/95 backdrop-blur border-t border-border/70 shadow-[0_-4px_12px_rgba(0,0,0,0.04)]">
+        <div className="z-30 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 bg-background/95 backdrop-blur border-t border-border/70 shadow-[0_-4px_12px_rgba(0,0,0,0.04)]">
           <div className="flex items-center justify-between gap-3">
             <div className="text-sm text-muted-foreground">
               {stagedCount > 0 ? (

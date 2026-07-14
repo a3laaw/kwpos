@@ -241,7 +241,7 @@ export function StockTransferTab() {
 
         {/* Right: summary + create */}
         <div className="lg:col-span-1">
-          <Card className="lg:sticky lg:top-20">
+          <Card className="lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto scrollbar-thin">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <ArrowRightLeft className="h-4 w-4 text-primary" />

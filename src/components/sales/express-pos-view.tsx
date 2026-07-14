@@ -355,7 +355,7 @@ export function ExpressPosView({ user, onToggleMode }: ExpressPosViewProps) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="flex flex-col bg-background h-[calc(100vh-10.5rem)]">
       {/* ── Top toolbar ── */}
       <header className="shrink-0 border-b border-border/70 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="flex h-14 items-center gap-3 px-4">

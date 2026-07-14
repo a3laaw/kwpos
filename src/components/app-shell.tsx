@@ -81,12 +81,12 @@ export function AppShell({
   return (
     <CurrencyProvider country={country}>
       <UserProvider user={user}>
-        <div className="min-h-screen flex bg-background">
+        <div className="h-screen flex bg-background overflow-hidden">
           <AppSidebar user={user} />
           <MobileSidebar user={user} />
-          <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex-1 flex flex-col min-w-0 min-h-0">
             <Topbar user={user} title={title} country={country} />
-            <main className="flex-1 px-4 sm:px-6 py-6 w-full">
+            <main className="flex-1 px-4 sm:px-6 py-6 w-full overflow-y-auto min-h-0 scrollbar-thin">
               {!isViewAllowed ? null : (
                 <>
               {view === "dashboard" && <DashboardView />}
