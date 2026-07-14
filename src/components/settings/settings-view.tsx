@@ -907,7 +907,10 @@ function SystemMaintenanceCard() {
   const t = useT()
   const [recalcLoading, setRecalcLoading] = React.useState(false)
   const [recalcResult, setRecalcResult] = React.useState<any>(null)
-  const canAccess = true // Settings is already gated by ADMIN/OWNER
+  const [fixLoading, setFixLoading] = React.useState(false)
+  const [fixMode, setFixMode] = React.useState<"dry" | "fix">("dry")
+  const [fixResult, setFixResult] = React.useState<any>(null)
+  const canAccess = true
 
   async function handleRecalcStock() {
     setRecalcLoading(true)
@@ -921,6 +924,46 @@ function SystemMaintenanceCard() {
       setRecalcResult({ error: err?.message || "failed" })
     } finally {
       setRecalcLoading(false)
+    }
+  }
+
+  async function handleFixStockDryRun() {
+    setFixLoading(true)
+    setFixMode("dry")
+    setFixResult(null)
+    try {
+      const res = await fetch("/api/admin/fix-stock", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dryRun: true }),
+      })
+      if (!res.ok) throw new Error(`request-failed:${res.status}`)
+      const data = await res.json()
+      setFixResult(data)
+    } catch (err: any) {
+      setFixResult({ error: err?.message || "failed" })
+    } finally {
+      setFixLoading(false)
+    }
+  }
+
+  async function handleFixStock() {
+    setFixLoading(true)
+    setFixMode("fix")
+    setFixResult(null)
+    try {
+      const res = await fetch("/api/admin/fix-stock", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dryRun: false }),
+      })
+      if (!res.ok) throw new Error(`request-failed:${res.status}`)
+      const data = await res.json()
+      setFixResult(data)
+    } catch (err: any) {
+      setFixResult({ error: err?.message || "failed" })
+    } finally {
+      setFixLoading(false)
     }
   }
 
@@ -1008,12 +1051,101 @@ function SystemMaintenanceCard() {
           ) : null}
         </div>
 
+        {/* Stock rebuild from transaction history */}
+        <div className="rounded-lg border border-border/60 p-4 space-y-3">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h4 className="text-sm font-semibold">إصلاح المخزون من السجل التاريخي</h4>
+              <p className="text-xs text-muted-foreground mt-1">
+                يُعيد بناء مخزون كل منتج من سجل المعاملات الفعلي:
+                (فواتير مشتريات مرحّلة − مرتجعات مشتريات − مبيعات مكتملة).
+                يستخدم لإصلاح المنتجات التي لم يُضاف لها مخزون بسبب أعطال سابقة.
+              </p>
+            </div>
+            <div className="flex gap-2 shrink-0">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleFixStockDryRun}
+                disabled={fixLoading}
+                className="gap-2"
+              >
+                {fixLoading && fixMode === "dry" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                فحص فقط
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleFixStock}
+                disabled={fixLoading}
+                className="gap-2"
+              >
+                {fixLoading && fixMode === "fix" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wrench className="h-4 w-4" />}
+                إصلاح الآن
+              </Button>
+            </div>
+          </div>
+
+          {fixResult ? (
+            <div className="rounded-lg bg-muted/40 p-3 space-y-2">
+              {fixResult.error ? (
+                <div className="flex items-center gap-2 text-sm text-destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  فشل: {fixResult.error}
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 text-sm text-emerald-600">
+                    <CheckCircle2 className="h-4 w-4" />
+                    {fixResult.dryRun ? "نتيجة الفحص (لم يتم تغيير شيء)" : "تم الإصلاح بنجاح"}
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="rounded-lg bg-background p-2">
+                      <p className="text-xs text-muted-foreground">إجمالي المنتجات</p>
+                      <p className="text-lg font-bold tabular-nums">{fixResult.totalProducts}</p>
+                    </div>
+                    <div className="rounded-lg bg-amber-500/10 p-2">
+                      <p className="text-xs text-muted-foreground">{fixResult.dryRun ? "تحتاج إصلاح" : "تم إصلاحها"}</p>
+                      <p className="text-lg font-bold tabular-nums text-amber-600">{fixResult.fixed}</p>
+                    </div>
+                    <div className="rounded-lg bg-red-500/10 p-2">
+                      <p className="text-xs text-muted-foreground">تخطّي (بيانات متناقضة)</p>
+                      <p className="text-lg font-bold tabular-nums text-red-600">{fixResult.skipped}</p>
+                    </div>
+                  </div>
+                  {fixResult.corrections?.length > 0 ? (
+                    <div className="space-y-1 mt-2">
+                      <p className="text-xs font-medium text-muted-foreground">
+                        أول {fixResult.corrections.length} منتج:
+                      </p>
+                      <div className="max-h-40 overflow-y-auto scrollbar-thin space-y-1">
+                        {fixResult.corrections.map((c: any) => (
+                          <div key={c.productId} className="flex items-center justify-between text-xs rounded bg-background px-2 py-1">
+                            <span className="truncate">{c.productName}</span>
+                            <span className="tabular-nums shrink-0">
+                              <span className="text-rose-600 line-through">{c.currentStockItem}</span>
+                              {" → "}
+                              <span className="text-emerald-600 font-medium">{c.expectedFromHistory}</span>
+                              <span className="text-muted-foreground ms-1">
+                                (شراء: {c.purchased}، مرتجع: {c.purchaseReturned}، بيع: {c.sold})
+                              </span>
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </>
+              )}
+            </div>
+          ) : null}
+        </div>
+
         {/* Info */}
         <div className="rounded-lg bg-amber-500/5 border border-amber-500/20 p-3">
           <p className="text-xs text-muted-foreground">
-            💡 استخدم إعادة حساب المخزون عند ملاحظة اختلاف بين الكمية المعروضة في النظام
-            والكمية الفعلية. هذا يحدث أحياناً بسبب فواتير معلقة، إلغاء جزئي، أو تحويلات
-            بين المستودعات.
+            💡 «إعادة حساب المخزون» يُطابق Product.quantity مع StockItem.
+            «إصلاح المخزون من السجل» يُعيد بناء StockItem نفسه من فواتير المشتريات والمبيعات —
+            استخدمه عند وجود منتجات بمخزون صفر رغم وجود فواتير شراء مرحّلة.
           </p>
         </div>
       </CardContent>
