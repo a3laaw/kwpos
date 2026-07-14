@@ -35,7 +35,6 @@ import {
   Search,
   ChevronRight,
   Wrench,
-  Loader2,
   AlertCircle,
   CheckCircle2,
 } from "lucide-react"
