@@ -148,7 +148,14 @@ export async function getDefaultWarehouseId(
  * connection, so we get transactional isolation without needing SELECT
  * FOR UPDATE (which is incompatible with pgbouncer transaction mode on
  * Supabase). The `decrement` operation is atomic at the DB level.
- * Returns false if insufficient stock (caller should return 400).
+ *
+ * If the requested quantity is NOT available in the specified warehouse
+ * alone, falls back to multi-warehouse decrement: tries the specified
+ * warehouse first, then pulls the remaining quantity from other
+ * warehouses that have stock. This handles cases where products were
+ * transferred between warehouses after purchase, or partially sold from
+ * one warehouse. Returns false only if the TOTAL stock across ALL
+ * warehouses is insufficient.
  */
 export async function decrementStockItem(
   tx: any,
@@ -156,17 +163,49 @@ export async function decrementStockItem(
   warehouseId: string,
   quantity: number
 ): Promise<boolean> {
+  // 1) Try the specified warehouse first
   const item = await tx.stockItem.findUnique({
     where: { productId_warehouseId: { productId, warehouseId } },
   })
-  if (!item || item.quantity < quantity) {
-    return false
+  if (item && item.quantity >= quantity) {
+    await tx.stockItem.update({
+      where: { productId_warehouseId: { productId, warehouseId } },
+      data: { quantity: { decrement: quantity } },
+    })
+    return true
   }
-  await tx.stockItem.update({
-    where: { productId_warehouseId: { productId, warehouseId } },
-    data: { quantity: { decrement: quantity } },
+
+  // 2) Multi-warehouse fallback: pull from the specified warehouse first
+  //    (whatever is available), then from other warehouses.
+  const allItems = await tx.stockItem.findMany({
+    where: { productId, quantity: { gt: 0 } },
+    orderBy: [{ warehouseId: "asc" }], // deterministic order
   })
-  return true
+
+  // Total available across all warehouses
+  const totalAvailable = allItems.reduce((sum: number, it: any) => sum + it.quantity, 0)
+  if (totalAvailable < quantity) {
+    return false // not enough stock anywhere
+  }
+
+  // Sort: specified warehouse first, then others
+  const sorted = [
+    ...allItems.filter((it: any) => it.warehouseId === warehouseId),
+    ...allItems.filter((it: any) => it.warehouseId !== warehouseId),
+  ]
+
+  let remaining = quantity
+  for (const it of sorted) {
+    if (remaining <= 0) break
+    const take = Math.min(it.quantity, remaining)
+    await tx.stockItem.update({
+      where: { productId_warehouseId: { productId, warehouseId: it.warehouseId } },
+      data: { quantity: { decrement: take } },
+    })
+    remaining -= take
+  }
+
+  return remaining === 0
 }
 
 /**
