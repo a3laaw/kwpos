@@ -6,6 +6,7 @@ import { resolveWarehouseId } from "@/lib/warehouse-resolver"
 import type { Role } from "@/lib/types"
 
 import { parseSaleInput } from "@/lib/sale/input"
+import { expandBundles } from "@/lib/sale/expand-bundles"
 import { resolveOrCreateCustomer } from "@/lib/sale/customer-resolver"
 import { prefetchStockData, validateStockAvailability } from "@/lib/sale/stock-validator"
 import { buildDecrementPlan } from "@/lib/sale/decrement-planner"
@@ -90,7 +91,12 @@ export async function POST(req: NextRequest) {
   if (!parsed.ok) {
     return NextResponse.json({ error: parsed.error }, { status: parsed.status })
   }
-  const input = parsed.input
+
+  // 2.5) Expand bundle items into their component products.
+  // The POS sends bundle- prefixed IDs; the sale flow needs real product IDs
+  // for stock validation + decrement. This also keeps the bundle as an
+  // invoice line at the bundle price (not component prices).
+  const input = await expandBundles(parsed.input)
 
   // 3) Resolve or create the customer — returns customerType for pricing
   const { customerId, resolvedName, customerType } = await resolveOrCreateCustomer({
