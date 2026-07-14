@@ -36,7 +36,6 @@ import {
   ChevronRight,
   Wrench,
   AlertCircle,
-  CheckCircle2,
 } from "lucide-react"
 import { COUNTRIES, getCountryName } from "@/lib/countries"
 import { useCountry, useFmt } from "@/components/currency-context"
