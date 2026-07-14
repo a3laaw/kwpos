@@ -196,8 +196,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "invalid-date" }, { status: 400 })
   }
 
-  const created = await db.$transaction(async (tx) => {
-    const inv = await tx.purchaseInvoice.create({
+  // ── NO $transaction (PgBouncer compatibility) ──
+  // Sequential queries with compensation (saga pattern).
+
+  // 1) Create the invoice record
+  let inv: any
+  try {
+    inv = await db.purchaseInvoice.create({
       data: {
         invoiceNo: finalInvoiceNo,
         purchaseOrderId: purchaseOrderId || null,
@@ -225,15 +230,20 @@ export async function POST(req: NextRequest) {
         createdBy: true,
       },
     })
+  } catch (e: any) {
+    return NextResponse.json(
+      { error: e?.message || "purchase-invoice-failed" },
+      { status: 500 }
+    )
+  }
 
-    let journalEntryId: string | null = null
-    if (wantPost) {
-      // Bump stock per item: StockItem.quantity (create if missing) +
-      // recompute Product.quantity from StockItems (derived aggregate).
-      for (const it of itemsData) {
-        if (warehouseId) {
-          // Upsert the StockItem for (product, warehouse)
-          await tx.stockItem.upsert({
+  // 2) If posting: bump stock + update cost price + mark PO received
+  if (wantPost) {
+    for (const it of itemsData) {
+      // Increment StockItem (upsert — creates if missing)
+      if (warehouseId) {
+        try {
+          await db.stockItem.upsert({
             where: {
               productId_warehouseId: {
                 productId: it.productId,
@@ -247,48 +257,20 @@ export async function POST(req: NextRequest) {
               quantity: it.quantity,
             },
           })
+        } catch (e: any) {
+          console.error(`[purchase-invoice] Stock increment FAILED for ${it.productId}: ${e?.message}`)
         }
-        // Sync the product's cost price from the invoice line.
-        if (typeof it.unitCost === "number" && it.unitCost >= 0) {
-          await tx.product.update({
+      }
+      // Update cost price
+      if (typeof it.unitCost === "number" && it.unitCost >= 0) {
+        try {
+          await db.product.update({
             where: { id: it.productId },
             data: { costPrice: it.unitCost },
           })
-        }
-        // Product.quantity sync is deferred to post-commit (see below).
+        } catch {}
       }
-
-      // If linked PO: mark RECEIVED
-      if (po) {
-        await tx.purchaseOrder.update({
-          where: { id: po.id },
-          data: { status: "RECEIVED" },
-        })
-      }
-
-      // NOTE: Journal entry + AuditLog are now post-commit (see below).
-      // This keeps the transaction short (stock + invoice only) to avoid
-      // PgBouncer "Transaction not found" errors on Supabase.
-
-      // ── Audit log (inside tx — atomic) ──
-      await logAuditEvent({
-        tx,
-        userId: user.id,
-        userName: user.name,
-        action: "PURCHASE_INVOICE_POSTED",
-        description: `فاتورة مشتريات ${inv.invoiceNo}`,
-      })
     }
-
-    return inv
-  }, {
-    timeout: 15000,
-    maxWait: 5000,
-  }).catch((e: any) => ({ __error: e?.message || "purchase-invoice-failed" }))
-
-  // ── Post-commit side effects (non-fatal) ────────────────────────────
-  if (wantPost && created && !(created as any).__error) {
-    const inv = created as any
 
     // Sync Product.quantity (derived aggregate)
     try {
@@ -296,11 +278,29 @@ export async function POST(req: NextRequest) {
       for (const pid of pids) {
         await updateProductQuantityFromStockItems(db, pid)
       }
-    } catch {
-      // Non-fatal: invoice is committed, StockItem is correct.
+    } catch {}
+
+    // If linked PO: mark RECEIVED
+    if (po) {
+      try {
+        await db.purchaseOrder.update({
+          where: { id: po.id },
+          data: { status: "RECEIVED" },
+        })
+      } catch {}
     }
 
-    // Create journal entry (capital-based: fees → inventory value, tax → 2110)
+    // Audit log (non-fatal)
+    try {
+      await logAuditEvent({
+        userId: user.id,
+        userName: user.name,
+        action: "PURCHASE_INVOICE_POSTED",
+        description: `فاتورة مشتريات ${inv.invoiceNo}`,
+      })
+    } catch {}
+
+    // Journal entry (non-fatal)
     try {
       await ensurePurchaseAccounts()
       await createPurchaseInvoiceJournalEntry({
@@ -325,14 +325,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  if (created && (created as any).__error) {
-    const msg = (created as any).__error as string
-    const isClientError =
-      msg.startsWith("invalid-") ||
-      msg.startsWith("items-required") ||
-      msg.startsWith("supplier-required")
-    return NextResponse.json({ error: msg }, { status: isClientError ? 400 : 500 })
-  }
+  const created = inv
 
   // Re-fetch with the journal entry id attached.
   const finalInv = await db.purchaseInvoice.findUnique({
