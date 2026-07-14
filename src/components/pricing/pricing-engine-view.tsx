@@ -463,9 +463,15 @@ function PriceManagementTab() {
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") {
                                   applyColumnMargin("RETAIL", colRetailMargin)
+                                  ;(e.target as HTMLInputElement).blur()
                                 }
                               }}
-                              title="اكتب نسبة الربح واضغط Enter لتطبيقها على كل المنتجات"
+                              onBlur={() => {
+                                if (colRetailMargin.trim()) {
+                                  applyColumnMargin("RETAIL", colRetailMargin)
+                                }
+                              }}
+                              title="اكتب نسبة الربح وانتقل خارج الحقل أو اضغط Enter"
                             />
                             <Button
                               type="button"
@@ -498,9 +504,15 @@ function PriceManagementTab() {
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") {
                                   applyColumnMargin("WHOLESALE", colWholesaleMargin)
+                                  ;(e.target as HTMLInputElement).blur()
                                 }
                               }}
-                              title="اكتب نسبة الربح واضغط Enter لتطبيقها على كل المنتجات"
+                              onBlur={() => {
+                                if (colWholesaleMargin.trim()) {
+                                  applyColumnMargin("WHOLESALE", colWholesaleMargin)
+                                }
+                              }}
+                              title="اكتب نسبة الربح وانتقل خارج الحقل أو اضغط Enter"
                             />
                             <Button
                               type="button"
@@ -533,9 +545,15 @@ function PriceManagementTab() {
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") {
                                   applyColumnMargin("CORPORATE", colCorporateMargin)
+                                  ;(e.target as HTMLInputElement).blur()
                                 }
                               }}
-                              title="اكتب نسبة الربح واضغط Enter لتطبيقها على كل المنتجات"
+                              onBlur={() => {
+                                if (colCorporateMargin.trim()) {
+                                  applyColumnMargin("CORPORATE", colCorporateMargin)
+                                }
+                              }}
+                              title="اكتب نسبة الربح وانتقل خارج الحقل أو اضغط Enter"
                             />
                             <Button
                               type="button"
