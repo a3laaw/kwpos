@@ -399,7 +399,7 @@ function OverviewTab({
         <OverviewKpi label={t.anlAvgMargin} value={`${fmt.number(avgMargin)}%`} hint={t.anlAcrossItems} icon={Percent} tone="#F9DC7C" />
       </div>
 
-      {/* Two charts side by side */}
+      {/* Top 6 items — CSS bars (no recharts) */}
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader className="pb-2">
@@ -408,19 +408,34 @@ function OverviewTab({
               {t.anlTop6Items}
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={260} minHeight={200}>
-              <BarChart data={topData} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                <XAxis dataKey="name" tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} tickFormatter={(v) => String(v).slice(0, 10)} interval={0} />
-                <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} width={40} />
-                <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))", fontSize: 12 }} formatter={(v: number) => [fmt.number(v) + " " + t.anlUnit, t.qty]} />
-                <Bar dataKey="quantitySold" fill="#2E6237" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <CardContent className="space-y-2">
+            {topData.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">{t.anlNoSales}</p>
+            ) : (
+              topData.map((item: any, i: number) => {
+                const maxQty = Math.max(...topData.map((d: any) => d.quantitySold || 0), 1)
+                const pct = ((item.quantitySold || 0) / maxQty) * 100
+                const colors = ["#2E6237", "#3a7d4a", "#52955f", "#6ba874", "#84ba89", "#9dcd9e"]
+                return (
+                  <div key={i} className="space-y-0.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="truncate max-w-[60%]">{item.name}</span>
+                      <span className="tabular-nums font-medium">{fmt.number(item.quantitySold)} {t.anlUnit}</span>
+                    </div>
+                    <div className="h-6 rounded-md bg-muted/40 overflow-hidden">
+                      <div
+                        className="h-full rounded-md transition-all"
+                        style={{ width: `${pct}%`, backgroundColor: colors[i % colors.length] }}
+                      />
+                    </div>
+                  </div>
+                )
+              })
+            )}
           </CardContent>
         </Card>
 
+        {/* Profitability — CSS bars (no recharts) */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base">
@@ -428,31 +443,29 @@ function OverviewTab({
               {t.anlProfitabilityDistribution}
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={260} minHeight={200}>
-              <PieChart>
-                <Pie data={data.highestMargin.slice(0, 6)} dataKey="margin" nameKey="name" cx="50%" cy="45%" innerRadius={40} outerRadius={70} paddingAngle={2}>
-                  {data.highestMargin.slice(0, 6).map((_: any, i: number) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-                </Pie>
-                <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))", fontSize: 12 }} formatter={(v: number) => fmt.currency(v)} />
-                <Legend
-                  layout="horizontal"
-                  verticalAlign="bottom"
-                  align="center"
-                  iconType="circle"
-                  iconSize={9}
-                  wrapperStyle={{
-                    fontSize: 11,
-                    paddingTop: 8,
-                    maxHeight: 60,
-                    overflow: "hidden",
-                  }}
-                  formatter={(value: string) =>
-                    value.length > 16 ? `${value.slice(0, 16)}…` : value
-                  }
-                />
-              </PieChart>
-            </ResponsiveContainer>
+          <CardContent className="space-y-2">
+            {data.highestMargin.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">{t.anlNoData}</p>
+            ) : (
+              data.highestMargin.slice(0, 6).map((item: any, i: number) => {
+                const maxMargin = Math.max(...data.highestMargin.slice(0, 6).map((d: any) => d.margin || 0), 1)
+                const pct = ((item.margin || 0) / maxMargin) * 100
+                return (
+                  <div key={i} className="space-y-0.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="truncate max-w-[60%]">{item.name}</span>
+                      <span className="tabular-nums font-medium">{fmt.currency(item.margin)}</span>
+                    </div>
+                    <div className="h-6 rounded-md bg-muted/40 overflow-hidden">
+                      <div
+                        className="h-full rounded-md transition-all"
+                        style={{ width: `${pct}%`, backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }}
+                      />
+                    </div>
+                  </div>
+                )
+              })
+            )}
           </CardContent>
         </Card>
       </div>
@@ -534,16 +547,27 @@ function TopSellingTab({ data, fmt, t }: { data: ProductAnalytics[]; fmt: Return
           <CardTitle className="flex items-center gap-2 text-base"><TrendingUp className="h-4 w-4 text-primary" />{t.anlRankByQty}</CardTitle>
         </CardHeader>
         <CardContent>
-          {data.length === 0 ? <EmptyState title={t.anlNoSales} description={t.anlTryWiderRange} /> : (
-            <ResponsiveContainer width="100%" height={400} minHeight={300}>
-              <BarChart data={data.slice(0, 10)} layout="vertical" margin={{ top: 10, right: 30, left: 100, bottom: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} horizontal={false} />
-                <XAxis type="number" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} />
-                <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} width={100} interval={0} tickFormatter={(v: string) => v.length > 14 ? `${v.slice(0, 14)}…` : v} />
-                <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))", fontSize: 12 }} formatter={(v: number) => [fmt.number(v) + " " + t.anlUnit, t.qty]} />
-                <Bar dataKey="quantitySold" fill="#2E6237" radius={[0, 6, 6, 0]} maxBarSize={35} />
-              </BarChart>
-            </ResponsiveContainer>
+	          {data.length === 0 ? <EmptyState title={t.anlNoSales} description={t.anlTryWiderRange} /> : (
+	            <div className="space-y-2">
+	              {data.slice(0, 10).map((item, i) => {
+	                const pct = ((item.quantitySold || 0) / maxQty) * 100
+	                const colors = ["#2E6237", "#3a7d4a", "#52955f", "#6ba874", "#84ba89", "#9dcd9e", "#b5e0b3", "#c8e8c6", "#dbf0d9", "#eef8ec"]
+	                return (
+	                  <div key={i} className="space-y-0.5">
+	                    <div className="flex items-center justify-between text-xs">
+	                      <span className="truncate max-w-[55%]">{item.name}</span>
+	                      <span className="tabular-nums font-medium">{fmt.number(item.quantitySold)} {t.anlUnit} · {fmt.currency(item.grossVolume)}</span>
+	                    </div>
+	                    <div className="h-7 rounded-md bg-muted/40 overflow-hidden">
+	                      <div className="h-full rounded-md flex items-center px-2" style={{ width: `${Math.max(pct, 2)}%`, backgroundColor: colors[i % colors.length] }}>
+	                        <span className="text-[10px] text-white font-medium tabular-nums truncate">{i + 1}</span>
+	                      </div>
+	                    </div>
+	                  </div>
+	                )
+	              })}
+	            </div>
+	          )}
           )}
         </CardContent>
       </Card>
@@ -631,15 +655,23 @@ function CostTab({ expensive, cheapest, fmt, t }: { expensive: ProductAnalytics[
           <CardHeader><CardTitle className="flex items-center gap-2 text-base"><ArrowUp className="h-4 w-4 text-rose-500" />{t.anlMostExpensive}</CardTitle></CardHeader>
           <CardContent>
             {expensive.length === 0 ? <EmptyState title={t.anlNoData} /> : (
-              <ResponsiveContainer width="100%" height={350} minHeight={300}>
-                <BarChart data={expensive.slice(0, 8)} layout="vertical" margin={{ top: 10, right: 30, left: 100, bottom: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} horizontal={false} />
-                  <XAxis type="number" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} width={100} interval={0} tickFormatter={(v: string) => v.length > 14 ? `${v.slice(0, 14)}…` : v} />
-                  <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))", fontSize: 12 }} formatter={(v: number) => fmt.currency(v)} />
-                  <Bar dataKey="costPrice" fill="#f43f5e" radius={[0, 6, 6, 0]} maxBarSize={35} />
-                </BarChart>
-              </ResponsiveContainer>
+              <div className="space-y-2">
+              {expensive.slice(0, 8).map((item, i) => {
+                const maxCost = Math.max(...expensive.slice(0, 8).map((d) => d.costPrice || 0), 1)
+                const pct = ((item.costPrice || 0) / maxCost) * 100
+                return (
+                  <div key={i} className="space-y-0.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="truncate max-w-[55%]">{item.name}</span>
+                      <span className="tabular-nums font-medium text-rose-600">{fmt.currency(item.costPrice)}</span>
+                    </div>
+                    <div className="h-6 rounded-md bg-muted/40 overflow-hidden">
+                      <div className="h-full rounded-md" style={{ width: `${Math.max(pct, 2)}%`, backgroundColor: "#f43f5e" }} />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
             )}
           </CardContent>
         </Card>
@@ -647,15 +679,23 @@ function CostTab({ expensive, cheapest, fmt, t }: { expensive: ProductAnalytics[
           <CardHeader><CardTitle className="flex items-center gap-2 text-base"><ArrowDown className="h-4 w-4 text-[#DFC196]" />{t.anlCheapest}</CardTitle></CardHeader>
           <CardContent>
             {cheapest.length === 0 ? <EmptyState title={t.anlNoData} /> : (
-              <ResponsiveContainer width="100%" height={350} minHeight={300}>
-                <BarChart data={cheapest.slice(0, 8)} layout="vertical" margin={{ top: 10, right: 30, left: 100, bottom: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} horizontal={false} />
-                  <XAxis type="number" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} width={100} interval={0} tickFormatter={(v: string) => v.length > 14 ? `${v.slice(0, 14)}…` : v} />
-                  <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))", fontSize: 12 }} formatter={(v: number) => fmt.currency(v)} />
-                  <Bar dataKey="costPrice" fill="#DFC196" radius={[0, 6, 6, 0]} maxBarSize={35} />
-                </BarChart>
-              </ResponsiveContainer>
+              <div className="space-y-2">
+              {cheapest.slice(0, 8).map((item, i) => {
+                const minCost = Math.max(...cheapest.slice(0, 8).map((d) => d.costPrice || 0), 1)
+                const pct = ((item.costPrice || 0) / minCost) * 100
+                return (
+                  <div key={i} className="space-y-0.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="truncate max-w-[55%]">{item.name}</span>
+                      <span className="tabular-nums font-medium text-[#DFC196]">{fmt.currency(item.costPrice)}</span>
+                    </div>
+                    <div className="h-6 rounded-md bg-muted/40 overflow-hidden">
+                      <div className="h-full rounded-md" style={{ width: `${Math.max(pct, 2)}%`, backgroundColor: "#DFC196" }} />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
             )}
           </CardContent>
         </Card>
