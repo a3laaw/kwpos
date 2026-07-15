@@ -594,15 +594,15 @@ function StagnantTab({ data, fmt, t }: { data: ProductAnalytics[]; fmt: ReturnTy
         <CardContent>
           {data.length === 0 ? <EmptyState title={t.anlNoStagnantItems} description={t.anlAllSellingWell} /> : (
             <div className="overflow-x-auto scrollbar-thin">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm" dir="rtl">
                 <thead>
-                  <tr className="border-b border-border text-muted-foreground">
-                    <th className="text-start py-2 px-2 font-medium">{t.colItem}</th>
-                    <th className="text-center py-2 px-2 font-medium">{t.stock}</th>
-                    <th className="text-center py-2 px-2 font-medium">{t.anlSold}</th>
-                    <th className="text-center py-2 px-2 font-medium">{t.anlTurnoverRatio}</th>
-                    <th className="text-center py-2 px-2 font-medium">{t.anlStagnantValueCol}</th>
-                    <th className="text-center py-2 px-2 font-medium">{t.status}</th>
+                  <tr className="border-b-2 border-border text-muted-foreground bg-muted/30">
+                    <th className="text-start py-2.5 px-2 font-medium min-w-[120px]">{t.colItem}</th>
+                    <th className="text-center py-2.5 px-2 font-medium whitespace-nowrap min-w-[60px]">{t.stock}</th>
+                    <th className="text-center py-2.5 px-2 font-medium whitespace-nowrap min-w-[60px]">{t.anlSold}</th>
+                    <th className="text-center py-2.5 px-2 font-medium whitespace-nowrap min-w-[80px]">{t.anlTurnoverRatio}</th>
+                    <th className="text-center py-2.5 px-2 font-medium whitespace-nowrap min-w-[80px]">{t.anlStagnantValueCol}</th>
+                    <th className="text-center py-2.5 px-2 font-medium min-w-[70px]">{t.status}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -612,10 +612,10 @@ function StagnantTab({ data, fmt, t }: { data: ProductAnalytics[]; fmt: ReturnTy
                     const stuckValue = r.currentStock * r.costPrice
                     return (
                       <tr key={r.id} className="border-b border-border/40 hover:bg-muted/20">
-                        <td className="py-2 px-2 font-medium">{r.name}</td>
-                        <td className="py-2 px-2 text-center tabular-nums">{fmt.number(r.currentStock)}</td>
-                        <td className="py-2 px-2 text-center tabular-nums">{fmt.number(r.quantitySold)}</td>
-                        <td className="py-2 px-2 text-center">
+                        <td className="py-2.5 px-2 font-medium text-start">{r.name}</td>
+                        <td className="py-2.5 px-2 text-center tabular-nums whitespace-nowrap">{fmt.number(r.currentStock)}</td>
+                        <td className="py-2.5 px-2 text-center tabular-nums whitespace-nowrap">{fmt.number(r.quantitySold)}</td>
+                        <td className="py-2.5 px-2 text-center">
                           <div className="flex items-center gap-1.5 justify-center">
                             <div className="h-1.5 w-16 rounded-full bg-muted overflow-hidden">
                               <div className="h-full bg-amber-500 rounded-full" style={{ width: `${Math.min(ratio, 100)}%` }} />
@@ -797,14 +797,14 @@ function ProductRankTable({
       <CardContent>
         {data.length === 0 ? <EmptyState title={t.anlNoData} /> : (
           <div className="overflow-x-auto scrollbar-thin">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm" dir="rtl">
               <thead>
-                <tr className="border-b border-border text-muted-foreground">
-                  <th className="text-start py-2 px-2 font-medium w-8">#</th>
-                  <th className="text-start py-2 px-2 font-medium">{t.colItem}</th>
+                <tr className="border-b-2 border-border text-muted-foreground bg-muted/30">
+                  <th className="text-center py-2.5 px-2 font-medium w-10">#</th>
+                  <th className="text-start py-2.5 px-2 font-medium min-w-[120px]">{t.colItem}</th>
                   {extraHeader}
-                  <th className="text-center py-2 px-2 font-medium">{metricLabel}</th>
-                  <th className="text-center py-2 px-2 font-medium hidden sm:table-cell">{t.percent}</th>
+                  <th className="text-center py-2.5 px-2 font-medium whitespace-nowrap min-w-[80px]">{metricLabel}</th>
+                  <th className="text-center py-2.5 px-2 font-medium hidden sm:table-cell min-w-[100px]">{t.percent}</th>
                 </tr>
               </thead>
               <tbody>
@@ -813,21 +813,21 @@ function ProductRankTable({
                   const pct = maxVal > 0 ? Math.round((val / maxVal) * 100) : 0
                   return (
                     <tr key={r.id} className="border-b border-border/40 hover:bg-muted/20">
-                      <td className="py-2 px-2">
+                      <td className="py-2.5 px-2 text-center">
                         <span className={cn(
-                          "flex h-6 w-6 items-center justify-center rounded-md text-xs font-bold",
+                          "inline-flex h-6 w-6 items-center justify-center rounded-md text-xs font-bold",
                           i === 0 ? "bg-amber-500/15 text-amber-600" : i === 1 ? "bg-slate-400/15 text-slate-500" : i === 2 ? "bg-orange-500/15 text-orange-600" : "bg-muted text-muted-foreground"
                         )}>{i + 1}</span>
                       </td>
-                      <td className="py-2 px-2 font-medium">{r.name}</td>
+                      <td className="py-2.5 px-2 font-medium text-start">{r.name}</td>
                       {extraColumn ? extraColumn(r) : null}
-                      <td className="py-2 px-2 text-center tabular-nums font-semibold">{metricFmt(val)}</td>
-                      <td className="py-2 px-2 hidden sm:table-cell">
+                      <td className="py-2.5 px-2 text-center tabular-nums font-semibold whitespace-nowrap">{metricFmt(val)}</td>
+                      <td className="py-2.5 px-2 hidden sm:table-cell">
                         <div className="flex items-center gap-1.5 justify-center">
-                          <div className="h-1.5 w-16 rounded-full bg-muted overflow-hidden">
+                          <div className="h-1.5 w-16 rounded-full bg-muted overflow-hidden shrink-0">
                             <div className="h-full bg-primary rounded-full" style={{ width: `${pct}%` }} />
                           </div>
-                          <span className="text-xs tabular-nums">{pct}%</span>
+                          <span className="text-xs tabular-nums shrink-0">{pct}%</span>
                         </div>
                       </td>
                     </tr>
