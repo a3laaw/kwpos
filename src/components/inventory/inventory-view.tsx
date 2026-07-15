@@ -244,13 +244,13 @@ export function InventoryView() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
-                  <TableHead className="min-w-[180px]">{t.colProduct}</TableHead>
-                  <TableHead className="hidden md:table-cell">{t.colBarcode}</TableHead>
-                  <TableHead className="hidden sm:table-cell">{t.colCategory}</TableHead>
-                  <TableHead className="text-center">{t.colQty}</TableHead>
-                  <TableHead className="hidden lg:table-cell text-center">{t.colReorderLevel}</TableHead>
-                  {seeCost ? <TableHead className="text-center hidden sm:table-cell">{t.colCostPrice}</TableHead> : null}
-                  <TableHead className="text-center">{t.colSalePrice}</TableHead>
+                  <TableHead className="min-w-[180px] text-start">{t.colProduct}</TableHead>
+                  <TableHead className="hidden md:table-cell text-start">{t.colBarcode}</TableHead>
+                  <TableHead className="hidden sm:table-cell text-start">{t.colCategory}</TableHead>
+                  <TableHead className="text-center whitespace-nowrap">{t.colQty}</TableHead>
+                  <TableHead className="hidden lg:table-cell text-center whitespace-nowrap">{t.colReorderLevel}</TableHead>
+                  {seeCost ? <TableHead className="text-center hidden sm:table-cell whitespace-nowrap">{t.colCostPrice}</TableHead> : null}
+                  <TableHead className="text-center whitespace-nowrap">{t.colSalePrice}</TableHead>
                   {canManage ? <TableHead className="w-12 text-center"></TableHead> : null}
                 </TableRow>
               </TableHeader>
@@ -260,23 +260,23 @@ export function InventoryView() {
                   const critical = p.quantity <= Math.ceil(p.reorderLevel / 2)
                   return (
                     <TableRow key={p.id} className="hover:bg-muted/30">
-                      <TableCell>
+                      <TableCell className="text-start">
                         <div className="font-medium">{p.name}</div>
                         <div className="text-xs text-muted-foreground sm:hidden">
                           {p.categoryName || "—"}
                         </div>
                       </TableCell>
-                      <TableCell className="hidden md:table-cell font-mono text-xs" dir="ltr">
+                      <TableCell className="hidden md:table-cell font-mono text-xs text-start" dir="ltr">
                         {p.barcode || "—"}
                       </TableCell>
-                      <TableCell className="hidden sm:table-cell">
+                      <TableCell className="hidden sm:table-cell text-start">
                         {p.categoryName ? (
                           <Badge variant="outline">{p.categoryName}</Badge>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="text-center whitespace-nowrap">
                         <Badge
                           variant={critical ? "destructive" : low ? "secondary" : "outline"}
                           className="tabular-nums"
@@ -284,15 +284,15 @@ export function InventoryView() {
                           {fmt.number(p.quantity)} {p.unit}
                         </Badge>
                       </TableCell>
-                      <TableCell className="hidden lg:table-cell text-center tabular-nums text-muted-foreground">
+                      <TableCell className="hidden lg:table-cell text-center tabular-nums text-muted-foreground whitespace-nowrap">
                         {fmt.number(p.reorderLevel)}
                       </TableCell>
                       {seeCost ? (
-                        <TableCell className="hidden sm:table-cell text-center tabular-nums text-muted-foreground">
+                        <TableCell className="hidden sm:table-cell text-center tabular-nums text-muted-foreground whitespace-nowrap">
                           {fmt.currency(p.costPrice)}
                         </TableCell>
                       ) : null}
-                      <TableCell className="text-center tabular-nums font-semibold">
+                      <TableCell className="text-center tabular-nums font-semibold whitespace-nowrap">
                         {fmt.currency(p.salePrice)}
                       </TableCell>
                       {canManage || canDeleteProduct ? (
