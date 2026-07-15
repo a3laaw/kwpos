@@ -43,6 +43,7 @@ import {
   Filter,
   AlertTriangle,
   Barcode,
+  RotateCcw,
 } from "lucide-react"
 import { useUser } from "@/components/user-context"
 import { canDelete, canManageProducts, canSeeCost } from "@/lib/permissions"
@@ -85,7 +86,8 @@ export function InventoryView() {
   const canDeleteProduct = canDelete(user.role as Role)
   const seeCost = canSeeCost(user.role as Role)
 
-  const products = data?.items ?? []
+  const products = (data?.items ?? []).filter((p: Product) => !p.name.startsWith("[محذوف]"))
+  const deletedProducts = (data?.items ?? []).filter((p: Product) => p.name.startsWith("[محذوف]"))
 
   function openAdd() {
     setEditing(null)
@@ -123,6 +125,7 @@ export function InventoryView() {
 
   const INV_TAB_LABELS: Record<string, any> = {
     products: "invItemsTab",
+    deleted: "deletedProducts",
     warehouses: "warehouses",
     stocktake: "stockTakeTab",
     transfers: "stockTransferTab",
@@ -336,6 +339,90 @@ export function InventoryView() {
         {t.productsCountLabel.replace("{count}", String(fmt.number(products.length)))}
       </p>
       </div>
+      )}
+
+      {invTab === "deleted" && (
+        <div className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Trash2 className="h-4 w-4 text-muted-foreground" />
+                المنتجات المحذوفة
+              </CardTitle>
+              <CardDescription>
+                المنتجات المحذوفة ناعماً (لها سجل معاملات). يمكن استعادتها.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {deletedProducts.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">لا توجد منتجات محذوفة</p>
+              ) : (
+                <div className="overflow-x-auto scrollbar-thin">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/40">
+                        <TableHead className="text-start">المنتج</TableHead>
+                        <TableHead className="text-start hidden sm:table-cell">الباركود</TableHead>
+                        <TableHead className="text-center hidden md:table-cell">التصنيف</TableHead>
+                        <TableHead className="text-center">سعر البيع</TableHead>
+                        {canDeleteProduct ? <TableHead className="w-20 text-center"></TableHead> : null}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {deletedProducts.map((p: Product) => (
+                        <TableRow key={p.id} className="hover:bg-muted/30 opacity-60">
+                          <TableCell className="text-start">
+                            <div className="font-medium line-through text-muted-foreground">{p.name}</div>
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell font-mono text-xs text-start" dir="ltr">
+                            {p.barcode || "—"}
+                          </TableCell>
+                          <TableCell className="hidden sm:table-cell text-start">
+                            {p.categoryName ? (
+                              <Badge variant="outline">{p.categoryName}</Badge>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center tabular-nums whitespace-nowrap">
+                            {fmt.currency(p.salePrice)}
+                          </TableCell>
+                          {canDeleteProduct ? (
+                            <TableCell className="text-center">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-1.5 h-7 text-xs"
+                                onClick={async () => {
+                                  try {
+                                    // Restore: remove [محذوف] prefix
+                                    const restoredName = p.name.replace(/^\[محذوف\]\s*/, "")
+                                    await fetch(`/api/products/${p.id}`, {
+                                      method: "PUT",
+                                      headers: { "Content-Type": "application/json" },
+                                      body: JSON.stringify({ name: restoredName }),
+                                    })
+                                    toast.success("تمت استعادة المنتج")
+                                    refetch()
+                                  } catch (err: any) {
+                                    toast.error("فشلت الاستعادة", { description: err?.message })
+                                  }
+                                }}
+                              >
+                                <RotateCcw className="h-3 w-3" />
+                                استعادة
+                              </Button>
+                            </TableCell>
+                          ) : null}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {invTab === "warehouses" && <WarehouseManager />}
