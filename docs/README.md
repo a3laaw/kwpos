@@ -99,6 +99,26 @@
 
 ---
 
+## 📚 وثائق التنفيذية والإدارية (في جذر المشروع)
+
+إضافةً إلى الوثائق التقنية أعلاه، يتوفّر في جذر المشروع ملفان عمليان موجّهان للإدارة:
+
+| الملف | الجمهور | الاستخدام |
+|---|---|---|
+| [`KWPOS_OPERATION_MANUAL.md`](../KWPOS_OPERATION_MANUAL.md) | المالك / المدير / مدير الوردية | دليل تشغيل عملي مُرتَّب زمنياً (يومي → أسبوعي → شهري) + إجراءات حرجة + طوارئ + قوالب طباعة يدوية |
+| [`KWPOS_PRESENTATION.md`](../KWPOS_PRESENTATION.md) | المستثمرون / الملاك / الفروع الجديدة | عرض تقديمي تنفيذي 22 شريحة بصيغة Markdown (عرض مباشر أو طباعة) |
+| [`KWPOS_USER_MANUAL.md`](../KWPOS_USER_MANUAL.md) | كل المستخدمين | دليل مستخدم شامل مختصر (22 قسم) |
+| [`SYSTEM_DOCUMENTATION.md`](../SYSTEM_DOCUMENTATION.md) | المطورون | توثيق تقني تفصيلي للنظام |
+| [`DEPLOY.md`](../DEPLOY.md) | مدير النظام | دليل النشر على Supabase + Vercel |
+
+> 💡 **كيف تختار؟**  
+> - تريد **معرفة ماذا تفعل الآن** → `KWPOS_OPERATION_MANUAL.md`  
+> - تريد **عرض النظام لشخص آخر** → `KWPOS_PRESENTATION.md`  
+> - تريد **مرجعاً سريعاً لميزة ما** → `KWPOS_USER_MANUAL.md`  
+> - تريد **تفاصيل تقنية** → ابدأ من فهرس `docs/` ثم `SYSTEM_DOCUMENTATION.md`
+
+---
+
 ## 🚀 للبدء سريعاً
 
 1. اقرأ [`00-overview.md`](./00-overview.md) لفهم النظام ككل.
@@ -107,6 +127,8 @@
 4. انتقل إلى الوثيقة الخاصة بالوحدة التي تعمل فيها (POS، المخزون، المحاسبة...).
 5. للسيناريوهات العملية الشاملة، راجع [`18-workflows.md`](./18-workflows.md).
 6. لأي خطأ تراه، راجع [`19-errors-troubleshooting.md`](./19-errors-troubleshooting.md).
+7. للتشغيل اليومي خطوة بخطوة، راجع [`../KWPOS_OPERATION_MANUAL.md`](../KWPOS_OPERATION_MANUAL.md).
+8. لعرض النظام على جهة خارجية، راجع [`../KWPOS_PRESENTATION.md`](../KWPOS_PRESENTATION.md).
 
 ---
 
