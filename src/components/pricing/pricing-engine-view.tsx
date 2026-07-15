@@ -298,34 +298,40 @@ function PriceManagementTab() {
   }
 
   /** Apply a margin % to ALL filtered products for a specific tier.
-   *  price = cost × (1 + margin%) — stages all changes at once. */
+   *  price = cost × (1 + margin%) — stages all changes at once.
+   *  Uses functional setStaged to avoid stale closure issues. */
   function applyColumnMargin(tier: PriceTier, marginStr: string) {
     if (!isAdmin) return
     const pct = Number(marginStr)
     if (!Number.isFinite(pct)) return
 
-    const newStaged = { ...staged }
-    let count = 0
-    for (const it of filtered) {
-      if (it.costPrice <= 0) continue
-      const key = `${it.id}:${tier}`
-      const original = tier === "WHOLESALE" ? it.wholesalePrice : tier === "CORPORATE" ? it.corporatePrice : it.salePrice
-      const newPrice = +Math.max(0, it.costPrice * (1 + pct / 100)).toFixed(3)
-      if (newPrice !== original) {
-        newStaged[key] = { productId: it.id, priceType: tier, newPrice }
-        count++
-      } else {
-        // Same as original → remove staged
-        delete newStaged[key]
+    setStaged((prev) => {
+      const newStaged = { ...prev }
+      let count = 0
+      for (const it of filtered) {
+        if (it.costPrice <= 0) continue
+        const key = `${it.id}:${tier}`
+        const original = tier === "WHOLESALE" ? it.wholesalePrice : tier === "CORPORATE" ? it.corporatePrice : it.salePrice
+        const newPrice = +Math.max(0, it.costPrice * (1 + pct / 100)).toFixed(3)
+        if (newPrice !== original) {
+          newStaged[key] = { productId: it.id, priceType: tier, newPrice }
+          count++
+        } else {
+          delete newStaged[key]
+        }
       }
-    }
-    setStaged(newStaged)
-    if (count > 0) {
-      toast.success(`تم تطبيق ${pct}% على ${count} منتج`, {
-        description: "راجع الأسعار ثم اضغط «اعتماد وتطبيق»",
-      })
-    }
+      if (count > 0) {
+        toast.success(`تم تطبيق ${pct}% على ${count} منتج`, {
+          description: "راجع الأسعار ثم اضغط «اعتماد وتطبيق»",
+        })
+      }
+      return newStaged
+    })
   }
+
+  // Track whether Enter was just pressed — prevents double-apply from
+  // Enter (onKeyDown) + blur (onBlur) firing back-to-back.
+  const enterPressedRef = React.useRef(false)
 
   function clearStaged() {
     setStaged({})
@@ -462,14 +468,16 @@ function PriceManagementTab() {
                               onChange={(e) => setColRetailMargin(e.target.value)}
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") {
+                                  enterPressedRef.current = true
                                   applyColumnMargin("RETAIL", colRetailMargin)
                                   ;(e.target as HTMLInputElement).blur()
                                 }
                               }}
                               onBlur={() => {
-                                if (colRetailMargin.trim()) {
+                                if (!enterPressedRef.current && colRetailMargin.trim()) {
                                   applyColumnMargin("RETAIL", colRetailMargin)
                                 }
+                                enterPressedRef.current = false
                               }}
                               title="اكتب نسبة الربح وانتقل خارج الحقل أو اضغط Enter"
                             />
@@ -503,14 +511,16 @@ function PriceManagementTab() {
                               onChange={(e) => setColWholesaleMargin(e.target.value)}
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") {
+                                  enterPressedRef.current = true
                                   applyColumnMargin("WHOLESALE", colWholesaleMargin)
                                   ;(e.target as HTMLInputElement).blur()
                                 }
                               }}
                               onBlur={() => {
-                                if (colWholesaleMargin.trim()) {
+                                if (!enterPressedRef.current && colWholesaleMargin.trim()) {
                                   applyColumnMargin("WHOLESALE", colWholesaleMargin)
                                 }
+                                enterPressedRef.current = false
                               }}
                               title="اكتب نسبة الربح وانتقل خارج الحقل أو اضغط Enter"
                             />
@@ -544,14 +554,16 @@ function PriceManagementTab() {
                               onChange={(e) => setColCorporateMargin(e.target.value)}
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") {
+                                  enterPressedRef.current = true
                                   applyColumnMargin("CORPORATE", colCorporateMargin)
                                   ;(e.target as HTMLInputElement).blur()
                                 }
                               }}
                               onBlur={() => {
-                                if (colCorporateMargin.trim()) {
+                                if (!enterPressedRef.current && colCorporateMargin.trim()) {
                                   applyColumnMargin("CORPORATE", colCorporateMargin)
                                 }
+                                enterPressedRef.current = false
                               }}
                               title="اكتب نسبة الربح وانتقل خارج الحقل أو اضغط Enter"
                             />

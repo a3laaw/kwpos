@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>KWPOS — البنية التقنية</title>
+<link rel="stylesheet" href="global.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<style>
+  body { margin:0; background:#e9eef0; display:flex; justify-content:center; align-items:center; min-height:100vh; }
+  .tech-badge {
+    background:#ffffff; border:1px solid #e8efe9; border-radius:11px;
+    padding:9px 11px;
+    box-shadow:0 4px 10px -6px rgba(46,98,55,0.10);
+    display:flex; flex-direction:column; gap:2px;
+    position:relative; overflow:hidden;
+  }
+  .tech-badge::before {
+    content:''; position:absolute; top:0; right:0; width:30px; height:30px;
+    background:linear-gradient(225deg, rgba(46,98,55,0.10), transparent);
+    pointer-events:none;
+  }
+  .tech-name {
+    font-family:'Cairo',sans-serif; font-size:13px; font-weight:700; color:#2E6237;
+    display:flex; align-items:center; gap:5px;
+  }
+  .tech-desc {
+    font-family:'Tajawal',sans-serif; font-size:10.5px; color:#6b7280; line-height:1.3;
+  }
+  .ux-card {
+    background:#ffffff; border:1px solid #e8efe9; border-radius:12px;
+    padding:11px 13px; display:flex; align-items:flex-start; gap:10px;
+    box-shadow:0 4px 10px -6px rgba(46,98,55,0.10);
+  }
+  .ux-icon {
+    width:36px; height:36px; border-radius:10px;
+    background:linear-gradient(135deg, #2E6237, #1a2e1d);
+    color:#DFC196;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    box-shadow:0 4px 10px -4px rgba(46,98,55,0.4);
+  }
+  .ghost-num {
+    position:absolute; font-family:'Cairo',sans-serif; font-weight:900; font-size:200px;
+    color: rgba(46,98,55,0.04); line-height:1; user-select:none;
+  }
+  .screenshot-frame {
+    border:3px solid #ffffff;
+    box-shadow: 0 10px 22px -8px rgba(46,98,55,0.20), 0 4px 8px -4px rgba(26,46,29,0.10);
+    outline: 2px solid rgba(46,98,55,0.10);
+    border-radius:11px; overflow:hidden;
+  }
+  .col-label {
+    font-family:'Cairo',sans-serif; font-size:13px; font-weight:700;
+    color:#2E6237;
+    display:flex; align-items:center; gap:8px;
+    margin-bottom:10px;
+  }
+  .why-bullet {
+    display:flex; align-items:flex-start; gap:7px;
+    font-family:'Tajawal',sans-serif; font-size:11.5px; color:#3f3f46; line-height:1.5;
+  }
+</style>
+</head>
+<body>
+<div class="slide slide-rtl relative" style="width:1280px; height:720px; overflow:hidden; background:#ffffff;">
+
+  <div class="ghost-num" data-decor style="top:60px; left:40px;">08</div>
+
+  <!-- Header -->
+  <div class="px-16 pt-10 pb-3 relative">
+    <div class="flex items-center gap-3 mb-2">
+      <span class="badge badge-primary" style="font-family:'Tajawal',sans-serif;">
+        <span class="material-icons" style="font-size:13px;">memory</span>
+        البنية والتصميم
+      </span>
+      <div style="height:1px; flex:1; background:linear-gradient(90deg, rgba(46,98,55,0.25), transparent);"></div>
+    </div>
+    <h1 style="font-family:'Cairo',sans-serif; font-size:32px; font-weight:900; color:#2E6237; line-height:1.15;">
+      البنية التقنية وفلسفة التصميم
+    </h1>
+  </div>
+
+  <!-- Two columns -->
+  <div class="px-16 grid grid-cols-2 gap-8" style="margin-top:6px;">
+
+    <!-- LEFT: Tech Stack -->
+    <div>
+      <div class="col-label">
+        <span class="material-icons" style="font-size:18px;">code</span>
+        البنية التقنية
+      </div>
+
+      <div class="grid grid-cols-3 gap-2.5">
+        <div class="tech-badge">
+          <div class="tech-name"><span class="material-icons" style="font-size:13px; color:#2E6237;">bolt</span>Next.js 16</div>
+          <div class="tech-desc">إطار حديث سريع</div>
+        </div>
+        <div class="tech-badge">
+          <div class="tech-name"><span class="material-icons" style="font-size:13px; color:#2E6237;">shield</span>TypeScript 5</div>
+          <div class="tech-desc">أمان كامل للأنواع</div>
+        </div>
+        <div class="tech-badge">
+          <div class="tech-name"><span class="material-icons" style="font-size:13px; color:#2E6237;">storage</span>Prisma ORM</div>
+          <div class="tech-desc">طبقة بيانات آمنة</div>
+        </div>
+        <div class="tech-badge">
+          <div class="tech-name"><span class="material-icons" style="font-size:13px; color:#2E6237;">cloud</span>Supabase</div>
+          <div class="tech-desc">PostgreSQL سحابية</div>
+        </div>
+        <div class="tech-badge">
+          <div class="tech-name"><span class="material-icons" style="font-size:13px; color:#2E6237;">brush</span>Tailwind 4</div>
+          <div class="tech-desc">تصميم متجاوب</div>
+        </div>
+        <div class="tech-badge">
+          <div class="tech-name"><span class="material-icons" style="font-size:13px; color:#2E6237;">widgets</span>shadcn/ui</div>
+          <div class="tech-desc">مكونات احترافية</div>
+        </div>
+        <div class="tech-badge">
+          <div class="tech-name"><span class="material-icons" style="font-size:13px; color:#2E6237;">cached</span>TanStack Query</div>
+          <div class="tech-desc">إدارة حالة ذكية</div>
+        </div>
+        <div class="tech-badge">
+          <div class="tech-name"><span class="material-icons" style="font-size:13px; color:#2E6237;">lock</span>NextAuth.js</div>
+          <div class="tech-desc">مصادقة آمنة</div>
+        </div>
+        <div class="tech-badge">
+          <div class="tech-name"><span class="material-icons" style="font-size:13px; color:#2E6237;">science</span>Vitest</div>
+          <div class="tech-desc">11 اختبار آلي</div>
+        </div>
+      </div>
+
+      <!-- Why these technologies? -->
+      <div style="margin-top:14px; background:linear-gradient(135deg, rgba(46,98,55,0.05), rgba(223,193,150,0.06)); border:1px solid #d6e6da; border-radius:12px; padding:11px 13px;">
+        <div style="font-family:'Cairo',sans-serif; font-size:12px; font-weight:700; color:#2E6237; margin-bottom:7px; display:flex; align-items:center; gap:6px;">
+          <span class="material-icons" style="font-size:14px;">lightbulb</span>
+          لماذا هذه التقنيات؟
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <div class="why-bullet"><span style="color:#DFC196; font-weight:900;">▸</span><span><b style="color:#2E6237;">Next.js 16</b> = أسرع إطار ويب، يدعم Server Components</span></div>
+          <div class="why-bullet"><span style="color:#DFC196; font-weight:900;">▸</span><span><b style="color:#2E6237;">PostgreSQL</b> = قاعدة بيانات مؤسسية تتحمل آلاف العمليات</span></div>
+          <div class="why-bullet"><span style="color:#DFC196; font-weight:900;">▸</span><span><b style="color:#2E6237;">PWA</b> = يعمل كتطبيق هاتف بدون متجر تطبيقات</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: UX Principles -->
+    <div>
+      <div class="col-label">
+        <span class="material-icons" style="font-size:18px;">palette</span>
+        فلسفة التصميم (UI/UX)
+      </div>
+
+      <div class="flex flex-col gap-2.5">
+        <div class="ux-card">
+          <div class="ux-icon"><span class="material-icons" style="font-size:20px;">touch_app</span></div>
+          <div>
+            <div style="font-family:'Cairo',sans-serif; font-size:14px; font-weight:700; color:#1a2e1d;">تصميم باللمس أولاً</div>
+            <div style="font-family:'Tajawal',sans-serif; font-size:12px; color:#52525b; margin-top:2px; line-height:1.45;">أزرار كبيرة، بطاقات منتجات بحجم مناسب للأجهزة اللوحية</div>
+          </div>
+        </div>
+
+        <div class="ux-card">
+          <div class="ux-icon"><span class="material-icons" style="font-size:20px;">visibility</span></div>
+          <div>
+            <div style="font-family:'Cairo',sans-serif; font-size:14px; font-weight:700; color:#1a2e1d;">وضوح بصري</div>
+            <div style="font-family:'Tajawal',sans-serif; font-size:12px; color:#52525b; margin-top:2px; line-height:1.45;">تباين عالي (WCAG AA)، خطوط عربية واضحة (Cairo + Tajawal)</div>
+          </div>
+        </div>
+
+        <div class="ux-card">
+          <div class="ux-icon"><span class="material-icons" style="font-size:20px;">speed</span></div>
+          <div>
+            <div style="font-family:'Cairo',sans-serif; font-size:14px; font-weight:700; color:#1a2e1d;">سرعة فائقة</div>
+            <div style="font-family:'Tajawal',sans-serif; font-size:12px; color:#52525b; margin-top:2px; line-height:1.45;">وضع سريع للكاشير، بحث فوري، استجابة &lt; 100ms</div>
+          </div>
+        </div>
+
+        <div class="ux-card">
+          <div class="ux-icon"><span class="material-icons" style="font-size:20px;">devices</span></div>
+          <div>
+            <div style="font-family:'Cairo',sans-serif; font-size:14px; font-weight:700; color:#1a2e1d;">متجاوب بالكامل</div>
+            <div style="font-family:'Tajawal',sans-serif; font-size:12px; color:#52525b; margin-top:2px; line-height:1.45;">يعمل على الهاتف، الآيباد، والكمبيوتر بنفس الجودة</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Small screenshot thumbnail -->
+      <div class="flex items-center gap-3 mt-3" style="background:rgba(46,98,55,0.04); border:1px solid #d6e6da; border-radius:12px; padding:8px 10px;">
+        <div class="screenshot-frame" style="width:140px; flex-shrink:0;">
+          <img src="screenshots/20-settings.png" alt="Settings" style="display:block; width:100%; height:60px; object-fit:cover;">
+        </div>
+        <div>
+          <div style="font-family:'Cairo',sans-serif; font-size:12px; font-weight:700; color:#2E6237;">شاشة الإعدادات</div>
+          <div style="font-family:'Tajawal',sans-serif; font-size:11px; color:#6b7280; margin-top:2px;">واجهة موحدة، RTL كامل، تحكم دقيق بالصلاحيات</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="absolute bottom-0 right-0 left-0 flex items-center justify-between px-16 py-2.5">
+    <span style="font-family:'Tajawal',sans-serif; font-size:11px; color:#9ca3af;">KWPOS — البنية التقنية وفلسفة التصميم</span>
+    <span style="font-family:'Cairo',sans-serif; font-size:11px; font-weight:700; color:#2E6237;">08 / 09</span>
+  </div>
+  <div class="footer-bar"></div>
+</div>
+</body>
+</html>

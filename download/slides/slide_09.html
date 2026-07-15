@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>KWPOS — الخاتمة</title>
+<link rel="stylesheet" href="global.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<style>
+  body { margin:0; background:#e9eef0; display:flex; justify-content:center; align-items:center; min-height:100vh; }
+  .closing-bg {
+    background:
+      radial-gradient(circle at 15% 20%, rgba(223,193,150,0.18), transparent 35%),
+      radial-gradient(circle at 85% 80%, rgba(223,193,150,0.15), transparent 35%),
+      linear-gradient(135deg, #2E6237 0%, #1a2e1d 100%);
+  }
+  .accent-circle {
+    position:absolute; border-radius:50%; background:rgba(223,193,150,0.10);
+    border:1px solid rgba(223,193,150,0.15);
+  }
+  .cta-card {
+    background:rgba(255,255,255,0.06);
+    backdrop-filter: blur(10px);
+    border:1px solid rgba(223,193,150,0.25);
+    border-radius:18px;
+    padding:20px 22px;
+    transition: all .2s;
+    position:relative; overflow:hidden;
+  }
+  .cta-card::before {
+    content:''; position:absolute; top:0; right:0; width:60px; height:60px;
+    background:linear-gradient(225deg, rgba(223,193,150,0.18), transparent);
+    pointer-events:none;
+  }
+  .cta-icon {
+    width:54px; height:54px; border-radius:14px;
+    background:linear-gradient(135deg, #DFC196 0%, #c9a87a 100%);
+    color:#1a2e1d;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 8px 18px -6px rgba(223,193,150,0.5);
+    flex-shrink:0;
+  }
+  .ghost-num {
+    position:absolute; font-family:'Cairo',sans-serif; font-weight:900; font-size:280px;
+    color: rgba(223,193,150,0.05); line-height:1; user-select:none;
+  }
+</style>
+</head>
+<body>
+<div class="slide slide-rtl closing-bg relative" style="width:1280px; height:720px; overflow:hidden;">
+
+  <!-- Decorative accent circles -->
+  <div class="accent-circle" data-decor style="top:-100px; right:-100px; width:280px; height:280px;"></div>
+  <div class="accent-circle" data-decor style="bottom:-120px; left:-120px; width:320px; height:320px;"></div>
+  <div class="accent-circle" data-decor style="top:60px; left:80px; width:14px; height:14px; background:#DFC196;"></div>
+  <div class="accent-circle" data-decor style="bottom:120px; right:120px; width:8px; height:8px; background:#DFC196;"></div>
+  <div class="ghost-num" data-decor style="bottom:-100px; left:60px;">09</div>
+
+  <!-- Top brand line -->
+  <div class="absolute top-0 right-0 left-0 flex items-center justify-between px-16 py-5" style="z-index:5;">
+    <div class="flex items-center gap-3">
+      <div style="width:36px; height:36px; border-radius:9px; background:rgba(223,193,150,0.18); border:1px solid rgba(223,193,150,0.35); display:flex; align-items:center; justify-content:center;">
+        <span class="material-icons" style="color:#DFC196; font-size:22px;">storefront</span>
+      </div>
+      <span style="font-family:'Cairo',sans-serif; font-weight:700; color:#DFC196; font-size:16px; letter-spacing:1px;">KWPOS</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <span style="font-family:'Tajawal',sans-serif; font-size:11px; color:rgba(255,255,255,0.6);">العرض التقديمي الرسمي</span>
+      <span style="color:rgba(255,255,255,0.4);">·</span>
+      <span style="font-family:'Cairo',sans-serif; font-size:11px; font-weight:700; color:#DFC196;">09 / 09</span>
+    </div>
+  </div>
+
+  <!-- Main content centered -->
+  <div class="absolute inset-0 flex flex-col items-center justify-center px-16" style="padding-top:40px; padding-bottom:80px;">
+
+    <!-- Top accent line -->
+    <div class="flex items-center gap-3 mb-6">
+      <div style="height:1px; width:50px; background:linear-gradient(90deg, transparent, #DFC196);"></div>
+      <span class="material-icons" style="color:#DFC196; font-size:20px;">auto_awesome</span>
+      <span style="font-family:'Tajawal',sans-serif; font-size:13px; font-weight:600; color:#DFC196; letter-spacing:3px;">START YOUR JOURNEY</span>
+      <div style="height:1px; width:50px; background:linear-gradient(90deg, #DFC196, transparent);"></div>
+    </div>
+
+    <!-- Big title -->
+    <h1 style="font-family:'Cairo',sans-serif; font-size:54px; font-weight:900; color:#ffffff; line-height:1.2; text-align:center; letter-spacing:-1px;">
+      جاهز لإدارة متجرك باحترافية؟
+    </h1>
+
+    <!-- Subtitle -->
+    <p style="font-family:'Tajawal',sans-serif; font-size:18px; color:#DFC196; margin-top:14px; text-align:center; max-width:800px; line-height:1.5;">
+      KWPOS — النظام العربي المتكامل لإدارة المبيعات والمخازن والمشتريات
+    </p>
+
+    <!-- 3 CTA cards -->
+    <div class="grid grid-cols-3 gap-5 mt-9" style="width:100%; max-width:1050px;">
+
+      <!-- CTA 1 -->
+      <div class="cta-card flex items-start gap-4">
+        <div class="cta-icon">
+          <span class="material-icons" style="font-size:28px;">rocket_launch</span>
+        </div>
+        <div style="flex:1;">
+          <div style="font-family:'Cairo',sans-serif; font-size:16px; font-weight:700; color:#ffffff; margin-bottom:4px;">جرّب النظام الآن</div>
+          <div style="font-family:'Tajawal',sans-serif; font-size:13px; color:#DFC196; font-weight:600;">kwpos.vercel.app</div>
+          <div style="font-family:'Tajawal',sans-serif; font-size:11px; color:rgba(255,255,255,0.55); margin-top:6px;">تجربة فورية بدون تسجيل</div>
+        </div>
+      </div>
+
+      <!-- CTA 2 -->
+      <div class="cta-card flex items-start gap-4">
+        <div class="cta-icon">
+          <span class="material-icons" style="font-size:28px;">code</span>
+        </div>
+        <div style="flex:1;">
+          <div style="font-family:'Cairo',sans-serif; font-size:16px; font-weight:700; color:#ffffff; margin-bottom:4px;">الكود المفتوح</div>
+          <div style="font-family:'Tajawal',sans-serif; font-size:13px; color:#DFC196; font-weight:600;">github.com/a3laaw/kwpos</div>
+          <div style="font-family:'Tajawal',sans-serif; font-size:11px; color:rgba(255,255,255,0.55); margin-top:6px;">شفافية كاملة، قابل للتطوير</div>
+        </div>
+      </div>
+
+      <!-- CTA 3 -->
+      <div class="cta-card flex items-start gap-4">
+        <div class="cta-icon">
+          <span class="material-icons" style="font-size:28px;">install_mobile</span>
+        </div>
+        <div style="flex:1;">
+          <div style="font-family:'Cairo',sans-serif; font-size:16px; font-weight:700; color:#ffffff; margin-bottom:4px;">ثبّت كتطبيق</div>
+          <div style="font-family:'Tajawal',sans-serif; font-size:13px; color:#DFC196; font-weight:600;">PWA — Add to Home Screen</div>
+          <div style="font-family:'Tajawal',sans-serif; font-size:11px; color:rgba(255,255,255,0.55); margin-top:6px;">بدون متجر تطبيقات</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom note -->
+    <div class="flex items-center gap-3 mt-8" style="background:rgba(255,255,255,0.06); border:1px solid rgba(223,193,150,0.20); border-radius:30px; padding:10px 22px; backdrop-filter:blur(8px);">
+      <span class="material-icons" style="color:#DFC196; font-size:18px;">devices</span>
+      <span style="font-family:'Tajawal',sans-serif; font-size:13px; color:#ffffff; font-weight:500;">
+        متوفر كتطبيق هاتف (PWA) — يعمل على الآيباد والهاتف والكمبيوتر
+      </span>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="absolute bottom-0 right-0 left-0 flex items-center justify-between px-16 py-4" style="border-top:1px solid rgba(223,193,150,0.15);">
+    <span style="font-family:'Tajawal',sans-serif; font-size:12px; color:rgba(255,255,255,0.55);">KWPOS © 2026</span>
+    <span style="font-family:'Cairo',sans-serif; font-size:12px; font-weight:700; color:#DFC196;">صُمم باحترافية، يعمل بسرعة، يؤمن بالكامل</span>
+  </div>
+</div>
+</body>
+</html>

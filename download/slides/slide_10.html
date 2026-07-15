@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>شكرًا لكم</title>
+<link rel="stylesheet" href="global.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<style>
+  .heading { font-family: 'Cairo', sans-serif; }
+  .body { font-family: 'Tajawal', sans-serif; }
+  .closing-slide {
+    background:
+      radial-gradient(ellipse at 80% 20%, rgba(223,193,150,0.18) 0%, transparent 45%),
+      radial-gradient(ellipse at 15% 85%, rgba(74,138,85,0.35) 0%, transparent 50%),
+      linear-gradient(135deg, #2E6237 0%, #1a2e1d 100%);
+    color: #ffffff;
+  }
+  .decor-circle {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .decor-ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 1.5px solid rgba(223,193,150,0.25);
+    pointer-events: none;
+  }
+  .decor-line {
+    position: absolute;
+    background: linear-gradient(90deg, transparent, rgba(223,193,150,0.5), transparent);
+    pointer-events: none;
+  }
+  .title-shine {
+    background: linear-gradient(135deg, #ffffff 0%, #DFC196 50%, #ffffff 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .info-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 18px;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.10);
+    border: 1px solid rgba(255,255,255,0.18);
+    backdrop-filter: blur(8px);
+  }
+  .info-pill .icon-chip {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: rgba(223,193,150,0.30);
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .contact-card {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 16px;
+    padding: 14px 22px;
+    backdrop-filter: blur(8px);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .contact-card .label {
+    font-family: 'Cairo', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    color: rgba(223,193,150,0.85);
+    letter-spacing: 0.5px;
+  }
+  .contact-card .value {
+    font-family: 'Tajawal', monospace;
+    font-weight: 700;
+    font-size: 16px;
+    color: #ffffff;
+    direction: ltr;
+  }
+  .closing-footer {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 6px;
+    background: linear-gradient(90deg, #DFC196 0%, #ffffff 50%, #DFC196 100%);
+  }
+  .pwa-strip {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 8px 18px;
+    border-radius: 30px;
+    background: rgba(223,193,150,0.20);
+    border: 1px solid rgba(223,193,150,0.45);
+  }
+</style>
+</head>
+<body>
+<div class="slide slide-rtl closing-slide relative" dir="rtl">
+
+  <!-- Decorative elements -->
+  <div class="decor-ring" data-decor aria-hidden="true" style="width: 520px; height: 520px; top: -180px; right: -160px;"></div>
+  <div class="decor-ring" data-decor aria-hidden="true" style="width: 360px; height: 360px; bottom: -120px; left: -100px;"></div>
+  <div class="decor-circle" data-decor aria-hidden="true" style="width: 180px; height: 180px; background: rgba(223,193,150,0.20); filter: blur(60px); top: 60px; left: 120px;"></div>
+  <div class="decor-circle" data-decor aria-hidden="true" style="width: 140px; height: 140px; background: rgba(74,138,85,0.45); filter: blur(50px); bottom: 80px; right: 200px;"></div>
+  <div class="decor-line" data-decor aria-hidden="true" style="width: 240px; height: 1.5px; top: 130px; right: 80px;"></div>
+  <div class="decor-line" data-decor aria-hidden="true" style="width: 200px; height: 1.5px; bottom: 160px; left: 100px;"></div>
+
+  <!-- Top brand mark -->
+  <div class="relative z-10 pt-12 px-16 flex items-center justify-between">
+    <div class="flex items-center gap-2.5">
+      <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background: rgba(223,193,150,0.25); border: 1px solid rgba(223,193,150,0.50);">
+        <span class="material-icons" style="font-size: 20px; color: #DFC196;">storefront</span>
+      </div>
+      <span class="heading font-extrabold text-lg tracking-wide text-white">KWPOS</span>
+    </div>
+    <div class="info-pill">
+      <span class="material-icons" style="font-size: 18px; color: #DFC196;">verified</span>
+      <span class="heading font-bold text-sm text-white">نظام متكامل لإدارة المتاجر</span>
+    </div>
+  </div>
+
+  <!-- Centered hero -->
+  <div class="relative z-10 px-16 mt-14 flex flex-col items-center text-center">
+    <div class="flex items-center gap-3 mb-4">
+      <div class="h-px w-14" style="background: linear-gradient(90deg, transparent, #DFC196);"></div>
+      <span class="heading text-sm font-bold tracking-[0.3em]" style="color: #DFC196;">THANK YOU</span>
+      <div class="h-px w-14" style="background: linear-gradient(90deg, #DFC196, transparent);"></div>
+    </div>
+
+    <h1 class="heading title-shine text-7xl font-black leading-tight mb-3">شكرًا لكم</h1>
+
+    <p class="heading text-xl font-bold text-white/95 mb-2">KWPOS — نظام إدارة المبيعات والمخازن والمشتريات</p>
+
+    <div class="pwa-strip mt-3">
+      <span class="material-icons" style="font-size: 20px; color: #DFC196;">devices</span>
+      <span class="body text-sm font-bold text-white">متوفر كتطبيق هاتف (PWA) — يعمل على الآيباد والهاتف والكمبيوتر</span>
+    </div>
+  </div>
+
+  <!-- Contact cards row -->
+  <div class="relative z-10 px-16 mt-10 flex items-center justify-center gap-4">
+    <div class="contact-card">
+      <div class="icon-chip"><span class="material-icons" style="font-size: 16px; color: #DFC196;">code</span></div>
+      <div class="flex flex-col">
+        <span class="label">GitHub</span>
+        <span class="value">a3laaw/kwpos</span>
+      </div>
+    </div>
+    <div class="contact-card">
+      <div class="icon-chip"><span class="material-icons" style="font-size: 16px; color: #DFC196;">public</span></div>
+      <div class="flex flex-col">
+        <span class="label">Vercel</span>
+        <span class="value">kwpos.vercel.app</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom footer caption -->
+  <div class="absolute bottom-8 left-0 right-0 z-10 flex items-center justify-center gap-6 px-16">
+    <span class="body text-xs font-semibold text-white/70">7 أدوار</span>
+    <span class="text-white/30">•</span>
+    <span class="body text-xs font-semibold text-white/70">20+ صفحة</span>
+    <span class="text-white/30">•</span>
+    <span class="body text-xs font-semibold text-white/70">90+ API</span>
+    <span class="text-white/30">•</span>
+    <span class="body text-xs font-semibold text-white/70">11 اختبار</span>
+  </div>
+
+  <div class="closing-footer"></div>
+</div>
+</body>
+</html>

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>KWPOS — الشريحة 1</title>
+<link rel="stylesheet" href="global.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<style>
+  body { margin:0; background:#e9eef0; display:flex; justify-content:center; align-items:center; min-height:100vh; }
+  .cover-bg {
+    background:
+      radial-gradient(circle at 85% 15%, rgba(46,98,55,0.12), transparent 45%),
+      radial-gradient(circle at 15% 85%, rgba(223,193,150,0.18), transparent 40%),
+      linear-gradient(135deg, #ffffff 0%, #f6f9f6 100%);
+  }
+  .hero-img {
+    transform: rotate(-2deg);
+    border-radius: 16px;
+    box-shadow: 0 30px 60px -15px rgba(26,46,29,0.35), 0 10px 25px -10px rgba(46,98,55,0.25);
+    border: 6px solid #ffffff;
+  }
+  .display-title {
+    font-family: 'Cairo', sans-serif;
+    font-weight: 900;
+    font-size: 120px;
+    line-height: 1;
+    letter-spacing: -2px;
+    background: linear-gradient(135deg, #2E6237 0%, #1a2e1d 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .ghost-num {
+    position: absolute;
+    font-family: 'Cairo', sans-serif;
+    font-weight: 900;
+    font-size: 280px;
+    color: rgba(46,98,55,0.04);
+    line-height: 1;
+    user-select: none;
+  }
+  .accent-pill {
+    background: linear-gradient(135deg, #DFC196 0%, #c9a87a 100%);
+    color: #1a2e1d;
+    box-shadow: 0 8px 20px -8px rgba(223,193,150,0.6);
+  }
+  .stat-pill {
+    background: rgba(255,255,255,0.85);
+    border: 1px solid rgba(46,98,55,0.15);
+    backdrop-filter: blur(8px);
+  }
+</style>
+</head>
+<body>
+<div class="slide slide-rtl cover-bg relative" style="width:1280px; height:720px; overflow:hidden;">
+
+  <!-- Decorative ghost numeral -->
+  <div class="ghost-num" data-decor style="bottom:-80px; right:-40px;">01</div>
+  <!-- Decorative accent dot -->
+  <div data-decor style="position:absolute; top:60px; left:60px; width:14px; height:14px; border-radius:50%; background:#DFC196;"></div>
+  <div data-decor style="position:absolute; top:60px; left:84px; width:6px; height:6px; border-radius:50%; background:#2E6237;"></div>
+
+  <!-- Top brand bar -->
+  <div class="absolute top-0 right-0 left-0 flex items-center justify-between px-16 py-5" style="z-index:5;">
+    <div class="flex items-center gap-3">
+      <div style="width:36px; height:36px; border-radius:8px; background:linear-gradient(135deg,#2E6237,#1a2e1d); display:flex; align-items:center; justify-content:center;">
+        <span class="material-icons" style="color:#DFC196; font-size:22px;">storefront</span>
+      </div>
+      <span style="font-family:'Cairo',sans-serif; font-weight:700; color:#2E6237; font-size:16px; letter-spacing:1px;">KWPOS</span>
+    </div>
+    <div class="flex items-center gap-2 text-xs" style="color:#6b7280; font-family:'Tajawal',sans-serif;">
+      <span class="material-icons" style="font-size:14px; color:#DFC196;">auto_awesome</span>
+      <span>العرض التقديمي الرسمي · 2026</span>
+    </div>
+  </div>
+
+  <!-- Main grid -->
+  <div class="absolute inset-0 grid grid-cols-12 gap-6 px-16" style="padding-top:96px; padding-bottom:72px;">
+
+    <!-- LEFT: 60% (7 cols) -->
+    <div class="col-span-7 flex flex-col justify-center relative">
+      <div class="flex items-center gap-2 mb-4">
+        <div style="width:40px; height:3px; background:#DFC196; border-radius:2px;"></div>
+        <span style="font-family:'Tajawal',sans-serif; font-size:14px; font-weight:600; color:#8a6d3b; letter-spacing:2px;">SYSTEM OVERVIEW</span>
+      </div>
+
+      <h1 class="display-title">KWPOS</h1>
+
+      <p style="font-family:'Cairo',sans-serif; font-size:26px; font-weight:700; color:#1a2e1d; margin-top:18px; line-height:1.4;">
+        نظام إدارة المبيعات والمخازن والمشتريات
+      </p>
+
+      <!-- Accent tagline -->
+      <div class="accent-pill inline-flex items-center gap-3 mt-6 px-6 py-3" style="border-radius:14px; align-self:flex-start;">
+        <span class="material-icons" style="font-size:22px; color:#1a2e1d;">psychology</span>
+        <span style="font-family:'Cairo',sans-serif; font-size:17px; font-weight:700; color:#1a2e1d;">النظام العربي المتكامل لإدارة المتاجر</span>
+      </div>
+
+      <!-- Stat pills -->
+      <div class="flex gap-3 mt-8">
+        <div class="stat-pill flex items-center gap-2 px-4 py-2.5" style="border-radius:12px;">
+          <span class="material-icons" style="font-size:18px; color:#2E6237;">rocket_launch</span>
+          <span style="font-family:'Tajawal',sans-serif; font-size:14px; font-weight:700; color:#1a2e1d;">90+ API</span>
+        </div>
+        <div class="stat-pill flex items-center gap-2 px-4 py-2.5" style="border-radius:12px;">
+          <span class="material-icons" style="font-size:18px; color:#2E6237;">devices</span>
+          <span style="font-family:'Tajawal',sans-serif; font-size:14px; font-weight:700; color:#1a2e1d;">PWA — يعمل على كل الأجهزة</span>
+        </div>
+        <div class="stat-pill flex items-center gap-2 px-4 py-2.5" style="border-radius:12px;">
+          <span class="material-icons" style="font-size:18px; color:#2E6237;">lock</span>
+          <span style="font-family:'Tajawal',sans-serif; font-size:14px; font-weight:700; color:#1a2e1d;">7 أدوار بأمان كامل</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: 40% (5 cols) — hero image -->
+    <div class="col-span-5 flex items-center justify-center relative">
+      <div data-decor style="position:absolute; inset:0; background:radial-gradient(circle at center, rgba(46,98,55,0.10), transparent 60%); border-radius:24px;"></div>
+      <img src="screenshots/04-pos-sales.png" alt="KWPOS POS" class="hero-img" style="max-width:100%; max-height:500px; object-fit:cover; width:100%;">
+      <!-- Floating badge -->
+      <div data-decor style="position:absolute; bottom:-8px; right:-8px; background:#ffffff; border:1px solid rgba(46,98,55,0.15); padding:8px 14px; border-radius:10px; box-shadow:0 8px 20px -6px rgba(26,46,29,0.2); display:flex; align-items:center; gap:8px;">
+        <div style="width:8px; height:8px; border-radius:50%; background:#2E6237; box-shadow:0 0 0 4px rgba(46,98,55,0.18);"></div>
+        <span style="font-family:'Tajawal',sans-serif; font-size:12px; font-weight:700; color:#1a2e1d;">نظام يعمل الآن</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="absolute bottom-0 right-0 left-0 flex items-center justify-between px-16 py-4" style="background:rgba(255,255,255,0.6); border-top:1px solid rgba(46,98,55,0.08); backdrop-filter:blur(6px);">
+    <span style="font-family:'Tajawal',sans-serif; font-size:12px; color:#6b7280;">KWPOS 2026 — العرض التقديمي الرسمي</span>
+    <div class="flex items-center gap-2">
+      <span style="font-family:'Tajawal',sans-serif; font-size:11px; color:#6b7280;">شريحة</span>
+      <span style="font-family:'Cairo',sans-serif; font-size:13px; font-weight:700; color:#2E6237;">01 / 09</span>
+    </div>
+  </div>
+  <div class="footer-bar"></div>
+</div>
+</body>
+</html>

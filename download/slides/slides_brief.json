@@ -1,0 +1,69 @@
+{
+  "design": {
+    "title": "KWPOS — العرض التقديمي الاحترافي",
+    "style_name": "Arabic Business Green — Pitch Deck",
+    "palette": {"background": "#ffffff", "primary": "#2E6237", "accent": "#DFC196"},
+    "typography": {"heading": "Cairo", "body": "Tajawal", "numeric": "Tajawal"},
+    "reference": "Modern Arabic pitch deck — investor ready"
+  },
+  "global_css_path": "/home/z/my-project/download/slides/global.css",
+  "slides_dir": "/home/z/my-project/download/slides",
+  "language": "ar",
+  "speaker_notes": "none",
+  "slides": [
+    {
+      "title": "شريحة الواجهة والترحيب",
+      "layout": "cover",
+      "output_path": "/home/z/my-project/download/slides/slide_01.html",
+      "task_brief": "Cover slide, RTL Arabic, full bleed. LEFT SIDE (60%): Big bold title 'KWPOS' in green (#2E6237) 72px. Below: 'نظام إدارة المبيعات والمخازن والمشتريات' in 24px. Tagline in gold accent box: 'النظام العربي المتكامل لإدارة المتاجر'. Three stat pills at bottom: '🚀 90+ API' '📱 PWA — يعمل على كل الأجهزة' '🔒 7 أدوار بأمان كامل'. RIGHT SIDE (40%): Show screenshots/01-login.png with rounded corners 16px, shadow, slightly tilted. Background: subtle green gradient. Footer: 'KWPOS 2026 — العرض التقديمي الرسمي'."
+    },
+    {
+      "title": "المشكلة في القطاع",
+      "layout": "problem",
+      "output_path": "/home/z/my-project/download/slides/slide_02.html",
+      "task_brief": "Problem slide, RTL. Title at top: 'تحديات تواجه أصحاب المتاجر اليوم' in 32px green. Subtitle: '3 مشاكل رئيسية تعيق نمو أعمالك'. Three large problem cards in a row, each with a red/orange warning icon: CARD 1: icon=warning, title 'إدارة مخزون فوضوية', text 'مخازن متعددة بدون تتبع موحد • أخطاء في الجرد يدويًا • نفاد مفاجئ للأصناف الأكثر مبيعًا • لا توجد تنبيهات لنقص المخزون'. CARD 2: icon=warning, title 'بيانات مالية مبعثرة', text 'مبيعات ومشتريات بدون قيود محاسبية • لا توجد رؤية واضحة للأرباح • صعوبة في إعداد تقارير VAT • أخطاء في حساب المستحقات'. CARD 3: icon=warning, title 'بطء في نقاط البيع', text 'طوابير طويلة بسبب بطء الكاشير • لا دعم لقارئ الباركود • صعوبة في التبديل والمرتجعات • لا طباعة فورية للإيصالات'. Each card has white background, red-tinted left border, shadow. Bottom bar: 'KWPOS يحل هذه المشاكل الثلاث — دعنا نوضح كيف ←'"
+    },
+    {
+      "title": "الحل المتكامل",
+      "layout": "solution",
+      "output_path": "/home/z/my-project/download/slides/slide_03.html",
+      "task_brief": "Solution slide, RTL. Title: 'الحل المتكامل — نظام متكامل بمعالجة فورية' in 32px green. Subtitle: 'كيف يحل KWPOS المشاكل الثلاث بسرعة وكفاءة'. Three solution cards matching the problems, each with green checkmark icon: CARD 1: icon=check_circle, title 'مخزون موحد بدقة', text 'تتبع لحظي لكل مخزن على حدة • Product.quantity = مجموع آلي • تنبيهات تلقائية لنقص المخزون • باركود تلقائي (13 رقم حسب التصنيف) • جرد أعمى + جرد دوري • تحويلات بين المخازن بضغطة زر'. CARD 2: icon=check_circle, title 'محاسبة مزدوجة القيد', text 'قيود محاسبية تلقائية عند كل عملية • ميزان مراجعة فوري • ميزانية عمومية + تدفقات نقدية • تقرير VAT جاهز • كشف حساب لكل عميل ومورد • 17 حساب جاهز'. CARD 3: icon=check_circle, title 'POS فائق السرعة', text 'وضعان: عادي وسريع (Express) • قارئ باركود عالمي • درج نقدية (ESC/POS) • طباعة حرارية فورية • بحث فوري بالاسم/الباركود • دفع بنقرة واحدة'. Cards have green left border, white background, shadow. Each has a small stat badge: '0 خطأ' '17 حساب' '< 5 ثوانٍ'."
+    },
+    {
+      "title": "الميزات الوظيفية",
+      "layout": "bento grid",
+      "output_path": "/home/z/my-project/download/slides/slide_04.html",
+      "task_brief": "Features bento grid, RTL. Title: 'الميزات الوظيفية الرئيسية' in 32px green. Subtitle: '8 ميزات تجعل KWPOS النظام الأكثر اكتمالاً'. 4x2 grid of feature cards, each with icon + title + 2-line description: 1) icon=point_of_sale, 'وضعين للكاشير' — 'وضع عادي كامل + وضع سريع مبسط للكاشير المحترف'. 2) icon=inventory_2, 'مخازن متعددة' — 'إدارة عدد لا محدود من المخازن مع كميات مستقلة'. 3) icon=receipt_long, 'محاسبة متكاملة' — 'قيود مزدوجة، ميزان مراجعة، قوائم مالية، VAT'. 4) icon=analytics, 'تحليلات ذكية' — '5 تحليلات + مصفوفة أداء الأقسام والمنتجات'. 5) icon=extension, 'باقات وتركيبات' — 'Bundles للعروض + Compositions لخلط المكونات'. 6) icon=loyalty, 'نقاط ولاء' — 'نقاط تلقائية + طبقات BRONZE/SILVER/GOLD'. 7) icon=search, 'بحث شامل Ctrl+K' — 'بحث فوري في المنتجات، العملاء، الفواتير'. 8) icon=notifications, 'تنبيهات ذكية' — 'نقص مخزون، مدفوعات متأخرة، نسبة حذف مرتفعة'. Each card: white bg, subtle border, icon in green circle."
+    },
+    {
+      "title": "استعراض عمل النظام — الخطوة 1: لوحة التحكم",
+      "layout": "screenshot showcase",
+      "output_path": "/home/z/my-project/download/slides/slide_05.html",
+      "task_brief": "Screenshot showcase slide, RTL. Top bar: 'استعراض عمل النظام' with step indicator 'الخطوة 1 من 3'. Title: 'لوحة التحكم الرئيسية — رؤية 360° لمتجرك' in 28px green. Description on right (40%): 'لوحة تحكم ذكية تعرض كل ما تحتاجه في صفحة واحدة: مبيعات اليوم، آخر الفواتير، تنبيهات المخزون، رسوم بيانية تفاعلية، وإجراءات سريعة. صُممت لتمنحك نظرة فورية على صحة متجرك.' Bullets: '• مبيعات اليوم مع نسبة التغيير', '• آخر الفواتير مع روابط', '• تنبيهات المخزون المنخفض', '• رسوم بيانية تفاعلية', '• أزرار إجراءات سريعة'. LEFT SIDE (60%): Show screenshots/02-dashboard.png large, rounded corners 12px, shadow, with a small label below: 'لقطة شاشة حقيقية — لوحة التحكم'. Use a subtle green border frame around the screenshot."
+    },
+    {
+      "title": "استعراض عمل النظام — الخطوة 2: العملية الذكية",
+      "layout": "screenshot showcase",
+      "output_path": "/home/z/my-project/download/slides/slide_06.html",
+      "task_brief": "Screenshot showcase slide, RTL. Top bar: step indicator 'الخطوة 2 من 3'. Title: 'نقاط البيع — معالجة فورية وذكية' in 28px green. LEFT SIDE (60%): Show screenshots/03-pos.png large, rounded corners 12px, shadow. Label below: 'لقطة شاشة حقيقية — نقاط البيع (POS)'. RIGHT SIDE (40%): Description: 'معالجة ذكية للبيانات في كل خطوة من عملية البيع.' Numbered steps: '1️⃣ مسح الباركود → بحث فوري وإضافة للسلة', '2️⃣ حساب تلقائي → ضريبة لكل منتج + خصم + رسوم توصيل', '3️⃣ خصم المخزون → تحديث لحظي للكميات + قفل صفوف', '4️⃣ إنشاء قيد محاسبي → مزدوج القيد تلقائيًا', '5️⃣ منح نقاط ولاء → تلقائيًا للعميل', '6️⃣ طباعة إيصال → حراري 80mm فورًا'. Stats at bottom: '< 5 ثوانٍ' '0 أخطاء' 'قيد تلقائي'."
+    },
+    {
+      "title": "استعراض عمل النظام — الخطوة 3: التقارير",
+      "layout": "screenshot showcase",
+      "output_path": "/home/z/my-project/download/slides/slide_07.html",
+      "task_brief": "Screenshot showcase slide, RTL. Top bar: step indicator 'الخطوة 3 من 3'. Title: 'النتائج والتقارير الذكية' in 28px green. RIGHT SIDE (60%): Show screenshots/06-analytics.png large, rounded corners 12px, shadow. Label below: 'لقطة شاشة حقيقية — التحليلات والتقارير'. LEFT SIDE (40%): Description: 'مخرجات ذكية تمنحك رؤية عميقة لأداء متجرك.' Bullets: '📊 تقرير المبيعات الشامل — مع فلاتر مرنة', '📈 تحليلات المبيعات — 5 أنواع (نظرة عامة، الأكثر مبيعًا، الراكدة، التكاليف، الربحية)', '🎯 مصفوفة أداء الأقسام — هامش الربح + معدل الدوران', '💰 تقرير VAT — تلقائي بدون ازدواج', '📤 تصدير PDF + Excel — بضغطة زر', '🖨️ طباعة الجداول فقط — نظيفة واحترافية'. Stats: '5 تحليلات' 'PDF+Excel' 'VAT جاهز'."
+    },
+    {
+      "title": "البنية التقنية + فلسفة التصميم",
+      "layout": "split tech+ux",
+      "output_path": "/home/z/my-project/download/slides/slide_08.html",
+      "task_brief": "Two-column layout, RTL. Title at top: 'البنية التقنية وفلسفة التصميم' in 28px green. LEFT COLUMN (50%): 'البنية التقنية' subtitle in green. Tech badges in a grid: 'Next.js 16' (إطار حديث سريع), 'TypeScript 5' (أمان كامل للأنواع), 'Prisma ORM' (طبقة بيانات آمنة), 'Supabase PostgreSQL' (قاعدة بيانات سحابية), 'Tailwind CSS 4' (تصميم متجاوب), 'shadcn/ui' (مكونات احترافية), 'TanStack Query' (إدارة حالة ذكية), 'NextAuth.js' (مصادقة آمنة), 'Vitest' (11 اختبار آلي). Below badges: 'لماذا هذه التقنيات؟' with 3 bullets: '• Next.js 16 = أسرع إطار ويب، يدعم Server Components', '• PostgreSQL = قاعدة بيانات مؤسسية تتحمل آلاف العمليات', '• PWA = يعمل كتطبيق هاتف بدون متجر تطبيقات'. RIGHT COLUMN (50%): 'فلسفة التصميم (UI/UX)' subtitle in green. 4 design principles with icons: 1) icon=touch_app 'تصميم باللمس أولاً' — 'أزرار كبيرة، بطاقات منتجات بحجم مناسب للأجهزة اللوحية'. 2) icon=visibility 'وضوح بصري' — 'تباين عالي (WCAG AA)، خطوط عربية واضحة (Cairo + Tajawal)'. 3) icon=speed 'سرعة فائقة' — 'وضع سريع للكاشير، بحث فوري، استجابة < 100ms'. 4) icon=devices 'متجاوب بالكامل' — 'يعمل على الهاتف، الآيباد، والكمبيوتر بنفس الجودة'. Show screenshots/08-settings.png as a small thumbnail at bottom right."
+    },
+    {
+      "title": "الخاتمة والدعوة لاتخاذ إجراء",
+      "layout": "closing CTA",
+      "output_path": "/home/z/my-project/download/slides/slide_09.html",
+      "task_brief": "Closing CTA slide, RTL. Full gradient background from #2E6237 to #1a2e1d. Centered white text. Big title: 'جاهز لإدارة متجرك باحترافية؟' in 48px white bold. Subtitle: 'KWPOS — النظام العربي المتكامل لإدارة المبيعات والمخازن والمشتريات' in 20px white/gold. Below: three CTA buttons (styled as cards): 1) '🚀 جرّب النظام الآن' — 'kwpos.vercel.app', 2) '📦 الكود المفتوح' — 'github.com/a3laaw/kwpos', 3) '📱 ثبّت كتطبيق' — 'PWA — Add to Home Screen'. Bottom section: 'متوفر كتطبيق هاتف (PWA) — يعمل على الآيباد والهاتف والكمبيوتر'. Footer: 'KWPOS © 2026 — صُمم باحترافية، يعمل بسرعة، يؤمن بالكامل'. Add decorative gold accent circles in background corners."
+    }
+  ]
+}
