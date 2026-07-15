@@ -178,6 +178,57 @@ export async function DELETE(
   const exists = await db.product.findUnique({ where: { id } })
   if (!exists) return NextResponse.json({ error: "not-found" }, { status: 404 })
 
+  // Check for related records that prevent hard-delete
+  const [saleItems, poItems, piItems, stockItems, priceChanges, bundleItems, compIngredients] = await Promise.all([
+    db.saleItem.count({ where: { productId: id } }),
+    db.purchaseOrderItem.count({ where: { productId: id } }),
+    db.purchaseInvoiceItem.count({ where: { productId: id } }),
+    db.stockItem.count({ where: { productId: id } }),
+    db.priceChange.count({ where: { productId: id } }),
+    db.bundleItem.count({ where: { productId: id } }),
+    db.compositionIngredient.count({ where: { productId: id } }),
+  ])
+
+  const hasHistory = saleItems > 0 || poItems > 0 || piItems > 0 || priceChanges > 0
+
+  if (hasHistory) {
+    // SOFT DELETE: product has transaction history — can't hard-delete
+    // without breaking FK constraints + audit trail. Mark as inactive
+    // by prefixing name with [محذوف] and setting quantity to 0.
+    await db.product.update({
+      where: { id },
+      data: {
+        name: `[محذوف] ${exists.name}`,
+        quantity: 0,
+        reorderLevel: 0,
+      },
+    })
+    // Remove StockItem rows (set to 0)
+    await db.stockItem.deleteMany({ where: { productId: id } })
+
+    await logAuditEvent({
+      userId: user.id,
+      userName: user.name,
+      action: "PRODUCT_DELETED",
+      description: `حذف (ناعم) منتج ${exists.name ?? ""} — له سجل معاملات`,
+      productId: id,
+    })
+
+    return NextResponse.json({ ok: true, softDeleted: true })
+  }
+
+  // HARD DELETE: no transaction history — safe to delete
+  // Delete related records first (StockItem, BundleItem, CompositionIngredient)
+  await db.stockItem.deleteMany({ where: { productId: id } })
+  await db.bundleItem.deleteMany({ where: { productId: id } })
+  await db.compositionIngredient.deleteMany({ where: { productId: id } })
+
+  // If this product is a composition output, unlink the composition
+  await db.composition.updateMany({
+    where: { outputProductId: id },
+    data: { isActive: false },
+  })
+
   await db.product.delete({ where: { id } })
 
   await logAuditEvent({
