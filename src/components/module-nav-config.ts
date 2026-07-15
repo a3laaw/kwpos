@@ -4,7 +4,7 @@ import {
   Boxes, Warehouse as WarehouseIcon, ClipboardCheck, ArrowRightLeft,
   ShoppingCart, FileText, Tags, History, Percent as PercentIcon,
   TrendingUp, Coins, ArrowDown, ArrowLeftRight as MovementIcon, BookOpen,
-  PackageOpen, Star,
+  PackageOpen, Star, Trash2,
 } from "lucide-react"
 import type { Dict } from "@/lib/i18n"
 
@@ -79,6 +79,7 @@ export const MODULE_NAV: Partial<Record<string, MegaMenuGroup[]>> = {
       labelKey: "invItemsTab" as keyof Dict,
       items: [
         { value: "products", labelKey: "invItemsTab" as keyof Dict, icon: Boxes },
+        { value: "deleted", labelKey: "deletedProducts" as keyof Dict, icon: Trash2 },
         { value: "warehouses", labelKey: "warehouses" as keyof Dict, icon: WarehouseIcon },
       ],
     },
