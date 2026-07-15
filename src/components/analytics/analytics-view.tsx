@@ -547,28 +547,27 @@ function TopSellingTab({ data, fmt, t }: { data: ProductAnalytics[]; fmt: Return
           <CardTitle className="flex items-center gap-2 text-base"><TrendingUp className="h-4 w-4 text-primary" />{t.anlRankByQty}</CardTitle>
         </CardHeader>
         <CardContent>
-	          {data.length === 0 ? <EmptyState title={t.anlNoSales} description={t.anlTryWiderRange} /> : (
-	            <div className="space-y-2">
-	              {data.slice(0, 10).map((item, i) => {
-	                const pct = ((item.quantitySold || 0) / maxQty) * 100
-	                const colors = ["#2E6237", "#3a7d4a", "#52955f", "#6ba874", "#84ba89", "#9dcd9e", "#b5e0b3", "#c8e8c6", "#dbf0d9", "#eef8ec"]
-	                return (
-	                  <div key={i} className="space-y-0.5">
-	                    <div className="flex items-center justify-between text-xs">
-	                      <span className="truncate max-w-[55%]">{item.name}</span>
-	                      <span className="tabular-nums font-medium">{fmt.number(item.quantitySold)} {t.anlUnit} · {fmt.currency(item.grossVolume)}</span>
-	                    </div>
-	                    <div className="h-7 rounded-md bg-muted/40 overflow-hidden">
-	                      <div className="h-full rounded-md flex items-center px-2" style={{ width: `${Math.max(pct, 2)}%`, backgroundColor: colors[i % colors.length] }}>
-	                        <span className="text-[10px] text-white font-medium tabular-nums truncate">{i + 1}</span>
-	                      </div>
-	                    </div>
-	                  </div>
-	                )
-	              })}
-	            </div>
-	          )}
-          )}
+                  {data.length === 0 ? <EmptyState title={t.anlNoSales} description={t.anlTryWiderRange} /> : (
+                    <div className="space-y-2">
+                      {data.slice(0, 10).map((item, i) => {
+                        const pct = ((item.quantitySold || 0) / maxQty) * 100
+                        const colors = ["#2E6237", "#3a7d4a", "#52955f", "#6ba874", "#84ba89", "#9dcd9e", "#b5e0b3", "#c8e8c6", "#dbf0d9", "#eef8ec"]
+                        return (
+                          <div key={i} className="space-y-0.5">
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="truncate max-w-[55%]">{item.name}</span>
+                              <span className="tabular-nums font-medium">{fmt.number(item.quantitySold)} {t.anlUnit} · {fmt.currency(item.grossVolume)}</span>
+                            </div>
+                            <div className="h-7 rounded-md bg-muted/40 overflow-hidden">
+                              <div className="h-full rounded-md flex items-center px-2" style={{ width: `${Math.max(pct, 2)}%`, backgroundColor: colors[i % colors.length] }}>
+                                <span className="text-[10px] text-white font-medium tabular-nums truncate">{i + 1}</span>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
         </CardContent>
       </Card>
       <ProductRankTable data={data} fmt={fmt} t={t} metricLabel={t.qty} metricKey="quantitySold" metricFmt={(v) => fmt.number(v)} maxVal={maxQty} />
