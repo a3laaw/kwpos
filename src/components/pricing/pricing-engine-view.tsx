@@ -238,7 +238,7 @@ function PriceManagementTab() {
   const [colWholesaleMargin, setColWholesaleMargin] = React.useState("")
   const [colCorporateMargin, setColCorporateMargin] = React.useState("")
 
-  const items = data?.items ?? []
+  const items = (data?.items ?? []).filter((it: any) => !it.name.startsWith("[محذوف]"))
 
   const filtered = React.useMemo(() => {
     const query = q.trim().toLowerCase()

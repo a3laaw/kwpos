@@ -123,7 +123,7 @@ export function usePOS(opts?: UsePOSOptions) {
   const createMut = useCreateSale()
   const { data: bundlesData } = useBundles(undefined, true)
 
-  const products = data?.items ?? []
+  const products = (data?.items ?? []).filter((p: any) => !p.name.startsWith("[محذوف]"))
   const bundles = bundlesData?.items ?? []
 
   // ── Parked sales ──
