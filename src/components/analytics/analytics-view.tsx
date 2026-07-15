@@ -535,11 +535,11 @@ function TopSellingTab({ data, fmt, t }: { data: ProductAnalytics[]; fmt: Return
         </CardHeader>
         <CardContent>
           {data.length === 0 ? <EmptyState title={t.anlNoSales} description={t.anlTryWiderRange} /> : (
-            <ResponsiveContainer width="100%" height={320} minHeight={200}>
-              <BarChart data={data.slice(0, 10)} layout="vertical" margin={{ top: 5, right: 10, left: 80, bottom: 5 }}>
+            <ResponsiveContainer width="100%" height={400} minHeight={300}>
+              <BarChart data={data.slice(0, 10)} layout="vertical" margin={{ top: 5, right: 10, left: 100, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} horizontal={false} />
                 <XAxis type="number" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} />
-                <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} width={80} tickFormatter={(v: string) => v.length > 12 ? `${v.slice(0, 12)}…` : v} />
+                <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} width={100} interval={0} tickFormatter={(v: string) => v.length > 14 ? `${v.slice(0, 14)}…` : v} />
                 <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))", fontSize: 12 }} formatter={(v: number) => [fmt.number(v) + " " + t.anlUnit, t.qty]} />
                 <Bar dataKey="quantitySold" fill="#2E6237" radius={[0, 6, 6, 0]} />
               </BarChart>
@@ -631,11 +631,11 @@ function CostTab({ expensive, cheapest, fmt, t }: { expensive: ProductAnalytics[
           <CardHeader><CardTitle className="flex items-center gap-2 text-base"><ArrowUp className="h-4 w-4 text-rose-500" />{t.anlMostExpensive}</CardTitle></CardHeader>
           <CardContent>
             {expensive.length === 0 ? <EmptyState title={t.anlNoData} /> : (
-              <ResponsiveContainer width="100%" height={280} minHeight={200}>
-                <BarChart data={expensive.slice(0, 8)} layout="vertical" margin={{ top: 5, right: 10, left: 80, bottom: 5 }}>
+              <ResponsiveContainer width="100%" height={350} minHeight={300}>
+                <BarChart data={expensive.slice(0, 8)} layout="vertical" margin={{ top: 5, right: 10, left: 100, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} horizontal={false} />
                   <XAxis type="number" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} width={80} tickFormatter={(v: string) => v.length > 12 ? `${v.slice(0, 12)}…` : v} />
+                  <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} width={100} interval={0} tickFormatter={(v: string) => v.length > 14 ? `${v.slice(0, 14)}…` : v} />
                   <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))", fontSize: 12 }} formatter={(v: number) => fmt.currency(v)} />
                   <Bar dataKey="costPrice" fill="#f43f5e" radius={[0, 6, 6, 0]} />
                 </BarChart>
@@ -647,11 +647,11 @@ function CostTab({ expensive, cheapest, fmt, t }: { expensive: ProductAnalytics[
           <CardHeader><CardTitle className="flex items-center gap-2 text-base"><ArrowDown className="h-4 w-4 text-[#DFC196]" />{t.anlCheapest}</CardTitle></CardHeader>
           <CardContent>
             {cheapest.length === 0 ? <EmptyState title={t.anlNoData} /> : (
-              <ResponsiveContainer width="100%" height={280} minHeight={200}>
-                <BarChart data={cheapest.slice(0, 8)} layout="vertical" margin={{ top: 5, right: 10, left: 80, bottom: 5 }}>
+              <ResponsiveContainer width="100%" height={350} minHeight={300}>
+                <BarChart data={cheapest.slice(0, 8)} layout="vertical" margin={{ top: 5, right: 10, left: 100, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} horizontal={false} />
                   <XAxis type="number" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} width={80} tickFormatter={(v: string) => v.length > 12 ? `${v.slice(0, 12)}…` : v} />
+                  <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} width={100} interval={0} tickFormatter={(v: string) => v.length > 14 ? `${v.slice(0, 14)}…` : v} />
                   <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))", fontSize: 12 }} formatter={(v: number) => fmt.currency(v)} />
                   <Bar dataKey="costPrice" fill="#DFC196" radius={[0, 6, 6, 0]} />
                 </BarChart>
