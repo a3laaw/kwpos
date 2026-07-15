@@ -236,10 +236,10 @@ export function StockTakeTab() {
 
     const rows = lines.map((l, i) => `
       <tr>
-        <td class="num">${i + 1}</td>
-        <td class="name">${l.productName}</td>
-        <td class="barcode">${l.barcode || "—"}</td>
-        <td class="actual"></td>
+        <td class="col-num">${i + 1}</td>
+        <td class="col-name">${l.productName}</td>
+        <td class="col-barcode">${l.barcode || "—"}</td>
+        <td class="col-actual"></td>
       </tr>`).join("")
 
     const html = `<!DOCTYPE html>
@@ -255,15 +255,17 @@ export function StockTakeTab() {
   .header { text-align: center; margin-bottom: 6mm; border-bottom: 2px solid #2E6237; padding-bottom: 3mm; }
   .header h1 { font-size: 20px; color: #2E6237; }
   .header p { font-size: 11px; color: #555; margin-top: 2px; }
-  table { width: 100%; border-collapse: collapse; }
-  thead th { background: #f0fdf4; color: #065f46; font-size: 10px; padding: 2mm; border-bottom: 2px solid #2E6237; }
-  thead th.num { width: 8mm; text-align: center; }
-  thead th.actual { width: 30mm; text-align: center; }
-  thead th.barcode { width: 30mm; text-align: center; }
-  tbody td { padding: 2mm; border-bottom: 1px solid #ddd; font-size: 10px; }
-  tbody td.num { text-align: center; }
-  tbody td.actual { text-align: center; height: 10mm; background: #fafafa; }
-  tbody td.barcode { text-align: center; font-family: monospace; font-size: 9px; }
+  table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  thead th { background: #f0fdf4; color: #065f46; font-size: 10px; padding: 3mm 2mm; border-bottom: 2px solid #2E6237; font-weight: 700; }
+  thead th.col-num { width: 10mm; text-align: center; }
+  thead th.col-name { text-align: start; }
+  thead th.col-barcode { width: 35mm; text-align: center; }
+  thead th.col-actual { width: 35mm; text-align: center; }
+  tbody td { padding: 3mm 2mm; border-bottom: 1px solid #ddd; font-size: 10px; vertical-align: middle; }
+  tbody td.col-num { text-align: center; font-weight: 600; }
+  tbody td.col-name { text-align: start; }
+  tbody td.col-barcode { text-align: center; font-family: monospace; font-size: 9px; direction: ltr; }
+  tbody td.col-actual { text-align: center; height: 12mm; background: #fafafa; }
   .footer { margin-top: 6mm; text-align: center; font-size: 9px; color: #999; }
   @media print { body { -webkit-print-color-adjust: exact; } }
 </style>
@@ -276,10 +278,10 @@ export function StockTakeTab() {
   <table>
     <thead>
       <tr>
-        <th class="num">#</th>
-        <th>الصنف</th>
-        <th class="barcode">الباركود</th>
-        <th class="actual">العد الفعلي</th>
+        <th class="col-num">#</th>
+        <th class="col-name">الصنف</th>
+        <th class="col-barcode">الباركود</th>
+        <th class="col-actual">العد الفعلي</th>
       </tr>
     </thead>
     <tbody>${rows}</tbody>
