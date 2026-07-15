@@ -409,10 +409,10 @@ function OverviewTab({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={220} minHeight={200}>
-              <BarChart data={topData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
+            <ResponsiveContainer width="100%" height={260} minHeight={200}>
+              <BarChart data={topData} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                <XAxis dataKey="name" tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} tickFormatter={(v) => String(v).slice(0, 10)} />
+                <XAxis dataKey="name" tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} tickFormatter={(v) => String(v).slice(0, 10)} interval={0} />
                 <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} width={40} />
                 <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))", fontSize: 12 }} formatter={(v: number) => [fmt.number(v) + " " + t.anlUnit, t.qty]} />
                 <Bar dataKey="quantitySold" fill="#2E6237" radius={[6, 6, 0, 0]} />
@@ -429,7 +429,7 @@ function OverviewTab({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={220} minHeight={200}>
+            <ResponsiveContainer width="100%" height={260} minHeight={200}>
               <PieChart>
                 <Pie data={data.highestMargin.slice(0, 6)} dataKey="margin" nameKey="name" cx="50%" cy="45%" innerRadius={40} outerRadius={70} paddingAngle={2}>
                   {data.highestMargin.slice(0, 6).map((_: any, i: number) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
@@ -536,12 +536,12 @@ function TopSellingTab({ data, fmt, t }: { data: ProductAnalytics[]; fmt: Return
         <CardContent>
           {data.length === 0 ? <EmptyState title={t.anlNoSales} description={t.anlTryWiderRange} /> : (
             <ResponsiveContainer width="100%" height={400} minHeight={300}>
-              <BarChart data={data.slice(0, 10)} layout="vertical" margin={{ top: 5, right: 10, left: 100, bottom: 5 }}>
+              <BarChart data={data.slice(0, 10)} layout="vertical" margin={{ top: 10, right: 30, left: 100, bottom: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} horizontal={false} />
                 <XAxis type="number" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} />
                 <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} width={100} interval={0} tickFormatter={(v: string) => v.length > 14 ? `${v.slice(0, 14)}…` : v} />
                 <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))", fontSize: 12 }} formatter={(v: number) => [fmt.number(v) + " " + t.anlUnit, t.qty]} />
-                <Bar dataKey="quantitySold" fill="#2E6237" radius={[0, 6, 6, 0]} />
+                <Bar dataKey="quantitySold" fill="#2E6237" radius={[0, 6, 6, 0]} maxBarSize={35} />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -632,12 +632,12 @@ function CostTab({ expensive, cheapest, fmt, t }: { expensive: ProductAnalytics[
           <CardContent>
             {expensive.length === 0 ? <EmptyState title={t.anlNoData} /> : (
               <ResponsiveContainer width="100%" height={350} minHeight={300}>
-                <BarChart data={expensive.slice(0, 8)} layout="vertical" margin={{ top: 5, right: 10, left: 100, bottom: 5 }}>
+                <BarChart data={expensive.slice(0, 8)} layout="vertical" margin={{ top: 10, right: 30, left: 100, bottom: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} horizontal={false} />
                   <XAxis type="number" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} />
                   <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} width={100} interval={0} tickFormatter={(v: string) => v.length > 14 ? `${v.slice(0, 14)}…` : v} />
                   <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))", fontSize: 12 }} formatter={(v: number) => fmt.currency(v)} />
-                  <Bar dataKey="costPrice" fill="#f43f5e" radius={[0, 6, 6, 0]} />
+                  <Bar dataKey="costPrice" fill="#f43f5e" radius={[0, 6, 6, 0]} maxBarSize={35} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -648,12 +648,12 @@ function CostTab({ expensive, cheapest, fmt, t }: { expensive: ProductAnalytics[
           <CardContent>
             {cheapest.length === 0 ? <EmptyState title={t.anlNoData} /> : (
               <ResponsiveContainer width="100%" height={350} minHeight={300}>
-                <BarChart data={cheapest.slice(0, 8)} layout="vertical" margin={{ top: 5, right: 10, left: 100, bottom: 5 }}>
+                <BarChart data={cheapest.slice(0, 8)} layout="vertical" margin={{ top: 10, right: 30, left: 100, bottom: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} horizontal={false} />
                   <XAxis type="number" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} />
                   <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} width={100} interval={0} tickFormatter={(v: string) => v.length > 14 ? `${v.slice(0, 14)}…` : v} />
                   <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))", fontSize: 12 }} formatter={(v: number) => fmt.currency(v)} />
-                  <Bar dataKey="costPrice" fill="#DFC196" radius={[0, 6, 6, 0]} />
+                  <Bar dataKey="costPrice" fill="#DFC196" radius={[0, 6, 6, 0]} maxBarSize={35} />
                 </BarChart>
               </ResponsiveContainer>
             )}
