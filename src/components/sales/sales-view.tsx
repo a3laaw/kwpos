@@ -303,10 +303,10 @@ function StandardSalesView({ onToggleMode }: { onToggleMode: () => void }) {
                       promoActive && "ring-1 ring-emerald-400/60"
                     )}
                   >
-                    {/* Product image — larger, no cropping */}
-                    <div className="relative h-24 w-full bg-muted/40 overflow-hidden flex items-center justify-center">
+                    {/* Product image — fills entire card top */}
+                    <div className="relative h-32 sm:h-40 w-full bg-muted/20 overflow-hidden flex items-center justify-center">
                       {p.imageUrl ? (
-                        <img src={p.imageUrl} alt={p.name} className="h-full w-full object-contain group-hover:scale-105 transition-transform p-1" />
+                        <img src={p.imageUrl} alt={p.name} className="h-full w-full object-cover group-hover:scale-105 transition-transform" />
                       ) : (
                         <div className="flex h-full w-full items-center justify-center">
                           <Package className="h-8 w-8 text-muted-foreground/40" />

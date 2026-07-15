@@ -789,10 +789,10 @@ export function ExpressPosView({ user, onToggleMode }: ExpressPosViewProps) {
                         promoActive && "ring-1 ring-emerald-400/60"
                       )}
                     >
-                      {/* Product image — larger than standard mode (h-28/h-32), object-contain */}
-                      <div className="relative h-28 sm:h-32 w-full bg-muted/30 overflow-hidden flex items-center justify-center">
+                      {/* Product image — fills entire card top */}
+                      <div className="relative h-36 sm:h-44 w-full bg-muted/20 overflow-hidden flex items-center justify-center">
                         {p.imageUrl ? (
-                          <img src={p.imageUrl} alt={p.name} className="h-full w-full object-contain group-hover:scale-105 transition-transform p-1.5" />
+                          <img src={p.imageUrl} alt={p.name} className="h-full w-full object-cover group-hover:scale-105 transition-transform" />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center">
                             <Package className="h-10 w-10 text-muted-foreground/30" />
