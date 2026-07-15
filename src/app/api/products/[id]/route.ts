@@ -195,6 +195,10 @@ export async function DELETE(
     // SOFT DELETE: product has transaction history — can't hard-delete
     // without breaking FK constraints + audit trail. Mark as inactive
     // by prefixing name with [محذوف] and setting quantity to 0.
+    // Guard: if already soft-deleted, return 409 (prevent duplicate prefix).
+    if (exists.name.startsWith("[محذوف]")) {
+      return NextResponse.json({ error: "already-deleted" }, { status: 409 })
+    }
     await db.product.update({
       where: { id },
       data: {
