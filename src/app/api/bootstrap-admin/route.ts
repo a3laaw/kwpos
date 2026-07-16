@@ -1,9 +1,19 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import bcrypt from "bcryptjs"
+import { checkRateLimit, peekRateLimit, getClientIp } from "@/lib/rate-limit"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
+
+// Rate limit config: 5 attempts per 15 minutes per IP
+const BOOTSTRAP_RATE_LIMIT = {
+  maxAttempts: 5,
+  windowMs: 15 * 60 * 1000, // 15 min
+}
+
+// Artificial delay on password mismatch (slows brute force)
+const MISMATCH_DELAY_MS = 800
 
 /**
  * POST /api/bootstrap-admin
@@ -22,6 +32,9 @@ export const runtime = "nodejs"
  *      (i.e., is the project owner, not a random attacker).
  *   3. Does NOT bypass any existing auth — it creates/resets
  *      only the admin@demo.com account.
+ *   4. Rate-limited: 5 attempts per 15 min per IP.
+ *   5. Artificial 800ms delay on password mismatch to slow
+ *      brute-force attempts.
  *
  * Usage from browser console or curl:
  *   curl -X POST https://your-app.vercel.app/api/bootstrap-admin \
@@ -33,6 +46,27 @@ export const runtime = "nodejs"
  *   Password: <the BOOTSTRAP_ADMIN_PASSWORD value>
  */
 export async function POST(req: NextRequest) {
+  // Rate limit check (before any work) — protects against brute force
+  const ip = getClientIp(req)
+  const rateLimitKey = `bootstrap-admin:${ip}`
+  const rl = checkRateLimit(rateLimitKey, BOOTSTRAP_RATE_LIMIT)
+  if (!rl.allowed) {
+    const retryAfterSec = Math.ceil(rl.retryAfterMs / 1000)
+    return NextResponse.json(
+      {
+        error: "too-many-attempts — rate limit exceeded. Try again later.",
+        retryAfterSeconds: retryAfterSec,
+      },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(retryAfterSec),
+          "X-RateLimit-Remaining": "0",
+        },
+      }
+    )
+  }
+
   const bootstrapPw = process.env.BOOTSTRAP_ADMIN_PASSWORD
   if (!bootstrapPw) {
     return NextResponse.json(
@@ -61,11 +95,23 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // Security gate: the caller must know the env var value
+  // Security gate: the caller must know the env var value.
+  // NOTE: comparison logic is intentionally unchanged per spec — only the
+  // surrounding protection layer (rate limit + delay) was added.
   if (providedPw !== bootstrapPw) {
+    // Artificial delay to slow brute-force attempts
+    await new Promise((r) => setTimeout(r, MISMATCH_DELAY_MS))
+
+    // Peek remaining (without incrementing again) for a helpful header
+    const peek = peekRateLimit(rateLimitKey, BOOTSTRAP_RATE_LIMIT)
     return NextResponse.json(
       { error: "password-mismatch — the provided password does not match BOOTSTRAP_ADMIN_PASSWORD" },
-      { status: 403 }
+      {
+        status: 403,
+        headers: {
+          "X-RateLimit-Remaining": String(peek.remaining),
+        },
+      }
     )
   }
 
