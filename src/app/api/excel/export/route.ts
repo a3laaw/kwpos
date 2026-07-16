@@ -91,6 +91,21 @@ export async function GET(req: NextRequest) {
     dateFilter.lte = t
   }
 
+  // Excel cell limit is 32767 characters. Some product fields (especially
+  // imageUrl, which may be a base64 data URL ~280KB) vastly exceed this.
+  // Truncate any string value over 32000 chars and append a marker so the
+  // user knows it was truncated. Without this, XLSX.write throws:
+  //   "Text length must not exceed 32767 characters"
+  const EXCEL_CELL_LIMIT = 32767
+  const SAFE_LIMIT = 32000
+  function safeCell(v: unknown): unknown {
+    if (typeof v !== "string") return v
+    if (v.length <= EXCEL_CELL_LIMIT) return v
+    // Truncate + marker. For base64 data URLs, the marker is enough —
+    // the user can't open a 280KB base64 image in Excel anyway.
+    return v.slice(0, SAFE_LIMIT) + "…[truncated]"
+  }
+
   let headerRow: string[] = []
   let dataRows: any[][] = []
   let sheetName = "Sheet1"
@@ -113,7 +128,7 @@ export async function GET(req: NextRequest) {
       s.paymentMethod === "CASH" ? "نقدي" : s.paymentMethod === "CARD" ? "بطاقة" : "تحويل",
       s.subtotal, s.discount, s.taxAmount, s.total,
       s.user?.name || "",
-    ])
+    ].map(safeCell))
   } else if (type === "products") {
     sheetName = "الأصناف"
     filename = "products.xlsx"
@@ -135,9 +150,10 @@ export async function GET(req: NextRequest) {
     })
     dataRows = products.map((p) => {
       const catPath = p.categoryId ? (catPathMap.get(p.categoryId) || p.category?.name || "") : ""
-      return seeCost
+      return (seeCost
         ? [p.name, p.barcode || "", catPath, p.quantity, p.reorderLevel, p.costPrice, p.salePrice, p.unit, p.imageUrl || ""]
         : [p.name, p.barcode || "", catPath, p.quantity, p.reorderLevel, p.salePrice, p.unit, p.imageUrl || ""]
+      ).map(safeCell)
     })
   } else if (type === "journal") {
     sheetName = "القيود"
@@ -157,7 +173,7 @@ export async function GET(req: NextRequest) {
           je.description,
           l.account.code, l.account.name,
           l.debit, l.credit,
-        ])
+        ].map(safeCell) as any[])
       }
     }
   } else if (type === "customers") {
@@ -168,13 +184,13 @@ export async function GET(req: NextRequest) {
     dataRows = customers.map((c) => [
       c.name, c.phone, c.address,
       new Date(c.createdAt).toLocaleDateString("ar-KW-u-nu-latn"),
-    ])
+    ].map(safeCell))
   } else if (type === "suppliers") {
     sheetName = "الموردون"
     filename = "suppliers.xlsx"
     headerRow = ["الاسم", "مسؤول التواصل", "الهاتف", "البريد", "العنوان"]
     const suppliers = await db.supplier.findMany({ orderBy: { name: "asc" } })
-    dataRows = suppliers.map((s) => [s.name, s.contact || "", s.phone || "", s.email || "", s.address || ""])
+    dataRows = suppliers.map((s) => [s.name, s.contact || "", s.phone || "", s.email || "", s.address || ""].map(safeCell))
   } else {
     return NextResponse.json({ error: "invalid-type" }, { status: 400 })
   }
