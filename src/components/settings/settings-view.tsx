@@ -36,6 +36,7 @@ import {
   ChevronRight,
   Wrench,
   AlertCircle,
+  AlertTriangle,
 } from "lucide-react"
 import { COUNTRIES, getCountryName } from "@/lib/countries"
 import { useCountry, useFmt } from "@/components/currency-context"
@@ -910,6 +911,11 @@ function SystemMaintenanceCard() {
   const [fixLoading, setFixLoading] = React.useState(false)
   const [fixMode, setFixMode] = React.useState<"dry" | "fix">("dry")
   const [fixResult, setFixResult] = React.useState<any>(null)
+  // TEMPORARY — Danger zone state (clear transactions). Remove after go-live.
+  const [clearDialogOpen, setClearDialogOpen] = React.useState(false)
+  const [clearConfirmInput, setClearConfirmInput] = React.useState("")
+  const [clearLoading, setClearLoading] = React.useState(false)
+  const [clearResult, setClearResult] = React.useState<any>(null)
   const canAccess = true
 
   async function handleRecalcStock() {
@@ -964,6 +970,36 @@ function SystemMaintenanceCard() {
       setFixResult({ error: err?.message || "failed" })
     } finally {
       setFixLoading(false)
+    }
+  }
+
+  // TEMPORARY — Danger zone handler. Remove after go-live.
+  async function handleClearTransactions() {
+    if (clearConfirmInput !== "DELETE") {
+      toast.error("يجب كتابة DELETE بالضابط للمتابعة")
+      return
+    }
+    setClearLoading(true)
+    setClearResult(null)
+    try {
+      const res = await fetch("/api/admin/clear-transactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm: "DELETE" }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.error || `request-failed:${res.status}`)
+      setClearResult(data)
+      setClearDialogOpen(false)
+      setClearConfirmInput("")
+      toast.success("تم مسح كل الفواتير والجرد والقيود بنجاح", {
+        description: "النظام الآن في حالة نظيفة. استخدم «إصلاح المخزون» لإعادة البناء إن لزم.",
+      })
+    } catch (err: any) {
+      toast.error("فشل المسح", { description: err?.message })
+      setClearResult({ error: err?.message || "failed" })
+    } finally {
+      setClearLoading(false)
     }
   }
 
@@ -1148,6 +1184,144 @@ function SystemMaintenanceCard() {
             استخدمه عند وجود منتجات بمخزون صفر رغم وجود فواتير شراء مرحّلة.
           </p>
         </div>
+
+        {/* ── TEMPORARY — Danger Zone (clear transactions). Remove after go-live. ── */}
+        <div className="rounded-lg border-2 border-destructive/40 bg-destructive/5 p-4 space-y-3">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <h4 className="text-sm font-semibold text-destructive">منطقة الخطر — مسح كل البيانات</h4>
+              <p className="text-xs text-muted-foreground">
+                يحذف <strong>بشكل دائم لا رجعة فيه</strong> كل الفواتير والجرد والقيود المحاسبية،
+                ويُصفّر المخزون ونقاط الولاء. المنتات والعملاء والموردون والحسابات تبقى.
+                مخصص لإعادة النظام لحالة نظيفة قبل الإطلاق فقط.
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-md bg-background/60 p-3 space-y-1.5">
+            <p className="text-xs font-medium">سيتم حذف:</p>
+            <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+              <li>كل الفواتير (مبيعات + معلّقة + تبديلات) — <code>Sale, SaleItem, SuspendedSale, ExchangeSale, ExchangeLine</code></li>
+              <li>كل الجرد (كامل + أعمى) — <code>StockTake, StockTakeItem, SpotCheck</code></li>
+              <li>كل القيود المحاسبية — <code>JournalEntry, JournalLine</code></li>
+              <li>كل كميات المخزون — <code>StockItem</code> + <code>Product.quantity = 0</code></li>
+              <li>نقاط ولاء كل العملاء — <code>Customer.loyaltyPoints = 0</code></li>
+            </ul>
+            <p className="text-xs text-amber-600 mt-2">
+              ⚠️ يُسجَّل الإجراء في سجل التدقيق (AuditLog) — لا يمكن التراجع.
+            </p>
+          </div>
+
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs text-muted-foreground">
+              الزر مؤقت — احذفه بعد الإطلاق من <code>settings-view.tsx</code> + <code>/api/admin/clear-transactions/</code>.
+            </p>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                setClearConfirmInput("")
+                setClearResult(null)
+                setClearDialogOpen(true)
+              }}
+              className="gap-2 shrink-0"
+            >
+              <Trash2 className="h-4 w-4" />
+              مسح الفواتير والجرد
+            </Button>
+          </div>
+
+          {clearResult ? (
+            <div className="rounded-lg bg-muted/40 p-3 space-y-2">
+              {clearResult.error ? (
+                <div className="flex items-center gap-2 text-sm text-destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  فشل: {clearResult.error}
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 text-sm text-emerald-600">
+                    <CheckCircle2 className="h-4 w-4" />
+                    تم المسح بنجاح — النظام الآن في حالة نظيفة
+                  </div>
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 text-center">
+                    <div className="rounded-lg bg-background p-2">
+                      <p className="text-xs text-muted-foreground">فواتير</p>
+                      <p className="text-base font-bold tabular-nums">{clearResult.counts?.sales ?? 0}</p>
+                    </div>
+                    <div className="rounded-lg bg-background p-2">
+                      <p className="text-xs text-muted-foreground">جرد</p>
+                      <p className="text-base font-bold tabular-nums">{clearResult.counts?.stockTakes ?? 0}</p>
+                    </div>
+                    <div className="rounded-lg bg-background p-2">
+                      <p className="text-xs text-muted-foreground">قيود</p>
+                      <p className="text-base font-bold tabular-nums">{clearResult.counts?.journalEntries ?? 0}</p>
+                    </div>
+                    <div className="rounded-lg bg-background p-2">
+                      <p className="text-xs text-muted-foreground">منتجات صُفّرت</p>
+                      <p className="text-base font-bold tabular-nums">{clearResult.counts?.productsReset ?? 0}</p>
+                    </div>
+                    <div className="rounded-lg bg-background p-2">
+                      <p className="text-xs text-muted-foreground">عملاء صُفّرت ولاؤهم</p>
+                      <p className="text-base font-bold tabular-nums">{clearResult.counts?.customersReset ?? 0}</p>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          ) : null}
+        </div>
+
+        {/* ── Confirmation Dialog ── */}
+        <Dialog open={clearDialogOpen} onOpenChange={setClearDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-destructive">
+                <AlertTriangle className="h-5 w-5" />
+                تأكيد مسح كل البيانات
+              </DialogTitle>
+              <DialogDescription>
+                هذا الإجراء <strong>لا يمكن التراجع عنه</strong>. سيُحذف كل سجل المبيعات والجرد والمحاسبة.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <div className="rounded-md bg-destructive/5 border border-destructive/20 p-3">
+                <p className="text-xs text-muted-foreground">
+                  للتأكيد، اكتب <code className="font-bold text-destructive">DELETE</code> في الحقل أدناه:
+                </p>
+              </div>
+              <Input
+                value={clearConfirmInput}
+                onChange={(e) => setClearConfirmInput(e.target.value)}
+                placeholder="اكتب DELETE هنا"
+                className="font-mono"
+                autoComplete="off"
+                disabled={clearLoading}
+              />
+            </div>
+            <DialogFooter className="gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setClearDialogOpen(false)
+                  setClearConfirmInput("")
+                }}
+                disabled={clearLoading}
+              >
+                إلغاء
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleClearTransactions}
+                disabled={clearLoading || clearConfirmInput !== "DELETE"}
+                className="gap-2"
+              >
+                {clearLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                نعم، امسح كل شيء
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   )
