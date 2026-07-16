@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client"
 import { db } from "@/lib/db"
 import { serializeSale } from "@/lib/serialize"
 import { makeInvoiceNo } from "@/lib/format"
@@ -186,15 +187,20 @@ export async function executeSaleTransaction(
     if (productIds.length > 0) {
       void (async () => {
         try {
-          const ids = productIds.map((id) => `'${id.replace(/'/g, "''")}'`).join(",")
-          await db.$executeRawUnsafe(`
+          // Use Prisma.join for proper parameterization (prevents SQL injection).
+          // Previously this used $executeRawUnsafe with manual string interpolation
+          // of productIds (which originate from the user's cart). Even though the
+          // ids were sanitized with a regex replace, that approach is fragile.
+          // Prisma.join builds parameterized placeholders ($1, $2, ...) and
+          // passes the values as real bound parameters.
+          await db.$executeRaw`
             UPDATE "Product"
             SET quantity = COALESCE((
               SELECT SUM(quantity) FROM "StockItem"
               WHERE "StockItem"."productId" = "Product".id
             ), 0)
-            WHERE id IN (${ids})
-          `)
+            WHERE id IN (${Prisma.join(productIds)})
+          `
         } catch (e: any) {
           console.warn(
             `[sale] Product.quantity sync failed for sale ${invoiceNo}. ` +
