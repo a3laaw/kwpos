@@ -63,7 +63,9 @@ export function ExcelExportButton({
           { type, from, to },
           {
             onSuccess: () => toast.success(t.exportedToExcel),
-            onError: () => toast.error(t.exportFailed),
+            onError: (err: any) => toast.error(t.exportFailed, {
+              description: err?.message || "حدث خطأ غير متوقع",
+            }),
           }
         )
       }

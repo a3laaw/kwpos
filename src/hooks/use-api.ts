@@ -611,7 +611,17 @@ export function useExportExcel() {
       if (from) qs.set("from", from)
       if (to) qs.set("to", to)
       const res = await fetch(`/api/excel/export?${qs.toString()}`)
-      if (!res.ok) throw new Error("export-failed")
+      if (!res.ok) {
+        // Try to extract a meaningful error message from the JSON body
+        let detail = `HTTP ${res.status}`
+        try {
+          const data = await res.json()
+          detail = data?.error || data?.detail || detail
+        } catch {
+          // response wasn't JSON — keep the status code
+        }
+        throw new Error(detail)
+      }
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")

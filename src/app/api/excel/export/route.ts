@@ -179,16 +179,30 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "invalid-type" }, { status: 400 })
   }
 
-  const ws = XLSX.utils.aoa_to_sheet([headerRow, ...dataRows])
-  ws["!cols"] = headerRow.map(() => ({ wch: 18 }))
-  const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, sheetName)
-  const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" })
+  try {
+    const ws = XLSX.utils.aoa_to_sheet([headerRow, ...dataRows])
+    ws["!cols"] = headerRow.map(() => ({ wch: 18 }))
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, sheetName)
+    // Use "base64" type + Buffer.from for maximum compatibility with
+    // Vercel serverless (avoids edge cases where "buffer" type returns
+    // a Uint8Array that NextResponse doesn't handle correctly).
+    const base64 = XLSX.write(wb, { type: "base64", bookType: "xlsx" })
+    const buf = Buffer.from(base64, "base64")
 
-  return new NextResponse(buf, {
-    headers: {
-      "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": `attachment; filename="${filename}"`,
-    },
-  })
+    return new NextResponse(buf, {
+      headers: {
+        "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "Content-Disposition": `attachment; filename="${filename}"`,
+        "Content-Length": String(buf.length),
+      },
+    })
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error("[excel-export] XLSX write failed:", msg)
+    return NextResponse.json(
+      { error: "xlsx-write-failed", detail: msg.slice(0, 300) },
+      { status: 500 }
+    )
+  }
 }
