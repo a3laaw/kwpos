@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
+import { getCurrentUser, hasRole } from "@/lib/session"
+import type { Role } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -26,6 +28,12 @@ export const runtime = "nodejs"
  * public, unauthenticated route.
  */
 export async function GET() {
+  const user = await getCurrentUser()
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+  if (!hasRole(user.role, ["OWNER", "ADMIN" as Role])) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 })
+  }
+
   try {
     await db.user.count()
     return NextResponse.json(
