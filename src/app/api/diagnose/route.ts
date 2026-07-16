@@ -7,14 +7,18 @@ export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 
 /**
- * GET /api/diagnose — minimal unauthenticated health probe.
+ * GET /api/diagnose — OWNER/ADMIN only health probe.
  *
  * Returns ONLY: { connected: boolean, timestamp: string }
  *
  * No env vars, no admin info, no user counts, no diagnosis hints, no
  * error details. Use this only to verify the app is reachable + the
- * database connection works. For deeper diagnostics, an authenticated
- * OWNER/ADMIN should check server logs or use authenticated endpoints.
+ * database connection works. For deeper diagnostics, check server logs.
+ *
+ * Auth: requires an authenticated OWNER or ADMIN session. Unauthenticated
+ * requests get 401; other roles get 403. This prevents public exposure
+ * of any DB-connection state (even the boolean could be useful to an
+ * attacker probing for live targets).
  *
  * Rationale: previously this endpoint leaked:
  *   - presence/absence of env vars (DATABASE_URL, DIRECT_DATABASE_URL,
@@ -25,7 +29,7 @@ export const runtime = "nodejs"
  *   - raw DB error messages (could leak infrastructure details)
  *   - actionable hints pointing to /api/bootstrap-admin
  * All of that is now removed to avoid information disclosure on a
- * public, unauthenticated route.
+ * public route, and the endpoint is now gated behind OWNER/ADMIN auth.
  */
 export async function GET() {
   const user = await getCurrentUser()
