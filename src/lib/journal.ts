@@ -1,4 +1,8 @@
+import { Prisma } from "@prisma/client"
 import { db } from "@/lib/db"
+
+/** Prisma transaction client (subset of `db` usable inside `$transaction`). */
+type TxClient = Prisma.TransactionClient
 
 /**
  * Journal entry (double-entry / قيد محاسبي) helpers.
@@ -21,7 +25,7 @@ import { db } from "@/lib/db"
  *
  * Format: JE-YYYYMMDDHHmmss-XXXX (e.g. JE-20260712143025-a1b2)
  */
-async function nextEntryNo(tx?: any): Promise<string> {
+async function nextEntryNo(tx?: TxClient): Promise<string> {
   const now = new Date()
   const ts = now.getFullYear().toString() +
     String(now.getMonth() + 1).padStart(2, "0") +
@@ -66,7 +70,7 @@ export async function createJournalEntry(opts: {
   description: string
   date?: Date
   lines: JELineInput[]
-  tx?: any
+  tx?: TxClient
   skipBalanceSync?: boolean
 }): Promise<string> {
   const { tx } = opts
@@ -170,7 +174,7 @@ export async function syncAccountBalances(lines: JELineInput[]): Promise<void> {
  * back, call createJournalEntry() directly.
  */
 export async function safeCreateJournalEntry(
-  tx: any,
+  tx: TxClient,
   params: {
     sourceType: "SALE" | "EXPENSE" | "PURCHASE" | "MANUAL"
     sourceId?: string
@@ -182,8 +186,9 @@ export async function safeCreateJournalEntry(
 ): Promise<string | null> {
   try {
     return await createJournalEntry({ ...params, tx })
-  } catch (e: any) {
-    console.warn(`[journal] ${label} failed: ${e?.message ?? e}`)
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e)
+    console.warn(`[journal] ${label} failed: ${msg}`)
     return null
   }
 }

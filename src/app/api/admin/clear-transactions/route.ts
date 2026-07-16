@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
   // Order matters: child first, then parent. Prisma deleteMany on parent
   // would fail on FK constraint if children still reference it.
   try {
-    counts.saleItems = await db.saleItem.deleteMany({})
+    counts.saleItems = (await db.saleItem.deleteMany({})).count
   } catch (e: any) {
     console.error("[clear-transactions] SaleItem delete failed:", e?.message)
     return NextResponse.json(
@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
     )
   }
   try {
-    counts.sales = await db.sale.deleteMany({})
+    counts.sales = (await db.sale.deleteMany({})).count
   } catch (e: any) {
     console.error("[clear-transactions] Sale delete failed:", e?.message)
     return NextResponse.json(
@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
 
   // ── 2) SuspendedSale (no children) ─────────────────────────────────
   try {
-    counts.suspendedSales = await db.suspendedSale.deleteMany({})
+    counts.suspendedSales = (await db.suspendedSale.deleteMany({})).count
   } catch (e: any) {
     console.error("[clear-transactions] SuspendedSale delete failed:", e?.message)
     return NextResponse.json(
@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
 
   // ── 3) ExchangeLine → ExchangeSale ─────────────────────────────────
   try {
-    counts.exchangeLines = await db.exchangeLine.deleteMany({})
+    counts.exchangeLines = (await db.exchangeLine.deleteMany({})).count
   } catch (e: any) {
     console.error("[clear-transactions] ExchangeLine delete failed:", e?.message)
     return NextResponse.json(
@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
     )
   }
   try {
-    counts.exchangeSales = await db.exchangeSale.deleteMany({})
+    counts.exchangeSales = (await db.exchangeSale.deleteMany({})).count
   } catch (e: any) {
     console.error("[clear-transactions] ExchangeSale delete failed:", e?.message)
     return NextResponse.json(
@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
 
   // ── 4) StockTakeItem → StockTake ───────────────────────────────────
   try {
-    counts.stockTakeItems = await db.stockTakeItem.deleteMany({})
+    counts.stockTakeItems = (await db.stockTakeItem.deleteMany({})).count
   } catch (e: any) {
     console.error("[clear-transactions] StockTakeItem delete failed:", e?.message)
     return NextResponse.json(
@@ -141,7 +141,7 @@ export async function POST(req: NextRequest) {
     )
   }
   try {
-    counts.stockTakes = await db.stockTake.deleteMany({})
+    counts.stockTakes = (await db.stockTake.deleteMany({})).count
   } catch (e: any) {
     console.error("[clear-transactions] StockTake delete failed:", e?.message)
     return NextResponse.json(
@@ -152,7 +152,7 @@ export async function POST(req: NextRequest) {
 
   // ── 5) SpotCheck (no children) ─────────────────────────────────────
   try {
-    counts.spotChecks = await db.spotCheck.deleteMany({})
+    counts.spotChecks = (await db.spotCheck.deleteMany({})).count
   } catch (e: any) {
     console.error("[clear-transactions] SpotCheck delete failed:", e?.message)
     return NextResponse.json(
@@ -163,7 +163,7 @@ export async function POST(req: NextRequest) {
 
   // ── 6) JournalLine → JournalEntry ──────────────────────────────────
   try {
-    counts.journalLines = await db.journalLine.deleteMany({})
+    counts.journalLines = (await db.journalLine.deleteMany({})).count
   } catch (e: any) {
     console.error("[clear-transactions] JournalLine delete failed:", e?.message)
     return NextResponse.json(
@@ -172,7 +172,7 @@ export async function POST(req: NextRequest) {
     )
   }
   try {
-    counts.journalEntries = await db.journalEntry.deleteMany({})
+    counts.journalEntries = (await db.journalEntry.deleteMany({})).count
   } catch (e: any) {
     console.error("[clear-transactions] JournalEntry delete failed:", e?.message)
     return NextResponse.json(
@@ -183,7 +183,7 @@ export async function POST(req: NextRequest) {
 
   // ── 7) StockItem (all warehouse quantities) ────────────────────────
   try {
-    counts.stockItems = await db.stockItem.deleteMany({})
+    counts.stockItems = (await db.stockItem.deleteMany({})).count
   } catch (e: any) {
     console.error("[clear-transactions] StockItem delete failed:", e?.message)
     return NextResponse.json(

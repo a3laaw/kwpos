@@ -9,6 +9,25 @@ import { ensurePurchaseAccounts } from "@/lib/purchase"
 import { itemsForDb, type SaleItemDataWithTax, type SaleTotals } from "./totals"
 import type { DecrementStep } from "./decrement-planner"
 
+/** Full Sale row including the relations used by `executeSaleTransaction`. */
+export type SaleWithIncludes = Prisma.SaleGetPayload<{
+  include: { user: true; items: { include: { product: true } } }
+}>
+
+/**
+ * Best-effort extraction of an error message from an unknown thrown value.
+ * Mirrors the previous `e?.message ?? e` behaviour while being type-safe.
+ */
+function errorMessage(e: unknown): string {
+  if (e instanceof Error) return e.message
+  if (typeof e === "string") return e
+  if (e && typeof e === "object" && "message" in e) {
+    const m = (e as { message: unknown }).message
+    return typeof m === "string" ? m : String(m)
+  }
+  return String(e)
+}
+
 export interface ExecuteSaleParams {
   decrementPlan: Map<string, DecrementStep[]>
   itemsData: SaleItemDataWithTax[]
@@ -29,7 +48,7 @@ export interface ExecuteSaleParams {
 
 export type ExecuteSaleResult =
   | { ok: false; error: string; status: number }
-  | { ok: true; sale: any }
+  | { ok: true; sale: SaleWithIncludes }
 
 /**
  * Execute the core sale WITHOUT Prisma's `$transaction` (interactive
@@ -74,8 +93,8 @@ export async function executeSaleTransaction(
     let invoiceNo: string
     const isPostgres = !process.env.DATABASE_URL?.startsWith("file:")
     if (isPostgres) {
-      const seqResult = await db.$queryRaw`SELECT nextval('sale_invoice_seq') as seq`
-      const seq = Number((seqResult as any[])[0]?.seq ?? 1)
+      const seqResult = await db.$queryRaw`SELECT nextval('sale_invoice_seq') as seq` as Array<{ seq: bigint }>
+      const seq = Number(seqResult[0]?.seq ?? 1)
       invoiceNo = makeInvoiceNo(seq)
     } else {
       const count = await db.sale.count()
@@ -132,9 +151,9 @@ export async function executeSaleTransaction(
               where: { productId_warehouseId: { productId: s.pid, warehouseId: s.wid } },
               data: { quantity: { increment: s.qty } },
             })
-          } catch (compErr: any) {
+          } catch (compErr: unknown) {
             console.error(
-              `[sale] COMPENSATION FAILED for ${s.pid}/${s.wid}: ${compErr?.message ?? compErr}`
+              `[sale] COMPENSATION FAILED for ${s.pid}/${s.wid}: ${errorMessage(compErr)}`
             )
           }
         }
@@ -201,11 +220,11 @@ export async function executeSaleTransaction(
             ), 0)
             WHERE id IN (${Prisma.join(productIds)})
           `
-        } catch (e: any) {
+        } catch (e: unknown) {
           console.warn(
             `[sale] Product.quantity sync failed for sale ${invoiceNo}. ` +
             `StockItem is correct; Product.quantity will self-correct. ` +
-            `Error: ${e?.message ?? e}`
+            `Error: ${errorMessage(e)}`
           )
         }
       })()
@@ -233,10 +252,10 @@ export async function executeSaleTransaction(
           date: new Date(),
           lines: revenueLines,
         })
-      } catch (e: any) {
+      } catch (e: unknown) {
         console.error(
           `[sale] JournalEntry FAILED for sale ${invoiceNo} (${sale.id}). ` +
-          `Sale is committed but accounting has a gap. Error: ${e?.message ?? e}`
+          `Sale is committed but accounting has a gap. Error: ${errorMessage(e)}`
         )
       }
     })()
@@ -251,21 +270,21 @@ export async function executeSaleTransaction(
           description: `فاتورة مبيعات ${invoiceNo}`,
           saleId: sale.id,
         })
-      } catch (e: any) {
-        console.warn(`[sale] AuditLog failed for ${invoiceNo}: ${e?.message ?? e}`)
+      } catch (e: unknown) {
+        console.warn(`[sale] AuditLog failed for ${invoiceNo}: ${errorMessage(e)}`)
       }
     })()
 
     // Return IMMEDIATELY — the cashier sees the sale succeed fast.
     // Side effects continue in the background.
     return { ok: true, sale }
-  } catch (e: any) {
+  } catch (e: unknown) {
     // ── COMPENSATING ACTIONS (saga rollback) ──────────────────────────
     // If the sale failed AFTER stock was decremented, re-increment the
     // stock to restore the original state. This is the compensating
     // transaction in the saga pattern.
     if (decremented.length > 0) {
-      const msg = e?.message || "sale-failed"
+      const msg = errorMessage(e) || "sale-failed"
       const shouldCompensate = !msg.startsWith("stock-insufficient:concurrent")
       // If the failure was a stock-insufficient error on item N, items
       // 1..N-1 were already decremented and need compensation. Item N
@@ -286,19 +305,19 @@ export async function executeSaleTransaction(
               },
               data: { quantity: { increment: d.qty } },
             })
-          } catch (compErr: any) {
+          } catch (compErr: unknown) {
             // Compensation failed — stock is now WRONG. Log loudly.
             console.error(
               `[sale] COMPENSATION FAILED for product ${d.productId} ` +
               `warehouse ${d.warehouseId}. Stock is inconsistent! ` +
-              `Error: ${compErr?.message ?? compErr}`
+              `Error: ${errorMessage(compErr)}`
             )
           }
         }
       }
     }
 
-    const msg = e?.message || "sale-failed"
+    const msg = errorMessage(e) || "sale-failed"
     const status = msg.startsWith("stock-insufficient") ||
       msg.startsWith("product-not-found") ||
       msg.startsWith("invalid-item")
@@ -311,7 +330,7 @@ export async function executeSaleTransaction(
 /**
  * Serialize the sale for the API response.
  */
-export function serializeSaleResponse(sale: any) {
+export function serializeSaleResponse(sale: SaleWithIncludes) {
   return serializeSale(sale)
 }
 

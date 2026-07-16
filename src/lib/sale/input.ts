@@ -1,5 +1,11 @@
 import { toNum } from "@/lib/coercions"
 
+/** Loosely-typed shape of a single cart item from the POST /api/sales body. */
+type RawCartItem = Record<string, unknown>
+
+/** Loosely-typed shape of the POST /api/sales request body. */
+type RawSaleRequestBody = Record<string, unknown>
+
 /**
  * Raw sale input parsed from the POST /api/sales request body.
  */
@@ -38,7 +44,9 @@ export type ParseResult =
  * Returns a discriminated union so the caller can early-return on error
  * without nested conditionals (Replace Nested Conditional with Guard Clauses).
  */
-export function parseSaleInput(body: any): ParseResult {
+export function parseSaleInput(body: unknown): ParseResult {
+  const raw: RawSaleRequestBody =
+    body && typeof body === "object" ? (body as RawSaleRequestBody) : {}
   const {
     customerName,
     customerPhone,
@@ -49,7 +57,7 @@ export function parseSaleInput(body: any): ParseResult {
     paymentMethod,
     deliveryFee,
     driverName,
-  } = body || {}
+  } = raw
 
   if (!Array.isArray(items) || items.length === 0) {
     return { ok: false, error: "items-required", status: 400 }
@@ -59,7 +67,7 @@ export function parseSaleInput(body: any): ParseResult {
   // appears multiple times in the cart).
   const qtyByProduct = new Map<string, number>()
   const productIds: string[] = []
-  for (const it of items) {
+  for (const it of items as RawCartItem[]) {
     const pid = String(it?.productId ?? "")
     const qty = toNum(it?.quantity)
     if (!pid || qty <= 0) continue
@@ -74,10 +82,10 @@ export function parseSaleInput(body: any): ParseResult {
   return {
     ok: true,
     input: {
-      customerName: customerName?.trim() || null,
-      customerPhone: customerPhone?.trim() || "",
-      customerAddress: customerAddress?.trim() || null,
-      items: items.map((it: any) => ({
+      customerName: typeof customerName === "string" ? customerName.trim() || null : null,
+      customerPhone: typeof customerPhone === "string" ? customerPhone.trim() || "" : "",
+      customerAddress: typeof customerAddress === "string" ? customerAddress.trim() || null : null,
+      items: (items as RawCartItem[]).map((it) => ({
         productId: String(it.productId),
         quantity: toNum(it.quantity),
         unitPrice: toNum(it.unitPrice),
@@ -85,9 +93,9 @@ export function parseSaleInput(body: any): ParseResult {
       cartTax: toNum(taxRate),
       discount: Math.max(0, toNum(discount)),
       deliveryFee: Math.max(0, toNum(deliveryFee)),
-      driverName: driverName?.trim() || null,
+      driverName: typeof driverName === "string" ? driverName.trim() || null : null,
       paymentMethod,
-      warehouseId: body?.warehouseId ?? null,
+      warehouseId: typeof raw.warehouseId === "string" ? raw.warehouseId : null,
       productIds,
       qtyByProduct,
     },
