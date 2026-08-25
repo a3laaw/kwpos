@@ -1186,6 +1186,8 @@ function SystemMaintenanceCard() {
         </div>
 
         {/* ── TEMPORARY — Danger Zone (clear transactions). Remove after go-live. ── */}
+        {/* Hidden in production via env gate on the API route; also hide the UI here. */}
+        {process.env.NODE_ENV !== "production" && (
         <div className="rounded-lg border-2 border-destructive/40 bg-destructive/5 p-4 space-y-3">
           <div className="flex items-start gap-3">
             <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
@@ -1322,6 +1324,7 @@ function SystemMaintenanceCard() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        )}
       </CardContent>
     </Card>
   )

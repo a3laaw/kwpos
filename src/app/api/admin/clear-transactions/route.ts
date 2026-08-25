@@ -47,6 +47,18 @@ export const runtime = "nodejs"
  * it and when. This is the only record that survives the wipe.
  */
 export async function POST(req: NextRequest) {
+  // ── Production gate ────────────────────────────────────────────────
+  // DDL/destructive operations should only run via Prisma migrations or
+  // explicit admin tooling. Disable in production unless explicitly
+  // opted-in via ENABLE_ADMIN_DDL env var. Same pattern as the
+  // apply-*-schema routes.
+  if (process.env.NODE_ENV === "production" && process.env.ENABLE_ADMIN_DDL !== "true") {
+    return NextResponse.json(
+      { error: "admin-ddl-disabled-in-production" },
+      { status: 403 }
+    )
+  }
+
   // ── Auth + role gate ───────────────────────────────────────────────
   const user = await getCurrentUser()
   if (!user) {
