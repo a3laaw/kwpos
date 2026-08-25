@@ -28,7 +28,14 @@ export function UserProvider({
   children: React.ReactNode
 }) {
   // Memoize so the context value is stable across re-renders.
-  const value = React.useMemo(() => user, [user.id, user.name, user.email, user.role])
+  // Include ALL user fields in the deps so toggling posExpressMode or
+  // changing warehouseId actually updates consumers. Previously the memo
+  // only watched [id, name, email, role], so posExpressMode toggles
+  // were lost — forcing a router.refresh() workaround in sales-view.
+  const value = React.useMemo(
+    () => user,
+    [user.id, user.name, user.email, user.role, user.posExpressMode, user.warehouseId]
+  )
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>
 }
 
