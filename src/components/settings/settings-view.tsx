@@ -95,7 +95,7 @@ export function SettingsView() {
     { id: "hardware", icon: Printer, title: t.hardwareSettingsTitle || "إعدادات الأجهزة", desc: t.hardwareSettingsDesc || "الطابعة، درج النقدية، قارئ الباركود" },
     { id: "categories", icon: Tags, title: t.setCategories, desc: t.setCategoriesDesc },
     { id: "units", icon: Ruler, title: t.setUnitsTitle || "الوحدات", desc: t.setUnitsDesc || "وحدات القياس" },
-    { id: "maintenance", icon: Wrench, title: "صيانة النظام", desc: "إعادة حساب المخزون + فحص النظام" },
+    { id: "maintenance", icon: Wrench, title: t.maintNavTitle, desc: t.maintNavDesc },
   ]
 
   return (
@@ -976,7 +976,7 @@ function SystemMaintenanceCard() {
   // TEMPORARY — Danger zone handler. Remove after go-live.
   async function handleClearTransactions() {
     if (clearConfirmInput !== "DELETE") {
-      toast.error("يجب كتابة DELETE بالضابط للمتابعة")
+      toast.error(t.maintTypeDeleteRequired)
       return
     }
     setClearLoading(true)
@@ -992,11 +992,11 @@ function SystemMaintenanceCard() {
       setClearResult(data)
       setClearDialogOpen(false)
       setClearConfirmInput("")
-      toast.success("تم مسح كل الفواتير والجرد والقيود بنجاح", {
-        description: "النظام الآن في حالة نظيفة. استخدم «إصلاح المخزون» لإعادة البناء إن لزم.",
+      toast.success(t.maintClearedSuccess, {
+        description: t.maintClearedSuccessDesc,
       })
     } catch (err: any) {
-      toast.error("فشل المسح", { description: err?.message })
+      toast.error(t.maintClearFailed, { description: err?.message })
       setClearResult({ error: err?.message || "failed" })
     } finally {
       setClearLoading(false)
@@ -1010,19 +1010,18 @@ function SystemMaintenanceCard() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <Wrench className="h-4 w-4 text-primary" />
-          صيانة النظام
+          {t.maintCardTitle}
         </CardTitle>
-        <CardDescription>أدوات صيانة وإصلاح قاعدة البيانات</CardDescription>
+        <CardDescription>{t.maintCardDesc}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Stock recalculation */}
         <div className="rounded-lg border border-border/60 p-4 space-y-3">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h4 className="text-sm font-semibold">إعادة حساب المخزون</h4>
+              <h4 className="text-sm font-semibold">{t.maintRecalcTitle}</h4>
               <p className="text-xs text-muted-foreground mt-1">
-                يُعيد حساب كمية كل منتج من مجموع الكميات الفعلية في المستودعات.
-                يستخدم لإصلاح أي عدم تطابق بين المخزون المعروض والمخزون الفعلي.
+                {t.maintRecalcDesc}
               </p>
             </div>
             <Button
@@ -1031,7 +1030,7 @@ function SystemMaintenanceCard() {
               className="gap-2 shrink-0"
             >
               {recalcLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wrench className="h-4 w-4" />}
-              إعادة الحساب
+              {t.maintRecalcButton}
             </Button>
           </div>
 
@@ -1040,32 +1039,32 @@ function SystemMaintenanceCard() {
               {recalcResult.error ? (
                 <div className="flex items-center gap-2 text-sm text-destructive">
                   <AlertCircle className="h-4 w-4" />
-                  فشل: {recalcResult.error}
+                  {t.maintFailed}: {recalcResult.error}
                 </div>
               ) : (
                 <>
                   <div className="flex items-center gap-2 text-sm text-emerald-600">
                     <CheckCircle2 className="h-4 w-4" />
-                    تمت إعادة الحساب بنجاح
+                    {t.maintRecalcSuccess}
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-center">
                     <div className="rounded-lg bg-background p-2">
-                      <p className="text-xs text-muted-foreground">إجمالي المنتجات</p>
+                      <p className="text-xs text-muted-foreground">{t.maintTotalProducts}</p>
                       <p className="text-lg font-bold tabular-nums">{recalcResult.totalProducts}</p>
                     </div>
                     <div className="rounded-lg bg-amber-500/10 p-2">
-                      <p className="text-xs text-muted-foreground">تم تصحيحها</p>
+                      <p className="text-xs text-muted-foreground">{t.maintCorrected}</p>
                       <p className="text-lg font-bold tabular-nums text-amber-600">{recalcResult.corrected}</p>
                     </div>
                     <div className="rounded-lg bg-emerald-500/10 p-2">
-                      <p className="text-xs text-muted-foreground">سليمة</p>
+                      <p className="text-xs text-muted-foreground">{t.maintUnchanged}</p>
                       <p className="text-lg font-bold tabular-nums text-emerald-600">{recalcResult.unchanged}</p>
                     </div>
                   </div>
                   {recalcResult.corrections?.length > 0 ? (
                     <div className="space-y-1 mt-2">
                       <p className="text-xs font-medium text-muted-foreground">
-                        أول {recalcResult.corrections.length} منتج تم تصحيحها:
+                        {t.maintFirstCorrections.replace("{count}", String(recalcResult.corrections.length))}
                       </p>
                       <div className="max-h-40 overflow-y-auto scrollbar-thin space-y-1">
                         {recalcResult.corrections.map((c: any) => (
@@ -1091,11 +1090,9 @@ function SystemMaintenanceCard() {
         <div className="rounded-lg border border-border/60 p-4 space-y-3">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h4 className="text-sm font-semibold">إصلاح المخزون من السجل التاريخي</h4>
+              <h4 className="text-sm font-semibold">{t.maintFixTitle}</h4>
               <p className="text-xs text-muted-foreground mt-1">
-                يُعيد بناء مخزون كل منتج من سجل المعاملات الفعلي:
-                (فواتير مشتريات مرحّلة − مرتجعات مشتريات − مبيعات مكتملة).
-                يستخدم لإصلاح المنتجات التي لم يُضاف لها مخزون بسبب أعطال سابقة.
+                {t.maintFixDesc}
               </p>
             </div>
             <div className="flex gap-2 shrink-0">
@@ -1107,7 +1104,7 @@ function SystemMaintenanceCard() {
                 className="gap-2"
               >
                 {fixLoading && fixMode === "dry" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                فحص فقط
+                {t.maintDryRunButton}
               </Button>
               <Button
                 size="sm"
@@ -1116,7 +1113,7 @@ function SystemMaintenanceCard() {
                 className="gap-2"
               >
                 {fixLoading && fixMode === "fix" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wrench className="h-4 w-4" />}
-                إصلاح الآن
+                {t.maintFixButton}
               </Button>
             </div>
           </div>
@@ -1126,32 +1123,32 @@ function SystemMaintenanceCard() {
               {fixResult.error ? (
                 <div className="flex items-center gap-2 text-sm text-destructive">
                   <AlertCircle className="h-4 w-4" />
-                  فشل: {fixResult.error}
+                  {t.maintFailed}: {fixResult.error}
                 </div>
               ) : (
                 <>
                   <div className="flex items-center gap-2 text-sm text-emerald-600">
                     <CheckCircle2 className="h-4 w-4" />
-                    {fixResult.dryRun ? "نتيجة الفحص (لم يتم تغيير شيء)" : "تم الإصلاح بنجاح"}
+                    {fixResult.dryRun ? t.maintDryRunResult : t.maintFixSuccess}
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-center">
                     <div className="rounded-lg bg-background p-2">
-                      <p className="text-xs text-muted-foreground">إجمالي المنتجات</p>
+                      <p className="text-xs text-muted-foreground">{t.maintTotalProducts}</p>
                       <p className="text-lg font-bold tabular-nums">{fixResult.totalProducts}</p>
                     </div>
                     <div className="rounded-lg bg-amber-500/10 p-2">
-                      <p className="text-xs text-muted-foreground">{fixResult.dryRun ? "تحتاج إصلاح" : "تم إصلاحها"}</p>
+                      <p className="text-xs text-muted-foreground">{fixResult.dryRun ? t.maintNeedFix : t.maintFixed}</p>
                       <p className="text-lg font-bold tabular-nums text-amber-600">{fixResult.fixed}</p>
                     </div>
                     <div className="rounded-lg bg-red-500/10 p-2">
-                      <p className="text-xs text-muted-foreground">تخطّي (بيانات متناقضة)</p>
+                      <p className="text-xs text-muted-foreground">{t.maintSkipped}</p>
                       <p className="text-lg font-bold tabular-nums text-red-600">{fixResult.skipped}</p>
                     </div>
                   </div>
                   {fixResult.corrections?.length > 0 ? (
                     <div className="space-y-1 mt-2">
                       <p className="text-xs font-medium text-muted-foreground">
-                        أول {fixResult.corrections.length} منتج:
+                        {t.maintFirstCorrectionsShort.replace("{count}", String(fixResult.corrections.length))}
                       </p>
                       <div className="max-h-40 overflow-y-auto scrollbar-thin space-y-1">
                         {fixResult.corrections.map((c: any) => (
@@ -1162,7 +1159,10 @@ function SystemMaintenanceCard() {
                               {" → "}
                               <span className="text-emerald-600 font-medium">{c.expectedFromHistory}</span>
                               <span className="text-muted-foreground ms-1">
-                                (شراء: {c.purchased}، مرتجع: {c.purchaseReturned}، بيع: {c.sold})
+                                {t.maintCorrectionBreakdown
+                                  .replace("{purchased}", String(c.purchased))
+                                  .replace("{purchaseReturned}", String(c.purchaseReturned))
+                                  .replace("{sold}", String(c.sold))}
                               </span>
                             </span>
                           </div>
@@ -1179,9 +1179,7 @@ function SystemMaintenanceCard() {
         {/* Info */}
         <div className="rounded-lg bg-amber-500/5 border border-amber-500/20 p-3">
           <p className="text-xs text-muted-foreground">
-            💡 «إعادة حساب المخزون» يُطابق Product.quantity مع StockItem.
-            «إصلاح المخزون من السجل» يُعيد بناء StockItem نفسه من فواتير المشتريات والمبيعات —
-            استخدمه عند وجود منتجات بمخزون صفر رغم وجود فواتير شراء مرحّلة.
+            {t.maintInfoHint}
           </p>
         </div>
 
@@ -1193,32 +1191,30 @@ function SystemMaintenanceCard() {
           <div className="flex items-start gap-3">
             <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
             <div className="space-y-1">
-              <h4 className="text-sm font-semibold text-destructive">منطقة الخطر — مسح كل البيانات</h4>
+              <h4 className="text-sm font-semibold text-destructive">{t.maintDangerZoneTitle}</h4>
               <p className="text-xs text-muted-foreground">
-                يحذف <strong>بشكل دائم لا رجعة فيه</strong> كل الفواتير والجرد والقيود المحاسبية،
-                ويُصفّر المخزون ونقاط الولاء. المنتات والعملاء والموردون والحسابات تبقى.
-                مخصص لإعادة النظام لحالة نظيفة قبل الإطلاق فقط.
+                {t.maintDangerZoneDesc}
               </p>
             </div>
           </div>
 
           <div className="rounded-md bg-background/60 p-3 space-y-1.5">
-            <p className="text-xs font-medium">سيتم حذف:</p>
+            <p className="text-xs font-medium">{t.maintWillDelete}</p>
             <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-              <li>كل الفواتير (مبيعات + معلّقة + تبديلات) — <code>Sale, SaleItem, SuspendedSale, ExchangeSale, ExchangeLine</code></li>
-              <li>كل الجرد (كامل + أعمى) — <code>StockTake, StockTakeItem, SpotCheck</code></li>
-              <li>كل القيود المحاسبية — <code>JournalEntry, JournalLine</code></li>
-              <li>كل كميات المخزون — <code>StockItem</code> + <code>Product.quantity = 0</code></li>
-              <li>نقاط ولاء كل العملاء — <code>Customer.loyaltyPoints = 0</code></li>
+              <li>{t.maintDelInvoices} <code>Sale, SaleItem, SuspendedSale, ExchangeSale, ExchangeLine</code></li>
+              <li>{t.maintDelStockTakes} <code>StockTake, StockTakeItem, SpotCheck</code></li>
+              <li>{t.maintDelJournal} <code>JournalEntry, JournalLine</code></li>
+              <li>{t.maintDelStock} <code>StockItem</code> + <code>Product.quantity = 0</code></li>
+              <li>{t.maintDelLoyalty} <code>Customer.loyaltyPoints = 0</code></li>
             </ul>
             <p className="text-xs text-amber-600 mt-2">
-              ⚠️ يُسجَّل الإجراء في سجل التدقيق (AuditLog) — لا يمكن التراجع.
+              {t.maintAuditLogged}
             </p>
           </div>
 
           <div className="flex items-center justify-between gap-3">
             <p className="text-xs text-muted-foreground">
-              الزر مؤقت — احذفه بعد الإطلاق من <code>settings-view.tsx</code> + <code>/api/admin/clear-transactions/</code>.
+              {t.maintTempButtonHint} <code>settings-view.tsx</code> + <code>/api/admin/clear-transactions/</code>.
             </p>
             <Button
               variant="destructive"
@@ -1230,7 +1226,7 @@ function SystemMaintenanceCard() {
               className="gap-2 shrink-0"
             >
               <Trash2 className="h-4 w-4" />
-              مسح الفواتير والجرد
+              {t.maintClearButton}
             </Button>
           </div>
 
@@ -1239,33 +1235,33 @@ function SystemMaintenanceCard() {
               {clearResult.error ? (
                 <div className="flex items-center gap-2 text-sm text-destructive">
                   <AlertCircle className="h-4 w-4" />
-                  فشل: {clearResult.error}
+                  {t.maintFailed}: {clearResult.error}
                 </div>
               ) : (
                 <>
                   <div className="flex items-center gap-2 text-sm text-emerald-600">
                     <CheckCircle2 className="h-4 w-4" />
-                    تم المسح بنجاح — النظام الآن في حالة نظيفة
+                    {t.maintClearSuccess}
                   </div>
                   <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 text-center">
                     <div className="rounded-lg bg-background p-2">
-                      <p className="text-xs text-muted-foreground">فواتير</p>
+                      <p className="text-xs text-muted-foreground">{t.maintCountInvoices}</p>
                       <p className="text-base font-bold tabular-nums">{clearResult.counts?.sales ?? 0}</p>
                     </div>
                     <div className="rounded-lg bg-background p-2">
-                      <p className="text-xs text-muted-foreground">جرد</p>
+                      <p className="text-xs text-muted-foreground">{t.maintCountStockTakes}</p>
                       <p className="text-base font-bold tabular-nums">{clearResult.counts?.stockTakes ?? 0}</p>
                     </div>
                     <div className="rounded-lg bg-background p-2">
-                      <p className="text-xs text-muted-foreground">قيود</p>
+                      <p className="text-xs text-muted-foreground">{t.maintCountJournal}</p>
                       <p className="text-base font-bold tabular-nums">{clearResult.counts?.journalEntries ?? 0}</p>
                     </div>
                     <div className="rounded-lg bg-background p-2">
-                      <p className="text-xs text-muted-foreground">منتجات صُفّرت</p>
+                      <p className="text-xs text-muted-foreground">{t.maintCountProductsReset}</p>
                       <p className="text-base font-bold tabular-nums">{clearResult.counts?.productsReset ?? 0}</p>
                     </div>
                     <div className="rounded-lg bg-background p-2">
-                      <p className="text-xs text-muted-foreground">عملاء صُفّرت ولاؤهم</p>
+                      <p className="text-xs text-muted-foreground">{t.maintCountCustomersReset}</p>
                       <p className="text-base font-bold tabular-nums">{clearResult.counts?.customersReset ?? 0}</p>
                     </div>
                   </div>
@@ -1281,22 +1277,22 @@ function SystemMaintenanceCard() {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-destructive">
                 <AlertTriangle className="h-5 w-5" />
-                تأكيد مسح كل البيانات
+                {t.maintClearDialogTitle}
               </DialogTitle>
               <DialogDescription>
-                هذا الإجراء <strong>لا يمكن التراجع عنه</strong>. سيُحذف كل سجل المبيعات والجرد والمحاسبة.
+                {t.maintClearDialogDesc}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-3 py-2">
               <div className="rounded-md bg-destructive/5 border border-destructive/20 p-3">
                 <p className="text-xs text-muted-foreground">
-                  للتأكيد، اكتب <code className="font-bold text-destructive">DELETE</code> في الحقل أدناه:
+                  {t.maintConfirmTypeDelete} <code className="font-bold text-destructive">DELETE</code> {t.maintInFieldBelow}
                 </p>
               </div>
               <Input
                 value={clearConfirmInput}
                 onChange={(e) => setClearConfirmInput(e.target.value)}
-                placeholder="اكتب DELETE هنا"
+                placeholder={t.maintTypeDeletePlaceholder}
                 className="font-mono"
                 autoComplete="off"
                 disabled={clearLoading}
@@ -1311,7 +1307,7 @@ function SystemMaintenanceCard() {
                 }}
                 disabled={clearLoading}
               >
-                إلغاء
+                {t.cancel}
               </Button>
               <Button
                 variant="destructive"
@@ -1320,7 +1316,7 @@ function SystemMaintenanceCard() {
                 className="gap-2"
               >
                 {clearLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                نعم، امسح كل شيء
+                {t.maintConfirmClearAll}
               </Button>
             </DialogFooter>
           </DialogContent>

@@ -70,7 +70,7 @@ export function StockTakeTab() {
   // ── Start a new stock take: auto-load all products ──
   async function handleStartNew() {
     if (allProducts.length === 0) {
-      toast.error("لا توجد منتجات لجردها")
+      toast.error(t.stNoProductsToCount)
       return
     }
 
@@ -80,7 +80,7 @@ export function StockTakeTab() {
       : allProducts
 
     if (filtered.length === 0) {
-      toast.error("لا توجد منتجات في هذا القسم")
+      toast.error(t.stNoProductsInCategory)
       return
     }
 
@@ -111,11 +111,11 @@ export function StockTakeTab() {
       } as any)
       setCurrentDraftId(res.id)
       setCurrentDraftNo(res.takeNo)
-      toast.success(`تم بدء جرد جديد: ${res.takeNo}`, {
-        description: `${newLines.length} صنف — ابدأ بإدخال الأرصدة الفعلية`,
+      toast.success(t.stNewStockTakeStarted.replace("{takeNo}", res.takeNo), {
+        description: t.stNewStockTakeDesc.replace("{count}", String(newLines.length)),
       })
     } catch (err: any) {
-      toast.error("فشل إنشاء المسودة", { description: String(err?.message || err) })
+      toast.error(t.stCreateDraftFailed, { description: String(err?.message || err) })
     }
   }
 
@@ -128,12 +128,12 @@ export function StockTakeTab() {
   // ── Save (update existing draft) ──
   async function handleSave() {
     if (!currentDraftId) {
-      toast.error("لم يتم إنشاء المسودة بعد")
+      toast.error(t.stDraftNotCreatedYet)
       return
     }
     const filledLines = lines.filter((l) => l.actualQty !== "")
     if (filledLines.length === 0) {
-      toast.error("لم يتم إدخال أي أرصدة بعد")
+      toast.error(t.stNoBalancesEnteredYet)
       return
     }
     try {
@@ -149,11 +149,14 @@ export function StockTakeTab() {
         }),
       })
       if (!res.ok) throw new Error(`request-failed:${res.status}`)
-      toast.success("تم حفظ التقدم", {
-        description: `${currentDraftNo} — ${filledLines.length}/${lines.length} صنف مُدخل`,
+      toast.success(t.stProgressSaved, {
+        description: t.stProgressSavedDesc
+          .replace("{draftNo}", currentDraftNo ?? "")
+          .replace("{count}", String(filledLines.length))
+          .replace("{total}", String(lines.length)),
       })
     } catch (err: any) {
-      toast.error("فشل الحفظ", { description: String(err?.message || err) })
+      toast.error(t.stSaveFailed, { description: String(err?.message || err) })
     }
   }
 
@@ -164,7 +167,7 @@ export function StockTakeTab() {
       if (!res.ok) throw new Error(`request-failed:${res.status}`)
       const tk = await res.json()
       if (tk.status !== "DRAFT") {
-        toast.error("لا يمكن متابعة جرد معتمد")
+        toast.error(t.stCannotContinueApproved)
         return
       }
       // Load the items into the form
@@ -182,11 +185,13 @@ export function StockTakeTab() {
       setCurrentDraftNo(tk.takeNo)
       setWarehouseId(tk.warehouseId || "all")
       setMode("counting")
-      toast.success(`متابعة الجرد: ${tk.takeNo}`, {
-        description: `${loadedLines.filter((l) => l.actualQty !== "").length}/${loadedLines.length} صنف مُدخل مسبقاً`,
+      toast.success(t.stContinueStockTake.replace("{takeNo}", tk.takeNo), {
+        description: t.stContinueDesc
+          .replace("{count}", String(loadedLines.filter((l) => l.actualQty !== "").length))
+          .replace("{total}", String(loadedLines.length)),
       })
     } catch (err: any) {
-      toast.error("فشل فتح المسودة", { description: String(err?.message || err) })
+      toast.error(t.stOpenDraftFailed, { description: String(err?.message || err) })
     }
   }
 
@@ -226,10 +231,10 @@ export function StockTakeTab() {
   // ── Print blind count sheet ──
   function handlePrintCountSheet() {
     if (lines.length === 0) {
-      toast.error("لا توجد أصناف")
+      toast.error(t.stNoItems)
       return
     }
-    const whName = warehouseId === "all" ? "كل المخازن" : (warehouses.find((w) => w.id === warehouseId)?.name || "—")
+    const whName = warehouseId === "all" ? t.stAllWarehouses : (warehouses.find((w) => w.id === warehouseId)?.name || "—")
     const dateStr = new Intl.DateTimeFormat("ar-KW-u-nu-latn", {
       year: "numeric", month: "long", day: "numeric",
     }).format(new Date())
@@ -246,7 +251,7 @@ export function StockTakeTab() {
 <html dir="rtl" lang="ar">
 <head>
 <meta charset="utf-8">
-<title>كشف جرد — ${whName}</title>
+<title>${t.stCountSheetHeader.replace("{whName}", whName)}</title>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   @page { size: A4; margin: 12mm; }
@@ -272,33 +277,33 @@ export function StockTakeTab() {
 </head>
 <body>
   <div class="header">
-    <h1>كشف جرد المخزون (جرد أعمى)</h1>
-    <p>المخزن: ${whName} | التاريخ: ${dateStr}</p>
+    <h1>${t.stCountSheetTitle}</h1>
+    <p>${t.stCountSheetWarehouseLabel}: ${whName} | ${t.stCountSheetDateLabel}: ${dateStr}</p>
   </div>
   <table>
     <thead>
       <tr>
         <th class="col-num">#</th>
-        <th class="col-name">الصنف</th>
-        <th class="col-barcode">الباركود</th>
-        <th class="col-actual">العد الفعلي</th>
+        <th class="col-name">${t.stCountSheetItem}</th>
+        <th class="col-barcode">${t.stCountSheetBarcode}</th>
+        <th class="col-actual">${t.stCountSheetActualCount}</th>
       </tr>
     </thead>
     <tbody>${rows}</tbody>
   </table>
   <div class="footer">
-    <p>كشف جرد أعمى — لا يحتوي على الرصيد الدفتري. قم بالعد الفعلي واكتب الرقم في خانة "العد الفعلي"</p>
+    <p>${t.stBlindCountReport}</p>
   </div>
 </body>
 </html>`
 
     const features = "width=900,height=700,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes"
     const w = window.open("", "_blank", features)
-    if (!w) { alert("يرجى السماح بالنوافذ المنبثقة"); return }
+    if (!w) { alert(t.stAllowPopups); return }
     w.document.open()
     w.document.write(html)
     w.document.close()
-    w.document.title = `كشف جرد — ${whName}`
+    w.document.title = t.stCountSheetHeader.replace("{whName}", whName)
     const trigger = () => { w.focus(); w.print() }
     if (w.document.fonts?.ready) {
       w.document.fonts.ready.then(() => setTimeout(trigger, 200))
@@ -328,9 +333,9 @@ export function StockTakeTab() {
                 <ClipboardCheck className="h-7 w-7 text-primary" />
               </div>
             </div>
-            <h3 className="text-lg font-bold">بدء جرد جديد</h3>
+            <h3 className="text-lg font-bold">{t.stStartNewTitle}</h3>
             <p className="text-sm text-muted-foreground mt-1">
-              اختر المخزن والقسم ثم ابدأ — سيتم تحميل كل الأصناف تلقائياً
+              {t.stStartNewDesc}
             </p>
           </div>
 
@@ -353,13 +358,13 @@ export function StockTakeTab() {
 
             {/* Category */}
             <div className="space-y-2">
-              <Label className="text-sm">القسم / التصنيف</Label>
+              <Label className="text-sm">{t.stCategoryLabel}</Label>
               <Select value={categoryId} onValueChange={setCategoryId}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">كل الأقسام</SelectItem>
+                  <SelectItem value="all">{t.stAllCategories}</SelectItem>
                   {categories.map((c: any) => (
                     <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                   ))}
@@ -373,7 +378,7 @@ export function StockTakeTab() {
               <Input
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                placeholder="اختياري"
+                placeholder={t.stOptional}
               />
             </div>
           </div>
@@ -381,12 +386,12 @@ export function StockTakeTab() {
           <div className="flex justify-center mt-6">
             <Button onClick={handleStartNew} disabled={createMut.isPending} size="lg" className="gap-2">
               {createMut.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <FilePlus2 className="h-5 w-5" />}
-              بدء جرد جديد
+              {t.stStartNewTitle}
             </Button>
           </div>
           {createMut.isPending ? (
             <p className="text-center text-xs text-muted-foreground mt-2">
-              جاري تحميل كل الأصناف...
+              {t.stLoadingAllItems}
             </p>
           ) : null}
         </Card>
@@ -402,10 +407,10 @@ export function StockTakeTab() {
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <div className="flex items-center gap-2">
                   <Badge variant="secondary" className="bg-amber-500/15 text-amber-700 border-amber-500/30">
-                    {currentDraftNo || "مسودة جديدة"}
+                    {currentDraftNo || t.stNewDraft}
                   </Badge>
                   <span className="text-sm text-muted-foreground">
-                    {countedCount}/{lines.length} صنف — {progress}%
+                    {countedCount}/{lines.length} {t.stItemsShort} — {progress}%
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -416,7 +421,7 @@ export function StockTakeTab() {
                     />
                   </div>
                   <Button variant="ghost" size="sm" onClick={handleCancel} className="text-xs">
-                    إلغاء
+                    {t.cancel}
                   </Button>
                 </div>
               </div>
@@ -427,12 +432,12 @@ export function StockTakeTab() {
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="بحث بالاسم أو الباركود..."
+                placeholder={t.stSearchByNameOrBarcode}
                 className="flex-1"
               />
               <Button variant="outline" size="sm" onClick={handlePrintCountSheet} className="gap-2 shrink-0">
                 <Printer className="h-4 w-4" />
-                طباعة كشف
+                {t.stPrintCountSheet}
               </Button>
             </div>
 
@@ -446,7 +451,7 @@ export function StockTakeTab() {
                         <th className="text-start p-2.5 font-medium w-10">#</th>
                         <th className="text-start p-2.5 font-medium">{t.productName || "الصنف"}</th>
                         {showBookValue ? (
-                          <th className="text-center p-2.5 font-medium w-20">دفتري</th>
+                          <th className="text-center p-2.5 font-medium w-20">{t.systemQty}</th>
                         ) : null}
                         <th className="text-center p-2.5 font-medium w-28">{t.actualQty || "العد الفعلي"}</th>
                       </tr>
@@ -481,7 +486,7 @@ export function StockTakeTab() {
                               value={l.actualQty}
                               onChange={(e) => setActualQty(l.productId, e.target.value)}
                               className="h-8 w-24 text-center tabular-nums mx-auto"
-                              placeholder="؟"
+                              placeholder={t.stQtyPlaceholder}
                             />
                           </td>
                         </tr>
@@ -506,7 +511,7 @@ export function StockTakeTab() {
                 {/* Blind count badge */}
                 <div className="rounded-lg bg-muted/40 border border-border/60 p-3 text-center">
                   <p className="text-xs text-muted-foreground mb-2">
-                    {showBookValue ? "الوضع: عرض الرصيد الدفتري" : "جرد أعمى — الرصيد الدفتري مخفي"}
+                    {showBookValue ? t.stModeShowBookValue : t.stModeBlindCount}
                   </p>
                   <Button
                     variant="ghost"
@@ -515,7 +520,7 @@ export function StockTakeTab() {
                     onClick={() => setShowBookValue(!showBookValue)}
                   >
                     <Filter className="h-3 w-3" />
-                    {showBookValue ? "إخفاء الرصيد الدفتري" : "إظهار الرصيد الدفتري"}
+                    {showBookValue ? t.stHideBookValue : t.stShowBookValue}
                   </Button>
                 </div>
 
@@ -524,7 +529,7 @@ export function StockTakeTab() {
                 {/* Progress */}
                 <div className="space-y-1">
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">التقدم</span>
+                    <span className="text-muted-foreground">{t.stProgress}</span>
                     <span className="font-medium tabular-nums">{countedCount}/{lines.length}</span>
                   </div>
                   <div className="h-2 rounded-full bg-muted overflow-hidden">
@@ -542,11 +547,11 @@ export function StockTakeTab() {
                   className="w-full gap-2"
                 >
                   <Save className="h-4 w-4" />
-                  حفظ التقدم
+                  {t.stSaveProgress}
                 </Button>
                 {currentDraftId ? (
                   <p className="text-[10px] text-center text-muted-foreground">
-                    سيتم تحديث المسودة {currentDraftNo}
+                    {t.stWillUpdateDraft.replace("{draftNo}", currentDraftNo ?? "")}
                   </p>
                 ) : null}
 
@@ -560,7 +565,7 @@ export function StockTakeTab() {
                   {t.newStockTake || "اعتماد الجرد"}
                 </Button>
                 <p className="text-[10px] text-center text-muted-foreground">
-                  الاعتماد النهائي يقفل الجرد ويُعدّل المخزون
+                  {t.stFinalizeApproveHint}
                 </p>
               </CardContent>
             </Card>
@@ -578,7 +583,7 @@ export function StockTakeTab() {
                 <tr>
                   <th className="text-start p-2.5 font-medium">#</th>
                   <th className="text-start p-2.5 font-medium">{t.status || "الحالة"}</th>
-                  <th className="text-center p-2.5 font-medium hidden sm:table-cell">الأصناف</th>
+                  <th className="text-center p-2.5 font-medium hidden sm:table-cell">{t.stItemsCount}</th>
                   <th className="text-center p-2.5 font-medium hidden md:table-cell">{t.shortage || "عجز"}</th>
                   <th className="text-center p-2.5 font-medium hidden md:table-cell">{t.surplus || "فائض"}</th>
                   <th className="text-start p-2.5 font-medium hidden lg:table-cell">{t.statementDate || "التاريخ"}</th>
@@ -624,17 +629,17 @@ export function StockTakeTab() {
                               variant="outline"
                               onClick={() => handleContinue(tk.id)}
                               className="gap-1 h-7 text-xs"
-                              title="متابعة الجرد"
+                              title={t.stResumeTitle}
                             >
                               <Play className="h-3 w-3" />
-                              متابعة
+                              {t.stResumeShort}
                             </Button>
                             <Button
                               size="sm"
                               variant="ghost"
                               onClick={() => setApproveTarget(tk.id)}
                               className="gap-1 h-7 text-xs text-emerald-600"
-                              title="اعتماد"
+                              title={t.approve}
                             >
                               <CheckCircle2 className="h-3 w-3" />
                             </Button>

@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Bell, AlertTriangle, Clock, CreditCard, Package, ShoppingCart, TrendingDown } from "lucide-react"
 import { useAppStore } from "@/lib/store"
+import { useT } from "@/components/i18n-context"
 import { cn } from "@/lib/utils"
 
 interface Notification {
@@ -44,6 +45,7 @@ const SEVERITY_STYLES: Record<string, string> = {
 }
 
 export function NotificationsBell() {
+  const t = useT()
   const setView = useAppStore((s) => s.setView)
   const [dismissed, setDismissed] = React.useState<Set<string>>(new Set())
 
@@ -86,16 +88,16 @@ export function NotificationsBell() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80 p-0">
         <DropdownMenuLabel className="flex items-center justify-between px-3 py-2">
-          <span>التنبيهات</span>
+          <span>{t.nbNotifications}</span>
           {unreadCount > 0 ? (
-            <Badge variant="secondary" className="text-[10px]">{unreadCount} جديد</Badge>
+            <Badge variant="secondary" className="text-[10px]">{t.nbNewCount.replace("{count}", String(unreadCount))}</Badge>
           ) : null}
         </DropdownMenuLabel>
         <DropdownMenuSeparator className="m-0" />
         {items.length === 0 ? (
           <div className="py-8 text-center">
             <Bell className="h-8 w-8 mx-auto text-muted-foreground/40 mb-2" />
-            <p className="text-sm text-muted-foreground">لا توجد تنبيهات</p>
+            <p className="text-sm text-muted-foreground">{t.nbNoNotifications}</p>
           </div>
         ) : (
           <ScrollArea className="h-[400px]">
@@ -118,7 +120,7 @@ export function NotificationsBell() {
                       <p className="text-xs font-semibold truncate">{n.title}</p>
                       <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{n.message}</p>
                       <span className="inline-flex items-center gap-0.5 text-[10px] text-primary mt-1 font-medium">
-                        {n.actionLabel} ←
+                        {n.actionLabel} {t.nbActionArrow}
                       </span>
                     </div>
                   </div>

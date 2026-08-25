@@ -65,6 +65,11 @@ export const ar_common: Record<string, string> = {
   confirmDescription: "هل أنت متأكد؟ لا يمكن التراجع عن هذه العملية.",
   retry: "إعادة المحاولة",
   total: "الإجمالي",
+  // Notifications bell (nb* namespace)
+  nbNotifications: "التنبيهات",
+  nbNewCount: "{count} جديد",
+  nbNoNotifications: "لا توجد تنبيهات",
+  nbActionArrow: "←",
 }
 
 export const en_common: Record<string, string> = {
@@ -126,4 +131,9 @@ export const en_common: Record<string, string> = {
   confirmDescription: "Are you sure? This action cannot be undone.",
   retry: "Retry",
   total: "Total",
+  // Notifications bell (nb* namespace)
+  nbNotifications: "Alerts",
+  nbNewCount: "{count} new",
+  nbNoNotifications: "No alerts",
+  nbActionArrow: "→",
 }
