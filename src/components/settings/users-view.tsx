@@ -49,6 +49,7 @@ import {
 import { useT } from "@/components/i18n-context"
 import { useUser } from "@/components/user-context"
 import { cn } from "@/lib/utils"
+import { ConfirmDialog } from "@/components/shared/confirm-dialog"
 
 const ROLE_META: Record<string, { icon: typeof Shield; color: string }> = {
   OWNER: { icon: Crown, color: "bg-amber-500/15 text-amber-700 border-amber-300" },
@@ -83,11 +84,16 @@ export function UsersView() {
     setDialogOpen(true)
   }
 
-  async function handleDelete(u: UserItem) {
-    if (!confirm(t.userDeleteConfirm?.replace("{name}", u.name) || `Delete "${u.name}"?`)) return
+  // Delete confirmation uses the shadcn ConfirmDialog (bound to
+  // `deleteTarget`) instead of the native `confirm()` — the native box is
+  // not RTL-aware and can't be themed. See ConfirmDialog at the end of the
+  // component.
+  async function handleDelete() {
+    if (!deleteTarget) return
     try {
-      await deleteMut.mutateAsync(u.id)
+      await deleteMut.mutateAsync(deleteTarget.id)
       toast.success(t.userDeleted || "User deleted")
+      setDeleteTarget(null)
     } catch (err: unknown) {
       toast.error(t.deleteFailed || "Delete failed", { description: (err as Error)?.message })
     }
@@ -182,7 +188,7 @@ export function UsersView() {
                               <Edit2 className="h-3.5 w-3.5" />
                             </Button>
                             {u.id !== currentUser.id ? (
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDelete(u)} title={t.delete || "Delete"}>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteTarget(u)} title={t.delete || "Delete"}>
                                 <Trash2 className="h-3.5 w-3.5" />
                               </Button>
                             ) : null}
@@ -202,6 +208,18 @@ export function UsersView() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         user={editUser}
+      />
+
+      {/* Delete-user confirmation — shadcn ConfirmDialog (destructive). */}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(o) => !o && setDeleteTarget(null)}
+        title={t.userDeleteConfirm?.replace("{name}", deleteTarget?.name ?? "") || `Delete "${deleteTarget?.name ?? ""}"?`}
+        confirmText={t.delete || "Delete"}
+        cancelText={t.cancel || "Cancel"}
+        destructive
+        loading={deleteMut.isPending}
+        onConfirm={handleDelete}
       />
     </div>
   )

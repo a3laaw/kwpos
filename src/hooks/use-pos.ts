@@ -40,6 +40,22 @@ export interface UsePOSOptions {
 }
 
 /**
+ * Pending parked-sale confirmation. Set by `resumeParked` / `discardParked`
+ * when a user action needs explicit confirmation; cleared by
+ * `confirmPending` / `cancelPending`. Consumed by the component rendering
+ * the `<ConfirmDialog>` (the hook itself can't render UI).
+ *
+ * Replaces the synchronous `confirm()` calls that used to live inside the
+ * hook — the OS confirm box is not RTL-aware, blocks the JS thread, and
+ * can't be themed. The hook now defers the actual mutation/state change
+ * until the component calls back via `confirmPending`.
+ */
+export type PendingParkedConfirm =
+  | { type: "resume"; id: string; holdNo?: string }
+  | { type: "delete"; id: string; holdNo: string }
+  | null
+
+/**
  * Shared POS business-logic hook.
  *
  * Orchestrator only — pricing, customer lookup, totals, error handling,
@@ -287,6 +303,13 @@ export function usePOS(opts?: UsePOSOptions) {
   )
 
   // ── Parked sales operations ──
+  // The native `confirm()` calls previously used to gate "replace current
+  // cart" and "discard parked sale" have been replaced with a pending-state
+  // pattern: the hook stores the requested action in `pendingParkedConfirm`
+  // and the component renders a shadcn `<ConfirmDialog>`. The component
+  // calls `confirmParked()` to proceed or `cancelParked()` to dismiss.
+  const [pendingParkedConfirm, setPendingParkedConfirm] = React.useState<PendingParkedConfirm>(null)
+
   function parkCurrentCart() {
     if (cart.length === 0) { toast.error((t as any).posParkEmptyToast || "السلة فارغة"); return }
     const snapshot = buildCartSnapshot(cart, { customerName, customerPhone, discount, taxRate, paymentMethod, deliveryEnabled, driverName, deliveryFee })
@@ -302,17 +325,40 @@ export function usePOS(opts?: UsePOSOptions) {
     )
   }
 
-  function resumeParked(id: string) {
+  function resumeParked(id: string, holdNo?: string) {
     setParkedListOpen(false)
-    if (cart.length > 0 && !confirm((t as any).posResumeCartReplaceConfirm || "استبدال السلة الحالية؟")) return
-    setResumeId(id)
+    // If the current cart is empty, we don't need to ask whether to replace
+    // it — proceed directly. Otherwise defer to the pending-state pattern
+    // so the component can render a shadcn ConfirmDialog.
+    if (cart.length === 0) {
+      setResumeId(id)
+      return
+    }
+    setPendingParkedConfirm({ type: "resume", id, holdNo })
   }
 
   function discardParked(id: string, holdNo: string) {
-    if (!confirm((t as any).posDeleteParkedConfirm?.replace("{holdNo}", holdNo) || `حذف الفاتورة ${holdNo}؟`)) return
-    discardMut.mutate(id, {
-      onSuccess: () => toast.success((t as any).posParkedDeletedToast?.replace("{holdNo}", holdNo)),
-    })
+    setPendingParkedConfirm({ type: "delete", id, holdNo })
+  }
+
+  // Called by the component's ConfirmDialog when the user confirms the
+  // pending parked-sale action.
+  function confirmParked() {
+    const pending = pendingParkedConfirm
+    setPendingParkedConfirm(null)
+    if (!pending) return
+    if (pending.type === "resume") {
+      setResumeId(pending.id)
+    } else {
+      discardMut.mutate(pending.id, {
+        onSuccess: () => toast.success((t as any).posParkedDeletedToast?.replace("{holdNo}", pending.holdNo)),
+      })
+    }
+  }
+
+  // Called by the component's ConfirmDialog when the user cancels.
+  function cancelParked() {
+    setPendingParkedConfirm(null)
   }
 
   // ── Checkout ──
@@ -382,6 +428,7 @@ export function usePOS(opts?: UsePOSOptions) {
     addToCart, addBundleToCart, changeQty, setQty, removeItem, clearCart,
     // parked sales
     parkCurrentCart, resumeParked, discardParked,
+    pendingParkedConfirm, confirmParked, cancelParked,
     // checkout
     handleCheckout, doConfirmSale,
   }

@@ -63,6 +63,7 @@ import type { CustomerTier } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { Toggle } from "@/components/ui/toggle"
 import { SaleConfirmDialog } from "@/components/sales/sale-confirm-dialog"
+import { ConfirmDialog } from "@/components/shared/confirm-dialog"
 import { useT } from "@/components/i18n-context"
 import { useUser } from "@/components/user-context"
 import { usePOS } from "@/hooks/use-pos"
@@ -167,6 +168,9 @@ function StandardSalesView({ onToggleMode }: { onToggleMode: () => void }) {
     parkCurrentCart,
     resumeParked,
     discardParked,
+    pendingParkedConfirm,
+    confirmParked,
+    cancelParked,
     handleCheckout,
     doConfirmSale,
     PAYMENT_LABELS,
@@ -399,7 +403,7 @@ function StandardSalesView({ onToggleMode }: { onToggleMode: () => void }) {
                             parkedItems.map((p) => (
                               <div key={p.id} className="px-3 py-2 border-b border-border/40 hover:bg-muted/40 flex items-center justify-between gap-2">
                                 <button
-                                  onClick={() => resumeParked(p.id)}
+                                  onClick={() => resumeParked(p.id, p.holdNo)}
                                   className="flex-1 text-start min-w-0"
                                 >
                                   <div className="flex items-center gap-2">
@@ -415,7 +419,7 @@ function StandardSalesView({ onToggleMode }: { onToggleMode: () => void }) {
                                     variant="ghost"
                                     size="icon"
                                     className="h-6 w-6 text-emerald-600 hover:text-emerald-700"
-                                    onClick={() => resumeParked(p.id)}
+                                    onClick={() => resumeParked(p.id, p.holdNo)}
                                     title={t.resume}
                                   >
                                     <Play className="h-3 w-3" />
@@ -894,6 +898,29 @@ function StandardSalesView({ onToggleMode }: { onToggleMode: () => void }) {
         onConfirm={doConfirmSale}
         formatCurrency={(n) => fmt.currency(n)}
         paymentLabel={(m) => PAYMENT_LABELS[m] || m}
+      />
+
+      {/* Parked-sale confirmation — bound to `pendingParkedConfirm` from the
+          usePOS hook. The hook can't render UI itself, so it stores the
+          pending action and the component renders this shadcn ConfirmDialog.
+          Replaces the native `confirm()` calls that used to live inside
+          `resumeParked` / `discardParked`. */}
+      <ConfirmDialog
+        open={!!pendingParkedConfirm}
+        onOpenChange={(o) => {
+          if (!o) cancelParked()
+        }}
+        title={
+          pendingParkedConfirm?.type === "resume"
+            ? ((t as any).posResumeCartReplaceConfirm || "استبدال السلة الحالية؟")
+            : pendingParkedConfirm?.type === "delete"
+              ? ((t as any).posDeleteParkedConfirm?.replace("{holdNo}", pendingParkedConfirm.holdNo) || `حذف الفاتورة ${pendingParkedConfirm.holdNo}؟`)
+              : ""
+        }
+        confirmText={pendingParkedConfirm?.type === "delete" ? (t.delete || "Delete") : (t.confirm || "Confirm")}
+        cancelText={t.cancel || "Cancel"}
+        destructive={pendingParkedConfirm?.type === "delete"}
+        onConfirm={confirmParked}
       />
     </div>
   )

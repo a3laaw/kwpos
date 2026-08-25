@@ -792,6 +792,12 @@ function PromotionsTab() {
   })
   const [note, setNote] = React.useState("")
 
+  // Pending promotion-deactivation target — set by clicking the deactivate
+  // button, consumed by the destructive PricingConfirmDialog at the bottom
+  // of this tab. Replaces the native `confirm()` that was used here before
+  // (the OS box is not RTL-aware and can't be themed).
+  const [deactivateTarget, setDeactivateTarget] = React.useState<PromotionItem | null>(null)
+
   const products = prodsData?.items ?? []
   const categories = catsData?.items ?? []
   const promos = data?.items ?? []
@@ -858,16 +864,29 @@ function PromotionsTab() {
     }
   }
 
-  async function handleDeactivate(p: PromotionItem) {
+  // Build the human-readable label for the given promotion. Used both by
+  // the deactivate dialog title and (formerly) the native confirm() prompt.
+  function promoLabel(p: PromotionItem): string {
     const names = p.categoryNames.join(t.scopeCategory === "أقسام" ? "، " : ", ")
-    const label = p.scope === "PRODUCT" ? (p.productName || "—")
+    return p.scope === "PRODUCT" ? (p.productName || "—")
       : p.scope === "CATEGORY" ? t.prcScopeCategoriesLabel.replace("{names}", names || "—")
       : p.scope === "ALL" ? t.prcScopeAllLabel
       : t.prcScopeAllExceptLabel.replace("{names}", names || "—")
-    if (!confirm(t.prcDeactivateConfirm.replace("{label}", label))) return
+  }
+
+  // Open the destructive PricingConfirmDialog instead of calling the native
+  // `confirm()`. The actual mutation runs in `confirmDeactivate` once the
+  // user clicks the confirm button.
+  function handleDeactivate(p: PromotionItem) {
+    setDeactivateTarget(p)
+  }
+
+  async function confirmDeactivate() {
+    if (!deactivateTarget) return
     try {
-      await deactivateMut.mutateAsync(p.id)
+      await deactivateMut.mutateAsync(deactivateTarget.id)
       toast.success(t.promoDeactivated)
+      setDeactivateTarget(null)
     } catch (err: any) {
       toast.error(t.promoDeactivateFailed, { description: err?.message })
     }
@@ -1152,6 +1171,22 @@ function PromotionsTab() {
           ) : null}
         </CardContent>
       </Card>
+
+      {/* Deactivate-promotion confirmation — destructive variant of the
+          existing PricingConfirmDialog primitive. Replaces the native
+          `confirm()` call that previously lived inline in handleDeactivate. */}
+      <PricingConfirmDialog
+        open={!!deactivateTarget}
+        onOpenChange={(o) => !o && setDeactivateTarget(null)}
+        loading={deactivateMut.isPending}
+        onConfirm={confirmDeactivate}
+        title={deactivateTarget
+          ? t.prcDeactivateConfirm.replace("{label}", promoLabel(deactivateTarget))
+          : ""}
+        description={t.deactivatePromotionConfirm}
+        confirmText={t.deactivate}
+        destructive
+      />
     </div>
   )
 }

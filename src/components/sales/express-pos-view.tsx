@@ -66,6 +66,7 @@ import { usePOS } from "@/hooks/use-pos"
 import { useBarcodeScanner } from "@/hooks/use-barcode-scanner"
 import { openCashDrawer } from "@/lib/cash-drawer"
 import { SaleConfirmDialog } from "@/components/sales/sale-confirm-dialog"
+import { ConfirmDialog } from "@/components/shared/confirm-dialog"
 
 export interface ExpressPosViewProps {
   user: SessionUser
@@ -125,6 +126,24 @@ export function ExpressPosView({ user, onToggleMode }: ExpressPosViewProps) {
     createMut,
     PAYMENT_LABELS,
   } = pos
+
+  // ── Clear-cart confirmation (shadcn ConfirmDialog) ──
+  // Replaces the native `window.confirm()` previously called from the
+  // Escape key handler and the "clear cart" toolbar button — the OS box
+  // isn't RTL-aware and can't be themed. Both call sites now open this
+  // dialog; the actual `clearCart()` runs in `confirmClearCart` once the
+  // user confirms.
+  const [clearCartDialogOpen, setClearCartDialogOpen] = React.useState(false)
+  function requestClearCart() {
+    if (cart.length === 0) return
+    setClearCartDialogOpen(true)
+  }
+  function confirmClearCart() {
+    clearCart()
+    setQ("")
+    setClearCartDialogOpen(false)
+    focusBarcode()
+  }
 
   // ── Barcode input ref + always-focused behavior ──
   // The barcode input must be focused on mount and refocused after every
@@ -305,11 +324,9 @@ export function ExpressPosView({ user, onToggleMode }: ExpressPosViewProps) {
     } else if (e.key === "Escape") {
       e.preventDefault()
       if (cart.length > 0) {
-        if (window.confirm(t.expressClearCartConfirm)) {
-          clearCart()
-          setQ("")
-          focusBarcode()
-        }
+        // Open the shadcn ConfirmDialog; clearCart() runs in confirmClearCart
+        // once the user confirms. (Replaces a synchronous window.confirm().)
+        requestClearCart()
       } else {
         setQ("")
         focusBarcode()
@@ -517,12 +534,7 @@ export function ExpressPosView({ user, onToggleMode }: ExpressPosViewProps) {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => {
-                  if (window.confirm(t.expressClearCartConfirm)) {
-                    clearCart()
-                    focusBarcode()
-                  }
-                }}
+                onClick={requestClearCart}
                 className="gap-1 text-muted-foreground hover:text-destructive h-8"
               >
                 <Trash2 className="h-3.5 w-3.5" />
@@ -968,6 +980,20 @@ export function ExpressPosView({ user, onToggleMode }: ExpressPosViewProps) {
         onConfirm={doConfirmSale}
         formatCurrency={(n) => fmt.currency(n)}
         paymentLabel={(m) => PAYMENT_LABELS[m] || m}
+      />
+
+      {/* ── Clear-cart confirmation (shadcn ConfirmDialog, destructive) ──
+          Bound to clearCartDialogOpen; both the Escape key handler and the
+          "clear cart" toolbar button call requestClearCart() to open this. */}
+      <ConfirmDialog
+        open={clearCartDialogOpen}
+        onOpenChange={setClearCartDialogOpen}
+        title={t.expressClearCart}
+        description={t.expressClearCartConfirm}
+        confirmText={t.delete || "Delete"}
+        cancelText={t.cancel || "Cancel"}
+        destructive
+        onConfirm={confirmClearCart}
       />
     </div>
   )
