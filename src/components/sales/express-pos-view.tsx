@@ -66,6 +66,7 @@ import { usePOS } from "@/hooks/use-pos"
 import { useBarcodeScanner } from "@/hooks/use-barcode-scanner"
 import { openCashDrawer } from "@/lib/cash-drawer"
 import { SaleConfirmDialog } from "@/components/sales/sale-confirm-dialog"
+import { ExpressProductCard } from "@/components/sales/express-product-card"
 import { ConfirmDialog } from "@/components/shared/confirm-dialog"
 
 export interface ExpressPosViewProps {
@@ -791,78 +792,21 @@ export function ExpressPosView({ user, onToggleMode }: ExpressPosViewProps) {
                   const effP = priceFor(p)
                   const promoActive = promo && effP < baseP
                   return (
-                    <button
+                    <ExpressProductCard
                       key={p.id}
-                      onClick={() => { addToCart(p); focusBarcode() }}
-                      disabled={out}
-                      className={cn(
-                        "group relative flex flex-col overflow-hidden rounded-lg border border-border/70 bg-card transition-all hover:border-primary/50 hover:shadow-md",
-                        out && "opacity-50 cursor-not-allowed hover:border-border",
-                        promoActive && "ring-1 ring-emerald-400/60"
-                      )}
-                    >
-                      {/* Product image — fills entire card top */}
-                      <div className="relative h-36 sm:h-44 w-full bg-muted/20 overflow-hidden flex items-center justify-center">
-                        {p.imageUrl ? (
-                          <img src={p.imageUrl} alt={p.name} className="h-full w-full object-cover group-hover:scale-105 transition-transform" />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center">
-                            <Package className="h-10 w-10 text-muted-foreground/30" />
-                          </div>
-                        )}
-                        {out ? (
-                          <span className="absolute inset-0 flex items-center justify-center bg-background/70 text-xs font-bold text-destructive">
-                            {t.outOfStockShort}
-                          </span>
-                        ) : null}
-                        {promoActive ? (
-                          <span className="absolute top-1 end-1 inline-flex items-center gap-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-bold px-1.5 py-0.5">
-                            <Tag className="h-2.5 w-2.5" />
-                            {t.promo}
-                          </span>
-                        ) : null}
-                        {/* Low-stock badge — only if low/out */}
-                        {lowStock ? (
-                          <span className="absolute top-1 start-1 inline-flex items-center gap-0.5 rounded-full bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5">
-                            {t.expressLowStock}: {fmt.number(available)}
-                          </span>
-                        ) : null}
-                        {/* In-cart count badge */}
-                        {used > 0 ? (
-                          <span className="absolute -top-1.5 -end-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground text-[11px] font-bold shadow">
-                            {used}
-                          </span>
-                        ) : null}
-                      </div>
-                      {/* Info */}
-                      <div className="p-2 text-start flex-1 flex flex-col gap-0.5">
-                        <div className="flex items-center gap-1">
-                          <p className="font-medium text-xs leading-tight line-clamp-2 flex-1" title={p.name}>{p.name}</p>
-                          {p.isManufactured ? (
-                            <span className="shrink-0 rounded bg-primary/15 text-primary text-[8px] px-1 py-0.5 leading-none font-medium" title={t.manufacturedProduct || "مُصنّع"}>
-                              {t.manufacturedProductShort || "تركيبة"}
-                            </span>
-                          ) : null}
-                        </div>
-                        <div className="flex items-end justify-between gap-0.5 mt-auto">
-                          <span className="flex flex-col items-start leading-none">
-                            {promoActive ? (
-                              <span className="text-[10px] text-muted-foreground line-through tabular-nums">
-                                {fmt.currency(baseP)}
-                              </span>
-                            ) : null}
-                            <span className="font-bold tabular-nums text-base text-primary">
-                              {fmt.currency(effP)}
-                            </span>
-                          </span>
-                          {!out && !lowStock ? (
-                            <Badge variant="outline" className="tabular-nums text-[10px] h-5 px-1.5">
-                              {fmt.number(available)}
-                            </Badge>
-                          ) : null}
-                        </div>
-                      </div>
-                    </button>
+                      p={p}
+                      used={used}
+                      available={available}
+                      out={out}
+                      lowStock={lowStock}
+                      promoActive={promoActive}
+                      baseP={baseP}
+                      effP={effP}
+                      t={t}
+                      fmt={fmt}
+                      onAdd={addToCart}
+                      onFocusBarcode={focusBarcode}
+                    />
                   )
                 })}
               </div>

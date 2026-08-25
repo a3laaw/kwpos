@@ -63,6 +63,7 @@ import type { CustomerTier } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { Toggle } from "@/components/ui/toggle"
 import { SaleConfirmDialog } from "@/components/sales/sale-confirm-dialog"
+import { StandardProductCard } from "@/components/sales/product-card"
 import { ConfirmDialog } from "@/components/shared/confirm-dialog"
 import { useT } from "@/components/i18n-context"
 import { useUser } from "@/components/user-context"
@@ -297,62 +298,19 @@ function StandardSalesView({ onToggleMode }: { onToggleMode: () => void }) {
                 const effP = priceFor(p)
                 const promoActive = promo && effP < baseP
                 return (
-                  <button
+                  <StandardProductCard
                     key={p.id}
-                    onClick={() => addToCart(p)}
-                    disabled={out}
-                    className={cn(
-                      "group relative flex flex-col overflow-hidden rounded-lg border border-border/70 bg-card transition-all hover:border-primary/50 hover:shadow-sm",
-                      out && "opacity-50 cursor-not-allowed hover:border-border",
-                      promoActive && "ring-1 ring-emerald-400/60"
-                    )}
-                  >
-                    {/* Product image — fills entire card top */}
-                    <div className="relative h-32 sm:h-40 w-full bg-muted/20 overflow-hidden flex items-center justify-center">
-                      {p.imageUrl ? (
-                        <img src={p.imageUrl} alt={p.name} className="h-full w-full object-cover group-hover:scale-105 transition-transform" />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center">
-                          <Package className="h-8 w-8 text-muted-foreground/40" />
-                        </div>
-                      )}
-                      {out ? (
-                        <span className="absolute inset-0 flex items-center justify-center bg-background/70 text-[10px] font-bold text-destructive">{t.outOfStockShort}</span>
-                      ) : null}
-                      {promoActive ? (
-                        <span className="absolute top-0.5 right-0.5 inline-flex items-center gap-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-bold px-1 py-0.5">
-                          
-                          {t.promo}
-                        </span>
-                      ) : null}
-                    </div>
-                    {/* Info — compact single layout */}
-                    <div className="p-1.5 text-start flex-1 flex flex-col gap-0.5">
-                      <p className="font-medium text-xs leading-tight line-clamp-2" title={p.name}>{p.name}</p>
-                      <div className="flex items-center justify-between gap-0.5 mt-auto">
-                        <span className="flex flex-col items-start leading-none">
-                          {promoActive ? (
-                            <span className="text-[10px] text-muted-foreground line-through tabular-nums">
-                              {fmt.currency(baseP)}
-                            </span>
-                          ) : null}
-                          <span className="font-bold tabular-nums text-xs text-primary">
-                            {fmt.currency(effP)}
-                          </span>
-                        </span>
-                        {!out ? (
-                          <Badge variant={available <= p.reorderLevel ? "secondary" : "outline"} className="tabular-nums text-[10px] h-4 px-1">
-                            {fmt.number(available)}
-                          </Badge>
-                        ) : null}
-                      </div>
-                    </div>
-                    {used > 0 ? (
-                      <span className="absolute -top-1.5 -left-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-bold shadow">
-                        {used}
-                      </span>
-                    ) : null}
-                  </button>
+                    p={p}
+                    used={used}
+                    available={available}
+                    out={out}
+                    promoActive={promoActive}
+                    baseP={baseP}
+                    effP={effP}
+                    t={t}
+                    fmt={fmt}
+                    onAdd={addToCart}
+                  />
                 )
               })}
             </div>
