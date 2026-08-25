@@ -7,6 +7,18 @@ import { getCurrentUser } from "@/lib/session"
 export const dynamic = "force-dynamic"
 
 export async function POST(req: Request) {
+  // ── Production gate ────────────────────────────────────────────────
+  // Seeding resets the ENTIRE database (wipes all tables incl. User +
+  // Setting when body.reset === true). Disable in production unless
+  // explicitly opted-in via ENABLE_ADMIN_DDL env var. Same pattern as
+  // the apply-*-schema routes.
+  if (process.env.NODE_ENV === "production" && process.env.ENABLE_ADMIN_DDL !== "true") {
+    return NextResponse.json(
+      { error: "admin-ddl-disabled-in-production" },
+      { status: 403 }
+    )
+  }
+
   // Auth: ADMIN only — seeding resets the entire database.
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
