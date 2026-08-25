@@ -163,20 +163,30 @@ export async function decrementStockItem(
   warehouseId: string,
   quantity: number
 ): Promise<boolean> {
-  // 1) Try the specified warehouse first
-  const item = await tx.stockItem.findUnique({
-    where: { productId_warehouseId: { productId, warehouseId } },
+  // ── ATOMIC conditional decrement ──────────────────────────────────
+  // Using updateMany with WHERE quantity >= qty is atomic at the DB
+  // level: the row is locked during UPDATE, so concurrent decrements
+  // can't both succeed if only one unit of stock remains. Previously
+  // this used findUnique + update which had a TOCTOU race: two
+  // concurrent calls could both read quantity=5, both pass the >= qty
+  // check, then both decrement — driving the row negative.
+
+  // 1) Try the specified warehouse first — single atomic UPDATE.
+  const result = await tx.stockItem.updateMany({
+    where: {
+      productId,
+      warehouseId,
+      quantity: { gte: quantity },
+    },
+    data: { quantity: { decrement: quantity } },
   })
-  if (item && item.quantity >= quantity) {
-    await tx.stockItem.update({
-      where: { productId_warehouseId: { productId, warehouseId } },
-      data: { quantity: { decrement: quantity } },
-    })
-    return true
-  }
+  if (result.count === 1) return true
 
   // 2) Multi-warehouse fallback: pull from the specified warehouse first
-  //    (whatever is available), then from other warehouses.
+  //    (whatever is available), then from other warehouses. Each
+  //    updateMany is atomic; if a concurrent decrement reduced a row's
+  //    quantity below our take, that row simply doesn't match the WHERE
+  //    clause (count=0) and we skip it.
   const allItems = await tx.stockItem.findMany({
     where: { productId, quantity: { gt: 0 } },
     orderBy: [{ warehouseId: "asc" }], // deterministic order
@@ -195,17 +205,52 @@ export async function decrementStockItem(
   ]
 
   let remaining = quantity
+  const decremented: Array<{ warehouseId: string; take: number }> = []
+
   for (const it of sorted) {
     if (remaining <= 0) break
     const take = Math.min(it.quantity, remaining)
-    await tx.stockItem.update({
-      where: { productId_warehouseId: { productId, warehouseId: it.warehouseId } },
+    // ATOMIC conditional decrement — only succeeds if the row still
+    // has >= take units. Under concurrent access, a competing
+    // decrement may have reduced this row already; in that case
+    // count=0 and we try the next warehouse.
+    const r = await tx.stockItem.updateMany({
+      where: {
+        productId,
+        warehouseId: it.warehouseId,
+        quantity: { gte: take },
+      },
       data: { quantity: { decrement: take } },
     })
-    remaining -= take
+    if (r.count === 1) {
+      decremented.push({ warehouseId: it.warehouseId, take })
+      remaining -= take
+    }
+    // if r.count === 0, the row was decremented by another tx; retry
+    // with the next warehouse.
   }
 
-  return remaining === 0
+  // If we couldn't fulfill the full quantity, roll back what we did
+  // decrement to avoid leaving the stock in a partially-decremented
+  // inconsistent state.
+  if (remaining > 0) {
+    for (const d of decremented) {
+      try {
+        await tx.stockItem.update({
+          where: { productId_warehouseId: { productId, warehouseId: d.warehouseId } },
+          data: { quantity: { increment: d.take } },
+        })
+      } catch {
+        // Best-effort rollback; log loudly if it fails.
+        console.error(
+          `[decrementStockItem] ROLLBACK FAILED for ${productId}/${d.warehouseId} (take=${d.take}). Stock is inconsistent!`
+        )
+      }
+    }
+    return false
+  }
+
+  return true
 }
 
 /**
