@@ -16,7 +16,7 @@ export async function GET() {
 export async function PUT(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  if (user.role !== "ADMIN") return NextResponse.json({ error: "forbidden" }, { status: 403 })
+  if (user.role !== "OWNER" && user.role !== "ADMIN") return NextResponse.json({ error: "forbidden" }, { status: 403 })
 
   const body = await req.json()
   const code = String(body?.code || "").trim().toUpperCase()

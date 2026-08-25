@@ -24,8 +24,8 @@ export async function POST(
   if (shift.status !== "OPEN") {
     return NextResponse.json({ error: "not-open" }, { status: 400 })
   }
-  // Only the cashier who opened the shift (or admin) can close it
-  if (shift.userId !== user.id && user.role !== "ADMIN") {
+  // Only the cashier who opened the shift (or admin/owner) can close it
+  if (shift.userId !== user.id && user.role !== "ADMIN" && user.role !== "OWNER") {
     return NextResponse.json({ error: "forbidden" }, { status: 403 })
   }
 

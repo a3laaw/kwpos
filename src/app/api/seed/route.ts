@@ -22,7 +22,7 @@ export async function POST(req: Request) {
   // Auth: ADMIN only — seeding resets the entire database.
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  if (user.role !== "ADMIN") {
+  if (user.role !== "OWNER" && user.role !== "ADMIN") {
     return NextResponse.json({ error: "forbidden" }, { status: 403 })
   }
 
@@ -573,7 +573,7 @@ export async function GET() {
   // Auth: ADMIN only — exposes DB row counts.
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  if (user.role !== "ADMIN") {
+  if (user.role !== "OWNER" && user.role !== "ADMIN") {
     return NextResponse.json({ error: "forbidden" }, { status: 403 })
   }
 

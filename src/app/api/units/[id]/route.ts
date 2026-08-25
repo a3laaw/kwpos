@@ -11,7 +11,7 @@ export async function PUT(
 ) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  if (user.role !== "ADMIN") return NextResponse.json({ error: "forbidden" }, { status: 403 })
+  if (user.role !== "OWNER" && user.role !== "ADMIN") return NextResponse.json({ error: "forbidden" }, { status: 403 })
 
   const { id } = await params
   const exists = await db.unit.findUnique({ where: { id } })
@@ -47,7 +47,7 @@ export async function DELETE(
 ) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  if (user.role !== "ADMIN") return NextResponse.json({ error: "forbidden" }, { status: 403 })
+  if (user.role !== "OWNER" && user.role !== "ADMIN") return NextResponse.json({ error: "forbidden" }, { status: 403 })
 
   const { id } = await params
   const exists = await db.unit.findUnique({ where: { id } })

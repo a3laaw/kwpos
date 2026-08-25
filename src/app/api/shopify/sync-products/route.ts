@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic"
 export async function POST() {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  if (user.role !== "ADMIN") return NextResponse.json({ error: "forbidden" }, { status: 403 })
+  if (user.role !== "OWNER" && user.role !== "ADMIN") return NextResponse.json({ error: "forbidden" }, { status: 403 })
 
   const cfg = getShopifyConfig()
   if (!cfg.configured) {
