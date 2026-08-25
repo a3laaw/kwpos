@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getCurrentUser, hasRole } from "@/lib/session"
 import { createJournalEntry } from "@/lib/journal"
+import type { Role } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
 
@@ -8,7 +9,7 @@ export const dynamic = "force-dynamic"
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  if (!hasRole(user.role, ["OWNER", "ADMIN", "ACCOUNTANT" as any])) return NextResponse.json({ error: "forbidden" }, { status: 403 })
+  if (!hasRole(user.role, ["OWNER", "ADMIN", "MANAGER", "ACCOUNTANT" as Role])) return NextResponse.json({ error: "forbidden" }, { status: 403 })
 
   const body = await req.json()
   const { description, date, lines } = body || {}

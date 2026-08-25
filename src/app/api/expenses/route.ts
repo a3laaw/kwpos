@@ -3,14 +3,14 @@ import { db } from "@/lib/db"
 import { getCurrentUser, hasRole } from "@/lib/session"
 import { serializeExpense } from "@/lib/serialize"
 import { createJournalEntry } from "@/lib/journal"
-import type { ExpenseType } from "@/lib/types"
+import type { ExpenseType, Role } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
 
 export async function GET(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  if (!hasRole(user.role, ["OWNER", "ADMIN", "ACCOUNTANT" as any])) return NextResponse.json({ error: "forbidden" }, { status: 403 })
+  if (!hasRole(user.role, ["OWNER", "ADMIN", "MANAGER", "ACCOUNTANT" as Role])) return NextResponse.json({ error: "forbidden" }, { status: 403 })
 
   const { searchParams } = new URL(req.url)
   const type = searchParams.get("type") as ExpenseType | null
@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  if (!hasRole(user.role, ["OWNER", "ADMIN", "ACCOUNTANT" as any])) return NextResponse.json({ error: "forbidden" }, { status: 403 })
+  if (!hasRole(user.role, ["OWNER", "ADMIN", "MANAGER", "ACCOUNTANT" as Role])) return NextResponse.json({ error: "forbidden" }, { status: 403 })
 
   const body = await req.json()
   const {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import bcrypt from "bcryptjs"
+import crypto from "node:crypto"
 import { checkRateLimit, peekRateLimit, getClientIp } from "@/lib/rate-limit"
 
 export const dynamic = "force-dynamic"
@@ -96,9 +97,14 @@ export async function POST(req: NextRequest) {
   }
 
   // Security gate: the caller must know the env var value.
-  // NOTE: comparison logic is intentionally unchanged per spec — only the
-  // surrounding protection layer (rate limit + delay) was added.
-  if (providedPw !== bootstrapPw) {
+  // Use crypto.timingSafeEqual to perform a constant-time comparison so a
+  // brute-force attacker cannot infer prefix overlap from response timing.
+  // The length check is required because timingSafeEqual throws on buffers
+  // of different lengths; the env var length is fixed (not secret), so this
+  // early-out does not leak timing information.
+  const providedBuf = Buffer.from(providedPw)
+  const expectedBuf = Buffer.from(bootstrapPw)
+  if (providedBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(providedBuf, expectedBuf)) {
     // Artificial delay to slow brute-force attempts
     await new Promise((r) => setTimeout(r, MISMATCH_DELAY_MS))
 
