@@ -121,6 +121,11 @@ model Product {
   unit            String           @default("قطعة")
   unitId          String?
   imageUrl        String?
+  // Mirrors production `Product.isManufactured` — the compositions route sets
+  // this to true on the output product (or on a linked existing product).
+  // Without this column the route's `tx.product.update({ isManufactured: true })`
+  // raises a PrismaClientValidationError on the SQLite test client.
+  isManufactured  Boolean          @default(false)
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
