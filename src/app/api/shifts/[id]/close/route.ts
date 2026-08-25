@@ -46,7 +46,7 @@ export async function POST(
   let expectedCardSales = 0
   let expectedTransferSales = 0
   let totalSales = 0
-  let totalRefunds = 0
+  const totalRefunds = 0
 
   for (const s of sales) {
     if (s.refundStatus === "FULL") continue // fully refunded — skip

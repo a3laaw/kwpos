@@ -47,7 +47,7 @@ export async function POST(
     return NextResponse.json({ error: "cannot-post-cancelled" }, { status: 409 })
   }
 
-  let journalEntryId: string | null = null
+  const journalEntryId: string | null = null
 
   try {
     // ── NO $transaction (PgBouncer compatibility) ──

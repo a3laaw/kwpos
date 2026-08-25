@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
   if (supplierId) where.supplierId = supplierId
   if (warehouseId) where.stockItems = { some: { warehouseId } }
 
-  let products = await db.product.findMany({
+  const products = await db.product.findMany({
     where: lowStock ? { ...where, quantity: { lte: db.product.fields.reorderLevel } } : where,
     include: {
       category: true,
