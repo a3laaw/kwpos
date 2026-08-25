@@ -122,6 +122,18 @@ export async function PATCH(req: NextRequest) {
   if (!shift) return NextResponse.json({ error: "not-found" }, { status: 404 })
   if (shift.status === "CLOSED") return NextResponse.json({ error: "already-closed" }, { status: 409 })
 
+  // ── Ownership / role gate ──────────────────────────────────────────
+  // Only the shift's owner can close their own shift. A supervisor
+  // (OWNER/ADMIN/MANAGER) can close ANY shift. This mirrors the
+  // authorization pattern in /api/shifts/[id]/close.
+  // Without this check, ANY authenticated user (incl. CASHIER) could
+  // close ANY other user's shift by passing the shift UUID in the body.
+  const isOwner = shift.userId === user.id
+  const isSupervisor = user.role === "OWNER" || user.role === "ADMIN" || user.role === "MANAGER"
+  if (!isOwner && !isSupervisor) {
+    return NextResponse.json({ error: "forbidden — can only close own shift" }, { status: 403 })
+  }
+
   // Compute expected totals from sales by THIS USER in [openedAt, now]
   const salesWhere: any = {
     createdAt: { gte: shift.openedAt, lte: new Date() },
