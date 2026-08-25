@@ -642,6 +642,7 @@ model PurchaseInvoice {
   customs         Float    @default(0)
   otherCharges    Float    @default(0)
   total           Float    @default(0)
+  paymentMethod   String   @default("CASH")
   note            String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt

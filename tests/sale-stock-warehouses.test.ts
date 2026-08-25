@@ -116,6 +116,12 @@ describe("POS sale stock check — per-warehouse, not aggregate", () => {
 
     expect(res.status).toBe(201)
 
+    // Wait for the fire-and-forget Product.quantity sync to complete.
+    // The sale route returns 201 immediately, then syncs Product.quantity
+    // from StockItem in the background. In tests we need to wait briefly
+    // for that background task to finish before asserting.
+    await new Promise((r) => setTimeout(r, 100))
+
     // Verify post-sale state
     const siA = await testDb.stockItem.findUnique({
       where: { productId_warehouseId: { productId: product.id, warehouseId: whA.id } },
@@ -158,6 +164,9 @@ describe("POS sale stock check — per-warehouse, not aggregate", () => {
       }) as any
     )
     expect(res.status).toBe(201)
+
+    // Wait for the fire-and-forget Product.quantity sync to complete.
+    await new Promise((r) => setTimeout(r, 100))
 
     const siA = await testDb.stockItem.findUnique({
       where: { productId_warehouseId: { productId: product.id, warehouseId: whA.id } },

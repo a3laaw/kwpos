@@ -168,20 +168,30 @@ export async function POST(
   if (productIds.length > 0) {
     void (async () => {
       try {
-        // Use Prisma.join for proper parameterization (prevents SQL injection).
-        // Previously this used $executeRawUnsafe with manual string interpolation
-        // of productIds (which originate from the user's cart). Even though the
-        // ids were sanitized with a regex replace, that approach is fragile.
-        // Prisma.join builds parameterized placeholders ($1, $2, ...) and
-        // passes the values as real bound parameters.
-        await db.$executeRaw`
-          UPDATE "Product"
-          SET quantity = COALESCE((
-            SELECT SUM(quantity) FROM "StockItem"
-            WHERE "StockItem"."productId" = "Product".id
-          ), 0)
-          WHERE id IN (${Prisma.join(productIds)})
-        `
+        const isPostgres = !process.env.DATABASE_URL?.startsWith("file:")
+        if (isPostgres) {
+          // PostgreSQL: single UPDATE ... FROM subquery (1 roundtrip)
+          await db.$executeRaw`
+            UPDATE "Product"
+            SET quantity = COALESCE((
+              SELECT SUM(quantity) FROM "StockItem"
+              WHERE "StockItem"."productId" = "Product".id
+            ), 0)
+            WHERE id IN (${Prisma.join(productIds)})
+          `
+        } else {
+          // SQLite (test env): Prisma standard API (aggregate + update per product)
+          for (const pid of productIds) {
+            const agg = await db.stockItem.aggregate({
+              where: { productId: pid },
+              _sum: { quantity: true },
+            })
+            await db.product.update({
+              where: { id: pid },
+              data: { quantity: agg._sum.quantity ?? 0 },
+            })
+          }
+        }
       } catch (e: any) {
         console.warn(`[cancel] Product.quantity sync failed for ${sale.invoiceNo}: ${e?.message ?? e}`)
       }

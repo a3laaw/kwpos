@@ -155,8 +155,14 @@ export async function seedBaseFixtures(): Promise<{
           : code.startsWith("4")
             ? "REVENUE"
             : "EXPENSE"
-    const acc = await prisma.account.create({
-      data: { code, name, type, balance: 0, isSystem: true },
+    // Use upsert instead of create to handle the race condition where a
+    // fire-and-forget ensurePurchaseAccounts() from a previous test runs
+    // after resetDatabase() but before seedBaseFixtures() — it would
+    // create the account first, causing a unique-constraint error here.
+    const acc = await prisma.account.upsert({
+      where: { code },
+      update: { name, type, balance: 0, isSystem: true },
+      create: { code, name, type, balance: 0, isSystem: true },
     })
     accountIds[code] = acc.id
   }
