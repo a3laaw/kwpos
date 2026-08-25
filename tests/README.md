@@ -13,7 +13,7 @@ bun run test:watch    # watch mode (re-run on file change)
 bun run test:ui       # Vitest UI in the browser
 ```
 
-## What's covered (6 scenarios)
+## What's covered (9 scenarios)
 
 | # | File | Business rule under test |
 |---|---|---|
@@ -23,6 +23,9 @@ bun run test:ui       # Vitest UI in the browser
 | 4 | `supplier-payment-limit.test.ts` | Payment > outstanding balance → 400 `exceeds-balance`. ADMIN + `override:true` → 201. Payment within balance → 201. Non-admin override → still 400. |
 | 5 | `shift-expected-totals.test.ts` | Closing a shift computes expected totals from sales by THAT shift's `userId` only — not all sales. Cashier 1's shift sees 500, not 800, even when cashier 2 made 300 in parallel. |
 | 6 | `vat-report.test.ts` | PO receive with `taxRate > 0` contributes `inputVatPOReceives`; after posting a PurchaseInvoice for the same PO the VAT moves to `inputVatInvoices` and the PO-receive bucket is excluded (no double-count). |
+| 7 | `bundles-compositions.test.ts` | `serializeBundle` cost/profit math, `serializeComposition` per-unit production cost (`costPerBatch / yieldQty`), and `stripBundleCost` role-based stripping (cost hidden for SALES/CASHIER). |
+| 8 | `pricing-promotions.test.ts` | `tierBasePrice` resolves the correct wholesale/company tier, `promotionAppliesTo` matches all four scope patterns (all/category/product/customer), and `computeEffectivePrice` picks the best promotion and applies it on top of the tier base price. |
+| 9 | `excel-import-export.test.ts` | `parseExcelFile` parses `.xlsx` into row objects keyed by header (incl. Arabic headers), `exportToExcel` emits header + data rows with the right column widths, `downloadTemplate` produces header-only or example-rows templates, and the import/export validators accept only `.xlsx/.xls/.csv` and reject rows missing the required `name` field. |
 
 ## Architecture
 
@@ -106,11 +109,17 @@ the test schema separately (with `provider = "sqlite"`) produces a
 SQLite-aware client. The two clients have the same delegate API, so
 `@/lib/db`'s `db` reference works against either.
 
-## CI
+## Running locally
 
-`.github/workflows/test.yml` runs `bun install` + `bun run test` on every
-push and pull request. The `DATABASE_URL` env var is set explicitly to
-`file:./prisma/test.db` (matching `tests/setup.ts`).
+```bash
+bun run test          # run all 9 test files / 100 tests once (SQLite, hermetic)
+bun run test:watch    # watch mode (re-run on file change)
+bun run test:ui       # Vitest UI in the browser
+```
+
+The `tests/setup.ts` global setup assigns `DATABASE_URL=file:./prisma/test.db`
+and regenerates the SQLite test client before each run — no CI workflow is
+required to reproduce these tests locally.
 
 ## Files
 
@@ -122,9 +131,11 @@ tests/
 ├── journal-rollback.test.ts              # scenario 3
 ├── supplier-payment-limit.test.ts        # scenario 4
 ├── shift-expected-totals.test.ts         # scenario 5
-└── vat-report.test.ts                    # scenario 6
+├── vat-report.test.ts                    # scenario 6
+├── bundles-compositions.test.ts          # scenario 7
+├── pricing-promotions.test.ts           # scenario 8
+└── excel-import-export.test.ts           # scenario 9
 prisma/
 └── schema.test.prisma                    # SQLite test schema
 vitest.config.ts                          # Vitest config (node env, sequential)
-.github/workflows/test.yml                # CI workflow
 ```

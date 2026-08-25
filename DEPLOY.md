@@ -54,7 +54,15 @@ postgresql://postgres:PASSWORD@db.PROJECT_REF.supabase.co:5432/postgres
 | `DIRECT_DATABASE_URL` | `postgresql://postgres:PASSWORD@db.PROJECT_REF.supabase.co:5432/postgres` | Direct host — للتطبيق runtime |
 | `NEXTAUTH_URL` | `https://your-app.vercel.app` | رابط التطبيق |
 | `NEXTAUTH_SECRET` | `openssl rand -base64 32` | سر عشوائي قوي |
-| `AUDIT_INTERNAL_SECRET` | `openssl rand -base64 32` | سر عشوائي قوي |
+| `AUDIT_INTERNAL_SECRET` | `openssl rand -base64 32` | سر عشوائي قوي — يوقّع طلبات سجل التدقيق الداخلية (`/api/audit-logs`) |
+| `BOOTSTRAP_ADMIN_PASSWORD` | سلسلة قوية (≥ 16 حرفاً) | كلمة مرور حساب أدمن الطوارئ — يستخدمها `POST /api/bootstrap-admin` لإنشاء/إعادة تعيين `admin@demo.com` عند الإقلاع الأول أو نسيان كلمة المرور |
+| `ENABLE_ADMIN_DDL` | `"true"` (افتراضي: غير مضبوط) | بوابة الإنتاج لمسارات الإدارة التخريبية/الـ DDL. عند غيابه في الإنتاج (NODE_ENV=production) تُرجع `/api/admin/recalc-stock`, `/api/admin/fix-stock`, `/api/admin/clear-transactions`, `/api/admin/apply-*-schema`, `/api/seed` خطأ `403 admin-ddl-disabled-in-production`. فعّله مؤقتاً فقط عند الصيانة الطارئة |
+| `SEED_ADMIN_PASSWORD` | كلمة مرور قوية | كلمة مرور `admin@demo.com` عند `POST /api/seed` — إن لم يُضبط يُولّد آلياً ويُرجَع في الرد (ولكن لن يُحفظ في أي مكان آخر) |
+| `SEED_MANAGER_PASSWORD` | كلمة مرور قوية | كلمة مرور حساب `manager@demo.com` عند `POST /api/seed` |
+| `SEED_ACCOUNTANT_PASSWORD` | كلمة مرور قوية | كلمة مرور حساب `accountant@demo.com` عند `POST /api/seed` |
+| `SEED_SALES_PASSWORD` | كلمة مرور قوية | كلمة مرور حساب `sales@demo.com` عند `POST /api/seed` |
+| `SEED_WAREHOUSE_PASSWORD` | كلمة مرور قوية | كلمة مرور حساب `warehouse@demo.com` عند `POST /api/seed` |
+| `SEED_CASHIER_PASSWORD` | كلمة مرور قوية | كلمة مرور حساب `cashier@demo.com` عند `POST /api/seed` |
 
 > **تحذير:** لا تستخدم `db push` على الإنتاج. استخدم `prisma migrate deploy` فقط.
 
