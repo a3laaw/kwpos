@@ -2,5 +2,15 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "installCommand": "bun install",
-  "regions": ["syd1"]
+  "regions": ["syd1"],
+  "functions": {
+    "src/app/api/admin/clear-transactions/route.ts": { "maxDuration": 60 },
+    "src/app/api/admin/fix-stock/route.ts": { "maxDuration": 60 },
+    "src/app/api/admin/recalc-stock/route.ts": { "maxDuration": 60 },
+    "src/app/api/seed/route.ts": { "maxDuration": 60 },
+    "src/app/api/excel/export/route.ts": { "maxDuration": 30 },
+    "src/app/api/excel/import-products/route.ts": { "maxDuration": 60 },
+    "src/app/api/excel/import-customers/route.ts": { "maxDuration": 30 }
+  }
 }
+
