@@ -118,51 +118,94 @@ export async function executeSaleTransaction(
     }
 
     if (allSteps.length > 0) {
-      // Build parameterized SQL: UPDATE ... FROM (VALUES ($1,$2,$3), ($4,$5,$6), ...)
-      const placeholders = allSteps
-        .map((_, i) => `($${i * 3 + 1}::text, $${i * 3 + 2}::text, $${i * 3 + 3}::int)`)
-        .join(", ")
-      const sqlParams = allSteps.flatMap((s) => [s.pid, s.wid, s.qty])
+      if (isPostgres) {
+        // PostgreSQL: batch UPDATE ... FROM (VALUES ...) ... RETURNING
+        // (single SQL roundtrip for all items — 8s saved on Vercel ↔ Supabase)
+        // Build parameterized SQL: UPDATE ... FROM (VALUES ($1,$2,$3), ($4,$5,$6), ...)
+        const placeholders = allSteps
+          .map((_, i) => `($${i * 3 + 1}::text, $${i * 3 + 2}::text, $${i * 3 + 3}::int)`)
+          .join(", ")
+        const sqlParams = allSteps.flatMap((s) => [s.pid, s.wid, s.qty])
 
-      const batchResult = await db.$queryRawUnsafe(
-        `
-        UPDATE "StockItem"
-        SET quantity = "StockItem".quantity - v.qty
-        FROM (VALUES ${placeholders}) AS v(pid, wid, qty)
-        WHERE "StockItem"."productId" = v.pid
-          AND "StockItem"."warehouseId" = v.wid
-          AND "StockItem".quantity >= v.qty
-        RETURNING "StockItem"."productId" AS pid, "StockItem"."warehouseId" AS wid
-        `,
-        ...sqlParams
-      ) as Array<{ pid: string; wid: string }>
+        const batchResult = await db.$queryRawUnsafe(
+          `
+          UPDATE "StockItem"
+          SET quantity = "StockItem".quantity - v.qty
+          FROM (VALUES ${placeholders}) AS v(pid, wid, qty)
+          WHERE "StockItem"."productId" = v.pid
+            AND "StockItem"."warehouseId" = v.wid
+            AND "StockItem".quantity >= v.qty
+          RETURNING "StockItem"."productId" AS pid, "StockItem"."warehouseId" AS wid
+          `,
+          ...sqlParams
+        ) as Array<{ pid: string; wid: string }>
 
-      // Check which steps succeeded (returned) vs failed (out of stock)
-      const succeededKeys = new Set(batchResult.map((r) => `${r.pid}::${r.wid}`))
-      const failedSteps = allSteps.filter((s) => !succeededKeys.has(`${s.pid}::${s.wid}`))
+        // Check which steps succeeded (returned) vs failed (out of stock)
+        const succeededKeys = new Set(batchResult.map((r) => `${r.pid}::${r.wid}`))
+        const failedSteps = allSteps.filter((s) => !succeededKeys.has(`${s.pid}::${s.wid}`))
 
-      if (failedSteps.length > 0) {
-        // Some items were out of stock. Compensate: re-increment the items
-        // that WERE decremented (the succeeded ones).
-        const succeededSteps = allSteps.filter((s) => succeededKeys.has(`${s.pid}::${s.wid}`))
-        for (const s of succeededSteps) {
-          try {
-            await db.stockItem.update({
-              where: { productId_warehouseId: { productId: s.pid, warehouseId: s.wid } },
-              data: { quantity: { increment: s.qty } },
-            })
-          } catch (compErr: unknown) {
-            console.error(
-              `[sale] COMPENSATION FAILED for ${s.pid}/${s.wid}: ${errorMessage(compErr)}`
-            )
+        if (failedSteps.length > 0) {
+          // Some items were out of stock. Compensate: re-increment the items
+          // that WERE decremented (the succeeded ones).
+          const succeededSteps = allSteps.filter((s) => succeededKeys.has(`${s.pid}::${s.wid}`))
+          for (const s of succeededSteps) {
+            try {
+              await db.stockItem.update({
+                where: { productId_warehouseId: { productId: s.pid, warehouseId: s.wid } },
+                data: { quantity: { increment: s.qty } },
+              })
+            } catch (compErr: unknown) {
+              console.error(
+                `[sale] COMPENSATION FAILED for ${s.pid}/${s.wid}: ${errorMessage(compErr)}`
+              )
+            }
+          }
+          throw new Error(`stock-insufficient:concurrent:${failedSteps[0].pid}`)
+        }
+
+        // All succeeded — track for compensation if sale.create fails later
+        for (const s of allSteps) {
+          decremented.push({ productId: s.pid, warehouseId: s.wid, qty: s.qty })
+        }
+      } else {
+        // SQLite (test env): per-row atomic conditional decrement via
+        // updateMany. SQLite doesn't support UPDATE ... FROM (VALUES)
+        // or RETURNING, so we fall back to one updateMany per step.
+        // Each updateMany is atomic: WHERE quantity >= qty prevents
+        // driving rows negative under concurrent access.
+        const failedSteps: Array<{ pid: string; wid: string; qty: number }> = []
+        for (const s of allSteps) {
+          const r = await db.stockItem.updateMany({
+            where: {
+              productId: s.pid,
+              warehouseId: s.wid,
+              quantity: { gte: s.qty },
+            },
+            data: { quantity: { decrement: s.qty } },
+          })
+          if (r.count === 1) {
+            decremented.push({ productId: s.pid, warehouseId: s.wid, qty: s.qty })
+          } else {
+            failedSteps.push(s)
           }
         }
-        throw new Error(`stock-insufficient:concurrent:${failedSteps[0].pid}`)
-      }
 
-      // All succeeded — track for compensation if sale.create fails later
-      for (const s of allSteps) {
-        decremented.push({ productId: s.pid, warehouseId: s.wid, qty: s.qty })
+        if (failedSteps.length > 0) {
+          // Compensate the successful decrements
+          for (const d of decremented) {
+            try {
+              await db.stockItem.update({
+                where: { productId_warehouseId: { productId: d.productId, warehouseId: d.warehouseId } },
+                data: { quantity: { increment: d.qty } },
+              })
+            } catch (compErr: unknown) {
+              console.error(
+                `[sale] COMPENSATION FAILED for ${d.productId}/${d.warehouseId}: ${errorMessage(compErr)}`
+              )
+            }
+          }
+          throw new Error(`stock-insufficient:concurrent:${failedSteps[0].pid}`)
+        }
       }
     }
 
