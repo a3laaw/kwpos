@@ -25,6 +25,8 @@ const FONT_H = "Calibri"; // body (Latin-safe, renders Arabic via fallback)
 const FONT_B = "Calibri";
 
 // ── Helpers ──
+const SHOTS = "/home/z/my-project/ppt-output/screenshots";
+
 function addBg(slide, color) {
   slide.background = { color };
 }
@@ -193,12 +195,45 @@ function card(slide, x, y, w, h, fill, shadow = true) {
 }
 
 // ════════════════════════════════════════════════════════════════
+// S3.5 — Real System Preview (login screen)
+// ════════════════════════════════════════════════════════════════
+{
+  const s = pres.addSlide();
+  addBg(s, PAL.bgDark);
+  titleBox(s, "نظرة على النظام الفعلي", { color: PAL.white });
+  s.addText("شاشة الدخول الحقيقية من النظام المنشور", {
+    x: 0.6, y: 1.3, w: 12, h: 0.4, fontSize: 15, fontFace: FONT_H, color: PAL.gold, align: "left", valign: "middle", rtlMode: true,
+  });
+
+  // Real screenshot from Vercel deployment
+  s.addImage({
+    path: `${SHOTS}/login.png`,
+    x: 2.65, y: 1.95, w: 8, h: 4.5,
+    sizing: { type: "contain", w: 8, h: 4.5 },
+  });
+
+  // Frame around the screenshot
+  s.addShape(pres.shapes.RECTANGLE, {
+    x: 2.6, y: 1.9, w: 8.1, h: 4.6,
+    fill: { color: PAL.gold, transparency: 100 },
+    line: { color: PAL.gold, width: 2 },
+  });
+
+  // URL badge
+  s.addShape(pres.shapes.ROUNDED_RECTANGLE, {
+    x: 4.65, y: 6.6, w: 4, h: 0.45, fill: { color: PAL.primary }, line: { color: PAL.primary, width: 0 }, rectRadius: 0.06,
+  });
+  s.addText("🌐 kwpos.vercel.app", { x: 4.65, y: 6.6, w: 4, h: 0.45, fontSize: 13, fontFace: FONT_H, color: PAL.white, bold: true, align: "center", valign: "middle", rtlMode: true });
+}
+
+// ════════════════════════════════════════════════════════════════
 // S4 — Seven Roles
 // ════════════════════════════════════════════════════════════════
 {
   const s = pres.addSlide();
   addBg(s, PAL.bgLight);
   titleBox(s, "الأدوار السبعة — صلاحيات دقيقة", { color: PAL.textDark });
+
 
   const roles = [
     { r: "OWNER", a: "المالك", p: "صلاحيات كاملة + لوحة المالك الحصرية", pages: "22 صفحة", c: PAL.primary },
@@ -281,6 +316,31 @@ function card(slide, x, y, w, h, fill, shadow = true) {
 }
 
 // ════════════════════════════════════════════════════════════════
+// S5.5 — POS Screen Preview
+// ════════════════════════════════════════════════════════════════
+{
+  const s = pres.addSlide();
+  addBg(s, PAL.bgDark);
+  titleBox(s, "شاشة نقاط البيع — معاينة", { color: PAL.white });
+  s.addText("الوضع القياسي: شريط جانبي + بحث + بطاقات منتجات + سلة كاملة + دفع", {
+    x: 0.6, y: 1.3, w: 12, h: 0.4, fontSize: 14, fontFace: FONT_H, color: PAL.gold, align: "left", valign: "middle", rtlMode: true,
+  });
+
+  // POS screenshot
+  s.addImage({
+    path: `${SHOTS}/pos.png`,
+    x: 0.6, y: 1.95, w: 12.1, h: 5.1,
+  });
+
+  // Frame
+  s.addShape(pres.shapes.RECTANGLE, {
+    x: 0.55, y: 1.9, w: 12.2, h: 5.2,
+    fill: { color: PAL.gold, transparency: 100 },
+    line: { color: PAL.gold, width: 2 },
+  });
+}
+
+// ════════════════════════════════════════════════════════════════
 // S6 — Inventory & Multi-warehouse
 // ════════════════════════════════════════════════════════════════
 {
@@ -325,6 +385,29 @@ function card(slide, x, y, w, h, fill, shadow = true) {
     const y = 2.5 + i * 0.45;
     s.addText(m.t, { x: 7.8, y, w: 2.3, h: 0.4, fontSize: 11, fontFace: FONT_H, color: PAL.gold, bold: true, align: "left", valign: "middle" });
     s.addText(m.d, { x: 10.1, y, w: 2.5, h: 0.4, fontSize: 11, fontFace: FONT_B, color: PAL.textDark, align: "left", valign: "middle", rtlMode: true });
+  });
+}
+
+// ════════════════════════════════════════════════════════════════
+// S6.5 — Inventory Screen Preview
+// ════════════════════════════════════════════════════════════════
+{
+  const s = pres.addSlide();
+  addBg(s, PAL.bgDark);
+  titleBox(s, "شاشة المخزون — معاينة", { color: PAL.white });
+  s.addText("جدول المنتجات مع الفلترة + الأسعار + الكميات لكل مخزن + حالات المخزون", {
+    x: 0.6, y: 1.3, w: 12, h: 0.4, fontSize: 14, fontFace: FONT_H, color: PAL.gold, align: "left", valign: "middle", rtlMode: true,
+  });
+
+  s.addImage({
+    path: `${SHOTS}/inventory.png`,
+    x: 0.6, y: 1.95, w: 12.1, h: 5.1,
+  });
+
+  s.addShape(pres.shapes.RECTANGLE, {
+    x: 0.55, y: 1.9, w: 12.2, h: 5.2,
+    fill: { color: PAL.gold, transparency: 100 },
+    line: { color: PAL.gold, width: 2 },
   });
 }
 
@@ -378,6 +461,29 @@ function card(slide, x, y, w, h, fill, shadow = true) {
     const y = 5.3 + Math.floor(i / 4) * 0.6;
     card(s, x, y, 2.9, 0.5, PAL.primary, false);
     s.addText(r, { x, y, w: 2.9, h: 0.5, fontSize: 12, fontFace: FONT_B, color: PAL.white, align: "center", valign: "middle", rtlMode: true });
+  });
+}
+
+// ════════════════════════════════════════════════════════════════
+// S7.5 — Accounting Screen Preview
+// ════════════════════════════════════════════════════════════════
+{
+  const s = pres.addSlide();
+  addBg(s, PAL.bgDark);
+  titleBox(s, "شاشة المحاسبة — معاينة", { color: PAL.white });
+  s.addText("ميزان المراجعة + القيود اليومية + قائمة الدخل — كل القيود تلقائية", {
+    x: 0.6, y: 1.3, w: 12, h: 0.4, fontSize: 14, fontFace: FONT_H, color: PAL.gold, align: "left", valign: "middle", rtlMode: true,
+  });
+
+  s.addImage({
+    path: `${SHOTS}/accounting.png`,
+    x: 0.6, y: 1.95, w: 12.1, h: 5.1,
+  });
+
+  s.addShape(pres.shapes.RECTANGLE, {
+    x: 0.55, y: 1.9, w: 12.2, h: 5.2,
+    fill: { color: PAL.gold, transparency: 100 },
+    line: { color: PAL.gold, width: 2 },
   });
 }
 
@@ -443,6 +549,52 @@ function card(slide, x, y, w, h, fill, shadow = true) {
     card(s, x, 5.3, 1.25, 1.2, cl.c, false);
     s.addText(cl.t, { x, y: 5.4, w: 1.25, h: 0.5, fontSize: 13, fontFace: FONT_H, color: PAL.white, bold: true, align: "center", valign: "middle", rtlMode: true });
     s.addText(cl.d, { x, y: 5.9, w: 1.25, h: 0.5, fontSize: 10, fontFace: FONT_B, color: PAL.white, align: "center", valign: "middle", rtlMode: true });
+  });
+}
+
+// ════════════════════════════════════════════════════════════════
+// S8.5 — Reports Screen Preview
+// ════════════════════════════════════════════════════════════════
+{
+  const s = pres.addSlide();
+  addBg(s, PAL.bgDark);
+  titleBox(s, "شاشة التقارير — معاينة", { color: PAL.white });
+  s.addText("الأكثر مبيعاً + مؤشر كفاءة المنتج + توزيع الأقسام + مؤشرات الأداء", {
+    x: 0.6, y: 1.3, w: 12, h: 0.4, fontSize: 14, fontFace: FONT_H, color: PAL.gold, align: "left", valign: "middle", rtlMode: true,
+  });
+
+  s.addImage({
+    path: `${SHOTS}/reports.png`,
+    x: 0.6, y: 1.95, w: 12.1, h: 5.1,
+  });
+
+  s.addShape(pres.shapes.RECTANGLE, {
+    x: 0.55, y: 1.9, w: 12.2, h: 5.2,
+    fill: { color: PAL.gold, transparency: 100 },
+    line: { color: PAL.gold, width: 2 },
+  });
+}
+
+// ════════════════════════════════════════════════════════════════
+// S8.6 — Dashboard Preview
+// ════════════════════════════════════════════════════════════════
+{
+  const s = pres.addSlide();
+  addBg(s, PAL.bgDark);
+  titleBox(s, "لوحة التحكم — معاينة", { color: PAL.white });
+  s.addText("مؤشرات الأداء + مبيعات الأسبوع + آخر الفواتير + تنبيهات المخزون", {
+    x: 0.6, y: 1.3, w: 12, h: 0.4, fontSize: 14, fontFace: FONT_H, color: PAL.gold, align: "left", valign: "middle", rtlMode: true,
+  });
+
+  s.addImage({
+    path: `${SHOTS}/dashboard.png`,
+    x: 0.6, y: 1.95, w: 12.1, h: 5.1,
+  });
+
+  s.addShape(pres.shapes.RECTANGLE, {
+    x: 0.55, y: 1.9, w: 12.2, h: 5.2,
+    fill: { color: PAL.gold, transparency: 100 },
+    line: { color: PAL.gold, width: 2 },
   });
 }
 
