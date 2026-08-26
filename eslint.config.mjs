@@ -52,7 +52,7 @@ const eslintConfig = [...nextCoreWebVitals, ...nextTypescript, {
     "no-useless-escape": "warn",      // re-enabled as warn: \: in regexes etc. is unnecessary
   },
 }, {
-  ignores: ["node_modules/**", ".next/**", "out/**", "build/**", "next-env.d.ts", "examples/**", "skills", "tests/**", "vitest.config.ts", "tests/globalSetup.ts", "check-users.ts", "reset-admin.ts", "reset-all.ts", "verify-prod.ts", "test-auth-prod.ts", "scripts/**"]
+  ignores: ["node_modules/**", ".next/**", "out/**", "build/**", "next-env.d.ts", "examples/**", "skills", "tests/**", "vitest.config.ts", "tests/globalSetup.ts", "check-users.ts", "reset-admin.ts", "reset-all.ts", "verify-prod.ts", "test-auth-prod.ts", "scripts/**", "ppt-output/**"]
 }];
 
 export default eslintConfig;
