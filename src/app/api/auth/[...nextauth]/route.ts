@@ -1,5 +1,5 @@
 import NextAuth from "next-auth"
-import { NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { authOptions } from "@/lib/auth"
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit"
 
@@ -25,7 +25,12 @@ export { handler as GET }
 
 // POST is used for sign-in (credentials callback) and sign-out. We
 // rate-limit only the credentials callback path to block brute force.
-export async function POST(req: NextRequest) {
+//
+// NOTE: we accept `Request` (not `NextRequest`) because NextAuth's
+// handler expects a standard Request. Using NextRequest here caused
+// a 500 error in production because NextAuth couldn't read the body
+// from the NextRequest wrapper.
+export async function POST(req: Request) {
   const url = new URL(req.url)
   // The credentials provider callback is the actual login attempt.
   // Other POST endpoints (signout, csrf token) are not rate-limited.
