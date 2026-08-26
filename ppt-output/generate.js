@@ -25,7 +25,7 @@ const FONT_H = "Calibri"; // body (Latin-safe, renders Arabic via fallback)
 const FONT_B = "Calibri";
 
 // ── Helpers ──
-const SHOTS = "/home/z/my-project/ppt-output/screenshots";
+const SHOTS = "/home/z/my-project/ppt-output/real-screenshots";
 
 function addBg(slide, color) {
   slide.background = { color };
@@ -207,7 +207,7 @@ function card(slide, x, y, w, h, fill, shadow = true) {
 
   // Real screenshot from Vercel deployment
   s.addImage({
-    path: `${SHOTS}/login.png`,
+    path: `${SHOTS}/00-login.png`,
     x: 2.65, y: 1.95, w: 8, h: 4.5,
     sizing: { type: "contain", w: 8, h: 4.5 },
   });
@@ -328,7 +328,7 @@ function card(slide, x, y, w, h, fill, shadow = true) {
 
   // POS screenshot
   s.addImage({
-    path: `${SHOTS}/pos.png`,
+    path: `${SHOTS}/02-pos.png`,
     x: 0.6, y: 1.95, w: 12.1, h: 5.1,
   });
 
@@ -400,7 +400,7 @@ function card(slide, x, y, w, h, fill, shadow = true) {
   });
 
   s.addImage({
-    path: `${SHOTS}/inventory.png`,
+    path: `${SHOTS}/03-inventory.png`,
     x: 0.6, y: 1.95, w: 12.1, h: 5.1,
   });
 
@@ -476,7 +476,7 @@ function card(slide, x, y, w, h, fill, shadow = true) {
   });
 
   s.addImage({
-    path: `${SHOTS}/accounting.png`,
+    path: `${SHOTS}/06-accounting.png`,
     x: 0.6, y: 1.95, w: 12.1, h: 5.1,
   });
 
@@ -564,7 +564,7 @@ function card(slide, x, y, w, h, fill, shadow = true) {
   });
 
   s.addImage({
-    path: `${SHOTS}/reports.png`,
+    path: `${SHOTS}/07-reports.png`,
     x: 0.6, y: 1.95, w: 12.1, h: 5.1,
   });
 
@@ -587,7 +587,7 @@ function card(slide, x, y, w, h, fill, shadow = true) {
   });
 
   s.addImage({
-    path: `${SHOTS}/dashboard.png`,
+    path: `${SHOTS}/01-dashboard.png`,
     x: 0.6, y: 1.95, w: 12.1, h: 5.1,
   });
 
