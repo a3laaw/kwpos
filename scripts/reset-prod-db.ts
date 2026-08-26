@@ -21,9 +21,10 @@ import { PrismaClient } from "@prisma/client"
 import bcrypt from "bcryptjs"
 
 // Direct Supabase connection (bypasses PgBouncer for DDL-like operations)
+// Password URL-encoded: @ → %40 (the password contains an @)
 const prisma = new PrismaClient({
   datasourceUrl:
-    "postgresql://postgres.qwicxgoslxmypksytklo:hcCBAZ3vcTnXopoR@aws-1-ap-southeast-2.pooler.supabase.com:5432/postgres",
+    "postgresql://postgres.qwicxgoslxmypksytklo:alaa%4055505186@aws-1-ap-southeast-2.pooler.supabase.com:5432/postgres",
 })
 
 async function main() {
