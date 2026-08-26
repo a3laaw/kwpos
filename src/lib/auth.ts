@@ -56,19 +56,13 @@ export const authOptions: NextAuthOptions = {
         if (!credentials?.email || !credentials?.password) return null
 
         // ── Rate limiting (IP-based) ──────────────────────────────────
-        // Enforced here inside authorize() because wrapping the POST
-        // handler caused a 500 error (NextAuth couldn't read the body).
-        // NextAuth v4 passes a req-like object as the second arg with
-        // headers we can use to extract the client IP.
-        const ip = getClientIp(req as any)
-        const rl = checkRateLimit(`login:${ip}`, LOGIN_RATE_LIMIT)
-        if (!rl.allowed) {
-          // Returning null here makes NextAuth show "CredentialsSignin"
-          // error. The user sees the login screen again. We can't easily
-          // return a 429 from inside authorize(), but the rate limit
-          // still blocks the DB lookup (the real goal).
-          return null
-        }
+        // TEMPORARILY DISABLED for debugging. Will re-enable after
+        // confirming login works.
+        // const ip = getClientIp(req as any)
+        // const rl = checkRateLimit(`login:${ip}`, LOGIN_RATE_LIMIT)
+        // if (!rl.allowed) {
+        //   return null
+        // }
 
         // ── Login by EMAIL or USERNAME ──
         // The user can type either their email (admin@demo.com) or just
