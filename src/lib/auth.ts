@@ -59,20 +59,12 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) return null
 
-        // ── Rate limiting (IP-based) ──────────────────────────────────
-        // Enforced here inside authorize() because wrapping the POST
-        // handler caused a 500 error (NextAuth couldn't read the body).
-        // NextAuth v4 passes a req-like object as the second arg with
-        // headers we can use to extract the client IP.
-        const ip = getClientIp(req as any)
-        const rl = checkRateLimit(`login:${ip}`, LOGIN_RATE_LIMIT)
-        if (!rl.allowed) {
-          // Returning null here makes NextAuth show "CredentialsSignin"
-          // error. The user sees the login screen again. We can't easily
-          // return a 429 from inside authorize(), but the rate limit
-          // still blocks the DB lookup (the real goal).
-          return null
-        }
+        // Note: login rate-limiting was removed from here because the
+        // in-memory Map per serverless instance caused false positives
+        // when users on shared IPs hit the limit. The bootstrap-admin
+        // endpoint is still rate-limited (it's the emergency recovery
+        // path). For production brute-force protection, use Vercel's
+        // built-in rate limiting or a database-backed counter.
 
         // ── Login by EMAIL or USERNAME ──
         // The user can type either their email (admin@demo.com) or just
