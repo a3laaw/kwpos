@@ -2,6 +2,18 @@ import type { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import bcrypt from "bcryptjs"
 import { db } from "@/lib/db"
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit"
+
+// ── Login rate limiting ────────────────────────────────────────────
+// Rate-limit is enforced INSIDE the authorize() function rather than
+// as a wrapper around the POST handler. A wrapper caused a 500 error
+// in production because NextAuth couldn't read the body stream.
+// By limiting here, we keep the auth route simple and the rate-limit
+// applies before any DB lookup (saving DB load on brute-force).
+const LOGIN_RATE_LIMIT = {
+  maxAttempts: 10,
+  windowMs: 15 * 60 * 1000, // 15 min
+}
 
 export const authOptions: NextAuthOptions = {
   session: {
@@ -40,8 +52,23 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email or Username", type: "text" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) return null
+
+        // ── Rate limiting (IP-based) ──────────────────────────────────
+        // Enforced here inside authorize() because wrapping the POST
+        // handler caused a 500 error (NextAuth couldn't read the body).
+        // NextAuth v4 passes a req-like object as the second arg with
+        // headers we can use to extract the client IP.
+        const ip = getClientIp(req as any)
+        const rl = checkRateLimit(`login:${ip}`, LOGIN_RATE_LIMIT)
+        if (!rl.allowed) {
+          // Returning null here makes NextAuth show "CredentialsSignin"
+          // error. The user sees the login screen again. We can't easily
+          // return a 429 from inside authorize(), but the rate limit
+          // still blocks the DB lookup (the real goal).
+          return null
+        }
 
         // ── Login by EMAIL or USERNAME ──
         // The user can type either their email (admin@demo.com) or just
