@@ -47,12 +47,14 @@ import {
   Layers,
   Star,
   Download,
+  BrainCircuit,
 } from "lucide-react"
 import { useReport, type ReportFilters } from "@/hooks/use-api"
 import { useFmt } from "@/components/currency-context"
 import { useT } from "@/components/i18n-context"
 import { PerformanceMatrix } from "@/components/reports/performance-matrix"
 import { ProductEfficiencyReport } from "@/components/reports/product-efficiency-report"
+import { AISummaryCard } from "@/components/reports/ai-summary-card"
 import { printReportOnly } from "@/lib/print"
 import { exportToExcel, type ExcelColumn } from "@/lib/excel"
 import { cn } from "@/lib/utils"
@@ -60,7 +62,7 @@ import { useModuleTab } from "@/lib/module-tab-store"
 
 const PIE_COLORS = ["#2E6237", "#DFC196", "#F9DC7C", "#f59e0b", "#8b5cf6", "#ec4899", "#0ea5e9"]
 
-type ReportTab = "general" | "matrix" | "efficiency"
+type ReportTab = "general" | "matrix" | "efficiency" | "ai"
 
 export function ReportsView() {
   const t = useT()
@@ -71,19 +73,34 @@ export function ReportsView() {
   const isGeneral = tab === "general"
   const isMatrix = tab === "matrix"
   const isEfficiency = tab === "efficiency"
-  const headerTitle = isGeneral ? t.reportsTitle : isMatrix ? t.matrixTitleFull : "مؤشر كفاءة المنتج"
-  const headerDesc = isGeneral ? t.repDescFull : isMatrix ? t.matrixLongDescFull : "تقرير تحليلي يدمج الربح والمبيعات والمرتجعات والتكلفة في درجة واحدة من 100"
+  const isAI = tab === "ai"
+  const headerTitle = isGeneral
+    ? t.reportsTitle
+    : isMatrix
+      ? t.matrixTitleFull
+      : isAI
+        ? t.aiSummaryTitle
+        : "مؤشر كفاءة المنتج"
+  const headerDesc = isGeneral
+    ? t.repDescFull
+    : isMatrix
+      ? t.matrixLongDescFull
+      : isAI
+        ? t.aiSummaryDesc
+        : "تقرير تحليلي يدمج الربح والمبيعات والمرتجعات والتكلفة في درجة واحدة من 100"
   const headerIcon = isGeneral ? (
     <FileBarChart className="h-5 w-5" />
   ) : isMatrix ? (
     <Layers className="h-5 w-5" />
+  ) : isAI ? (
+    <BrainCircuit className="h-5 w-5" />
   ) : (
     <Star className="h-5 w-5" />
   )
 
   const breadcrumbItems: BreadcrumbItem[] = [
     { labelKey: "navReports" },
-    { labelKey: isGeneral ? "generalReports" : isMatrix ? "performanceMatrix" : "generalReports" },
+    { labelKey: isGeneral ? "generalReports" : isMatrix ? "performanceMatrix" : isAI ? "aiTab" : "generalReports" },
   ]
 
   return (
@@ -108,7 +125,7 @@ export function ReportsView() {
         <hr className="my-2 border-gray-300" />
       </div>
 
-      {isGeneral ? <GeneralReports /> : isMatrix ? <PerformanceMatrix /> : <ProductEfficiencyReport />}
+      {isAI ? <AISummaryCard /> : isGeneral ? <GeneralReports /> : isMatrix ? <PerformanceMatrix /> : <ProductEfficiencyReport />}
     </div>
   )
 }

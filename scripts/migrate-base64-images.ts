@@ -1,5 +1,5 @@
 /**
- * Migrate base64 data URLs in Product.imageUrl to local files.
+ * Migrate base64 data URLs in Product.imageUrl to local files or Vercel Blob.
  *
  * TEMPORARY MIGRATION SCRIPT — run once to clean up legacy base64 images
  * that were stored directly in the database (each ~280KB, causing Excel
@@ -8,24 +8,35 @@
  * ── HOW IT WORKS ───────────────────────────────────────────────────
  * For each product whose imageUrl starts with "data:image/":
  *   1. Decode the base64 payload to a Buffer.
- *   2. Write it to public/uploads/products/<productId>.<ext>.
- *   3. Update the DB row: imageUrl = "/uploads/products/<productId>.<ext>".
+ *   2. Write it to either:
+ *      a) public/uploads/products/<productId>.<ext>  (local FS)
+ *      b) Vercel Blob  (returns a public URL)
+ *   3. Update the DB row: imageUrl = <newUrl>.
+ *
+ * ── STORAGE TARGET SELECTION ────────────────────────────────────────
+ * The write target is selected automatically by default, with an
+ * optional CLI flag to force one:
+ *
+ *   Default (no flag):
+ *     - If BLOB_READ_WRITE_TOKEN env var is set → upload to Vercel Blob.
+ *     - Otherwise → save to local filesystem under public/uploads/.
+ *
+ *   --blob    Force Vercel Blob upload (requires BLOB_READ_WRITE_TOKEN).
+ *              Errors out if the env var isn't set.
+ *
+ *   --local   Force local filesystem write (ignores BLOB_READ_WRITE_TOKEN).
+ *              Useful for preview deployments with a persistent volume.
  *
  * ── ENVIRONMENT SUPPORT ────────────────────────────────────────────
- * This script writes to the LOCAL filesystem under public/uploads/.
- * This works for:
+ * LOCAL filesystem under public/uploads/ works for:
  *   - Local development (next dev serves public/ statically)
  *   - Vercel preview deployments with a persistent volume mounted at public/uploads
  *
- * For production Vercel (read-only filesystem), you have two options:
- *   A) Run this script locally against your Supabase DB (set DATABASE_URL
- *      to the production connection string) BEFORE deploying. The
- *      generated files in public/uploads/ are then committed or uploaded
- *      to Vercel Blob / Supabase Storage.
- *   B) Set BLOB_READ_WRITE_TOKEN in your env and switch the
- *      WRITE_TARGET constant below to 'vercel-blob'. The script will
- *      upload to Vercel Blob and store the returned URL in the DB.
- *      (Requires: npm install @vercel/blob)
+ * VERCEL BLOB works for:
+ *   - Production Vercel (read-only filesystem). Requires BLOB_READ_WRITE_TOKEN
+ *     env var. The @vercel/blob package is available automatically on the
+ *     Vercel runtime when the token is set — no need to add it to package.json.
+ *     When running locally you may need `bun add @vercel/blob` first.
  *
  * ── SAFETY ─────────────────────────────────────────────────────────
  *   - Dry-run by default (prints what it would do, changes nothing).
@@ -33,16 +44,17 @@
  *   - Idempotent: re-running on already-migrated rows is a no-op.
  *
  * ── USAGE ─────────────────────────────────────────────────────────
- *   bun run scripts/migrate-base64-images.ts            # dry run
- *   bun run scripts/migrate-base64-images.ts --apply     # apply
+ *   bun run scripts/migrate-base64-images.ts                       # dry run (auto target)
+ *   bun run scripts/migrate-base64-images.ts --apply                # apply (auto target)
+ *   bun run scripts/migrate-base64-images.ts --apply --blob        # force Vercel Blob
+ *   bun run scripts/migrate-base64-images.ts --apply --local       # force local FS
  */
 import { db } from "@/lib/db"
 import { writeFileSync, mkdirSync, existsSync } from "node:fs"
 import path from "node:path"
 import crypto from "node:crypto"
 
-// Toggle this to 'vercel-blob' once @vercel/blob is installed + configured.
-const WRITE_TARGET: "local" | "vercel-blob" = "local"
+type WriteTarget = "local" | "vercel-blob"
 
 const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "products")
 
@@ -64,6 +76,33 @@ function parseDataUrl(dataUrl: string): { mime: string; buffer: Buffer } | null 
   return { mime: m[1], buffer: Buffer.from(m[2], "base64") }
 }
 
+/**
+ * Resolve the storage target based on CLI flags + env.
+ *   --blob  → forces "vercel-blob" (errors if no token)
+ *   --local → forces "local" (ignores token)
+ *   none    → "vercel-blob" if BLOB_READ_WRITE_TOKEN is set, else "local"
+ */
+function resolveWriteTarget(): WriteTarget {
+  const forceBlob = process.argv.includes("--blob")
+  const forceLocal = process.argv.includes("--local")
+
+  if (forceBlob && forceLocal) {
+    console.error("[base64-migration] conflicting flags --blob and --local. Pick one.")
+    process.exit(2)
+  }
+  if (forceBlob) {
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      console.error("[base64-migration] --blob requires BLOB_READ_WRITE_TOKEN env var.")
+      process.exit(2)
+    }
+    return "vercel-blob"
+  }
+  if (forceLocal) return "local"
+  // Auto: prefer Blob when the token is set (production Vercel),
+  // fall back to local FS (dev / preview).
+  return process.env.BLOB_READ_WRITE_TOKEN ? "vercel-blob" : "local"
+}
+
 async function uploadToLocal(productId: string, mime: string, buffer: Buffer): Promise<string> {
   if (!existsSync(UPLOAD_DIR)) mkdirSync(UPLOAD_DIR, { recursive: true })
   const ext = extFromMime(mime)
@@ -78,6 +117,8 @@ async function uploadToLocal(productId: string, mime: string, buffer: Buffer): P
 
 async function uploadToVercelBlob(productId: string, mime: string, buffer: Buffer): Promise<string> {
   // Lazy import so the script doesn't crash if @vercel/blob isn't installed.
+  // On Vercel's runtime the package is auto-available when BLOB_READ_WRITE_TOKEN
+  // is set; locally you may need `bun add @vercel/blob` first.
   const { put } = await import("@vercel/blob")
   const ext = extFromMime(mime)
   const hash = crypto.createHash("sha1").update(productId).digest("hex").slice(0, 12)
@@ -92,8 +133,13 @@ async function uploadToVercelBlob(productId: string, mime: string, buffer: Buffe
 
 async function main() {
   const apply = process.argv.includes("--apply")
+  const WRITE_TARGET = resolveWriteTarget()
   console.log(`\n[base64-migration] mode: ${apply ? "APPLY" : "DRY-RUN (pass --apply to write)"}`)
-  console.log(`[base64-migration] write target: ${WRITE_TARGET}\n`)
+  console.log(`[base64-migration] write target: ${WRITE_TARGET}`)
+  if (WRITE_TARGET === "vercel-blob") {
+    console.log(`[base64-migration] using BLOB_READ_WRITE_TOKEN (${process.env.BLOB_READ_WRITE_TOKEN ? "set" : "EMPTY"})`)
+  }
+  console.log("")
 
   // Find all products whose imageUrl is a base64 data URL.
   const products = await db.product.findMany({
