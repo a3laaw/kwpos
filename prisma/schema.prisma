@@ -49,6 +49,31 @@ model User {
   transfersCreated StockTransfer[] @relation("TransferCreator")
   transfersReceived StockTransfer[] @relation("TransferReceiver")
   customsAnnexes CustomsAnnex[] @relation("CustomsAnnexCreator")
+  notifications Notification[]
+}
+
+// ─── MODULE: Central Notification System (Track 4.3) ─────────────────
+// User-scoped, persistent notifications surfaced by the bell in the
+// sidebar. Helpers in `src/lib/notifications.ts` create rows here when
+// business events happen (stock drops below reorderLevel, a purchase
+// invoice is posted = a payment is now due, system notices, etc.).
+// `read` defaults to false; the bell badges on `!read`. The `link`
+// column is the AppView name to navigate to when the user clicks the
+// notification (e.g. "inventory", "purchases").
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // "STOCK_LOW" | "SALES_SPIKE" | "PAYMENT_DUE" | "SHIFT_REMINDER" | "SYSTEM"
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  link      String?  // view to navigate to when clicked
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([read])
 }
 
 model Category {

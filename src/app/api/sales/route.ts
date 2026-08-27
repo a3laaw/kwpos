@@ -187,13 +187,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: result.error }, { status: result.status })
   }
 
-  // 10) Run post-transaction side effects (loyalty points only).
-  // Awaited — not fire-and-forget — because Vercel serverless does NOT
-  // guarantee execution after the response is returned.
+  // 10) Run post-transaction side effects (loyalty points + stock-low
+  // notifications). Awaited — not fire-and-forget — because Vercel
+  // serverless does NOT guarantee execution after the response is
+  // returned.
   await runPostSaleSideEffects({
     sale: result.sale,
     totals,
     customerId,
+    warehouseId,
   })
 
   return NextResponse.json(serializeSale(result.sale), { status: 201 })

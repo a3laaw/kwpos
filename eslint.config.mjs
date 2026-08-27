@@ -14,14 +14,29 @@ const eslintConfig = [...nextCoreWebVitals, ...nextTypescript, {
     // as a separate cleanup task. The financial files (lib/sale/*,
     // lib/journal.ts) have already been cleaned in PHASE2.
     "@typescript-eslint/no-explicit-any": "off",
-    "@typescript-eslint/no-unused-vars": "off", // TODO: re-enable with _ prefix convention
+    // no-unused-vars: re-enabled in PHASE4 (Track 4.4) with the `_` prefix
+    // convention — variables/args/catch-errors/destructured-array-elements
+    // that start with an underscore are allowed to be unused. Migrating
+    // the existing ~20 unused-var warnings to use the `_` prefix is a
+    // separate cleanup task; the rule is "warn" so warnings don't break
+    // the lint pass.
+    "@typescript-eslint/no-unused-vars": ["warn", {
+      argsIgnorePattern: "^_",
+      varsIgnorePattern: "^_",
+      caughtErrorsIgnorePattern: "^_",
+      destructuredArrayIgnorePattern: "^_",
+    }],
     "@typescript-eslint/no-non-null-assertion": "off",
     "@typescript-eslint/ban-ts-comment": "off",
     "@typescript-eslint/prefer-as-const": "off",
     "@typescript-eslint/no-unused-disable-directive": "off",
 
     // React rules
-    "react-hooks/exhaustive-deps": "off",
+    // react-hooks/exhaustive-deps: re-enabled in PHASE4 (Track 4.4) as
+    // "warn" (not error) so a missing dep doesn't fail the lint pass —
+    // the existing effect/useMemo/useCallback call sites with missing
+    // deps are flagged for follow-up rather than blocking builds.
+    "react-hooks/exhaustive-deps": "warn",
     "react-hooks/purity": "off",
     // TEMPORARY: disabled because the project uses useEffect for modal/form
     // initialization patterns that trigger this rule. Will be refactored
@@ -33,6 +48,9 @@ const eslintConfig = [...nextCoreWebVitals, ...nextTypescript, {
     "react-compiler/react-compiler": "off",
 
     // Next.js rules
+    // no-img-element: left off — the project uses <img> for product images
+    // (intentional, see ImageUpload/ProductCard). Re-enabling would
+    // flag every product image; track as separate cleanup task.
     "@next/next/no-img-element": "off",
     "@next/next/no-html-link-for-pages": "off",
 

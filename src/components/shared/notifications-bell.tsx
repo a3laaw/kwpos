@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,65 +13,121 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Bell, AlertTriangle, Clock, CreditCard, Package, ShoppingCart, TrendingDown } from "lucide-react"
+import { Bell, AlertTriangle, Clock, CreditCard, Package, TrendingUp, Info } from "lucide-react"
 import { useAppStore } from "@/lib/store"
 import { useT } from "@/components/i18n-context"
+import type { AppView } from "@/lib/types"
 import { cn } from "@/lib/utils"
+
+/**
+ * Central Notification System bell (Track 4.3).
+ *
+ * Fetches REAL notifications for the current user from
+ * `GET /api/notifications` (DB-backed, not computed on each request).
+ *
+ * Polling: refetchInterval = 30s (the task spec). The query is also
+ * invalidated manually after a mark-as-read so the badge updates
+ * immediately rather than waiting for the next poll.
+ *
+ * Click handling: clicking a notification marks it as read via
+ * `POST /api/notifications { id }` and (if the notification has a
+ * `link`) navigates the user to that AppView via `setView`. Marking
+ * is non-blocking — we don't await the mutation before navigating,
+ * so the user lands on the target view instantly.
+ */
 
 interface Notification {
   id: string
-  type: "LOW_STOCK" | "OVERDUE_PAYABLE" | "OPEN_SHIFT" | "HIGH_VOID_RATE" | "PENDING_PO"
-  severity: "critical" | "warning" | "info"
+  type: "STOCK_LOW" | "SALES_SPIKE" | "PAYMENT_DUE" | "SHIFT_REMINDER" | "SYSTEM"
   title: string
   message: string
-  actionLabel: string
-  actionType: "CREATE_PO" | "NAVIGATE"
-  actionData: { productId?: string; productName?: string; supplierId?: string | null; view?: string }
+  read: boolean
+  link: string | null
   createdAt: string
 }
 
-const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-  LOW_STOCK: Package,
-  OVERDUE_PAYABLE: CreditCard,
-  OPEN_SHIFT: Clock,
-  HIGH_VOID_RATE: TrendingDown,
-  PENDING_PO: ShoppingCart,
+const ICONS: Record<Notification["type"], React.ComponentType<{ className?: string }>> = {
+  STOCK_LOW: Package,
+  SALES_SPIKE: TrendingUp,
+  PAYMENT_DUE: CreditCard,
+  SHIFT_REMINDER: Clock,
+  SYSTEM: Info,
 }
 
-const SEVERITY_STYLES: Record<string, string> = {
-  critical: "text-rose-600 bg-rose-500/10",
-  warning: "text-amber-600 bg-amber-500/10",
-  info: "text-blue-600 bg-blue-500/10",
+// Derived severity (the DB model doesn't store severity; we derive from
+// type so the bell still shows colour-coded icons).
+const SEVERITY_STYLES: Record<Notification["type"], string> = {
+  STOCK_LOW: "text-amber-600 bg-amber-500/10",
+  SALES_SPIKE: "text-emerald-600 bg-emerald-500/10",
+  PAYMENT_DUE: "text-rose-600 bg-rose-500/10",
+  SHIFT_REMINDER: "text-blue-600 bg-blue-500/10",
+  SYSTEM: "text-slate-600 bg-slate-500/10",
+}
+
+function formatRelative(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime()
+  const sec = Math.floor(ms / 1000)
+  if (sec < 60) return `${sec}ث`
+  const min = Math.floor(sec / 60)
+  if (min < 60) return `${min}د`
+  const hr = Math.floor(min / 60)
+  if (hr < 24) return `${hr}س`
+  const day = Math.floor(hr / 24)
+  return `${day}ي`
 }
 
 export function NotificationsBell() {
   const t = useT()
   const setView = useAppStore((s) => s.setView)
-  const [dismissed, setDismissed] = React.useState<Set<string>>(new Set())
+  const queryClient = useQueryClient()
 
-  const { data } = useQuery<{ items: Notification[]; count: number; unreadCount: number }>({
+  const { data } = useQuery<{ items: Notification[]; unreadCount: number }>({
     queryKey: ["notifications"],
     queryFn: async () => {
       const res = await fetch("/api/notifications")
-      if (!res.ok) return { items: [], count: 0, unreadCount: 0 }
-      return res.json()
+      if (!res.ok) return { items: [], unreadCount: 0 }
+      return res.json() as Promise<{ items: Notification[]; unreadCount: number }>
     },
-    refetchInterval: 60_000, // refresh every 60s
-    staleTime: 30_000,
+    refetchInterval: 30_000, // refresh every 30s per the Track 4.3 spec
+    staleTime: 15_000,
   })
 
-  const items = (data?.items ?? []).filter((n) => !dismissed.has(n.id))
+  const markAsReadMutation = useMutation({
+    mutationFn: async (payload: { id?: string; all?: boolean }) => {
+      const res = await fetch("/api/notifications", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) {
+        throw new Error(`mark-as-read failed: ${res.status}`)
+      }
+      return res.json()
+    },
+    // Invalidate on success so the bell updates immediately (don't
+    // wait for the next 30s poll).
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["notifications"] })
+    },
+  })
+
+  const items = data?.items ?? []
   const unreadCount = items.length
 
   function handleAction(n: Notification) {
-    setDismissed((prev) => new Set(prev).add(n.id))
-    if (n.actionType === "NAVIGATE" && n.actionData.view) {
-      setView(n.actionData.view as any)
-    } else if (n.actionType === "CREATE_PO") {
-      // Navigate to purchases — the PO dialog can read prefill data
-      // from a global store or URL param. For now, navigate to purchases.
-      setView("purchases" as any)
+    // Mark as read — non-blocking; the invalidation refreshes the badge.
+    if (!n.read) {
+      markAsReadMutation.mutate({ id: n.id })
     }
+    // Navigate to the linked view (if any).
+    if (n.link) {
+      setView(n.link as AppView)
+    }
+  }
+
+  function handleMarkAllRead() {
+    if (unreadCount === 0) return
+    markAsReadMutation.mutate({ all: true })
   }
 
   return (
@@ -89,9 +145,22 @@ export function NotificationsBell() {
       <DropdownMenuContent align="end" className="w-80 p-0">
         <DropdownMenuLabel className="flex items-center justify-between px-3 py-2">
           <span>{t.nbNotifications}</span>
-          {unreadCount > 0 ? (
-            <Badge variant="secondary" className="text-[10px]">{t.nbNewCount.replace("{count}", String(unreadCount))}</Badge>
-          ) : null}
+          <div className="flex items-center gap-2">
+            {unreadCount > 0 ? (
+              <Badge variant="secondary" className="text-[10px]">
+                {t.nbNewCount.replace("{count}", String(unreadCount))}
+              </Badge>
+            ) : null}
+            {unreadCount > 0 ? (
+              <button
+                type="button"
+                onClick={handleMarkAllRead}
+                className="text-[10px] text-primary hover:underline"
+              >
+                {t.nbMarkAll}
+              </button>
+            ) : null}
+          </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator className="m-0" />
         {items.length === 0 ? (
@@ -105,25 +174,37 @@ export function NotificationsBell() {
               {items.map((n) => {
                 const Icon = ICONS[n.type] ?? AlertTriangle
                 return (
-                  <div
+                  <DropdownMenuItem
                     key={n.id}
-                    className="flex items-start gap-2.5 rounded-lg p-2 hover:bg-muted/40 transition-colors cursor-pointer"
+                    className="flex items-start gap-2.5 rounded-lg p-2 cursor-pointer"
                     onClick={() => handleAction(n)}
+                    onSelect={(e) => {
+                      // Prevent the dropdown from closing on click so
+                      // the user can see the read-state update happen.
+                      if (n.link) e.preventDefault()
+                    }}
                   >
                     <span className={cn(
                       "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
-                      SEVERITY_STYLES[n.severity]
+                      SEVERITY_STYLES[n.type]
                     )}>
                       <Icon className="h-4 w-4" />
                     </span>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold truncate">{n.title}</p>
                       <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{n.message}</p>
-                      <span className="inline-flex items-center gap-0.5 text-[10px] text-primary mt-1 font-medium">
-                        {n.actionLabel} {t.nbActionArrow}
-                      </span>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-[10px] text-muted-foreground/70">
+                          {formatRelative(n.createdAt)}
+                        </span>
+                        {n.link ? (
+                          <span className="inline-flex items-center gap-0.5 text-[10px] text-primary font-medium">
+                            {t.nbOpen} {t.nbActionArrow}
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
-                  </div>
+                  </DropdownMenuItem>
                 )
               })}
             </div>

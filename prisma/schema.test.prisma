@@ -52,6 +52,29 @@ model User {
   // Mirrors production: cancels-issued relation for Sale.status CANCELLED
   cancelledSales Sale[] @relation("SaleCanceller")
   customsAnnexCreated CustomsAnnex[] @relation("CustomsAnnexCreator")
+  notifications Notification[]
+}
+
+// ─── MODULE: Central Notification System (Track 4.3) ─────────────────
+// SQLite mirror of the production Notification model — used by vitest.
+// Helpers in `src/lib/notifications.ts` create rows here when business
+// events happen (stock-low, payment-due, system notices). `read`
+// defaults to false; the bell badges on `!read`. `link` is the AppView
+// name to navigate to when the user clicks the notification.
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // "STOCK_LOW" | "SALES_SPIKE" | "PAYMENT_DUE" | "SHIFT_REMINDER" | "SYSTEM"
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([read])
 }
 
 model Category {

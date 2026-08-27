@@ -70,6 +70,8 @@ export const ar_common: Record<string, string> = {
   nbNewCount: "{count} جديد",
   nbNoNotifications: "لا توجد تنبيهات",
   nbActionArrow: "←",
+  nbMarkAll: "تعليم الكل كمقروء",
+  nbOpen: "فتح",
 }
 
 export const en_common: Record<string, string> = {
@@ -136,6 +138,8 @@ export const en_common: Record<string, string> = {
   nbNewCount: "{count} new",
   nbNoNotifications: "No alerts",
   nbActionArrow: "→",
+  nbMarkAll: "Mark all read",
+  nbOpen: "Open",
 }
 
 export const hi_common: Record<string, string> = {
@@ -202,4 +206,6 @@ export const hi_common: Record<string, string> = {
   nbNewCount: "{count} नई",
   nbNoNotifications: "कोई सूचना नहीं",
   nbActionArrow: "→",
+  nbMarkAll: "सभी पढ़ा हुआ चिह्नित करें",
+  nbOpen: "खोलें",
 }

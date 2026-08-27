@@ -3,6 +3,7 @@ import { db, updateProductQuantityFromStockItems, getDefaultWarehouseId } from "
 import { getCurrentUser, hasRole } from "@/lib/session"
 import { logAuditEvent } from "@/lib/audit"
 import { ensurePurchaseAccounts, createPurchaseInvoiceJournalEntry } from "@/lib/purchase"
+import { createPaymentDueNotification } from "@/lib/notifications"
 import type { Role } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
@@ -156,6 +157,23 @@ export async function POST(
       console.error(
         `[purchase-invoice-post] JournalEntry FAILED for ${inv.invoiceNo}. ` +
         `Invoice is posted but accounting has a gap. Error: ${e?.message ?? e}`
+      )
+    }
+
+    // 7) Payment-due notification (Track 4.3) — fan out a PAYMENT_DUE
+    //    notification to all users who manage payables (ADMIN/MANAGER/
+    //    ACCOUNTANT/OWNER). Non-fatal: if the insert fails, the invoice
+    //    is still posted.
+    try {
+      await createPaymentDueNotification(
+        inv.supplierId,
+        inv.supplier?.name ?? "—",
+        Number(inv.total)
+      )
+    } catch (e: any) {
+      console.warn(
+        `[purchase-invoice-post] Payment-due notification FAILED for ${inv.invoiceNo}: ` +
+        `${e?.message ?? e}`
       )
     }
 
