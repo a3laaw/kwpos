@@ -7,6 +7,7 @@ import { logAuditEvent } from "@/lib/audit"
 import { resolveWarehouseId } from "@/lib/warehouse-resolver"
 import { coercePaymentMethod } from "@/lib/coercions"
 import type { Role } from "@/lib/types"
+import { reportServerError } from "@/lib/error-monitor"
 
 export const dynamic = "force-dynamic"
 
@@ -391,6 +392,14 @@ export async function POST(req: NextRequest) {
       msg.startsWith("invalid") ||
       msg.startsWith("return-") ||
       msg.startsWith("new-")
+    // Report server-side exchange failures (not client errors) to the
+    // error monitor (AuditLog action="SERVER_ERROR"). Fire-and-forget.
+    if (!isClientError) {
+      void reportServerError(e, {
+        endpoint: "/api/exchanges",
+        userId: user?.id,
+      })
+    }
     return NextResponse.json({ error: msg }, { status: isClientError ? 400 : 500 })
   }
 

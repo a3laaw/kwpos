@@ -17,6 +17,7 @@ export async function getCurrentUser() {
     role: Role
     posExpressMode?: boolean
     warehouseId?: string | null
+    mustChangePassword?: boolean
   }
 }
 

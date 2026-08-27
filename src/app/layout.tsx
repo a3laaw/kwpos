@@ -5,6 +5,20 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 import { Providers } from "@/components/providers";
 
+// ── Global error monitoring ─────────────────────────────────────────
+// The lightweight error monitor (Sentry-free, see `src/lib/error-monitor.ts`)
+// is installed at three layers:
+//   1. `Providers` (this file) — installs window.onerror + unhandledrejection
+//      listeners once on the client. All uncaught browser errors POST to
+//      /api/errors, which logs to console + AuditLog (action="CLIENT_ERROR").
+//   2. `src/app/error.tsx` — Next.js route error boundary; forwards render
+//      errors from any route segment to the monitor and shows a fallback UI.
+//   3. `src/app/global-error.tsx` — last-resort root error boundary; same
+//      reporting pattern, replaces the root layout if it throws.
+// API routes call `reportServerError` from `@/lib/error-monitor` inside
+// their catch blocks to log server-side errors to console + AuditLog
+// (action="SERVER_ERROR").
+
 const tajawal = Tajawal({
   variable: "--font-sans",
   subsets: ["arabic", "latin"],

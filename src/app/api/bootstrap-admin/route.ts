@@ -3,6 +3,7 @@ import { db } from "@/lib/db"
 import bcrypt from "bcryptjs"
 import crypto from "node:crypto"
 import { checkRateLimit, peekRateLimit, getClientIp } from "@/lib/rate-limit"
+import { reportServerError } from "@/lib/error-monitor"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -124,22 +125,48 @@ export async function POST(req: NextRequest) {
   const passwordHash = bcrypt.hashSync(bootstrapPw, 10)
 
   try {
-    // Upsert: create if missing, update password if exists
-    const admin = await db.user.upsert({
-      where: { email: "admin@demo.com" },
-      update: {
-        passwordHash,
-        role: "ADMIN",
-      },
-      create: {
-        id: "user-admin-demo",
-        email: "admin@demo.com",
-        name: "Admin",
-        passwordHash,
-        role: "ADMIN",
-      },
-      select: { id: true, email: true, name: true, role: true },
-    })
+    // Upsert: create if missing, update password if exists. Always set
+    // passwordStatus = "MUST_CHANGE" so the admin is forced to pick a new
+    // password on first login (even after a password reset). Wrapped in
+    // try/catch because `passwordStatus` may not exist as a column in the
+    // DB yet — if the upsert fails, we retry without the field.
+    let admin
+    try {
+      admin = await db.user.upsert({
+        where: { email: "admin@demo.com" },
+        update: {
+          passwordHash,
+          role: "ADMIN",
+          passwordStatus: "MUST_CHANGE",
+        },
+        create: {
+          id: "user-admin-demo",
+          email: "admin@demo.com",
+          name: "Admin",
+          passwordHash,
+          role: "ADMIN",
+          passwordStatus: "MUST_CHANGE",
+        },
+        select: { id: true, email: true, name: true, role: true },
+      })
+    } catch {
+      // passwordStatus column missing — retry without it.
+      admin = await db.user.upsert({
+        where: { email: "admin@demo.com" },
+        update: {
+          passwordHash,
+          role: "ADMIN",
+        },
+        create: {
+          id: "user-admin-demo",
+          email: "admin@demo.com",
+          name: "Admin",
+          passwordHash,
+          role: "ADMIN",
+        },
+        select: { id: true, email: true, name: true, role: true },
+      })
+    }
 
     return NextResponse.json({
       ok: true,
@@ -148,6 +175,8 @@ export async function POST(req: NextRequest) {
       loginHint: "Email: admin@demo.com — Password: <your BOOTSTRAP_ADMIN_PASSWORD value>",
     })
   } catch (err: any) {
+    // Report to the error monitor (AuditLog action="SERVER_ERROR").
+    void reportServerError(err, { endpoint: "/api/bootstrap-admin" })
     return NextResponse.json(
       {
         error: "bootstrap-failed",

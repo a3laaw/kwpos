@@ -4,6 +4,7 @@ import { getCurrentUser, hasRole } from "@/lib/session"
 import { serializeExpense } from "@/lib/serialize"
 import { createJournalEntry } from "@/lib/journal"
 import type { ExpenseType, Role } from "@/lib/types"
+import { reportServerError } from "@/lib/error-monitor"
 
 export const dynamic = "force-dynamic"
 
@@ -121,6 +122,14 @@ export async function POST(req: NextRequest) {
     })
   } catch (e: any) {
     console.error("[expenses] journal entry failed:", e?.message)
+    // Report the journal-entry failure to the error monitor so the
+    // accounting gap is visible in the AuditLog (action="SERVER_ERROR").
+    // Fire-and-forget — must not block the response.
+    void reportServerError(e, {
+      endpoint: "/api/expenses",
+      userId: user?.id,
+      expenseId: created?.id,
+    })
   }
 
   const payAcc2 = await db.account.findUnique({ where: { id: paymentAccountId } })

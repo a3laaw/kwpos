@@ -99,6 +99,17 @@ async function main() {
 
   console.log("✅ All tables wiped\n")
 
+  // ── 1.5) ENSURE passwordStatus COLUMN EXISTS ──────────────────────
+  // `passwordStatus` was added to the Prisma schema but we can't run
+  // `prisma db push` against Supabase from this script. Add the column
+  // directly via raw SQL (idempotent — IF NOT EXISTS).
+  try {
+    await prisma.$executeRaw`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "passwordStatus" TEXT`
+    console.log('  ✓ column "User"."passwordStatus" ensured')
+  } catch (e: any) {
+    console.log(`  ⚠ ensure passwordStatus column: ${e?.message?.slice(0, 100)}`)
+  }
+
   // ── 2) CREATE ADMIN USER ──────────────────────────────────────────
   console.log("👤 Creating admin user...")
   const passwordHash = bcrypt.hashSync("Admin@2026", 10)
@@ -109,6 +120,10 @@ async function main() {
       name: "Admin",
       passwordHash,
       role: "ADMIN",
+      // Force the freshly-seeded admin to change their password on
+      // first login. The non-dismissable modal in AppShell blocks all
+      // other actions until the password is changed.
+      passwordStatus: "MUST_CHANGE",
     },
   })
   console.log(`  ✓ admin@demo.com / Admin@2026 (id: ${admin.id})`)

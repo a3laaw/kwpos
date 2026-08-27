@@ -97,16 +97,35 @@ export async function POST(req: NextRequest) {
   }
 
   const passwordHash = await bcrypt.hash(password, 10)
-  const created = await db.user.create({
-    data: {
-      email: email.toLowerCase().trim(),
-      name: name.trim(),
-      passwordHash,
-      role,
-      warehouseId: finalWarehouseId,
-    },
-    select: { id: true, email: true, name: true, role: true, warehouseId: true, createdAt: true },
-  })
+  // New users created by an admin are forced to change their password on
+  // first login (the admin sets a temporary password). Wrapped in
+  // try/catch because `passwordStatus` may not exist as a column in the
+  // DB yet — if the create fails, we retry without the field.
+  let created
+  try {
+    created = await db.user.create({
+      data: {
+        email: email.toLowerCase().trim(),
+        name: name.trim(),
+        passwordHash,
+        role,
+        warehouseId: finalWarehouseId,
+        passwordStatus: "MUST_CHANGE",
+      },
+      select: { id: true, email: true, name: true, role: true, warehouseId: true, createdAt: true },
+    })
+  } catch {
+    created = await db.user.create({
+      data: {
+        email: email.toLowerCase().trim(),
+        name: name.trim(),
+        passwordHash,
+        role,
+        warehouseId: finalWarehouseId,
+      },
+      select: { id: true, email: true, name: true, role: true, warehouseId: true, createdAt: true },
+    })
+  }
 
   // ── Audit log ──
   await logAuditEvent({

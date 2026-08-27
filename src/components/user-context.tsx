@@ -10,6 +10,7 @@ export interface SessionUser {
   role: Role
   posExpressMode?: boolean
   warehouseId?: string | null
+  mustChangePassword?: boolean
 }
 
 const UserContext = React.createContext<SessionUser | null>(null)
@@ -34,7 +35,7 @@ export function UserProvider({
   // were lost — forcing a router.refresh() workaround in sales-view.
   const value = React.useMemo(
     () => user,
-    [user.id, user.name, user.email, user.role, user.posExpressMode, user.warehouseId]
+    [user.id, user.name, user.email, user.role, user.posExpressMode, user.warehouseId, user.mustChangePassword]
   )
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>
 }

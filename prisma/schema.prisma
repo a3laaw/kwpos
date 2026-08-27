@@ -25,6 +25,11 @@ model User {
   // decrement from THIS warehouse. When null, uses the default warehouse.
   warehouseId  String?
   warehouse    Warehouse? @relation("UserWarehouse", fields: [warehouseId], references: [id], onDelete: SetNull)
+  // Password lifecycle status. "MUST_CHANGE" forces the user to change
+  // their password on next login (set when an admin creates/resets their
+  // account). "OK" means the password has been set by the user themselves.
+  // NULL (older rows) is treated as "OK" by application code.
+  passwordStatus String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs"
 import { db } from "@/lib/db"
 import { makeInvoiceNo } from "@/lib/format"
 import { getCurrentUser } from "@/lib/session"
+import { reportServerError } from "@/lib/error-monitor"
 
 export const dynamic = "force-dynamic"
 
@@ -76,68 +77,89 @@ export async function POST(req: Request) {
     const warehousePw = process.env.SEED_WAREHOUSE_PASSWORD || randomPw()
     const cashierPw = process.env.SEED_CASHIER_PASSWORD || randomPw()
     // Use stable IDs so existing sessions stay valid after a re-seed.
-    const users = await db.$transaction([
-      db.user.create({
-        data: {
-          id: "user-admin-demo",
-          email: "admin@demo.com",
-          name: "أحمد المدير",
-          passwordHash: pw(adminPw),
-          role: "ADMIN",
-          posExpressMode: false,
-        },
-      }),
-      db.user.create({
-        data: {
-          id: "user-manager-demo",
-          email: "manager@demo.com",
-          name: "محمد المدير",
-          passwordHash: pw(managerPw),
-          role: "MANAGER",
-          posExpressMode: false,
-        },
-      }),
-      db.user.create({
-        data: {
-          id: "user-accountant-demo",
-          email: "accountant@demo.com",
-          name: "فاطمة المحاسبة",
-          passwordHash: pw(accountantPw),
-          role: "ACCOUNTANT",
-          posExpressMode: false,
-        },
-      }),
-      db.user.create({
-        data: {
-          id: "user-sales-demo",
-          email: "sales@demo.com",
-          name: "سارة الموظفة",
-          passwordHash: pw(salesPw),
-          role: "SALES",
-          posExpressMode: true,
-        },
-      }),
-      db.user.create({
-        data: {
-          id: "user-warehouse-demo",
-          email: "warehouse@demo.com",
-          name: "خالد أمين المخزن",
-          passwordHash: pw(warehousePw),
-          role: "WAREHOUSE",
-          posExpressMode: false,
-        },
-      }),
-      db.user.create({
-        data: {
-          id: "user-cashier-demo",
-          email: "cashier@demo.com",
-          name: "نورة الكاشير",
-          passwordHash: pw(cashierPw),
-          role: "CASHIER",
-          posExpressMode: true, // CASHIER always Express Mode
-        },
-      }),
-    ])
+    // passwordStatus = "MUST_CHANGE" forces every seeded user to pick a new
+    // password on first login (the bootstrap admin/manager/etc accounts
+    // are seeded with strong env-provided passwords but we still want the
+    // user to set their own). Wrapped in try/catch because `passwordStatus`
+    // may not exist as a column in the DB yet — if the transaction fails,
+    // we retry without the field.
+    const buildUsers = (withStatus: boolean) =>
+      [
+        db.user.create({
+          data: {
+            id: "user-admin-demo",
+            email: "admin@demo.com",
+            name: "أحمد المدير",
+            passwordHash: pw(adminPw),
+            role: "ADMIN",
+            posExpressMode: false,
+            ...(withStatus ? { passwordStatus: "MUST_CHANGE" } : {}),
+          },
+        }),
+        db.user.create({
+          data: {
+            id: "user-manager-demo",
+            email: "manager@demo.com",
+            name: "محمد المدير",
+            passwordHash: pw(managerPw),
+            role: "MANAGER",
+            posExpressMode: false,
+            ...(withStatus ? { passwordStatus: "MUST_CHANGE" } : {}),
+          },
+        }),
+        db.user.create({
+          data: {
+            id: "user-accountant-demo",
+            email: "accountant@demo.com",
+            name: "فاطمة المحاسبة",
+            passwordHash: pw(accountantPw),
+            role: "ACCOUNTANT",
+            posExpressMode: false,
+            ...(withStatus ? { passwordStatus: "MUST_CHANGE" } : {}),
+          },
+        }),
+        db.user.create({
+          data: {
+            id: "user-sales-demo",
+            email: "sales@demo.com",
+            name: "سارة الموظفة",
+            passwordHash: pw(salesPw),
+            role: "SALES",
+            posExpressMode: true,
+            ...(withStatus ? { passwordStatus: "MUST_CHANGE" } : {}),
+          },
+        }),
+        db.user.create({
+          data: {
+            id: "user-warehouse-demo",
+            email: "warehouse@demo.com",
+            name: "خالد أمين المخزن",
+            passwordHash: pw(warehousePw),
+            role: "WAREHOUSE",
+            posExpressMode: false,
+            ...(withStatus ? { passwordStatus: "MUST_CHANGE" } : {}),
+          },
+        }),
+        db.user.create({
+          data: {
+            id: "user-cashier-demo",
+            email: "cashier@demo.com",
+            name: "نورة الكاشير",
+            passwordHash: pw(cashierPw),
+            role: "CASHIER",
+            posExpressMode: true, // CASHIER always Express Mode
+            ...(withStatus ? { passwordStatus: "MUST_CHANGE" } : {}),
+          },
+        }),
+      ]
+
+    let users
+    try {
+      users = await db.$transaction(buildUsers(true))
+    } catch {
+      // passwordStatus column missing — retry without it.
+      users = await db.$transaction(buildUsers(false))
+    }
 
     // ---- Categories ----
     const categories = await db.$transaction([
@@ -565,6 +587,9 @@ export async function POST(req: Request) {
     })
   } catch (e: any) {
     console.error("[seed] error", e)
+    // Report to the error monitor (AuditLog action="SERVER_ERROR").
+    // Fire-and-forget; an audit-write failure must not block the response.
+    void reportServerError(e, { endpoint: "/api/seed", userId: undefined })
     return NextResponse.json({ ok: false, error: e?.message || "seed-failed" }, { status: 500 })
   }
 }

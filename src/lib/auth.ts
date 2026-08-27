@@ -75,46 +75,86 @@ export const authOptions: NextAuthOptions = {
         const input = credentials.email.trim()
         const inputLower = input.toLowerCase()
 
+        // ── Schema-aware user lookup ─────────────────────────────────
+        // `passwordStatus` was added to the Prisma schema but may not yet
+        // exist as a column in the production Supabase DB (we can't run
+        // `prisma db push` from this environment). We try the lookup WITH
+        // the column first; on failure (column-missing PrismaClientError),
+        // we retry the lookup WITHOUT it and treat `passwordStatus` as "OK".
+        const baseSelect = {
+          id: true,
+          email: true,
+          name: true,
+          passwordHash: true,
+          role: true,
+          posExpressMode: true,
+          warehouseId: true,
+        } as const
+
+        let user: any = null
+        let passwordStatus: string | null | undefined = "OK"
+
         try {
-          // 1) Try exact email match
-          let user = await db.user.findUnique({
+          const fullSelect = { ...baseSelect, passwordStatus: true }
+          user = await db.user.findUnique({
             where: { email: inputLower },
+            select: fullSelect,
           })
-
-          // 2) Try matching the local-part of an email (e.g. "admin"
-          //    matches "admin@demo.com")
           if (!user) {
             user = await db.user.findFirst({
-              where: {
-                email: { startsWith: inputLower + "@" },
-              },
+              where: { email: { startsWith: inputLower + "@" } },
+              select: fullSelect,
             })
           }
-
-          // 3) Try matching by name (case-insensitive) — allows typing
-          //    the display name like "أحمد" or "admin"
           if (!user) {
             user = await db.user.findFirst({
-              where: {
-                name: { equals: input },
-              },
+              where: { name: { equals: input } },
+              select: fullSelect,
             })
           }
-
-          if (!user) return null
-          const ok = await bcrypt.compare(credentials.password, user.passwordHash)
-          if (!ok) return null
-          return {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            role: user.role,
-            posExpressMode: (user as any).posExpressMode,
-            warehouseId: (user as any).warehouseId,
-          } as any
+          if (user) {
+            passwordStatus = (user as any).passwordStatus ?? "OK"
+          }
         } catch {
-          return null
+          // Fallback: `passwordStatus` column missing from the DB.
+          // Retry the same lookups without the new column.
+          try {
+            user = await db.user.findUnique({
+              where: { email: inputLower },
+              select: baseSelect,
+            })
+            if (!user) {
+              user = await db.user.findFirst({
+                where: { email: { startsWith: inputLower + "@" } },
+                select: baseSelect,
+              })
+            }
+            if (!user) {
+              user = await db.user.findFirst({
+                where: { name: { equals: input } },
+                select: baseSelect,
+              })
+            }
+            passwordStatus = "OK"
+          } catch {
+            return null
+          }
         }
+
+        if (!user) return null
+        const ok = await bcrypt.compare(credentials.password, user.passwordHash)
+        if (!ok) return null
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          posExpressMode: user.posExpressMode,
+          warehouseId: user.warehouseId,
+          // Force-change-password flag carried through to the JWT/session
+          // so the client can render a non-dismissable modal on first login.
+          mustChangePassword: passwordStatus === "MUST_CHANGE",
+        } as any
       },
     }),
   ],
@@ -125,6 +165,9 @@ export const authOptions: NextAuthOptions = {
         token.role = (user as any).role
         token.posExpressMode = (user as any).posExpressMode
         token.warehouseId = (user as any).warehouseId
+        // Force-change-password flag — propagated from the authorize()
+        // return value to the session so the client can render the modal.
+        token.mustChangePassword = (user as any).mustChangePassword === true
       }
       return token
     },
@@ -134,6 +177,7 @@ export const authOptions: NextAuthOptions = {
         ;(session.user as any).role = token.role
         ;(session.user as any).posExpressMode = token.posExpressMode
         ;(session.user as any).warehouseId = token.warehouseId
+        ;(session.user as any).mustChangePassword = token.mustChangePassword === true
       }
       return session
     },

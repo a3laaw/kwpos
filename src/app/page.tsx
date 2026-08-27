@@ -17,15 +17,35 @@ async function ensureDefaultUser() {
   if (count === 0) {
     const bootstrapPw = process.env.BOOTSTRAP_ADMIN_PASSWORD
     if (!bootstrapPw) return // fail-safe: no weak default password
-    await db.user.create({
-      data: {
-        id: "user-admin-demo",
-        email: "admin@demo.com",
-        name: "Admin",
-        passwordHash: bcrypt.hashSync(bootstrapPw, 10),
-        role: "ADMIN",
-      },
-    })
+    try {
+      await db.user.create({
+        data: {
+          id: "user-admin-demo",
+          email: "admin@demo.com",
+          name: "Admin",
+          passwordHash: bcrypt.hashSync(bootstrapPw, 10),
+          role: "ADMIN",
+          // Force the bootstrap admin to change their password on first
+          // login. Wrapped in try/catch because `passwordStatus` may not
+          // exist as a column in the DB yet — if the create fails, we
+          // retry without the field.
+          passwordStatus: "MUST_CHANGE",
+        },
+      })
+    } catch {
+      // Fallback: `passwordStatus` column missing from the DB. Retry
+      // without it (user will not be forced to change their password
+      // until the column is added via a future migration).
+      await db.user.create({
+        data: {
+          id: "user-admin-demo",
+          email: "admin@demo.com",
+          name: "Admin",
+          passwordHash: bcrypt.hashSync(bootstrapPw, 10),
+          role: "ADMIN",
+        },
+      })
+    }
   }
 }
 
@@ -53,6 +73,7 @@ export default async function Home() {
     role: (session.user.role as Role) || "SALES",
     posExpressMode: (session.user as any).posExpressMode ?? true,
     warehouseId: (session.user as any).warehouseId ?? null,
+    mustChangePassword: (session.user as any).mustChangePassword === true,
   }
 
   return <AppShell user={user} country={country} />

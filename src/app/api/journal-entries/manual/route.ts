@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getCurrentUser, hasRole } from "@/lib/session"
 import { createJournalEntry } from "@/lib/journal"
 import type { Role } from "@/lib/types"
+import { reportServerError } from "@/lib/error-monitor"
 
 export const dynamic = "force-dynamic"
 
@@ -34,6 +35,13 @@ export async function POST(req: NextRequest) {
     })
     return NextResponse.json({ ok: true, id }, { status: 201 })
   } catch (e: any) {
+    // Report to the error monitor (AuditLog action="SERVER_ERROR"). Even
+    // user-facing validation errors are worth tracking because they
+    // indicate confused users (bad account codes, unbalanced lines).
+    void reportServerError(e, {
+      endpoint: "/api/journal-entries/manual",
+      userId: user.id,
+    })
     return NextResponse.json({ error: e?.message || "manual-je-failed" }, { status: 400 })
   }
 }

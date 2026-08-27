@@ -32,6 +32,7 @@ import { ExchangeView } from "@/components/sales/exchange-view"
 import { PricingEngineView } from "@/components/pricing/pricing-engine-view"
 import { BundlesView } from "@/components/bundles/bundles-view"
 import { CompositionsView } from "@/components/compositions/compositions-view"
+import { ForceChangePasswordModal } from "@/components/auth/force-change-password-modal"
 
 export type { SessionUser }
 
@@ -77,6 +78,12 @@ export function AppShell({
   // we render nothing for disallowed views instead of leaking the component.
   const allowedViews = ROLE_PERMISSIONS[user.role].views
   const isViewAllowed = allowedViews.includes(view)
+
+  // Force-change-password modal: shown over the entire app when the user
+  // has `mustChangePassword: true` in their JWT. The modal is non-
+  // dismissable (no close button, no Escape, no click-outside) so the
+  // user MUST change their password before using the system.
+  const mustChangePassword = user.mustChangePassword === true
 
   return (
     <CurrencyProvider country={country}>
@@ -132,6 +139,9 @@ export function AppShell({
             </footer>
           </div>
         </div>
+        {/* Non-dismissable force-change-password overlay. Rendered last
+            so it sits above the rest of the app in the dialog portal. */}
+        <ForceChangePasswordModal open={mustChangePassword} />
       </UserProvider>
     </CurrencyProvider>
   )
