@@ -92,7 +92,7 @@ export function printThermalReceipt(sale: Sale) {
 <html dir="rtl" lang="ar">
 <head>
 <meta charset="utf-8">
-<title>إيصال ${sale.invoiceNo}</title>
+<title>إيصال ${sale.invoiceNo} / Receipt ${sale.invoiceNo}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Libre+Barcode+39&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
@@ -102,16 +102,20 @@ export function printThermalReceipt(sale: Sale) {
   html, body { width: 80mm; max-width: 80mm; }
   body { font-family: "Tajawal", "Cairo", sans-serif; padding: 3mm 2mm; font-size: 10px; color: #000; line-height: 1.4; }
   .copy-label { text-align: center; font-size: 9px; font-weight: 700; background: #f3f4f6; padding: 1mm; margin-bottom: 2mm; border-radius: 1mm; letter-spacing: 1px; }
+  .copy-label .en { font-size: 7px; font-weight: 400; color: #666; display: block; letter-spacing: 0; }
   .store { text-align: center; margin-bottom: 3mm; }
   .store h1 { font-size: 15px; font-weight: 700; }
   .store p { font-size: 9px; color: #333; margin-top: 1px; }
+  .store .en { font-size: 8px; color: #666; }
   .sep { border-top: 1px dashed #ccc; margin: 2.5mm 0; }
   .info { font-size: 9.5px; line-height: 1.7; }
   .info div { display: flex; justify-content: space-between; gap: 4px; }
+  .info .label-en { font-size: 7px; color: #888; display: block; }
   .info .val { font-weight: 600; }
   .info .val.ltr { direction: ltr; }
   table { width: 100%; border-collapse: collapse; margin: 1.5mm 0; table-layout: fixed; }
   th { font-size: 9px; text-align: start; border-bottom: 1px solid #000; padding: 1mm 0; font-weight: 700; }
+  th .en { font-size: 7px; font-weight: 400; color: #666; display: block; }
   th.name { width: 45%; }
   th.qty { width: 15%; text-align: center; }
   th.price { width: 20%; text-align: center; }
@@ -121,10 +125,12 @@ export function printThermalReceipt(sale: Sale) {
   td.qty, td.price, td.total { text-align: center; white-space: nowrap; }
   tbody tr:nth-child(even) { background: #f9fafb; }
   .totals { margin-top: 1.5mm; }
-  .totals div { display: flex; justify-content: space-between; font-size: 10px; padding: 0.4mm 0; }
+  .totals div { display: flex; justify-content: space-between; font-size: 10px; padding: 0.4mm 0; align-items: baseline; }
+  .totals .label-en { font-size: 7px; color: #888; margin-inline-start: 4px; }
   .totals .grand { font-size: 13px; font-weight: 700; border: 1.5px solid #000; background: #f3f4f6; padding: 1.5mm 2mm; margin-top: 1.5mm; border-radius: 1mm; }
   .totals .grand .ltr { direction: ltr; }
   .footer { text-align: center; margin-top: 3mm; font-size: 9px; }
+  .footer .en { font-size: 8px; color: #666; display: block; }
   .barcode { text-align: center; font-family: "Libre Barcode 39", "Courier New", monospace; font-size: 36px; line-height: 1; margin-top: 2mm; letter-spacing: 0; direction: ltr; }
   .barcode-code { text-align: center; font-family: "Courier New", monospace; font-size: 8px; letter-spacing: 1px; margin-top: 1mm; direction: ltr; }
   .qr-box { text-align: center; margin-top: 2mm; }
@@ -138,37 +144,37 @@ export function printThermalReceipt(sale: Sale) {
 </style>
 </head>
 <body>
-  <div class="copy-label">نسخة العميل</div>
+  <div class="copy-label">نسخة العميل<span class="en">CUSTOMER COPY</span></div>
   <div class="store">
     ${store.logo ? `<img src="${store.logo}" alt="logo" style="max-width:30mm;max-height:20mm;object-fit:contain;margin:0 auto 1mm;display:block" />` : ""}
     <h1>${escapeHtml(store.name)}</h1>
     ${store.address ? `<p>${escapeHtml(store.address)}</p>` : ""}
-    ${store.phone ? `<p>هاتف: ${escapeHtml(store.phone)}</p>` : ""}
+    ${store.phone ? `<p>هاتف: ${escapeHtml(store.phone)} <span class="en">Tel: ${escapeHtml(store.phone)}</span></p>` : ""}
   </div>
   <div class="sep"></div>
   <div class="info">
-    <div><span>رقم الفاتورة:</span><span class="val ltr">${sale.invoiceNo}</span></div>
-    <div><span>التاريخ:</span><span class="val">${dateStr}</span></div>
-    <div><span>العميل:</span><span class="val">${escapeHtml(sale.customerName || "عميل نقدي")}</span></div>
-    <div><span>طريقة الدفع:</span><span class="val">${paymentLabel(sale.paymentMethod)}</span></div>
+    <div><span>رقم الفاتورة<span class="label-en">Invoice No.</span></span><span class="val ltr">${sale.invoiceNo}</span></div>
+    <div><span>التاريخ<span class="label-en">Date</span></span><span class="val">${dateStr}</span></div>
+    <div><span>العميل<span class="label-en">Customer</span></span><span class="val">${escapeHtml(sale.customerName || "عميل نقدي / Cash")}</span></div>
+    <div><span>طريقة الدفع<span class="label-en">Payment</span></span><span class="val">${paymentLabel(sale.paymentMethod)}</span></div>
   </div>
   <div class="sep"></div>
   <table>
     <thead>
-      <tr><th class="name">الصنف</th><th class="qty">كمية</th><th class="price">سعر</th><th class="total">إجمالي</th></tr>
+      <tr><th class="name">الصنف<span class="en">Item</span></th><th class="qty">كمية<span class="en">Qty</span></th><th class="price">سعر<span class="en">Price</span></th><th class="total">إجمالي<span class="en">Total</span></th></tr>
     </thead>
     <tbody>${itemsRows}</tbody>
   </table>
   <div class="sep"></div>
   <div class="totals">
-    <div><span>المجموع الفرعي</span><span>${fmtNum(sale.subtotal)}</span></div>
-    ${sale.discount > 0 ? `<div><span>الخصم</span><span>-${fmtNum(sale.discount)}</span></div>` : ""}
-    ${sale.taxAmount > 0 ? `<div><span>الضريبة (${sale.taxRate}%)</span><span>${fmtNum(sale.taxAmount)}</span></div>` : ""}
-    ${sale.deliveryFee > 0 ? `<div><span>رسوم التوصيل${sale.driverName ? ` (${escapeHtml(sale.driverName)})` : ""}</span><span>${fmtNum(sale.deliveryFee)}</span></div>` : ""}
-    <div class="grand"><span>الإجمالي</span><span class="ltr">${fmtNum(sale.total)}</span></div>
+    <div><span>المجموع الفرعي<span class="label-en">Subtotal</span></span><span>${fmtNum(sale.subtotal)}</span></div>
+    ${sale.discount > 0 ? `<div><span>الخصم<span class="label-en">Discount</span></span><span>-${fmtNum(sale.discount)}</span></div>` : ""}
+    ${sale.taxAmount > 0 ? `<div><span>الضريبة (${sale.taxRate}%)<span class="label-en">Tax</span></span><span>${fmtNum(sale.taxAmount)}</span></div>` : ""}
+    ${sale.deliveryFee > 0 ? `<div><span>رسوم التوصيل${sale.driverName ? ` (${escapeHtml(sale.driverName)})` : ""}<span class="label-en">Delivery</span></span><span>${fmtNum(sale.deliveryFee)}</span></div>` : ""}
+    <div class="grand"><span>الإجمالي<span class="label-en">Grand Total</span></span><span class="ltr">${fmtNum(sale.total)}</span></div>
   </div>
   <div class="footer">
-    <p>شكراً لزيارتكم 🌿</p>
+    <p>شكراً لزيارتكم 🌿<span class="en">Thank you for your visit</span></p>
   </div>
   <div class="sep"></div>
   <div class="barcode">*${sale.invoiceNo}*</div>
@@ -181,7 +187,7 @@ export function printThermalReceipt(sale: Sale) {
   </div>
 </body>
 </html>`
-  openPrintWindow(html, `إيصال ${sale.invoiceNo}`, 360, 640)
+  openPrintWindow(html, `إيصال ${sale.invoiceNo} / Receipt`, 360, 640)
 }
 
 /* ───────────────────────── 2. A4 Invoice ───────────────────────── */
@@ -207,7 +213,7 @@ export function printA4Invoice(sale: Sale) {
 <html dir="rtl" lang="ar">
 <head>
 <meta charset="utf-8">
-<title>فاتورة ${sale.invoiceNo}</title>
+<title>فاتورة ${sale.invoiceNo} / Invoice ${sale.invoiceNo}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
@@ -222,16 +228,20 @@ export function printA4Invoice(sale: Sale) {
   .store-logo { width: 18mm; height: 18mm; object-fit: contain; border-radius: 2mm; }
   .store-text h1 { font-size: 22px; color: #10b981; }
   .store-text p { font-size: 11px; color: #555; margin-top: 2px; }
+  .store-text .en { font-size: 10px; color: #888; }
   .invoice-meta { text-align: end; }
   .invoice-meta h2 { font-size: 18px; color: #333; }
+  .invoice-meta .en { font-size: 11px; color: #888; display: block; }
   .invoice-meta p { font-size: 11px; color: #555; margin-top: 2px; }
   .invoice-no-box { display: inline-block; background: #10b981; color: #fff; padding: 2mm 4mm; border-radius: 4px; font-size: 15px; font-weight: 700; font-family: monospace; letter-spacing: 1px; margin-top: 1mm; direction: ltr; }
   .parties { display: flex; justify-content: space-between; margin-bottom: 6mm; gap: 10mm; }
   .party { flex: 1; border: 1px solid #e5e7eb; border-radius: 6px; padding: 3mm 4mm; }
   .party h3 { font-size: 10px; color: #999; text-transform: uppercase; margin-bottom: 2mm; }
+  .party h3 .en { font-size: 9px; color: #bbb; display: block; text-transform: none; }
   .party p { font-size: 12px; font-weight: 500; }
   table { width: 100%; border-collapse: collapse; margin-bottom: 6mm; table-layout: fixed; }
   thead th { background: #f0fdf4; color: #065f46; font-size: 11px; padding: 2.5mm; border-bottom: 2px solid #10b981; }
+  thead th .en { font-size: 9px; font-weight: 400; color: #888; display: block; }
   thead th.num { width: 10mm; text-align: center; }
   thead th.name { text-align: start; }
   thead th.qty, thead th.price, thead th.total { text-align: center; width: 25mm; }
@@ -242,21 +252,26 @@ export function printA4Invoice(sale: Sale) {
   .totals-wrap { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 4mm; gap: 8mm; }
   .stamp-area { width: 40mm; height: 40mm; border: 1.5px dashed #999; border-radius: 4mm; display: flex; align-items: center; justify-content: center; color: #999; font-size: 11px; transform: rotate(-5deg); flex-shrink: 0; }
   .stamp-area p { text-align: center; line-height: 1.4; }
+  .stamp-area .en { font-size: 9px; color: #bbb; }
   .totals { width: 75mm; margin-right: auto; }
   .totals div { display: flex; justify-content: space-between; padding: 1.5mm 3mm; font-size: 12px; border-bottom: 1px solid #f3f4f6; }
+  .totals .label-en { font-size: 9px; color: #888; margin-inline-start: 4px; }
   .totals .grand { font-size: 15px; font-weight: 700; color: #10b981; border: 2px solid #10b981; border-radius: 6px; padding: 2.5mm 3mm; margin-top: 2mm; background: #f0fdf4; }
   .signatures { display: flex; justify-content: space-around; margin-top: 15mm; gap: 20mm; }
   .sign-box { text-align: center; flex: 1; }
   .sign-line { border-top: 1px dashed #555; margin-bottom: 2mm; }
   .sign-box p { font-size: 11px; color: #555; }
+  .sign-box .en { font-size: 9px; color: #999; display: block; }
   .keep-note { text-align: center; margin-top: 6mm; font-size: 11px; color: #555; font-weight: 500; padding: 2mm; background: #f9fafb; border-radius: 4px; }
+  .keep-note .en { font-size: 9px; color: #888; display: block; }
   .footer { margin-top: 8mm; text-align: center; font-size: 10px; color: #999; border-top: 1px solid #e5e7eb; padding-top: 4mm; }
+  .footer .en { font-size: 9px; color: #bbb; display: block; }
   .badge { display: inline-block; background: #f0fdf4; color: #065f46; padding: 1mm 3mm; border-radius: 4px; font-size: 10px; font-weight: 600; }
   @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
 </style>
 </head>
 <body>
-  <div class="watermark">نسخة أصلية</div>
+  <div class="watermark">نسخة أصلية / ORIGINAL</div>
   <div class="content">
     <div class="header">
       <div class="store-info">
@@ -264,13 +279,13 @@ export function printA4Invoice(sale: Sale) {
         <div class="store-text">
           <h1>${escapeHtml(store.name)}</h1>
           ${store.address ? `<p>${escapeHtml(store.address)}</p>` : ""}
-          ${store.phone ? `<p>هاتف: ${escapeHtml(store.phone)}</p>` : ""}
-          ${store.vatNo ? `<p>رقم ضريبي: ${escapeHtml(store.vatNo)}</p>` : ""}
+          ${store.phone ? `<p>هاتف: ${escapeHtml(store.phone)} <span class="en">Tel: ${escapeHtml(store.phone)}</span></p>` : ""}
+          ${store.vatNo ? `<p>رقم ضريبي: ${escapeHtml(store.vatNo)} <span class="en">VAT No: ${escapeHtml(store.vatNo)}</span></p>` : ""}
         </div>
       </div>
       <div class="invoice-meta">
-        <h2>فاتورة مبيعات</h2>
-        <p>رقم الفاتورة</p>
+        <h2>فاتورة مبيعات<span class="en">SALES INVOICE</span></h2>
+        <p>رقم الفاتورة <span class="en">Invoice No.</span></p>
         <div class="invoice-no-box">${sale.invoiceNo}</div>
         <p style="margin-top:2mm">التاريخ: ${dateStr} - ${timeStr}</p>
       </div>
@@ -278,57 +293,58 @@ export function printA4Invoice(sale: Sale) {
 
     <div class="parties">
       <div class="party">
-        <h3>العميل</h3>
-        <p>${escapeHtml(sale.customerName || "عميل نقدي")}</p>
+        <h3>العميل<span class="en">Customer</span></h3>
+        <p>${escapeHtml(sale.customerName || "عميل نقدي / Cash")}</p>
         ${sale.customerPhone ? `<p style="font-weight:400;color:#666" dir="ltr">${escapeHtml(sale.customerPhone)}</p>` : ""}
       </div>
       <div class="party">
-        <h3>طريقة الدفع</h3>
+        <h3>طريقة الدفع<span class="en">Payment Method</span></h3>
         <p><span class="badge">${paymentLabel(sale.paymentMethod)}</span></p>
-        <p style="font-weight:400;color:#666;margin-top:1mm">البائع: ${escapeHtml(sale.userName || "—")}</p>
+        <p style="font-weight:400;color:#666;margin-top:1mm">البائع: ${escapeHtml(sale.userName || "—")} <span class="en" style="font-size:10px;color:#888">Seller: ${escapeHtml(sale.userName || "—")}</span></p>
       </div>
     </div>
 
     <table>
       <thead>
-        <tr><th class="num">#</th><th class="name">الصنف</th><th class="qty">الكمية</th><th class="price">سعر الوحدة</th><th class="total">الإجمالي</th></tr>
+        <tr><th class="num">#</th><th class="name">الصنف<span class="en">Item</span></th><th class="qty">الكمية<span class="en">Qty</span></th><th class="price">سعر الوحدة<span class="en">Unit Price</span></th><th class="total">الإجمالي<span class="en">Total</span></th></tr>
       </thead>
       <tbody>${itemsRows}</tbody>
     </table>
 
     <div class="totals-wrap">
       <div class="stamp-area">
-        <p>ختم<br>المتجر</p>
+        <p>ختم<br>المتجر<span class="en">Store<br>Stamp</span></p>
       </div>
       <div class="totals">
-        <div><span>المجموع الفرعي</span><span>${fmtNum(sale.subtotal)}</span></div>
-        ${sale.discount > 0 ? `<div><span>الخصم</span><span>-${fmtNum(sale.discount)}</span></div>` : ""}
-        ${sale.taxAmount > 0 ? `<div><span>الضريبة (${sale.taxRate}%)</span><span>${fmtNum(sale.taxAmount)}</span></div>` : ""}
-        ${sale.deliveryFee > 0 ? `<div><span>رسوم التوصيل${sale.driverName ? ` (${escapeHtml(sale.driverName)})` : ""}</span><span>${fmtNum(sale.deliveryFee)}</span></div>` : ""}
-        <div class="grand"><span>الإجمالي المستحق</span><span>${fmtNum(sale.total)}</span></div>
+        <div><span>المجموع الفرعي<span class="label-en">Subtotal</span></span><span>${fmtNum(sale.subtotal)}</span></div>
+        ${sale.discount > 0 ? `<div><span>الخصم<span class="label-en">Discount</span></span><span>-${fmtNum(sale.discount)}</span></div>` : ""}
+        ${sale.taxAmount > 0 ? `<div><span>الضريبة (${sale.taxRate}%)<span class="label-en">Tax</span></span><span>${fmtNum(sale.taxAmount)}</span></div>` : ""}
+        ${sale.deliveryFee > 0 ? `<div><span>رسوم التوصيل${sale.driverName ? ` (${escapeHtml(sale.driverName)})` : ""}<span class="label-en">Delivery</span></span><span>${fmtNum(sale.deliveryFee)}</span></div>` : ""}
+        <div class="grand"><span>الإجمالي المستحق<span class="label-en">Grand Total</span></span><span>${fmtNum(sale.total)}</span></div>
       </div>
     </div>
 
     <div class="signatures">
       <div class="sign-box">
         <div class="sign-line"></div>
-        <p>توقيع البائع</p>
+        <p>توقيع البائع<span class="en">Seller Signature</span></p>
       </div>
       <div class="sign-box">
         <div class="sign-line"></div>
-        <p>توقيع العميل</p>
+        <p>توقيع العميل<span class="en">Customer Signature</span></p>
       </div>
     </div>
 
-    <p class="keep-note">الرجاء الاحتفاظ بهذه الفاتورة للمراجعة</p>
+    <p class="keep-note">الرجاء الاحتفاظ بهذه الفاتورة للمراجعة<span class="en">Please keep this invoice for your records</span></p>
 
     <div class="footer">
       <p>شكراً لتعاملكم معنا — هذه الفاتورة صادرة إلكترونياً من ${escapeHtml(store.name)}</p>
+      <p class="en">Thank you for your business — This invoice was generated electronically by ${escapeHtml(store.name)}</p>
     </div>
   </div>
 </body>
 </html>`
-  openPrintWindow(html, `فاتورة ${sale.invoiceNo}`)
+  openPrintWindow(html, `فاتورة ${sale.invoiceNo} / Invoice`)
 }
 
 /* ───────────────────────── 3. Barcode Labels ───────────────────────── */

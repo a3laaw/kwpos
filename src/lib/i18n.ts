@@ -12,7 +12,7 @@
  * imports (`from "@/lib/i18n"`) continue to work without changes.
  */
 
-export type Locale = "ar" | "en"
+export type Locale = "ar" | "en" | "hi"
 
 /**
  * The full dictionary interface.
@@ -26,18 +26,18 @@ export type Locale = "ar" | "en"
 export type Dict = Record<string, string>
 
 // Import all module files from the i18n/ directory
-import { ar_common, en_common } from "./i18n/common"
-import { ar_common_entities, en_common_entities } from "./i18n/common-entities"
-import { ar_sales, en_sales } from "./i18n/sales"
-import { ar_inventory, en_inventory } from "./i18n/inventory"
-import { ar_purchases, en_purchases } from "./i18n/purchases"
-import { ar_customers, en_customers } from "./i18n/customers"
-import { ar_accounting, en_accounting } from "./i18n/accounting"
-import { ar_dashboard, en_dashboard } from "./i18n/dashboard"
-import { ar_analytics, en_analytics } from "./i18n/analytics"
-import { ar_reports, en_reports } from "./i18n/reports"
-import { ar_shifts, en_shifts } from "./i18n/shifts"
-import { ar_settings, en_settings } from "./i18n/settings"
+import { ar_common, en_common, hi_common } from "./i18n/common"
+import { ar_common_entities, en_common_entities, hi_common_entities } from "./i18n/common-entities"
+import { ar_sales, en_sales, hi_sales } from "./i18n/sales"
+import { ar_inventory, en_inventory, hi_inventory } from "./i18n/inventory"
+import { ar_purchases, en_purchases, hi_purchases } from "./i18n/purchases"
+import { ar_customers, en_customers, hi_customers } from "./i18n/customers"
+import { ar_accounting, en_accounting, hi_accounting } from "./i18n/accounting"
+import { ar_dashboard, en_dashboard, hi_dashboard } from "./i18n/dashboard"
+import { ar_analytics, en_analytics, hi_analytics } from "./i18n/analytics"
+import { ar_reports, en_reports, hi_reports } from "./i18n/reports"
+import { ar_shifts, en_shifts, hi_shifts } from "./i18n/shifts"
+import { ar_settings, en_settings, hi_settings } from "./i18n/settings"
 
 /**
  * Assemble the full Arabic dictionary by spreading all module objects.
@@ -76,4 +76,27 @@ const en: Dict = {
   ...en_settings,
 }
 
-export const DICTS: Record<Locale, Dict> = { ar, en }
+/**
+ * Assemble the full Hindi dictionary.
+ * Hindi translations cover the most-visible UI strings (nav, buttons,
+ * common actions, POS labels). For keys not yet translated, the English
+ * value is used as fallback (Hindi-speaking users in Kuwait typically
+ * read English UI text comfortably).
+ */
+const hi: Dict = {
+  ...en, // fallback: start from English
+  ...hi_common,
+  ...hi_common_entities,
+  ...hi_sales,
+  ...hi_inventory,
+  ...hi_purchases,
+  ...hi_customers,
+  ...hi_accounting,
+  ...hi_dashboard,
+  ...hi_analytics,
+  ...hi_reports,
+  ...hi_shifts,
+  ...hi_settings,
+}
+
+export const DICTS: Record<Locale, Dict> = { ar, en, hi }

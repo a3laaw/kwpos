@@ -19,7 +19,7 @@ function getInitialLocale(): Locale {
   if (typeof window === "undefined") return "ar"
   try {
     const saved = localStorage.getItem(STORAGE_KEY) as Locale | null
-    if (saved === "ar" || saved === "en") return saved
+    if (saved === "ar" || saved === "en" || saved === "hi") return saved
   } catch {}
   return "ar"
 }
@@ -47,7 +47,8 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
 
   const toggle = React.useCallback(() => {
     setLocaleState((prev) => {
-      const next = prev === "ar" ? "en" : "ar"
+      // Cycle: ar → en → hi → ar (three-way toggle)
+      const next = prev === "ar" ? "en" : prev === "en" ? "hi" : "ar"
       try {
         localStorage.setItem(STORAGE_KEY, next)
       } catch {}

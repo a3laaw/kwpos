@@ -184,10 +184,10 @@ export function getCountry(code: string): CountryConfig {
 
 /**
  * Return the country's display name for the given UI locale.
- * Arabic UI → `name` (Arabic), English UI → `nameEn` (English).
+ * Arabic UI → `name` (Arabic); English & Hindi UI → `nameEn` (English).
  * Falls back gracefully if `nameEn` is missing.
  */
-export function getCountryName(c: CountryConfig, locale: "ar" | "en"): string {
-  if (locale === "en" && c.nameEn) return c.nameEn
+export function getCountryName(c: CountryConfig, locale: "ar" | "en" | "hi"): string {
+  if (locale !== "ar" && c.nameEn) return c.nameEn
   return c.name
 }
