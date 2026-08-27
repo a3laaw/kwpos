@@ -37,6 +37,9 @@ import {
   Wrench,
   AlertCircle,
   AlertTriangle,
+  Download,
+  Upload,
+  DatabaseBackup,
 } from "lucide-react"
 import { COUNTRIES, getCountryName } from "@/lib/countries"
 import { useCountry, useFmt } from "@/components/currency-context"
@@ -911,6 +914,11 @@ function SystemMaintenanceCard() {
   const [fixLoading, setFixLoading] = React.useState(false)
   const [fixMode, setFixMode] = React.useState<"dry" | "fix">("dry")
   const [fixResult, setFixResult] = React.useState<any>(null)
+  // Backup + restore state (Track 1.2)
+  const [exportLoading, setExportLoading] = React.useState(false)
+  const [importLoading, setImportLoading] = React.useState(false)
+  const [importResult, setImportResult] = React.useState<any>(null)
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
   // TEMPORARY — Danger zone state (clear transactions). Remove after go-live.
   const [clearDialogOpen, setClearDialogOpen] = React.useState(false)
   const [clearConfirmInput, setClearConfirmInput] = React.useState("")
@@ -1000,6 +1008,100 @@ function SystemMaintenanceCard() {
       setClearResult({ error: err?.message || "failed" })
     } finally {
       setClearLoading(false)
+    }
+  }
+
+  // ── Backup + restore handlers (Track 1.2) ──────────────────────────
+  async function handleExportBackup() {
+    setExportLoading(true)
+    try {
+      const res = await fetch("/api/admin/backup", { method: "GET" })
+      if (!res.ok) {
+        let errMsg = `request-failed:${res.status}`
+        try {
+          const data = await res.json()
+          if (data?.error === "admin-ddl-disabled-in-production") {
+            errMsg = t.backupProductionGate
+          } else if (data?.error) {
+            errMsg = data.error
+          }
+        } catch {
+          // Body wasn't JSON — keep the generic request-failed status.
+        }
+        throw new Error(errMsg)
+      }
+      // The server returns the JSON backup as a downloadable file
+      // (Content-Disposition: attachment). Read it as a Blob and trigger
+      // a download with the suggested filename.
+      const blob = await res.blob()
+      const disposition = res.headers.get("Content-Disposition") || ""
+      let filename = "kwpos-backup.json"
+      const m = /filename="?([^"]+)"?/i.exec(disposition)
+      if (m && m[1]) filename = m[1]
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      // Release the object URL on the next tick — gives the browser a
+      // chance to start the download before we revoke it.
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
+      toast.success(t.backupExportSuccess, { description: filename })
+    } catch (err: any) {
+      toast.error(t.backupExportFailed, { description: err?.message })
+    } finally {
+      setExportLoading(false)
+    }
+  }
+
+  async function handleImportBackup(file: File) {
+    setImportLoading(true)
+    setImportResult(null)
+    try {
+      // Read + parse the JSON file client-side first so we can show a
+      // friendlier error before the round-trip if it's not valid JSON
+      // or not a KWPOS backup file.
+      const text = await file.text()
+      let parsed: any
+      try {
+        parsed = JSON.parse(text)
+      } catch {
+        throw new Error(t.backupInvalidJson)
+      }
+      if (parsed?.format !== "kwpos-backup") {
+        throw new Error(t.backupInvalidFormat)
+      }
+
+      const res = await fetch("/api/admin/backup/restore", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(parsed),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        let errMsg = data?.error || `request-failed:${res.status}`
+        if (errMsg === "admin-ddl-disabled-in-production") {
+          errMsg = t.backupProductionGate
+        }
+        throw new Error(errMsg)
+      }
+      setImportResult(data)
+      const summaryDesc =
+        t.backupImportSummary
+          .replace("{applied}", String(data?.totalApplied ?? 0))
+          .replace("{skipped}", String(data?.totalSkipped ?? 0))
+      toast.success(t.backupImportSuccess, { description: summaryDesc })
+    } catch (err: any) {
+      toast.error(t.backupImportFailed, { description: err?.message })
+      setImportResult({ error: err?.message || "failed" })
+    } finally {
+      setImportLoading(false)
+      // Reset the hidden file input so selecting the SAME file again
+      // still fires onChange (browsers ignore the second selection
+      // if the value hasn't changed).
+      if (fileInputRef.current) fileInputRef.current.value = ""
     }
   }
 
@@ -1181,6 +1283,100 @@ function SystemMaintenanceCard() {
           <p className="text-xs text-muted-foreground">
             {t.maintInfoHint}
           </p>
+        </div>
+
+        {/* ── Backup + restore (Track 1.2) ─────────────────────────── */}
+        <div className="rounded-lg border border-primary/40 bg-primary/5 p-4 space-y-3">
+          <div className="flex items-start gap-3">
+            <DatabaseBackup className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+            <div className="space-y-1 flex-1 min-w-0">
+              <h4 className="text-sm font-semibold">{t.backupSectionTitle}</h4>
+              <p className="text-xs text-muted-foreground">
+                {t.backupSectionDesc}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Export */}
+            <div className="rounded-md bg-background/60 p-3 space-y-2">
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {t.backupExportHint}
+              </p>
+              <Button
+                onClick={handleExportBackup}
+                disabled={exportLoading || importLoading}
+                className="w-full gap-2"
+                variant="default"
+              >
+                {exportLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4" />
+                )}
+                {exportLoading ? t.backupExporting : t.backupExportButton}
+              </Button>
+            </div>
+
+            {/* Import */}
+            <div className="rounded-md bg-background/60 p-3 space-y-2">
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {t.backupImportHint}
+              </p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="application/json,.json"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) void handleImportBackup(file)
+                }}
+              />
+              <Button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={exportLoading || importLoading}
+                className="w-full gap-2"
+                variant="outline"
+              >
+                {importLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Upload className="h-4 w-4" />
+                )}
+                {importLoading ? t.backupImporting : t.backupImportButton}
+              </Button>
+            </div>
+          </div>
+
+          {/* Import result */}
+          {importResult ? (
+            <div className="rounded-lg bg-muted/40 p-3 space-y-2">
+              {importResult.error ? (
+                <div className="flex items-center gap-2 text-sm text-destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  {t.backupImportFailed}: {importResult.error}
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 text-sm text-emerald-600">
+                    <CheckCircle2 className="h-4 w-4" />
+                    {t.backupImportSuccess}
+                  </div>
+                  <p className="text-xs text-muted-foreground tabular-nums">
+                    {t.backupImportSummary
+                      .replace("{applied}", String(importResult.totalApplied ?? 0))
+                      .replace("{skipped}", String(importResult.totalSkipped ?? 0))}
+                  </p>
+                  {importResult.placeholderPassword ? (
+                    <p className="text-xs text-amber-600 leading-relaxed">
+                      {t.backupPlaceholderPasswordNote}
+                    </p>
+                  ) : null}
+                </>
+              )}
+            </div>
+          ) : null}
         </div>
 
         {/* ── TEMPORARY — Danger Zone (clear transactions). Remove after go-live. ── */}

@@ -40,8 +40,12 @@ export const metadata: Metadata = {
   keywords: ["ERP", "مبيعات", "مخازن", "مشتريات", "فواتير", "نقاط بيع"],
   manifest: "/manifest.json",
   icons: {
-    icon: "/logo.svg?v=2",
-    apple: "/logo.svg?v=2",
+    icon: [
+      { url: "/logo.svg?v=2", type: "image/svg+xml" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/icon-192.png", sizes: "192x192", type: "image/png" }],
   },
   appleWebApp: {
     capable: true,
@@ -55,7 +59,10 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   userScalable: true,
-  themeColor: "#2E6237",
+  // Terracotta — matches `theme_color` in public/manifest.json so the
+  // browser chrome (status bar on Android, title bar on desktop PWA)
+  // picks up the brand color when the app is installed.
+  themeColor: "#B85042",
 };
 
 export default function RootLayout({
@@ -65,6 +72,21 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
+      <head>
+        {/* ── PWA / mobile web app meta tags ────────────────────────────
+         * Next.js's `metadata.manifest` + `metadata.appleWebApp` already
+         * emit <link rel="manifest"> and <meta name="apple-mobile-web-app-*">
+         * tags. The explicit <meta name="theme-color"> below is a belt-
+         * and-suspenders for older browsers that don't read the metadata
+         * `viewport.themeColor` (also emitted). All values match
+         * public/manifest.json so the install prompt + standalone shell
+         * look the same as the in-browser brand. */}
+        <meta name="theme-color" content="#B85042" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="KWPOS" />
+        <meta name="mobile-web-app-capable" content="yes" />
+      </head>
       <body
         className={`${tajawal.variable} ${mono.variable} font-sans antialiased bg-background text-foreground`}
       >
