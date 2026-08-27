@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>KWPOS — عرض سعر</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  @page { size: A4; margin: 0; }
+  body {
+    font-family: 'Segoe UI', 'Tahoma', 'Arial', sans-serif;
+    color: #2f2a26;
+    background: white;
+    padding: 0;
+    font-size: 11px;
+    line-height: 1.5;
+  }
+  .page { padding: 18mm 15mm; max-width: 210mm; min-height: 297mm; }
+  /* Header */
+  .header { background: #1a1410; color: white; padding: 18px 25px; border-bottom: 3px solid #c9a961; margin: -18mm -15mm 20px -15mm; padding-left: 15mm; padding-right: 15mm; }
+  .header-top { display: flex; justify-content: space-between; align-items: center; }
+  .brand { font-size: 32px; font-weight: 700; color: #c9a961; letter-spacing: 1px; }
+  .tagline { font-size: 13px; color: #faf7f2; margin-top: 4px; }
+  .vendor-contact { text-align: left; font-size: 9px; color: #a7beae; line-height: 1.6; }
+  /* Quote title */
+  .quote-title { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 15px; }
+  .quote-title h1 { font-size: 26px; color: #1a1410; }
+  .quote-meta { text-align: left; font-size: 10px; color: #8a7e76; }
+  .quote-meta div { margin-bottom: 3px; }
+  .quote-meta strong { color: #b85042; }
+  /* Client box */
+  .client-box { background: #faf7f2; border-radius: 6px; padding: 15px 20px; margin-bottom: 20px; border-right: 3px solid #b85042; }
+  .client-box h3 { color: #b85042; font-size: 12px; margin-bottom: 8px; }
+  .client-box p { font-size: 11px; margin-bottom: 4px; }
+  /* Section title */
+  .section-title { font-size: 16px; font-weight: 700; color: #1a1410; margin: 20px 0 10px; padding-bottom: 5px; border-bottom: 2px solid #b85042; }
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 11px; }
+  th { background: #b85042; color: white; padding: 10px 8px; text-align: right; font-weight: 600; font-size: 11px; }
+  td { padding: 8px; border-bottom: 1px solid #e7e8d1; text-align: right; }
+  tr:nth-child(even) td { background: #faf7f2; }
+  .pkg-name { font-weight: 700; color: #b85042; font-size: 13px; }
+  .price { text-align: center; font-weight: 700; font-size: 12px; }
+  .price-annual { color: #c9a961; }
+  .featured-row td { background: #fff8e7 !important; }
+  .featured-row .pkg-name { font-size: 14px; }
+  .featured-badge { background: #c9a961; color: #1a1410; padding: 2px 8px; border-radius: 10px; font-size: 9px; font-weight: 700; margin-right: 6px; }
+  /* Discount banner */
+  .discount { background: #b85042; color: white; border-radius: 6px; padding: 15px 20px; margin: 20px 0; text-align: right; }
+  .discount h3 { font-size: 14px; font-weight: 700; margin-bottom: 5px; }
+  .discount p { font-size: 11px; opacity: 0.95; }
+  /* Included list */
+  .included { background: #faf7f2; border-radius: 6px; padding: 15px 20px; margin: 15px 0; }
+  .included h3 { color: #1a1410; font-size: 13px; margin-bottom: 10px; }
+  .included ul { list-style: none; }
+  .included li { font-size: 10px; margin-bottom: 5px; padding-right: 18px; position: relative; }
+  .included li:before { content: "✓"; color: #c9a961; font-weight: 700; position: absolute; right: 0; }
+  /* Terms */
+  .terms { background: #faf7f2; border-radius: 6px; padding: 15px 20px; margin: 15px 0; }
+  .terms h3 { color: #b85042; font-size: 12px; margin-bottom: 8px; }
+  .terms ul { list-style: none; }
+  .terms li { font-size: 9.5px; margin-bottom: 4px; padding-right: 15px; position: relative; }
+  .terms li:before { content: "•"; color: #8a7e76; position: absolute; right: 0; }
+  /* Signatures */
+  .signatures { display: flex; justify-content: space-between; margin-top: 30px; padding-top: 20px; }
+  .sig-box { width: 45%; }
+  .sig-label { font-size: 10px; color: #8a7e76; margin-bottom: 30px; }
+  .sig-line { border-top: 1px solid #8a7e76; padding-top: 5px; font-size: 10px; color: #2f2a26; }
+  /* Footer */
+  .footer { background: #1a1410; color: #a7beae; text-align: center; padding: 10px; font-size: 9px; margin: -18mm -15mm -18mm -15mm; }
+  .footer a { color: #c9a961; text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="page">
+  <!-- Header -->
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <div class="brand">KWPOS</div>
+        <div class="tagline">نظام إدارة نقاط البيع والمخازن</div>
+      </div>
+      <div class="vendor-contact">
+        info@kwpos.kw<br>
+        kwpos.vercel.app<br>
+        +965 0000 0000
+      </div>
+    </div>
+  </div>
+
+  <!-- Quote title + meta -->
+  <div class="quote-title">
+    <h1>عرض سعر</h1>
+    <div class="quote-meta">
+      <div><strong>رقم العرض:</strong> Q-2026-001</div>
+      <div><strong>التاريخ:</strong> 26 أغسطس 2026</div>
+      <div><strong>صالح حتى:</strong> 26 سبتمبر 2026 (30 يوماً)</div>
+    </div>
+  </div>
+
+  <!-- Client box -->
+  <div class="client-box">
+    <h3>بيانات العميل</h3>
+    <p><strong>الاسم:</strong> السيد / شركة ......................................</p>
+    <p><strong>العنوان:</strong> .......................................................</p>
+    <p><strong>الهاتف:</strong> .......................................................</p>
+    <p><strong>البريد الإلكتروني:</strong> .......................................................</p>
+  </div>
+
+  <!-- Packages -->
+  <div class="section-title">باقات الاشتراك الشهري</div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 18%">الباقة</th>
+        <th style="width: 47%">الوصف</th>
+        <th style="width: 17%">السعر الشهري</th>
+        <th style="width: 18%">السعر السنوي</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="pkg-name">البداية</td>
+        <td>محل صغير — حتى 100 منتج، مخزن واحد، كاشير واحد + فواتير + ورديات</td>
+        <td class="price">15 د.ك</td>
+        <td class="price price-annual">150 د.ك</td>
+      </tr>
+      <tr class="featured-row">
+        <td class="pkg-name"><span class="featured-badge">الأكثر شعبية</span>النمو</td>
+        <td>محل متوسط — منتجات غير محدودة، 3 مخازن، 5 مستخدمين + محاسبة + ملاحق جمركية + تركيبات + تقارير</td>
+        <td class="price">35 د.ك</td>
+        <td class="price price-annual">350 د.ك</td>
+      </tr>
+      <tr>
+        <td class="pkg-name">المؤسسة</td>
+        <td>محل كبير/فروع — مخازن ومستخدمون غير محدودين + تكامل Shopify + مؤشر كفاءة + تدريب مخصص</td>
+        <td class="price">75 د.ك</td>
+        <td class="price price-annual">750 د.ك</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- One-time setup -->
+  <div class="section-title">إعداد لمرة واحدة (اختياري)</div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 80%">الخدمة</th>
+        <th style="width: 20%">السعر</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>إنشاء الحساب + ربط Supabase + استيراد المنتجات + تدريب أساسي (ساعة)</td><td class="price">مجاني</td></tr>
+      <tr><td>تخصيص شعار الشركة + قالب الفاتورة</td><td class="price">25 د.ك</td></tr>
+      <tr><td>ترحيل بيانات من نظام سابق</td><td class="price">75 د.ك</td></tr>
+      <tr><td>تدريب مخصص للموظفين (ساعتان)</td><td class="price">50 د.ك</td></tr>
+    </tbody>
+  </table>
+
+  <!-- Hardware -->
+  <div class="section-title">أجهزة (اختياري)</div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 80%">الجهاز</th>
+        <th style="width: 20%">السعر</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>طابعة إيصالات حرارية 80mm</td><td class="price">45 د.ك</td></tr>
+      <tr><td>قارئ باركود USB</td><td class="price">15 د.ك</td></tr>
+      <tr><td>درج نقود آلي</td><td class="price">35 د.ك</td></tr>
+      <tr><td>جهاز لوحي Android للكاشير</td><td class="price">120 د.ك</td></tr>
+      <tr><td>شاشة لمس عميلة</td><td class="price">180 د.ك</td></tr>
+      <tr><td><strong>حزمة كاملة (الكل معاً)</strong></td><td class="price" style="color: #b85042;">350 د.ك</td></tr>
+    </tbody>
+  </table>
+
+  <!-- Discount banner -->
+  <div class="discount">
+    <h3>🎁 خصم الدفع السنوي — وفّر شهرين مجاناً (≈17% خصم)</h3>
+    <p>ادفع سنوياً بدل شهرياً واحصل على 12 شهر بسعر 10 أشهر</p>
+  </div>
+
+  <!-- What's included -->
+  <div class="included">
+    <h3>ما الذي تشمله جميع الباقات؟</h3>
+    <ul>
+      <li>استضافة سحابية على Vercel (سرعة عالية + أمان)</li>
+      <li>قاعدة بيانات Supabase PostgreSQL (نسخ احتياطي يومي تلقائي)</li>
+      <li>تحديثات مجانية مدى الحياة (ميزات جديدة + إصلاحات أمنية)</li>
+      <li>دعم فني عبر البريد الإلكتروني (وقت الاستجابة: 24 ساعة)</li>
+      <li>إلغاء الاشتراك في أي وقت بدون رسوم</li>
+      <li>تدريب أساسي مجاني (ساعة واحدة) عند البدء</li>
+      <li>تصدير كامل لبياناتك في أي وقت (Excel + JSON)</li>
+    </ul>
+  </div>
+
+  <!-- Terms -->
+  <div class="terms">
+    <h3>الشروط والأحكام</h3>
+    <ul>
+      <li>هذا العرض ساري لمدة 30 يوماً من تاريخ الإصدار.</li>
+      <li>الأسعار بالدينار الكويتي (د.ك) ولا تشمل أي ضرائب مستقبلية.</li>
+      <li>الاشتراك الشهري يُدفع مقدماً عبر تحويل بنكي أو K-Net.</li>
+      <li>الاشتراك السنوي يُدفع مقدماً ويحصل العميل على خصم 17%.</li>
+      <li>الأجهزة مشمولة بضمان سنة واحدة من تاريخ الشراء.</li>
+      <li>خدمة الترحيل والتدريب المخصص تتطلب دفع 50% مقدماً.</li>
+    </ul>
+  </div>
+
+  <!-- Signatures -->
+  <div class="signatures">
+    <div class="sig-box">
+      <div class="sig-label">توقيع العميل:</div>
+      <div class="sig-line">الاسم: ............................</div>
+    </div>
+    <div class="sig-box">
+      <div class="sig-label">توقيع المورّد:</div>
+      <div class="sig-line">KWPOS — نظام إدارة نقاط البيع</div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    KWPOS — نظام إدارة نقاط البيع والمخازن  |  <a href="https://kwpos.vercel.app">kwpos.vercel.app</a>  |  info@kwpos.kw
+  </div>
+</div>
+</body>
+</html>
