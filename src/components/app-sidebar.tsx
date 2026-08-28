@@ -47,6 +47,7 @@ import {
   ChevronRight,
   Languages,
   Search,
+  ArrowRight,
 } from "lucide-react"
 import { useAppStore } from "@/lib/store"
 import { NAV_ENTRIES, type NavEntry } from "@/components/nav-config"
@@ -340,17 +341,61 @@ function ThemeToggle() {
 }
 
 function LangToggle() {
-  const { toggle, dict } = useI18n()
+  const { locale, setLocale, dict } = useI18n()
+  const [open, setOpen] = React.useState(false)
+  const ref = React.useRef<HTMLDivElement>(null)
+
+  React.useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handler)
+    return () => document.removeEventListener("mousedown", handler)
+  }, [open])
+
+  const langs: Array<{ code: "ar" | "en" | "hi"; label: string; flag: string }> = [
+    { code: "ar", label: "العربية", flag: "🇰🇼" },
+    { code: "en", label: "English", flag: "🇬🇧" },
+    { code: "hi", label: "हिंदी", flag: "🇮🇳" },
+  ]
+
   return (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={toggle}
-      title={dict.switchLang}
-      className="h-9 w-9"
-    >
-      <Languages className="h-4 w-4" />
-    </Button>
+    <div className="relative" ref={ref}>
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => setOpen(!open)}
+        title={dict.switchLang || "Language"}
+        className="h-9 w-9"
+      >
+        <Languages className="h-4 w-4" />
+      </Button>
+      {open && (
+        <div className="absolute bottom-full start-0 mb-1 z-50 w-36 rounded-lg border border-border bg-popover p-1 shadow-md">
+          {langs.map((l) => (
+            <button
+              key={l.code}
+              onClick={() => {
+                setLocale(l.code)
+                setOpen(false)
+              }}
+              className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent ${
+                locale === l.code ? "bg-accent font-bold" : ""
+              }`}
+            >
+              <span className="text-base">{l.flag}</span>
+              <span>{l.label}</span>
+              {locale === l.code && (
+                <span className="ms-auto text-xs text-primary">✓</span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -572,6 +617,7 @@ export function Topbar({
 }) {
   const setSidebarOpen = useAppStore((s) => s.setSidebarOpen)
   const view = useAppStore((s) => s.view)
+  const setView = useAppStore((s) => s.setView)
   const t = useT()
   const { locale } = useI18n()
   const [mounted, setMounted] = React.useState(false)
@@ -592,6 +638,20 @@ export function Topbar({
         >
           <Menu className="h-5 w-5" />
         </Button>
+
+        {/* Back button — shown when a module is active (non-dashboard view).
+            Clicking it returns to the dashboard. */}
+        {view !== "dashboard" && view !== "managerDashboard" && view !== "ownerDashboard" && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="shrink-0 h-9 w-9"
+            onClick={() => setView("dashboard")}
+            title={t.navDashboard || "Dashboard"}
+          >
+            <ArrowRight className="h-5 w-5 rtl:rotate-0 ltr:rotate-180" />
+          </Button>
+        )}
 
         {/* Title — only show when NO MegaMenu (prevents overlap) */}
         {!moduleGroups ? (

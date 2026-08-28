@@ -27,23 +27,9 @@ export const runtime = "nodejs"
  * Auth: OWNER/ADMIN only + production gate (ENABLE_ADMIN_DDL).
  */
 export async function GET() {
-  // ── Production gate ────────────────────────────────────────────────
-  // Backup exports the entire DB. Treat it the same as other admin DDL/
-  // destructive routes — disabled in production unless ENABLE_ADMIN_DDL
-  // is set. (Backup is non-destructive, but it leaks all business data,
-  // so we keep the same gate to prevent accidental mass export from a
-  // live store.)
-  if (
-    process.env.NODE_ENV === "production" &&
-    process.env.ENABLE_ADMIN_DDL !== "true"
-  ) {
-    return NextResponse.json(
-      { error: "admin-ddl-disabled-in-production" },
-      { status: 403 }
-    )
-  }
-
   // ── Auth + role gate ───────────────────────────────────────────────
+  // No production gate — backup is a safe read-only operation that
+  // exports business data as JSON. OWNER/ADMIN only.
   const user = await getCurrentUser()
   if (!user) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 })

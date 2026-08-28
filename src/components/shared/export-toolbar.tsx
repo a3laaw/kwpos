@@ -51,35 +51,58 @@ export function ExportToolbar({
     if (pdfLoading) return
     setPdfLoading(true)
     try {
-      const { jsPDF } = await import("jspdf")
-      const autoTableMod = await import("jspdf-autotable")
-      // jspdf-autotable v5 exposes a named `autoTable` function plus a
-      // default export. Use the named function (works with any jsPDF
-      // instance without mutating its prototype).
-      const autoTable = (autoTableMod as any).autoTable || (autoTableMod as any).default
+      // ── Browser-based PDF export (Arabic-safe) ──────────────────────
+      // jsPDF with "helvetica" doesn't support Arabic — text comes out
+      // garbled. Instead, we open a print window with proper Arabic
+      // HTML + RTL, and the browser's native "Save as PDF" handles the
+      // conversion perfectly.
+      const html = `<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="utf-8">
+<title>${title}</title>
+<style>
+  @page { size: A4 landscape; margin: 15mm; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', 'Tahoma', 'Arial', sans-serif; color: #1a1a1a; }
+  h1 { text-align: center; font-size: 18px; margin-bottom: 12px; color: #B85042; }
+  table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  th { background: #B85042; color: white; padding: 8px 6px; text-align: right; font-weight: 600; }
+  td { padding: 6px; border-bottom: 1px solid #e5e7eb; text-align: right; }
+  tr:nth-child(even) td { background: #f9fafb; }
+  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style>
+</head>
+<body>
+  <h1>${title}</h1>
+  <table>
+    <thead>
+      <tr>${headers.map((h) => `<th>${h ?? ""}</th>`).join("")}</tr>
+    </thead>
+    <tbody>
+      ${rows
+        .map(
+          (r) =>
+            `<tr>${r.map((c) => `<td>${c == null ? "" : String(c)}</td>`).join("")}</tr>`
+        )
+        .join("")}
+    </tbody>
+  </table>
+  <script>
+    window.onload = function() { window.print(); }
+  </script>
+</body>
+</html>`
 
-      const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" })
-      doc.setFont("helvetica", "normal")
-      doc.setFontSize(14)
-
-      // Title row at the top of the first page
-      const pageWidth = doc.internal.pageSize.getWidth()
-      doc.text(title, pageWidth / 2, 32, { align: "center" })
-
-      // Table below the title
-      autoTable(doc, {
-        startY: 48,
-        head: [headers],
-        body: rows.map((r) => r.map((cell) => (cell == null ? "" : String(cell)))),
-        styles: { font: "helvetica", fontSize: 9, cellPadding: 4 },
-        headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: "bold" },
-        alternateRowStyles: { fillColor: [245, 247, 250] },
-        margin: { left: 32, right: 32 },
-        theme: "grid",
-      })
-
-      const safeName = filename.endsWith(".pdf") ? filename : `${filename}.pdf`
-      doc.save(safeName)
+      const w = window.open("", "_blank", "width=900,height=700")
+      if (!w) {
+        toast.error(t.exportFailedMsg, { description: "يرجى السماح بالنوافذ المنبثقة" })
+        return
+      }
+      w.document.open()
+      w.document.write(html)
+      w.document.close()
+      w.document.title = title
       toast.success(t.exportSucceededMsg)
     } catch (err: any) {
       console.error("PDF export failed", err)

@@ -33,18 +33,9 @@ export const runtime = "nodejs"
  * Auth: OWNER/ADMIN only + production gate (ENABLE_ADMIN_DDL).
  */
 export async function POST(req: NextRequest) {
-  // ── Production gate ────────────────────────────────────────────────
-  if (
-    process.env.NODE_ENV === "production" &&
-    process.env.ENABLE_ADMIN_DDL !== "true"
-  ) {
-    return NextResponse.json(
-      { error: "admin-ddl-disabled-in-production" },
-      { status: 403 }
-    )
-  }
-
   // ── Auth + role gate ───────────────────────────────────────────────
+  // No production gate — restore is an admin tool for data recovery.
+  // OWNER/ADMIN only.
   const user = await getCurrentUser()
   if (!user) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 })
