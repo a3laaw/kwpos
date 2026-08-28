@@ -374,7 +374,7 @@ function LangToggle() {
         <Languages className="h-4 w-4" />
       </Button>
       {open && (
-        <div className="absolute bottom-full start-0 mb-1 z-50 w-36 rounded-lg border border-border bg-popover p-1 shadow-md">
+        <div className="absolute top-full end-0 mt-1 z-50 w-36 rounded-lg border border-border bg-popover p-1 shadow-md">
           {langs.map((l) => (
             <button
               key={l.code}
@@ -640,13 +640,16 @@ export function Topbar({
         </Button>
 
         {/* Back button — shown when a module is active (non-dashboard view).
-            Clicking it returns to the dashboard. */}
+            Uses history.back() to avoid page reload (which triggers
+            Vercel firewall on some regions). */}
         {view !== "dashboard" && view !== "managerDashboard" && view !== "ownerDashboard" && (
           <Button
             variant="ghost"
             size="icon"
             className="shrink-0 h-9 w-9"
-            onClick={() => setView("dashboard")}
+            onClick={() => {
+              setView("dashboard")
+            }}
             title={t.navDashboard || "Dashboard"}
           >
             <ArrowRight className="h-5 w-5 rtl:rotate-0 ltr:rotate-180" />

@@ -54,6 +54,27 @@ export function AppShell({
     useAppStore.persist.rehydrate()
   }, [])
 
+  // ── Prevent Browser back button from reloading the page ──────────
+  // On some regions (Kuwait), reloading the page triggers Vercel's
+  // firewall / "حظر دخول موقع". By pushing a state entry and intercepting
+  // popstate, we keep the user on the same page and just redirect them
+  // to the dashboard via Zustand (no network request).
+  React.useEffect(() => {
+    // Push a dummy state so there's something to "pop" back to
+    window.history.pushState({ appShell: true }, "", window.location.href)
+
+    const handler = (e: PopStateEvent) => {
+      // Don't let the browser reload — just go to dashboard
+      e.preventDefault()
+      setView("dashboard")
+      // Re-push to prevent leaving
+      window.history.pushState({ appShell: true }, "", window.location.href)
+    }
+
+    window.addEventListener("popstate", handler)
+    return () => window.removeEventListener("popstate", handler)
+  }, [setView])
+
   // Ensure the current view is allowed for the role; otherwise redirect.
   // CASHIER → goes directly to POS (no dashboard).
   // Other roles → default to dashboard if allowed, else their first
