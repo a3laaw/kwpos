@@ -4,12 +4,8 @@
  * Global Error Boundary — Next.js convention.
  *
  * Catches errors that occur during the render of any route segment below
- * `app/` (including the page tree, but NOT the root layout itself — that
- * is handled by `global-error.tsx`). Forwards the error to the error
- * monitor (POST /api/errors) and shows a recoverable fallback UI with a
- * "Try again" button that resets the boundary.
- *
- * See: https://nextjs.org/docs/app/api-reference/file-conventions/error
+ * `app/`. Shows a recoverable fallback UI with a "Try again" button that
+ * resets the boundary.
  */
 
 import * as React from "react"
@@ -42,7 +38,24 @@ export default function Error({
       <p className="text-sm text-muted-foreground">
         تم إبلاغ فريق الدعم بالخطأ. يمكنك المحاولة مرة أخرى.
       </p>
-      <Button onClick={() => reset()}>إعادة المحاولة</Button>
+      {/* Show error message in dev for debugging */}
+      {process.env.NODE_ENV !== "production" && (
+        <pre className="mt-4 max-w-lg overflow-auto rounded-lg bg-muted p-3 text-xs text-left text-muted-foreground">
+          {error.message}
+          {error.stack && "\n\n" + error.stack.slice(0, 500)}
+        </pre>
+      )}
+      <Button
+        onClick={() => {
+          // Clear the error boundary AND redirect to dashboard
+          reset()
+          if (typeof window !== "undefined") {
+            window.location.href = "/"
+          }
+        }}
+      >
+        إعادة المحاولة
+      </Button>
     </div>
   )
 }
