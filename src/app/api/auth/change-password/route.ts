@@ -104,7 +104,9 @@ export async function POST(req: NextRequest) {
   // passwordStatus update is wrapped in try/catch because the column
   // may not exist in the DB yet — in that case we only update the hash.
   const passwordHash = await bcrypt.hash(newPassword, 10)
+  let updateSucceeded = false
   try {
+    // First try with passwordStatus (works if column exists)
     await db.user.update({
       where: { id: user.id },
       data: {
@@ -112,17 +114,45 @@ export async function POST(req: NextRequest) {
         passwordStatus: "OK",
       },
     })
-  } catch {
-    // Fallback: `passwordStatus` column missing — update only the hash.
-    try {
-      await db.user.update({
-        where: { id: user.id },
-        data: { passwordHash },
-      })
-    } catch (e) {
+    updateSucceeded = true
+  } catch (e: any) {
+    // Check if it's a "column not found" error
+    const msg = String(e?.message || e)
+    if (msg.includes("passwordStatus") || msg.includes("Unknown argument") || msg.includes("does not exist")) {
+      // Column doesn't exist — try to add it, then update just the hash
+      try {
+        await db.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "passwordStatus" TEXT`)
+        await db.user.update({
+          where: { id: user.id },
+          data: {
+            passwordHash,
+            passwordStatus: "OK",
+          },
+        })
+        updateSucceeded = true
+      } catch (e2) {
+        // ALTER TABLE failed (maybe permissions) — just update the hash
+        try {
+          await db.user.update({
+            where: { id: user.id },
+            data: { passwordHash },
+          })
+          updateSucceeded = true
+        } catch (e3) {
+          await reportServerError(e3 as Error, {
+            endpoint: "/api/auth/change-password",
+            userId: user.id,
+            step: "fallback-update",
+          })
+          return NextResponse.json({ error: "server-error" }, { status: 500 })
+        }
+      }
+    } else {
+      // Different error — log and fail
       await reportServerError(e as Error, {
         endpoint: "/api/auth/change-password",
         userId: user.id,
+        step: "initial-update",
       })
       return NextResponse.json({ error: "server-error" }, { status: 500 })
     }

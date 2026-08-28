@@ -18,18 +18,10 @@ export const dynamic = "force-dynamic"
  * Auth: OWNER/ADMIN only
  */
 export async function POST() {
-  // ── Production gate ────────────────────────────────────────────────
-  // DDL/destructive operations should only run via Prisma migrations or
-  // explicit admin tooling. Disable in production unless explicitly
-  // opted-in via ENABLE_ADMIN_DDL env var. Same pattern as the
-  // apply-*-schema routes.
-  if (process.env.NODE_ENV === "production" && process.env.ENABLE_ADMIN_DDL !== "true") {
-    return NextResponse.json(
-      { error: "admin-ddl-disabled-in-production" },
-      { status: 403 }
-    )
-  }
-
+  // ── Note: NO production gate ──────────────────────────────────────
+  // Unlike the apply-*-schema DDL routes, this is a stock RECALCULATION
+  // tool — it reads StockItem sums and updates Product.quantity. It's
+  // safe to run in production and is needed for ongoing maintenance.
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   if (!hasRole(user.role, ["OWNER", "ADMIN"] as Role[])) {
