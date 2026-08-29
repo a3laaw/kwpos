@@ -616,6 +616,7 @@ export function Topbar({
 }) {
   const setSidebarOpen = useAppStore((s) => s.setSidebarOpen)
   const view = useAppStore((s) => s.view)
+  const setView = useAppStore((s) => s.setView)
   const t = useT()
   const { locale } = useI18n()
   const [mounted, setMounted] = React.useState(false)
@@ -636,6 +637,21 @@ export function Topbar({
         >
           <Menu className="h-5 w-5" />
         </Button>
+
+        {/* Back button — in the topbar (left side). Uses Zustand setView
+            only — NO popstate, NO history manipulation, NO page reload.
+            Hidden on dashboard views. */}
+        {view !== "dashboard" && view !== "managerDashboard" && view !== "ownerDashboard" && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="shrink-0 gap-1 text-muted-foreground hover:text-primary"
+            onClick={() => setView("dashboard")}
+          >
+            <ChevronRight className="h-4 w-4" />
+            <span className="hidden sm:inline">{t.navDashboard || "الرئيسية"}</span>
+          </Button>
+        )}
 
         {/* Title — only show when NO MegaMenu (prevents overlap) */}
         {!moduleGroups ? (
