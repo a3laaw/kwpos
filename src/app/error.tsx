@@ -4,8 +4,7 @@
  * Global Error Boundary — Next.js convention.
  *
  * Catches errors that occur during the render of any route segment below
- * `app/`. Shows a recoverable fallback UI with a "Try again" button that
- * resets the boundary.
+ * `app/`. Shows a recoverable fallback UI with a "Try again" button.
  */
 
 import * as React from "react"
@@ -19,7 +18,6 @@ export default function Error({
   error: Error & { digest?: string }
   reset: () => void
 }) {
-  // Report the error to /api/errors (server-side audit log).
   React.useEffect(() => {
     reportClientError({
       message: `[error.tsx boundary] ${error.message}`,
@@ -32,25 +30,22 @@ export default function Error({
   return (
     <div
       dir="rtl"
-      className="flex min-h-[60vh] flex-col items-center justify-center gap-4 p-6 text-center"
+      className="flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center"
     >
       <h2 className="text-xl font-semibold">حدث خطأ غير متوقع</h2>
       <p className="text-sm text-muted-foreground">
-        تم إبلاغ فريق الدعم بالخطأ. يمكنك المحاولة مرة أخرى.
+        لم نتمكن من العثور على الصفحة التي تبحث عنها.
       </p>
-      {/* Show error message in dev for debugging */}
-      {process.env.NODE_ENV !== "production" && (
-        <pre className="mt-4 max-w-lg overflow-auto rounded-lg bg-muted p-3 text-xs text-left text-muted-foreground">
-          {error.message}
-          {error.stack && "\n\n" + error.stack.slice(0, 500)}
-        </pre>
-      )}
       <Button
         onClick={() => {
-          // Clear the error boundary AND redirect to dashboard
+          // Reset the error boundary first
           reset()
+          // Force a clean page reload to the root
+          // Use window.location.replace so the broken URL doesn't
+          // stay in browser history (prevents back button from
+          // re-triggering the error)
           if (typeof window !== "undefined") {
-            window.location.href = "/"
+            window.location.replace(window.location.origin)
           }
         }}
       >
