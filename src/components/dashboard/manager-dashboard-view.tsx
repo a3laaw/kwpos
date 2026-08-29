@@ -340,7 +340,7 @@ export function ManagerDashboardView() {
             ) : (
               <ScrollArea className="h-[200px]">
                 <div className="space-y-1">
-                  {pendingPOs.map((po) => (
+                  {pendingPOs.map((po: any) => (
                     <div
                       key={po.id}
                       className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 hover:bg-muted/30 cursor-pointer"
