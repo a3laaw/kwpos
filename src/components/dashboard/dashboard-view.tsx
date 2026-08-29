@@ -354,9 +354,10 @@ export function DashboardView() {
                       maxHeight: 60,
                       overflow: "hidden",
                     }}
-                    formatter={(value: string) =>
-                      value.length > 16 ? `${value.slice(0, 16)}…` : value
-                    }
+                    formatter={(value: string) => {
+                      if (!value || typeof value !== 'string') return ''
+                      return value.length > 16 ? `${value.slice(0, 16)}…` : value
+                    }}
                   />
                 </PieChart>
               </ResponsiveContainer>
