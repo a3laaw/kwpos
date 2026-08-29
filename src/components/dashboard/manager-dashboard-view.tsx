@@ -84,6 +84,7 @@ export function ManagerDashboardView() {
   const lowStockProducts = d.lowStockProducts ?? []
   const pendingPOs = (d as any).pendingPurchaseOrders ?? []
   const topProductsToday = d.topProductsToday ?? []
+  const outstandingPayables = (d as any).outstandingPayables ?? []
 
   // Excel export — today's KPIs + alerts + low stock + pending POs.
   function handleExportExcel() {
@@ -230,7 +231,7 @@ export function ManagerDashboardView() {
               <span className="text-sm text-muted-foreground">مستحقات موردين</span>
             </div>
             <p className="text-2xl font-bold tabular-nums mt-2">{fmt.currency(data.totalPayables)}</p>
-            <p className="text-xs text-muted-foreground mt-1">{data.outstandingPayables.length} مورد</p>
+            <p className="text-xs text-muted-foreground mt-1">{outstandingPayables.length} مورد</p>
           </CardContent>
         </Card>
       </div>
@@ -328,18 +329,18 @@ export function ManagerDashboardView() {
             <CardTitle className="text-base flex items-center gap-2">
               <ShoppingCart className="h-4 w-4 text-blue-600" />
               أوامر شراء معلّقة
-              {data.pendingPurchaseOrders.length > 0 ? (
-                <Badge variant="secondary" className="bg-blue-500/10 text-blue-700">{data.pendingPurchaseOrders.length}</Badge>
+              {pendingPOs.length > 0 ? (
+                <Badge variant="secondary" className="bg-blue-500/10 text-blue-700">{pendingPOs.length}</Badge>
               ) : null}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {data.pendingPurchaseOrders.length === 0 ? (
+            {pendingPOs.length === 0 ? (
               <p className="text-sm text-muted-foreground py-4 text-center">لا توجد أوامر شراء معلّقة</p>
             ) : (
               <ScrollArea className="h-[200px]">
                 <div className="space-y-1">
-                  {data.pendingPurchaseOrders.map((po) => (
+                  {pendingPOs.map((po) => (
                     <div
                       key={po.id}
                       className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 hover:bg-muted/30 cursor-pointer"

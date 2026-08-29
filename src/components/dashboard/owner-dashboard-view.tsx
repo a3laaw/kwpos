@@ -218,6 +218,7 @@ export function OwnerDashboardView() {
   const payments = data?.salesByPaymentMethod ?? []
   const alerts = data?.alerts ?? []
   const lowStock = data?.lowStockProducts ?? []
+  const outstandingPayables = (data as any)?.outstandingPayables ?? []
 
   // Sales-change pct for the KPI card header badge (always vs yesterday).
   const salesChangePct = data?.periodComparison?.today?.salesChangePct ?? 0
@@ -382,14 +383,14 @@ export function OwnerDashboardView() {
         <KpiCard
           title={t.odKpiStockValue}
           value={fmt.currency(kpi.stockValue)}
-          hint={t.odKpiSuppliersHint.replace("{count}", String(data.outstandingPayables.length))}
+          hint={t.odKpiSuppliersHint.replace("{count}", String(outstandingPayables?.length ?? 0))}
           icon={<Boxes className="h-5 w-5" />}
           tone="info"
         />
         <KpiCard
           title={t.odKpiOutstanding}
           value={fmt.currency(kpi.outstandingPayments)}
-          hint={t.odKpiSuppliersHint.replace("{count}", String(data.outstandingPayables.length))}
+          hint={t.odKpiSuppliersHint.replace("{count}", String(outstandingPayables?.length ?? 0))}
           icon={<CreditCard className="h-5 w-5" />}
           tone="danger"
           onClick={() => navigate("suppliers")}
