@@ -1,21 +1,6 @@
 "use client"
 
 import * as React from "react"
-import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Legend,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -246,59 +231,32 @@ export function DashboardView() {
             {trend.length === 0 ? (
               <EmptyState title={t.dshNoSalesYet} description={t.dshNoSalesYetDesc} />
             ) : (
-              <ResponsiveContainer width="100%" height={260} minHeight={200}>
-                <AreaChart data={trend} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#2E6237" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="#2E6237" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
-                    tickLine={false}
-                    axisLine={false}
-                    // Render day name in the active UI locale (Arabic month/day
-                    // names for `ar`, English for `en`). The backend still
-                    // sends a hardcoded Arabic `label` field, but we ignore it
-                    // here to avoid leaking Arabic when the UI is in English.
-                    tickFormatter={(iso: string) => {
-                      const d = new Date(iso)
-                      if (isNaN(d.getTime())) return ""
-                      return new Intl.DateTimeFormat(
-                        locale === "en" ? "en-GB" : "ar-KW-u-nu-latn",
-                        { weekday: "short" }
-                      ).format(d)
-                    }}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
-                    tickLine={false}
-                    axisLine={false}
-                    width={50}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      borderRadius: 12,
-                      border: "1px solid hsl(var(--border))",
-                      background: "hsl(var(--popover))",
-                      color: "hsl(var(--popover-foreground))",
-                      fontSize: 13,
-                    }}
-                    formatter={(v: number) => [fmt.currency(v), t.dshSales]}
-                    labelStyle={{ color: "hsl(var(--muted-foreground))" }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="total"
-                    stroke="#2E6237"
-                    strokeWidth={2.5}
-                    fill="url(#salesGrad)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+              <div className="space-y-1.5">
+                {trend.map((d, i) => {
+                  const max = Math.max(...trend.map((t) => t.total || 0), 1)
+                  const pct = max > 0 ? Math.max(((d.total || 0) / max) * 100, 2) : 0
+                  return (
+                    <div key={i} className="flex items-center gap-2 text-xs">
+                      <span className="w-16 shrink-0 text-muted-foreground truncate">
+                        {new Date(d.date || d.label || "").toLocaleDateString(
+                          locale === "en" ? "en-GB" : "ar-KW-u-nu-latn",
+                          { weekday: "short", day: "numeric" }
+                        )}
+                      </span>
+                      <div className="flex-1 h-6 bg-muted/40 rounded overflow-hidden">
+                        <div
+                          className="h-full bg-primary/70 rounded flex items-center justify-end px-1.5"
+                          style={{ width: `${pct}%` }}
+                        >
+                          <span className="text-[10px] font-bold text-primary-foreground tabular-nums">
+                            {fmt.currency(d.total || 0)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
             )}
           </CardContent>
         </Card>
@@ -316,51 +274,22 @@ export function DashboardView() {
             {cats.length === 0 ? (
               <EmptyState title={t.dshNoCategories} description={t.noDataDescription} />
             ) : (
-              <ResponsiveContainer width="100%" height={260} minHeight={200}>
-                <PieChart>
-                  <Pie
-                    data={cats}
-                    dataKey="total"
-                    nameKey="categoryName"
-                    cx="50%"
-                    cy="45%"
-                    innerRadius={45}
-                    outerRadius={75}
-                    paddingAngle={2}
-                  >
-                    {cats.map((_, i) => (
-                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      borderRadius: 12,
-                      border: "1px solid hsl(var(--border))",
-                      background: "hsl(var(--popover))",
-                      color: "hsl(var(--popover-foreground))",
-                      fontSize: 13,
-                    }}
-                    formatter={(v: number) => fmt.currency(v)}
-                  />
-                  <Legend
-                    layout="horizontal"
-                    verticalAlign="bottom"
-                    align="center"
-                    iconType="circle"
-                    iconSize={9}
-                    wrapperStyle={{
-                      fontSize: 11,
-                      paddingTop: 8,
-                      maxHeight: 60,
-                      overflow: "hidden",
-                    }}
-                    formatter={(value: string) => {
-                      if (!value || typeof value !== 'string') return ''
-                      return value.length > 16 ? `${value.slice(0, 16)}…` : value
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+              <div className="space-y-2">
+                {cats.slice(0, 8).map((c, i) => {
+                  const total = cats.reduce((s, x) => s + (x.total || 0), 0)
+                  const pct = total > 0 ? ((c.total || 0) / total) * 100 : 0
+                  return (
+                    <div key={i} className="flex items-center gap-2 text-xs">
+                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
+                      <span className="w-28 shrink-0 truncate text-muted-foreground">{c.categoryName || "—"}</span>
+                      <div className="flex-1 h-5 bg-muted/40 rounded overflow-hidden">
+                        <div className="h-full rounded" style={{ width: `${Math.max(pct, 2)}%`, backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
+                      </div>
+                      <span className="w-20 shrink-0 text-end font-medium tabular-nums">{fmt.currency(c.total || 0)}</span>
+                    </div>
+                  )
+                })}
+              </div>
             )}
           </CardContent>
         </Card>
