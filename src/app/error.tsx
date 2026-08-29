@@ -4,7 +4,12 @@
  * Global Error Boundary — Next.js convention.
  *
  * Catches errors that occur during the render of any route segment below
- * `app/`. Shows a recoverable fallback UI with a "Try again" button.
+ * `app/` (including the page tree, but NOT the root layout itself — that
+ * is handled by `global-error.tsx`). Forwards the error to the error
+ * monitor (POST /api/errors) and shows a recoverable fallback UI with a
+ * "Try again" button that resets the boundary.
+ *
+ * See: https://nextjs.org/docs/app/api-reference/file-conventions/error
  */
 
 import * as React from "react"
@@ -18,6 +23,7 @@ export default function Error({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  // Report the error to /api/errors (server-side audit log).
   React.useEffect(() => {
     reportClientError({
       message: `[error.tsx boundary] ${error.message}`,
@@ -30,27 +36,13 @@ export default function Error({
   return (
     <div
       dir="rtl"
-      className="flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center"
+      className="flex min-h-[60vh] flex-col items-center justify-center gap-4 p-6 text-center"
     >
       <h2 className="text-xl font-semibold">حدث خطأ غير متوقع</h2>
       <p className="text-sm text-muted-foreground">
-        لم نتمكن من العثور على الصفحة التي تبحث عنها.
+        تم إبلاغ فريق الدعم بالخطأ. يمكنك المحاولة مرة أخرى.
       </p>
-      <Button
-        onClick={() => {
-          // Reset the error boundary first
-          reset()
-          // Force a clean page reload to the root
-          // Use window.location.replace so the broken URL doesn't
-          // stay in browser history (prevents back button from
-          // re-triggering the error)
-          if (typeof window !== "undefined") {
-            window.location.replace(window.location.origin)
-          }
-        }}
-      >
-        إعادة المحاولة
-      </Button>
+      <Button onClick={() => reset()}>إعادة المحاولة</Button>
     </div>
   )
 }

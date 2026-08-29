@@ -54,20 +54,6 @@ export function AppShell({
     useAppStore.persist.rehydrate()
   }, [])
 
-  // ── Handle Browser back/forward button ──────────────────────────
-  // When the user presses the browser back button, instead of letting
-  // the browser navigate (which could trigger a 404 or page reload),
-  // redirect them to the dashboard via Zustand state (no network request).
-  // This is SAFE because we only call setView (no pushState, no reload).
-  React.useEffect(() => {
-    const handler = () => {
-      // Just go to dashboard — don't prevent default, don't pushState
-      setView("dashboard")
-    }
-    window.addEventListener("popstate", handler)
-    return () => window.removeEventListener("popstate", handler)
-  }, [setView])
-
   // Ensure the current view is allowed for the role; otherwise redirect.
   // CASHIER → goes directly to POS (no dashboard).
   // Other roles → default to dashboard if allowed, else their first
