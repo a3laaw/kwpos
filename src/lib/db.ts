@@ -24,11 +24,11 @@ function getDatasourceUrl(): string | undefined {
   // refunds, purchase invoices, stock transfers, etc.
   if (direct && direct.trim()) {
     let url = direct.trim()
-    // Set connection_limit=3 — allows some parallelism for concurrent requests
-    // while staying under Supabase's connection limits. On Supabase free tier
-    // the pooler handles connection multiplexing, so this is safe.
+    // Set connection_limit=1 — one connection per client to prevent
+    // exhausting Supabase's session-mode pooler (max 15 connections).
+    // Vercel reuses function instances, so connections are shared.
     if (!url.includes('connection_limit=')) {
-      url += (url.includes('?') ? '&' : '?') + 'connection_limit=3'
+      url += (url.includes('?') ? '&' : '?') + 'connection_limit=1'
     }
     return url
   }
