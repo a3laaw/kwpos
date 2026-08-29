@@ -102,11 +102,19 @@ export function DashboardView() {
     )
   }
 
-  const lowStock = data.lowStockProducts ?? []
-  const recentSales = data.recentSales ?? []
-  const trend = data.salesTrend ?? []
-  const top = data.topProducts ?? []
-  const cats = data.categoryDistribution ?? []
+  const lowStock = data?.lowStockProducts ?? []
+  const recentSales = data?.recentSales ?? []
+  const trend = data?.salesTrend ?? []
+  const top = data?.topProducts ?? []
+  const cats = data?.categoryDistribution ?? []
+  // Null-safe KPI defaults — prevents 'Cannot read properties of undefined'
+  const totalSales = data?.totalSales ?? 0
+  const todaySales = data?.todaySales ?? 0
+  const salesCount = data?.salesCount ?? 0
+  const productsCount = data?.productsCount ?? 0
+  const inventoryValue = data?.inventoryValue ?? 0
+  const lowStockCount = data?.lowStockCount ?? 0
+  const pendingPurchases = data?.pendingPurchases ?? 0
   // Capture the narrowed `data` so the click handler below doesn't lose the
   // narrowing through the closure.
   const d = data
@@ -191,31 +199,31 @@ export function DashboardView() {
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <StatCard
           title={t.dshTotalSales}
-          value={fmt.currency(data.totalSales)}
-          hint={t.invoiceCountLabel.replace("{count}", fmt.number(data.salesCount))}
+          value={fmt.currency(totalSales)}
+          hint={t.invoiceCountLabel.replace("{count}", fmt.number(salesCount))}
           icon={<DollarSign className="h-5 w-5" />}
           tone="success"
         />
         <StatCard
           title={t.dshTodaySales}
-          value={fmt.currency(data.todaySales)}
+          value={fmt.currency(todaySales)}
           hint={t.dshSinceStartOfDay}
           icon={<TrendingUp className="h-5 w-5" />}
           tone="info"
         />
         <StatCard
           title={t.dshProductsCount}
-          value={fmt.number(data.productsCount)}
-          hint={t.inventoryValueLabel.replace("{value}", fmt.currency(data.inventoryValue))}
+          value={fmt.number(productsCount)}
+          hint={t.inventoryValueLabel.replace("{value}", fmt.currency(inventoryValue))}
           icon={<Package className="h-5 w-5" />}
           tone="default"
         />
         <StatCard
           title={t.dshLowStockProducts}
-          value={fmt.number(data.lowStockCount)}
-          hint={t.pendingPoCountLabel.replace("{count}", fmt.number(data.pendingPurchases))}
+          value={fmt.number(lowStockCount)}
+          hint={t.pendingPoCountLabel.replace("{count}", fmt.number(pendingPurchases))}
           icon={<AlertTriangle className="h-5 w-5" />}
-          tone={data.lowStockCount > 0 ? "danger" : "success"}
+          tone={lowStockCount > 0 ? "danger" : "success"}
         />
       </div>
 
@@ -518,7 +526,7 @@ export function DashboardView() {
       </div>
 
       {/* Pending purchases banner */}
-      {data.pendingPurchases > 0 && (
+      {pendingPurchases > 0 && (
         <Card className="border-amber-500/40 bg-amber-500/5">
           <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
@@ -527,7 +535,7 @@ export function DashboardView() {
               </span>
               <div>
                 <p className="font-medium text-sm">
-                  {t.dshYouHavePendingPo} ({fmt.number(data.pendingPurchases)})
+                  {t.dshYouHavePendingPo} ({fmt.number(pendingPurchases)})
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {t.dshConfirmReceiptToUpdateStock}
