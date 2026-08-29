@@ -245,41 +245,31 @@ export function ManagerDashboardView() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={240} minHeight={200}>
-            <BarChart
-              data={[
-                { name: "اليوم", value: data.todaySales },
-                { name: "أمس", value: data.yesterdaySales },
-              ]}
-              margin={{ top: 5, right: 10, left: 0, bottom: 0 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-              <XAxis
-                dataKey="name"
-                tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis
-                tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                tickLine={false}
-                axisLine={false}
-                width={60}
-              />
-              <Tooltip
-                contentStyle={{
-                  borderRadius: 12,
-                  border: "1px solid hsl(var(--border))",
-                  fontSize: 12,
-                }}
-                formatter={(v: number) => fmt.currency(v)}
-              />
-              <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-                <Cell fill="#2E6237" />
-                <Cell fill="#DFC196" />
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          {/* CSS bars instead of recharts — avoids crash on empty data */}
+          <div className="space-y-2 py-2">
+            {[
+              { name: "اليوم", value: data.todaySales, color: "#2E6237" },
+              { name: "أمس", value: data.yesterdaySales, color: "#DFC196" },
+            ].map((item, i) => {
+              const max = Math.max(data.todaySales, data.yesterdaySales, 1)
+              const pct = max > 0 ? Math.max((item.value / max) * 100, 2) : 0
+              return (
+                <div key={i} className="flex items-center gap-2 text-xs">
+                  <span className="w-10 shrink-0 text-muted-foreground">{item.name}</span>
+                  <div className="flex-1 h-8 bg-muted/40 rounded overflow-hidden">
+                    <div
+                      className="h-full rounded flex items-center justify-end px-2"
+                      style={{ width: `${pct}%`, backgroundColor: item.color }}
+                    >
+                      <span className="text-[10px] font-bold text-white tabular-nums">
+                        {fmt.currency(item.value)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </CardContent>
       </Card>
 
