@@ -209,20 +209,20 @@ export function OwnerDashboardView() {
     )
   }
 
-  const kpi = data.todayKPIs
-  const comp = data.periodComparison[period]
-  const trend = data.sevenDayTrend
-  const hourly = data.hourlySales
-  const topProducts = data.topProductsToday
-  const topCategories = data.topCategoriesToday
-  const payments = data.salesByPaymentMethod
-  const alerts = data.alerts
-  const lowStock = data.lowStockProducts
+  const kpi = data?.todayKPIs ?? { sales: 0, count: 0, profit: 0, stockValue: 0, outstandingPayments: 0, activeShifts: 0 }
+  const comp = data?.periodComparison?.[period] ?? { sales: 0, profit: 0, orders: 0, aov: 0, salesChangePct: 0, profitChangePct: 0, ordersChangePct: 0, aovChangePct: 0 }
+  const trend = data?.sevenDayTrend ?? []
+  const hourly = data?.hourlySales ?? []
+  const topProducts = data?.topProductsToday ?? []
+  const topCategories = data?.topCategoriesToday ?? []
+  const payments = data?.salesByPaymentMethod ?? []
+  const alerts = data?.alerts ?? []
+  const lowStock = data?.lowStockProducts ?? []
 
   // Sales-change pct for the KPI card header badge (always vs yesterday).
-  const salesChangePct = data.periodComparison.today.salesChangePct
-  const profitChangePct = data.periodComparison.today.profitChangePct
-  const ordersChangePct = data.periodComparison.today.ordersChangePct
+  const salesChangePct = data?.periodComparison?.today?.salesChangePct ?? 0
+  const profitChangePct = data?.periodComparison?.today?.profitChangePct ?? 0
+  const ordersChangePct = data?.periodComparison?.today?.ordersChangePct ?? 0
 
   // Payment method donut calculation: total + percentages.
   const totalPayments = payments.reduce((s, p) => s + p.total, 0)

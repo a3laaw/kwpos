@@ -74,10 +74,16 @@ export function ManagerDashboardView() {
     )
   }
 
-  const salesUp = data.salesChangePct >= 0
+  const salesUp = (data.salesChangePct ?? 0) >= 0
   // Capture the narrowed `data` so the click handler below doesn't lose the
   // narrowing through the closure.
   const d = data
+
+  // Null-safe defaults for all array/object fields
+  const openShifts = d.openShifts ?? []
+  const lowStockProducts = d.lowStockProducts ?? []
+  const pendingPOs = (d as any).pendingPurchaseOrders ?? []
+  const topProductsToday = d.topProductsToday ?? []
 
   // Excel export — today's KPIs + alerts + low stock + pending POs.
   function handleExportExcel() {
@@ -93,13 +99,13 @@ export function ManagerDashboardView() {
     rows.push({ section: "مؤشرات اليوم", label: "نسبة التغيير %", value: `${d.salesChangePct}%` })
     rows.push({ section: "مؤشرات اليوم", label: "عدد فواتير اليوم", value: d.todaySalesCount })
     rows.push({ section: "مؤشرات اليوم", label: "عدد فواتير الأمس", value: d.yesterdaySalesCount })
-    rows.push({ section: "مؤشرات اليوم", label: "ورديات مفتوحة", value: d.openShifts.length })
+    rows.push({ section: "مؤشرات اليوم", label: "ورديات مفتوحة", value: openShifts.length })
     rows.push({ section: "مؤشرات اليوم", label: "مستحقات موردين", value: fmt.currency(d.totalPayables) })
     rows.push({ section: "مؤشرات اليوم", label: "نسبة الحذف والمرتجعات (7 أيام) %", value: `${d.voidRefundRate}%` })
     rows.push({ section: "مؤشرات اليوم", label: "عدد عمليات الحذف/المرتجعات", value: d.voidRefundCount })
     rows.push({ section: "مؤشرات اليوم", label: "إجمالي المبيعات (7 أيام)", value: d.totalSalesCount7d })
     // Alerts — low stock
-    for (const p of d.lowStockProducts) {
+    for (const p of lowStockProducts) {
       rows.push({
         section: "تنبيهات المخزون",
         label: p.name,
@@ -185,10 +191,10 @@ export function ManagerDashboardView() {
               </span>
               <span className="text-sm text-muted-foreground">ورديات مفتوحة</span>
             </div>
-            <p className="text-2xl font-bold tabular-nums mt-2">{data.openShifts.length}</p>
+            <p className="text-2xl font-bold tabular-nums mt-2">{openShifts.length}</p>
             <p className="text-xs text-muted-foreground mt-1">
-              {data.openShifts.length > 0
-                ? data.openShifts.slice(0, 2).map((s) => s.cashierName).join("، ")
+              {openShifts.length > 0
+                ? openShifts.slice(0, 2).map((s) => s.cashierName).join("، ")
                 : "لا توجد ورديات نشطة"}
             </p>
           </CardContent>
@@ -196,7 +202,7 @@ export function ManagerDashboardView() {
 
         {/* Low stock alerts */}
         <Card
-          className={cn("cursor-pointer hover:shadow-md transition-shadow", data.lowStockProducts.length > 0 && "border-amber-500/30")}
+          className={cn("cursor-pointer hover:shadow-md transition-shadow", lowStockProducts.length > 0 && "border-amber-500/30")}
           onClick={() => navigate("inventory")}
         >
           <CardContent className="p-4">
@@ -206,7 +212,7 @@ export function ManagerDashboardView() {
               </span>
               <span className="text-sm text-muted-foreground">نقص مخزون</span>
             </div>
-            <p className="text-2xl font-bold tabular-nums mt-2">{data.lowStockProducts.length}</p>
+            <p className="text-2xl font-bold tabular-nums mt-2">{lowStockProducts.length}</p>
             <p className="text-xs text-muted-foreground mt-1">منتج تحت حد إعادة الطلب</p>
           </CardContent>
         </Card>
@@ -284,18 +290,18 @@ export function ManagerDashboardView() {
             <CardTitle className="text-base flex items-center gap-2">
               <Package className="h-4 w-4 text-amber-600" />
               تنبيهات نقص المخزون
-              {data.lowStockProducts.length > 0 ? (
-                <Badge variant="secondary" className="bg-amber-500/10 text-amber-700">{data.lowStockProducts.length}</Badge>
+              {lowStockProducts.length > 0 ? (
+                <Badge variant="secondary" className="bg-amber-500/10 text-amber-700">{lowStockProducts.length}</Badge>
               ) : null}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {data.lowStockProducts.length === 0 ? (
+            {lowStockProducts.length === 0 ? (
               <p className="text-sm text-muted-foreground py-4 text-center">لا توجد منتجات تحت حد إعادة الطلب</p>
             ) : (
               <ScrollArea className="h-[200px]">
                 <div className="space-y-1">
-                  {data.lowStockProducts.map((p) => (
+                  {lowStockProducts.map((p) => (
                     <div
                       key={p.id}
                       className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 hover:bg-muted/30 cursor-pointer"
@@ -364,12 +370,12 @@ export function ManagerDashboardView() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {data.openShifts.length === 0 ? (
+            {openShifts.length === 0 ? (
               <p className="text-sm text-muted-foreground py-4 text-center">لا توجد ورديات مفتوحة</p>
             ) : (
               <ScrollArea className="h-[200px]">
                 <div className="space-y-1">
-                  {data.openShifts.map((s) => (
+                  {openShifts.map((s) => (
                     <div
                       key={s.id}
                       className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 hover:bg-muted/30 cursor-pointer"
@@ -406,11 +412,11 @@ export function ManagerDashboardView() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {data.topProductsToday.length === 0 ? (
+            {topProductsToday.length === 0 ? (
               <p className="text-sm text-muted-foreground py-4 text-center">لا توجد مبيعات اليوم بعد</p>
             ) : (
               <div className="space-y-1">
-                {data.topProductsToday.map((p, i) => (
+                {topProductsToday.map((p, i) => (
                   <div key={i} className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-muted/30">
                     <span className="flex h-6 w-6 items-center justify-center rounded bg-primary/10 text-primary text-xs font-bold shrink-0">
                       {i + 1}
